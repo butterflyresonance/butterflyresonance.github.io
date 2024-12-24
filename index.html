@@ -84,8 +84,6 @@ body {
 
 html, body {
     width: 100%;
-    margin: 0;
-    padding: 0;
 }
 
 /* 3. Typography
@@ -110,10 +108,12 @@ html, body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem;
+    position: relative;
 }
 
 .section {
     padding: 5rem 0;
+    position: relative;
 }
 
 .section--alt {
@@ -291,7 +291,6 @@ html, body {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
     box-shadow: var(--shadow-sm);
-    width: 100%;
 }
 
 .nav__container {
@@ -352,7 +351,7 @@ html, body {
 }
 
 .hero__background {
-    position: fixed;
+    position: absolute;
     inset: 0;
     overflow: hidden;
     z-index: -1;
