@@ -654,7 +654,6 @@ html, body {
 .vision-list li {
     position: relative;
     padding: 0.5rem 0;
-    font-size: 1.125rem;
     line-height: 1.6;
 }
 
@@ -663,6 +662,14 @@ html, body {
     color: var(--color-primary);
     position: absolute;
     left: -1.5rem;
+}
+
+.vision__content .card {
+    margin-bottom: 2rem;
+}
+
+.vision__content .card:last-child {
+    margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
@@ -676,6 +683,10 @@ html, body {
     
     .vision-list li {
         font-size: 1rem;
+    }
+
+    .vision-item h4 {
+        font-size: 1.125rem;
     }
 }
 
@@ -733,11 +744,11 @@ html, body {
     <!-- Vision Section -->
     <section class="section" id="vision" aria-labelledby="vision-title">
     <div class="container">
-        <h2 id="vision-title" class="section__title">Understanding Our Vision</h2>
+        <h2 id="vision-title" class="section__title">Vision</h2>
         
         <div class="vision__content">
-            <div class="vision-section" data-aos="fade-up">
-                <h3 class="vision-title">Three Ways of Understanding</h3>
+            <div class="card" data-aos="fade-right">
+                <h3 class="card__title">Three Ways of Understanding</h3>
                 <div class="vision-grid">
                     <div class="vision-item">
                         <h4>Psychodynamic Insight</h4>
@@ -756,9 +767,9 @@ html, body {
                 </div>
             </div>
 
-            <div class="vision-section" data-aos="fade-up">
-                <h3 class="vision-title">The Hidden Impact</h3>
-                <p class="vision-text">When our conscious mind pushes something away, covering it with layers of fear - fear of judgment, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
+            <div class="card" data-aos="fade-up" data-aos-delay="100">
+                <h3 class="card__title">The Hidden Impact</h3>
+                <p>When our conscious mind pushes something away, covering it with layers of fear - fear of judgment, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
                 
                 <ul class="vision-list">
                     <li>Our body, through tension and restricted movement</li>
@@ -767,9 +778,9 @@ html, body {
                 </ul>
             </div>
 
-            <div class="vision-section" data-aos="fade-up">
-                <h3 class="vision-title">A Natural Integration</h3>
-                <p class="vision-text">Movement culture provides a unique bridge back to ourselves:</p>
+            <div class="card" data-aos="fade-up" data-aos-delay="200">
+                <h3 class="card__title">A Natural Integration</h3>
+                <p>Movement culture provides a unique bridge back to ourselves:</p>
                 
                 <div class="vision-grid">
                     <div class="vision-item">
@@ -789,9 +800,9 @@ html, body {
                 </div>
             </div>
 
-            <div class="vision-section" data-aos="fade-up">
-                <h3 class="vision-title">The Path Forward</h3>
-                <p class="vision-text">Somatic therapy already recognizes these connections through:</p>
+            <div class="card" data-aos="fade-left" data-aos-delay="300">
+                <h3 class="card__title">The Path Forward</h3>
+                <p>Somatic therapy already recognizes these connections through:</p>
                 <ul class="vision-list">
                     <li>Response completion movements</li>
                     <li>Grounding reflections</li>
@@ -799,7 +810,7 @@ html, body {
                     <li>Body awareness practices</li>
                     <li>Emotional integration work</li>
                 </ul>
-                <p class="vision-text">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we can create new pathways for authentic expression and healing.</p>
+                <p>Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we can create new pathways for authentic expression and healing.</p>
             </div>
         </div>
     </div>
