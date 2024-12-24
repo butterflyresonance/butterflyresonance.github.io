@@ -83,7 +83,7 @@ body {
 }
 
 html, body {
-    width 100%;
+    width: 100%;
     margin: 0;
     padding: 0;
 }
@@ -291,7 +291,7 @@ html, body {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
     box-shadow: var(--shadow-sm);
-    width: 100vw;
+    width: 100%;
 }
 
 .nav__container {
@@ -352,9 +352,10 @@ html, body {
 }
 
 .hero__background {
-    position: absolute;
+    position: fixed;
     inset: 0;
     overflow: hidden;
+    z-index: -1;
 }
 
 .hero__overlay {
