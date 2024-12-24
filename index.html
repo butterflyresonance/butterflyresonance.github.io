@@ -604,119 +604,82 @@ html, body {
     }
 }
 
-    .insight-card {
-        background: white;
-        border-radius: 16px;
-        padding: 2.5rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-standard);
-    }
 
-    .insight-card:hover {
-        box-shadow: var(--shadow-lg);
-    }
 
-    .insight-card__title {
-        color: var(--color-primary);
+.vision__content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.vision-section {
+    margin-bottom: 4rem;
+}
+
+.vision-section:last-child {
+    margin-bottom: 0;
+}
+
+.vision-title {
+    color: var(--color-primary);
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    font-family: 'Cormorant', serif;
+}
+
+.vision-text {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+}
+
+.vision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.vision-item h4 {
+    color: var(--color-primary);
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.vision-list {
+    list-style: none;
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.vision-list li {
+    position: relative;
+    padding: 0.5rem 0;
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+.vision-list li::before {
+    content: "•";
+    color: var(--color-primary);
+    position: absolute;
+    left: -1.5rem;
+}
+
+@media (max-width: 768px) {
+    .vision-title {
         font-size: 1.75rem;
-        margin-bottom: 1.5rem;
-        font-family: 'Cormorant', serif;
     }
-
-    .insight-card__text {
-        font-size: 1.125rem;
-        line-height: 1.7;
-        margin-bottom: 1.5rem;
+    
+    .vision-text {
+        font-size: 1rem;
     }
-
-    .perspective-grid, .bridge-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 2rem;
-        margin-top: 1.5rem;
+    
+    .vision-list li {
+        font-size: 1rem;
     }
+}
 
-    .perspective-item, .bridge-item {
-        padding: 1.5rem;
-        background: var(--color-background-alt);
-        border-radius: 12px;
-        transition: var(--transition-standard);
-    }
 
-    .perspective-item:hover, .bridge-item:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .perspective-item h4, .bridge-item h4 {
-        color: var(--color-primary);
-        margin-bottom: 0.75rem;
-        font-size: 1.25rem;
-    }
-
-    .impact-list {
-        margin: 2rem 0;
-    }
-
-    .impact-item {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 1rem;
-    }
-
-    .impact-item__indicator {
-        width: 8px;
-        height: 8px;
-        background: var(--color-primary);
-        border-radius: 50%;
-        margin-top: 0.5rem;
-        margin-right: 1rem;
-        flex-shrink: 0;
-    }
-
-    .practice-list {
-        list-style: none;
-        margin: 1.5rem 0;
-        padding-left: 1.5rem;
-    }
-
-    .practice-list li {
-        position: relative;
-        padding: 0.5rem 0;
-    }
-
-    .practice-list li::before {
-        content: "•";
-        color: var(--color-primary);
-        position: absolute;
-        left: -1.5rem;
-    }
-
-    .vision-conclusion {
-        margin-top: 2rem;
-        font-size: 1.125rem;
-        line-height: 1.7;
-        color: var(--color-text);
-    }
-
-    @media (max-width: 768px) {
-        .insight-card {
-            padding: 1.5rem;
-        }
-
-        .insight-card__title {
-            font-size: 1.5rem;
-        }
-
-        .insight-card__text {
-            font-size: 1rem;
-        }
-
-        .perspective-item, .bridge-item {
-            padding: 1.25rem;
-        }
-    }
     </style>
 </head>
 <body>
@@ -773,88 +736,74 @@ html, body {
         <h2 id="vision-title" class="section__title">Understanding Our Vision</h2>
         
         <div class="vision__content">
-            <!-- Three Perspectives Card -->
-            <div class="insight-card" data-aos="fade-up">
-                <h3 class="insight-card__title">Three Ways of Understanding</h3>
-                
-                <div class="perspective-grid">
-                    <div class="perspective-item">
+            <div class="vision-section" data-aos="fade-up">
+                <h3 class="vision-title">Three Ways of Understanding</h3>
+                <div class="vision-grid">
+                    <div class="vision-item">
                         <h4>Psychodynamic Insight</h4>
                         <p>Reveals how we hold onto hurt in untouched parts of our mind, protecting ourselves through unconscious patterns and defenses</p>
                     </div>
                     
-                    <div class="perspective-item">
+                    <div class="vision-item">
                         <h4>Somatic Understanding</h4>
                         <p>Shows how we carry hurt in our body - through tension, restriction, and disconnect from our physical experience</p>
                     </div>
                     
-                    <div class="perspective-item">
+                    <div class="vision-item">
                         <h4>Movement Wisdom</h4>
                         <p>Offers ways to reconnect with our body through strength, flexibility, and expressive movement</p>
                     </div>
                 </div>
             </div>
 
-            <!-- The Connection Card -->
-            <div class="insight-card" data-aos="fade-up" data-aos-delay="100">
-                <h3 class="insight-card__title">The Hidden Impact</h3>
-                <p class="insight-card__text">When our conscious mind pushes something away, covering it with layers of fear - fear of judgment, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
+            <div class="vision-section" data-aos="fade-up">
+                <h3 class="vision-title">The Hidden Impact</h3>
+                <p class="vision-text">When our conscious mind pushes something away, covering it with layers of fear - fear of judgment, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
                 
-                <div class="impact-list">
-                    <div class="impact-item">
-                        <span class="impact-item__indicator"></span>
-                        <p>Our body, through tension and restricted movement</p>
-                    </div>
-                    <div class="impact-item">
-                        <span class="impact-item__indicator"></span>
-                        <p>Our relationships, through guarded connections</p>
-                    </div>
-                    <div class="impact-item">
-                        <span class="impact-item__indicator"></span>
-                        <p>Most fundamentally, our relationship with ourselves, as we lose touch with our emotional truth</p>
-                    </div>
-                </div>
+                <ul class="vision-list">
+                    <li>Our body, through tension and restricted movement</li>
+                    <li>Our relationships, through guarded connections</li>
+                    <li>Most fundamentally, our relationship with ourselves, as we lose touch with our emotional truth</li>
+                </ul>
             </div>
 
-            <!-- The Integration Card -->
-            <div class="insight-card" data-aos="fade-up" data-aos-delay="200">
-                <h3 class="insight-card__title">A Natural Integration</h3>
-                <p class="insight-card__text">Movement culture provides a unique bridge back to ourselves:</p>
+            <div class="vision-section" data-aos="fade-up">
+                <h3 class="vision-title">A Natural Integration</h3>
+                <p class="vision-text">Movement culture provides a unique bridge back to ourselves:</p>
                 
-                <div class="bridge-grid">
-                    <div class="bridge-item">
+                <div class="vision-grid">
+                    <div class="vision-item">
                         <h4>Coming Home</h4>
                         <p>Through increased attention to internal sensations, we naturally unearth feelings we've turned away from</p>
                     </div>
                     
-                    <div class="bridge-item">
+                    <div class="vision-item">
                         <h4>Building Safety</h4>
                         <p>Developing strength, flexibility, mobility, and balance helps us feel safer in our body</p>
                     </div>
                     
-                    <div class="bridge-item">
+                    <div class="vision-item">
                         <h4>Finding Joy</h4>
                         <p>Expressive movement reconnects us with playful, vital parts we may have hidden from fear of judgment</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Vision Forward Card -->
-            <div class="insight-card" data-aos="fade-up" data-aos-delay="300">
-                <h3 class="insight-card__title">The Path Forward</h3>
-                <p class="insight-card__text">Somatic therapy already recognizes these connections through:</p>
-                <ul class="practice-list">
+            <div class="vision-section" data-aos="fade-up">
+                <h3 class="vision-title">The Path Forward</h3>
+                <p class="vision-text">Somatic therapy already recognizes these connections through:</p>
+                <ul class="vision-list">
                     <li>Response completion movements</li>
                     <li>Grounding reflections</li>
                     <li>Release movements</li>
                     <li>Body awareness practices</li>
                     <li>Emotional integration work</li>
                 </ul>
-                <p class="vision-conclusion">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we can create new pathways for authentic expression and healing.</p>
+                <p class="vision-text">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we can create new pathways for authentic expression and healing.</p>
             </div>
         </div>
     </div>
-    </section>
+</section>
 
     <!-- Possibilities Section -->
     <section class="section section--alt" id="possibilities" aria-labelledby="possibilities-title">
