@@ -1,1 +1,940 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Butterfly Resonance - Integrated Movement & Psychotherapy</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    
+    <style>
+/* 
+ * Butterfly Resonance Stylesheet
+ * Table of Contents:
+ * 1. Custom Properties
+ * 2. Reset and Base Styles
+ * 3. Typography
+ * 4. Layout & Containers 
+ * 5. Components
+ *    - Buttons
+ *    - Cards
+ *    - Lists
+ *    - Forms
+ * 6. Navigation
+ * 7. Sections
+ *    - Hero
+ *    - Vision
+ *    - Possibilities
+ *    - Approach
+ *    - Community
+ *    - Join/Practitioners
+ * 8. Utilities
+ * 9. Animations
+ * 10. Media Queries
+ */
+
+/* 1. Custom Properties
+   ========================================================================== */
+:root {
+    /* Colors */
+    --color-primary: #614385;
+    --color-secondary: #516395;
+    --color-text: #2C3E50;
+    --color-text-light: #64748b;
+    --color-background: #ffffff;
+    --color-background-alt: #f8f9fa;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 12px rgba(0,0,0,0.1);
+    
+    /* Transitions */
+    --transition-standard: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    --instagram-gradient: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
+}
+
+/* 2. Reset and Base Styles
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.6;
+    color: var(--color-text);
+    overflow-x: hidden;
+}
+
+html, body {
+    width 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* 3. Typography
+   ========================================================================== */
+.section__title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.section__subtitle {
+    font-size: 1.25rem;
+    color: var(--color-text-light);
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 3rem;
+}
+
+/* 4. Layout & Containers
+   ========================================================================== */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.section {
+    padding: 5rem 0;
+}
+
+.section--alt {
+    background-color: var(--color-background-alt);
+}
+
+/* 5. Components
+   ========================================================================== */
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition-standard);
+    min-width: 200px;
+}
+
+.btn--primary {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn--primary:hover {
+    background: #523672;
+    box-shadow: var(--shadow-lg);
+}
+
+.btn--secondary {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn--secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn--instagram {
+    background: var(--instagram-gradient);
+    background-size: 200% 200%;
+    color: white;
+}
+
+.btn--instagram:hover {
+    background-position: right center;
+    box-shadow: var(--shadow-md);
+}
+
+/* Cards and Card Grids */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-standard);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: var(--transition-standard);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.card:hover::before {
+    transform: scaleX(1);
+}
+
+.card__title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.card__badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(97, 67, 133, 0.1);
+    color: var(--color-primary);
+    border-radius: 999px;
+    font-size: 0.875rem;
+    opacity: 0;
+    transform: translateY(-1rem);
+    transition: var(--transition-standard);
+}
+
+.card:hover .card__badge {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Lists */
+.list-base {
+    list-style: none;
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.list-base li {
+    padding: 0.5rem 0;
+    color: var(--color-text-light);
+    position: relative;
+}
+
+.list-base li::before {
+    content: '•';
+    color: var(--color-primary);
+    position: absolute;
+    left: -1.5rem;
+}
+
+/* Forms */
+.signup-form {
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+.form-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: var(--transition-standard);
+}
+
+.form-container:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.form-container iframe {
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none;
+}
+
+/* 6. Navigation
+   ========================================================================== */
+.nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-sm);
+    width: 100vw;
+}
+
+.nav__container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 4rem;
+}
+
+.nav__logo {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav__links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+}
+
+.nav__links a {
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 1rem;
+    transition: var(--transition-standard);
+    padding: 0.5rem 0;
+    position: relative;
+}
+
+.nav__toggle {
+    display: none;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--color-text);
+}
+
+.nav__toggle:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* 7. Sections
+   ========================================================================== */
+/* Hero Section */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #2C3E50 0%, #6B4984 30%, #B8719A 70%, #DBA834 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    padding-top: 6rem;
+}
+
+.hero__background {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(44, 62, 80, 0.95) 0%, rgba(107, 73, 132, 0.85) 30%, rgba(184, 113, 154, 0.85) 70%, rgba(219, 168, 52, 0.9) 100%);
+}
+
+.hero__content {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.hero__title {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+}
+
+.hero__text {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.hero__subtitle {
+    font-size: 1.2rem;
+    opacity: 0.8;
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+.hero__cta {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 3rem;
+}
+
+/* Approach Section */
+.approach-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.approach-card {
+    composes: card;
+    text-align: center;
+}
+
+.approach-card__icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(97, 67, 133, 0.1);
+    border-radius: 50%;
+    color: var(--color-primary);
+    transition: var(--transition-standard);
+}
+
+.approach-card:hover .approach-card__icon {
+    background: var(--color-primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Community Section */
+.social-links {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+/* Join/Practitioners Section */
+.section--join .section__title,
+.section--join .section__subtitle {
+    color: white;
+}
+
+.practitioners-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.practitioners-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    padding: 2.5rem;
+    border-radius: 1rem;
+    color: white;
+}
+
+.text-block {
+    margin-bottom: 2rem;
+}
+
+.text-block:last-child {
+    margin-bottom: 0;
+}
+
+.text-block p {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.practice-categories {
+    list-style: none;
+    padding: 0;
+    margin: 2rem 0;
+}
+
+.practice-categories li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.practice-categories li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: white;
+}
+
+.contact-section {
+    display: flex;
+    gap: 1rem;
+    margin-top: 3rem;
+    justify-content: center;
+}
+
+.section--join {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.section--join .btn--primary {
+    background: white;
+    color: var(--color-primary);
+}
+
+.section--join .btn--primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* 8. Utilities
+   ========================================================================== */
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    z-index: 1001;
+    transition: width 0.1s ease-out;
+}
+
+/* 9. Animations
+   ========================================================================== */
+/* AOS animations are handled via the AOS library */
+
+/* 10. Media Queries
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* Layout */
+    .container {
+        padding: 0 1rem;
+    }
+
+    .section {
+        padding: 3rem 1rem;
+    }
+
+    /* Navigation */
+    .nav__toggle {
+        display: block;
+    }
+
+    .nav__links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        box-shadow: var(--shadow-md);
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .nav__links.active {
+        display: flex;
+    }
+
+    .nav__links li {
+        width: 100%;
+    }
+
+    .nav__links a {
+        display: block;
+        padding: 0.75rem 1rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    .nav__links a:hover {
+        background: var(--color-background-alt);
+    }
+
+    /* Hero */
+    .hero__cta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Cards */
+    .practitioners-card {
+        padding: 1.5rem;
+    }
+
+    /* Buttons */
+    .contact-section {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .contact-section .btn,
+    .btn--instagram {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Forms */
+    .signup-form {
+        margin: 2rem 1rem;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav" id="main-nav">
+    <div class="container nav__container">
+        <a href="#hero" class="nav__logo">Butterfly Resonance</a>
+        
+        <!-- Mobile Menu Button -->
+        <button class="nav__toggle" aria-label="Toggle menu" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav__toggle-icon">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <!-- Navigation Links -->
+        <ul class="nav__links">
+            <li><a href="#vision">Vision</a></li>
+            <li><a href="#possibilities">Possibilities</a></li>
+            <li><a href="#approach">Approach</a></li>
+            <li><a href="#community">Community</a></li>
+            <li><a href="#practitioners">Practitioners</a></li>
+        </ul>
+    </div>
+</nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero" aria-labelledby="hero-title">
+        <div class="hero__background">
+            <div class="hero__overlay"></div>
+        </div>
+        <div class="container">
+            <div class="hero__content" data-aos="fade-up" data-aos-duration="1000">
+                <h1 id="hero-title" class="hero__title">Butterfly Resonance</h1>
+                <p class="hero__text">
+                    Where psychodynamic depth meets embodied wisdom - creating space for authentic self to emerge through the natural resonance of mind and movement.
+                </p>
+                <p class="hero__subtitle">
+                    A vision for integrating movement and psychotherapy
+                </p>
+                <div class="hero__cta">
+                    <a href="#vision" class="btn btn--primary">Explore Our Vision</a>
+                    <a href="#community" class="btn btn--secondary">Join the Journey</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision Section -->
+    <section class="section" id="vision" aria-labelledby="vision-title">
+        <div class="container">
+            <h2 id="vision-title" class="section__title">Our Vision</h2>
+            <div class="vision__content" data-aos="fade-up">
+                <div class="vision__grid">
+                    <div class="vision__main">
+                        <p class="vision__text">Just as psychodynamic and somatic approaches recognize that parts of our experience can be stored in the unconscious or the body, our movement patterns can become similarly limited. Through flowing with what naturally resonates - whether in emotional expression or physical movement - we create space for these hidden aspects to emerge, be felt, and integrate.</p>
+                        
+                        <p class="vision__text">Rather than forcing change, we follow the wisdom of natural unfolding. When we allow ourselves to move and feel with freedom, something profound emerges: a space where physical expression meets emotional understanding, where authentic patterns of being can develop through the intelligence of both body and mind.</p>
+                    </div>
+                    <div class="vision__pillars">
+                        <div class="vision__pillar">
+                            <h3>Mind-Body Integration</h3>
+                            <p>Working at the intersection of psychodynamic depth and embodied awareness to support whole-person emergence.</p>
+                        </div>
+                        <div class="vision__pillar">
+                            <h3>Natural Resonance</h3>
+                            <p>Following the wisdom of what naturally resonates, allowing authentic patterns to emerge in both movement and emotion.</p>
+                        </div>
+                        <div class="vision__pillar">
+                            <h3>Freedom Through Integration</h3>
+                            <p>Creating space for all aspects of self to be present, enabling true freedom in both mind and body.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Possibilities Section -->
+    <section class="section section--alt" id="possibilities" aria-labelledby="possibilities-title">
+        <div class="container">
+            <h2 id="possibilities-title" class="section__title">Future Possibilities</h2>
+            <p class="section__subtitle">Exploring potential pathways for integrated movement and therapy</p>
+            
+            <div class="card-grid">
+                <!-- Individual Work -->
+                <div class="card" data-aos="fade-right">
+                    <span class="card__badge">Future Offering</span>
+                    <h3 class="card__title">Individual Work</h3>
+                    <div class="card__content">
+                        <p>Personalized sessions integrating psychodynamic depth with embodied awareness.</p>
+                        <ul class="card__list">
+                            <li class="card__list-item">Depth Psychotherapy</li>
+                            <li class="card__list-item">Individual Movement Sessions</li>
+                            <li class="card__list-item">Integrated Mind-Body Work</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Group Movement -->
+                <div class="card" data-aos="fade-up" data-aos-delay="100">
+                    <span class="card__badge">Future Offering</span>
+                    <h3 class="card__title">Group Movement</h3>
+                    <div class="card__content">
+                        <p>Collaborative exploration of movement, strength, and authentic expression.</p>
+                        <ul class="card__list">
+                            <li class="card__list-item">Flow & Strength Classes</li>
+                            <li class="card__list-item">Partner Acrobatics</li>
+                            <li class="card__list-item">Expressive Movement</li>
+                            <li class="card__list-item">Skills Development</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Mind-Body Integration -->
+                <div class="card" data-aos="fade-left" data-aos-delay="200">
+                    <span class="card__badge">Future Offering</span>
+                    <h3 class="card__title">Mind-Body Integration</h3>
+                    <div class="card__content">
+                        <p>Practices that bridge the gap between physical and emotional awareness.</p>
+                        <ul class="card__list">
+                            <li class="card__list-item">Mindful Movement</li>
+                            <li class="card__list-item">Yoga & Breathwork</li>
+                            <li class="card__list-item">Somatic Awareness</li>
+                            <li class="card__list-item">Meditation & Embodiment</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Approach Section -->
+    <section class="section" id="approach" aria-labelledby="approach-title">
+        <div class="container">
+            <h2 id="approach-title" class="section__title">Our Approach</h2>
+            <p class="section__subtitle">Integrating therapeutic depth with embodied exploration</p>
+
+            <div class="approach-grid">
+                <div class="approach-card" data-aos="fade-right">
+                    <div class="approach-card__icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3 class="approach-card__title">Right Brain to Right Brain</h3>
+                    <p class="approach-card__text">
+                        Working through attunement and resonance, creating space for deep emotional understanding and authentic connection.
+                    </p>
+                </div>
+
+                <div class="approach-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="approach-card__icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="approach-card__title">Deep Listening</h3>
+                    <p class="approach-card__text">
+                        Attending to both conscious and unconscious material, working with countertransference and reverie.
+                    </p>
+                </div>
+
+                <div class="approach-card" data-aos="fade-left" data-aos-delay="200">
+                    <div class="approach-card__icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                        </svg>
+                    </div>
+                    <h3 class="approach-card__title">Flow States</h3>
+                    <p class="approach-card__text">
+                        Using movement and flow to facilitate authentic expression and natural integration of mind and body.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Section -->
+    <section class="section section--alt" id="community">
+        <div class="container">
+            <h2 class="section__title">Join Our Community</h2>
+            <p class="section__subtitle">Be part of a growing community dedicated to authentic movement and emotional exploration. Connect with us on Instagram and sign up for updates to stay informed about our journey.</p>
+            
+            <div class="social-links" data-aos="fade-up" data-aos-delay="200">
+                <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                    <span>@butterflyresonance</span>
+                </a>
+            </div>
+    
+            <div class="signup-form" data-aos="fade-up" data-aos-delay="400">
+                <div class="form-container">
+                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdYFYPFwZ_HqxBLgc9a-Yfbj6L_gTA1ZZ0S96NJ9eyNHaAqkQ/viewform?embedded=true" 
+                        width="100%" 
+                        height="500" 
+                        frameborder="0" 
+                        marginheight="0" 
+                        marginwidth="0">
+                        Loading…
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Join Section -->
+    <section class="section section--join" id="practitioners">
+        <div class="container">
+            <h2 class="section__title">For Practitioners</h2>
+            <p class="section__subtitle">Creating collaborative spaces for integrated practice</p>
+            
+            <div class="practitioners-content">
+                <div class="practitioners-card" data-aos="fade-in">
+                    <div class="text-block">
+                        <p>We're building an inclusive community bringing together practitioners from diverse backgrounds to support authentic expression and freedom through movement and awareness.</p>
+                        
+                        <ul class="practice-categories">
+                            <li>Psychotherapy and somatic therapy</li>
+                            <li>Movement and embodiment practices (yoga, dance, capoeira, martial arts)</li>
+                            <li>Body awareness and meditation practices (breathwork, qigong, tai chi)</li>
+                            <li>Athletic and acrobatic disciplines (calisthenics, gymnastics, acrobatics, parkour)</li>
+                            <li>Expressive and performing arts</li>
+                            <li>Contemplative and spiritual traditions (meditation, Sufism, Buddhism, Taoism)</li>
+                        </ul>
+                        
+                        <p>If you're interested in our integrated approach to supporting authentic expression and embodied freedom, we'd love to connect with you.</p>
+                    </div>
+    
+                    <div class="text-block">
+                        <p>Our vision is to create a space where diverse modalities come together to support true freedom - the freedom to feel all feelings, to embody all parts of ourselves, and to move in ways that authentically express who we are.</p>
+                    </div>
+                    
+                    <div class="contact-section">
+                        <a href="mailto:butterflyresonance@gmail.com" class="btn btn--primary">Email Us</a>
+                        <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                            <span>Follow Us</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize AOS
+            AOS.init({
+                duration: 800,
+                once: true,
+                offset: 100,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+
+            // Smooth scroll for navigation links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        const headerOffset = 64;
+                        const elementPosition = target.offsetTop;
+                        
+                        window.scrollTo({
+                            top: elementPosition - headerOffset,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // Add scroll progress indicator
+            const progressBar = document.createElement('div');
+            progressBar.className = 'scroll-progress';
+            document.body.appendChild(progressBar);
+
+            function updateProgress() {
+                const windowHeight = window.innerHeight;
+                const documentHeight = document.documentElement.scrollHeight;
+                const scrolled = window.scrollY;
+                
+                const progress = (scrolled / (documentHeight - windowHeight)) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            window.addEventListener('scroll', updateProgress);
+
+const navToggle = document.querySelector('.nav__toggle');
+    const navLinks = document.querySelector('.nav__links');
+
+    navToggle.addEventListener('click', function() {
+        const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
+        navToggle.setAttribute('aria-expanded', !isExpanded);
+        navLinks.classList.toggle('active');
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function closeMenu(e) {
+            if (!navLinks.contains(e.target) && !navToggle.contains(e.target)) {
+                navLinks.classList.remove('active');
+                navToggle.setAttribute('aria-expanded', 'false');
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    });
+
+    // Close menu when clicking a link
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            navToggle.setAttribute('aria-expanded', 'false');
+        });
+    });
+        });
+    </script>
+</body>
+</html>
