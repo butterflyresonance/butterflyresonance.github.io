@@ -88,7 +88,7 @@ body {
 .container {
     width: min(var(--max-width), 100%);
     margin: 0 auto;
-    padding: 0 var(--spacing-xl);
+    padding: 0 var(--container-padding);
 }
 
 .section {
@@ -118,8 +118,8 @@ body {
 /* Grid Systems */
 .grid {
     display: grid;
-    gap: var(--spacing-xl);
-    margin: var(--spacing-xl) 0;
+    gap: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
 }
 
 .grid--3col {
@@ -133,7 +133,7 @@ body {
 /* Card Components */
 .card {
     background: var(--color-background);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
     transition: var(--transition-base);
@@ -169,7 +169,7 @@ body {
 .card__icon {
     width: 64px;
     height: 64px;
-    margin: 0 auto var(--spacing-lg);
+    margin: 0 auto var(--spacing-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -202,7 +202,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-xl);
+    padding: var(--spacing-md) var(--spacing-lg);
     border-radius: var(--radius-sm);
     font-size: 1.1rem;
     font-weight: 500;
@@ -276,7 +276,7 @@ body {
 
 .nav__list {
     display: flex;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-lg);
     list-style: none;
 }
 
@@ -297,7 +297,7 @@ body {
     color: white;
     display: flex;
     align-items: center;
-    padding: var(--spacing-xl) 0;
+    padding: 6rem 0 3rem;
     position: relative;
 }
 
@@ -310,13 +310,13 @@ body {
 
 .featured-title {
     font-size: clamp(2.5rem, 5vw, 4rem);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
     font-weight: 300;
 }
 
 .featured-text {
     font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
     opacity: 0.9;
 }
 
@@ -329,22 +329,22 @@ body {
 
 .button-group {
     display: flex;
+    gap: var(--spacing-lg);
     justify-content: center;
     margin-top: var(--spacing-xl);
-    gap: var(--spacing-lg);
 }
 
 /* Typography Components */
 .heading-xl {
     font-size: 2.5rem;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     text-align: center;
     font-family: var(--font-secondary);
 }
 
 .heading-lg {
     font-size: 2rem;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     font-family: var(--font-secondary);
     color: var(--color-primary);
 }
@@ -372,7 +372,7 @@ body {
 .bullet-list {
     list-style: none;
     margin: var(--spacing-lg) 0;
-    padding-left: var(--spacing-xl);
+    padding-left: var(--spacing-lg);
 }
 
 .bullet-list li {
@@ -401,7 +401,7 @@ body {
 /* Form Components */
 .form-container {
     max-width: 600px;
-    margin: var(--spacing-xl) auto;
+    margin: var(--spacing-lg) auto;
     background: white;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
@@ -443,7 +443,7 @@ body {
 
 /* Content Block Utilities */
 .content-block {
-    margin-bottom: var(--spacing-2xl);
+    margin-bottom: var(--spacing-xl);
 }
 
 .content-block:last-child {
@@ -454,8 +454,8 @@ body {
 
 @media (max-width: 768px) {
     :root {
-        --section-padding: var(--spacing-xl);
-        --container-padding: var(--spacing-sm);
+        --section-padding: 3rem;
+        --container-padding: 1rem;
     }
 
     .nav-toggle {
@@ -595,7 +595,7 @@ body {
             </div>
 
             <!-- Integration Section -->
-            <div class="content-block" data-aos="fade-up">
+            <div class="content-block" data-aos="fade-left">
                 <h3 class="heading-lg">A Natural Integration</h3>
                 <p class="content-text">Movement culture provides a unique bridge back to ourselves:</p>
                 
@@ -616,19 +616,6 @@ body {
                     </div>
                 </div>
             </div>
-
-            <!-- Forward Section -->
-            <div class="content-block" data-aos="fade-left">
-                <h3 class="heading-lg">The Path Forward</h3>
-                <p class="content-text">Somatic therapy already recognises these connections through:</p>
-                <ul class="bullet-list">
-                    <li>Response completion movements</li>
-                    <li>Grounding reflections</li>
-                    <li>Release movements</li>
-                    <li>Body awareness practices</li>
-                    <li>Emotional integration work</li>
-                </ul>
-                <p class="content-text">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we hope to create new pathways for authentic expression and healing.</p>
         </div>
     </section>
 
@@ -637,13 +624,13 @@ body {
     <section class="section bg-alt" id="possibilities">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">Current & Future Offerings</h2>
-            <p class="subtitle" data-aos="fade-up">Integrating depth therapy, embodied awareness, and movement practice</p>
+            <p class="subtitle">Integrating depth therapy, embodied awareness, and movement practice</p>
             
             <div class="grid grid--3col">
                 <div class="card" data-aos="fade-right">
                     <h3 class="card__title">Individual Therapy</h3>
                     <div class="card__content">
-                        <p>Currently available through <a href="https://pendulumpsychology.com.au/" target="_blank">Pendulum Psychology</a>, offering psychodynamic psychotherapy with a relational approach.</p>
+                        <p>Currently available through Pendulum Psychology, offering psychodynamic psychotherapy with an embodied approach.</p>
                         <ul class="bullet-list">
                             <li>Depth Psychotherapy</li>
                             <li>Trauma-Informed Practice</li>
@@ -685,7 +672,7 @@ body {
     <section class="section" id="approach">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">Our Approach</h2>
-            <p class="subtitle" data-aos="fade-up">Integrating therapeutic depth with embodied exploration</p>
+            <p class="subtitle">Integrating therapeutic depth with embodied exploration</p>
 
             <div class="grid grid--3col">
                 <div class="card card--centered" data-aos="fade-up">
@@ -728,7 +715,7 @@ body {
     <section class="section bg-alt" id="community">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">Join Our Community</h2>
-            <p class="subtitle" data-aos="fade-up">Be part of a growing community dedicated to authentic movement and emotional exploration.</p>
+            <p class="subtitle">Be part of a growing community dedicated to authentic movement and emotional exploration.</p>
             
             <div class="button-group" data-aos="fade-up">
                 <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
@@ -741,7 +728,9 @@ body {
                 </a>
             </div>
 
-            <p class="content-text">Mailing list coming soon...</p>
+            <div class="form-container" data-aos="fade-up" data-aos-delay="100">
+                <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdYFYPFwZ_HqxBLgc9a-Yfbj6L_gTA1ZZ0S96NJ9eyNHaAqkQ/viewform?embedded=true"></iframe>
+            </div>
         </div>
     </section>
 
@@ -749,25 +738,21 @@ body {
     <section class="section section--accent" id="practitioners">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">For Practitioners</h2>
-            <p class="subtitle" data-aos="fade-up">Creating collaborative spaces for integrated practice</p>
+            <p class="subtitle">Creating collaborative spaces for integrated practice</p>
             
             <div class="text-block">
                 <div class="card card--static" data-aos="fade-up">
-                    <p class="card__content content-text">We're building an inclusive community bringing together practitioners from diverse backgrounds to support authentic expression and freedom through movement and internal awareness.</p>
+                    <p class="card__content">We're building an inclusive community bringing together practitioners from diverse backgrounds to support authentic expression and freedom through movement and awareness.</p>
                     
                     <ul class="bullet-list">
                         <li>Psychotherapy and somatic therapy</li>
-                        <li>Movement and embodiment practices (yoga, dance, capoeira, martial arts)</li>
-                        <li>Body awareness and meditation practices (breathwork, qigong, tai chi)</li>
-                        <li>Athletic and acrobatic disciplines (calisthenics, gymnastics, acrobatics, parkour)</li>
+                        <li>Movement and embodiment practices</li>
+                        <li>Body awareness and meditation practices</li>
+                        <li>Athletic and acrobatic disciplines</li>
                         <li>Expressive and performing arts</li>
-                        <li>Contemplative and spiritual traditions (Sufism, Buddhism, Taoism)</li>
+                        <li>Contemplative and spiritual traditions</li>
                     </ul>
-
-                    <p class="card__content content-text">If you're interested in our integrated approach to supporting authentic expression and embodied freedom, we'd love to connect with you.</p>
                     
-                    <p class="card__content content-text">Our vision is to create a space where diverse modalities come together to support true freedom - the freedom to feel all feelings, to embody all parts of ourselves, and to move in ways that authentically express who we are.</p>
-
                     <div class="button-group">
                         <a href="mailto:butterflyresonance@gmail.com" class="btn btn--primary">Email Us</a>
                         <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
