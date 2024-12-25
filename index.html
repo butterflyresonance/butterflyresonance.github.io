@@ -486,12 +486,15 @@ body {
     .button-group {
         flex-direction: column;
         align-items: center;
-        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
+        gap: var(--spacing-sm);
     }
 
     .btn {
         width: 100%;
         max-width: 300px;
+        padding: var(--spacing-sm) var(--spacing-lg);
+        font-size: 1rem;
     }
 
     .grid--2col {
@@ -501,6 +504,40 @@ body {
     .grid--3col {
         grid-template-columns: 1fr;
     }
+
+    .featured-section {
+        /* Reduce vertical padding on mobile */
+        padding: var(--spacing-lg) 0;
+        min-height: 100vh;
+    }
+
+    .featured-content {
+        /* Reduce content padding */
+        padding: var(--spacing-sm) 0;
+    }
+
+    .featured-title {
+        /* Adjust font size range for mobile */
+        font-size: clamp(2rem, 4vw, 2.5rem);
+        /* Reduce bottom margin */
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .featured-text {
+        /* Reduce text size on mobile */
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        /* Reduce bottom margin */
+        margin-bottom: var(--spacing-lg);
+        /* Increase line height slightly for better readability */
+        line-height: 1.5;
+    }
+
+    .featured-subtitle {
+        /* Slightly smaller subtitle on mobile */
+        font-size: 1rem;
+        margin-top: var(--spacing-sm);
+    }
+
 }
 
 /* Animation Utilities */
@@ -513,6 +550,58 @@ body {
     opacity: 1;
 }
     </style>
+
+
+    <!-- Mailchimp -->
+    <link href="https://cdn-images.mailchimp.com/embedcode/classic-061523.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style type="text/css">
+        #mc_embed_signup {
+            background: transparent !important;
+            clear: left;
+            font-family: var(--font-primary) !important;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        #mc_embed_signup .button {
+            background: var(--color-primary) !important;
+            transition: var(--transition-base);
+        }
+        
+        #mc_embed_signup .button:hover {
+            background: #523672 !important;
+        }
+        
+        #mc_embed_signup form {
+            padding: var(--spacing-lg) !important;
+        }
+        
+        #mc_embed_signup h2 {
+            font-family: var(--font-secondary) !important;
+            color: var(--color-primary);
+        }
+
+        #mc_embed_signup .button:disabled {
+            background: #cccccc !important;
+            cursor: not-allowed;
+        }
+
+        /* Optional loading indicator */
+        #mc_embed_signup .button.loading::after {
+            content: "...";
+            display: inline-block;
+            margin-left: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            #mc_embed_signup {
+                width: 100%;
+                padding: 0 var(--spacing-sm);
+            }
+        }
+    </style>
 </head>
 <body><!-- Header/Navigation -->
     <header class="header">
@@ -520,7 +609,7 @@ body {
             <a href="#top" class="header__logo">Butterfly Resonance</a>
             <nav>
                 <ul class="nav__list">
-                    <li><a href="#about" class="nav__link">Vision</a></li>
+                    <li><a href="#framework" class="nav__link">Framework</a></li>
                     <li><a href="#possibilities" class="nav__link">Possibilities</a></li>
                     <li><a href="#approach" class="nav__link">Approach</a></li>
                     <li><a href="#community" class="nav__link">Community</a></li>
@@ -549,33 +638,33 @@ body {
                     A vision for integrating psychodynamic psychotherapy with movement culture
                 </p>
                 <div class="button-group">
-                    <a href="#about" class="btn btn--primary">Explore Our Vision</a>
+                    <a href="#about" class="btn btn--primary">Explore Our Framework</a>
                     <a href="#community" class="btn btn--secondary">Join the Journey</a>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- About Section (formerly Vision) -->
+    <!-- Framework Section -->
     <section class="section" id="about">
         <div class="container">
-            <h2 class="heading-xl" data-aos="fade-up">Vision</h2>
+            <h2 class="heading-xl" data-aos="fade-up">Framework</h2>
             
             <!-- Understanding Section -->
-            <div class="content-block" data-aos="fade-right">
-                <h3 class="heading-lg">Three Ways of Understanding</h3>
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up" data-aos-delay="100">Three Ways of Understanding</h3>
                 <div class="grid grid--3col">
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="200">
                         <h4 class="card__title">Psychodynamic Insight</h4>
                         <p class="card__content">Reveals how we hold onto hurt in untouched parts of our mind, protecting ourselves through unconscious patterns and defenses</p>
                     </div>
                     
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="300">
                         <h4 class="card__title">Somatic Understanding</h4>
                         <p class="card__content">Shows how we carry hurt in our body - through tension, restriction, and disconnect from our physical experience</p>
                     </div>
                     
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="400">
                         <h4 class="card__title">Movement Wisdom</h4>
                         <p class="card__content">Offers ways to reconnect with our body through strength, mobility, balance, skill, and expressive movement</p>
                     </div>
@@ -583,11 +672,11 @@ body {
             </div>
 
             <!-- Impact Section -->
-            <div class="content-block" data-aos="fade-up">
-                <h3 class="heading-lg">The Hidden Impact</h3>
-                <p class="content-text">When our conscious mind pushes something away, covering it with layers of fear - fear of judgement, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up">The Hidden Impact</h3>
+                <p class="content-text" data-aos="fade-up" data-aos-delay="100">When our conscious mind pushes something away, covering it with layers of fear - fear of judgement, punishment, or isolation - the impact extends beyond the original hurt. This protection seeps into:</p>
                 
-                <ul class="bullet-list">
+                <ul class="bullet-list" data-aos="fade-up" data-aos-delay="200">
                     <li>Our body, through tension restriction, and disconnection</li>
                     <li>Our relationships, through the ways our hurt can be expressed unconsciously</li>
                     <li>Most fundamentally, our relationship with ourselves, as we lose touch with our emotional truth</li>
@@ -595,22 +684,22 @@ body {
             </div>
 
             <!-- Integration Section -->
-            <div class="content-block" data-aos="fade-up">
-                <h3 class="heading-lg">A Natural Integration</h3>
-                <p class="content-text">Movement culture provides a unique bridge back to ourselves:</p>
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up">A Natural Integration</h3>
+                <p class="content-text" data-aos="fade-up" data-aos-delay="100">Movement culture provides a unique bridge back to ourselves:</p>
                 
                 <div class="grid grid--3col">
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="200">
                         <h4 class="card__title">Coming Home</h4>
                         <p class="card__content">Through increased attention to internal sensations, we naturally unearth feelings we've turned away from</p>
                     </div>
                     
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="300">
                         <h4 class="card__title">Building Safety</h4>
                         <p class="card__content">Developing strength, mobility, balance, and skill helps us feel safer in our body</p>
                     </div>
                     
-                    <div class="card">
+                    <div class="card" data-aos="fade-up" data-aos-delay="400">
                         <h4 class="card__title">Finding Joy</h4>
                         <p class="card__content">Expressive movement reconnects us with playful, vital parts we may have hidden from fear of judgement</p>
                     </div>
@@ -618,17 +707,17 @@ body {
             </div>
 
             <!-- Forward Section -->
-            <div class="content-block" data-aos="fade-left">
-                <h3 class="heading-lg">The Path Forward</h3>
-                <p class="content-text">Somatic therapy already recognises these connections through:</p>
-                <ul class="bullet-list">
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up">The Path Forward</h3>
+                <p class="content-text" data-aos="fade-up" data-aos-delay="100">Somatic therapy already recognises these connections through:</p>
+                <ul class="bullet-list" data-aos="fade-up" data-aos-delay="200">
                     <li>Response completion movements</li>
                     <li>Grounding reflections</li>
                     <li>Release movements</li>
                     <li>Body awareness practices</li>
                     <li>Emotional integration work</li>
                 </ul>
-                <p class="content-text">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we hope to create new pathways for authentic expression and healing.</p>
+                <p class="content-text" data-aos="fade-up" data-aos-delay="300">Our vision is to deepen these connections, bringing together diverse approaches that touch this fundamental thread of human experience. Through collaboration between psychodynamic understanding, somatic awareness, and movement practice, we hope to create new pathways for authentic expression and healing.</p>
         </div>
     </section>
 
@@ -636,11 +725,11 @@ body {
     <!-- Possibilities Section -->
     <section class="section bg-alt" id="possibilities">
         <div class="container">
-            <h2 class="heading-xl" data-aos="fade-up">Current & Future Offerings</h2>
-            <p class="subtitle" data-aos="fade-up">Integrating depth therapy, embodied awareness, and movement practice</p>
+            <h2 class="heading-xl" data-aos="fade-up">Possibilities</h2>
+            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Integrating depth therapy, embodied awareness, and movement practice</p>
             
             <div class="grid grid--3col">
-                <div class="card" data-aos="fade-right">
+                <div class="card" data-aos="fade-up" data-aos-delay="200">
                     <h3 class="card__title">Individual Therapy</h3>
                     <div class="card__content">
                         <p>Currently available through <a href="https://pendulumpsychology.com.au/" target="_blank">Pendulum Psychology</a>, offering psychodynamic psychotherapy with a relational approach.</p>
@@ -652,7 +741,7 @@ body {
                     </div>
                 </div>
 
-                <div class="card" data-aos="fade-up">
+                <div class="card" data-aos="fade-up" data-aos-delay="300">
                     <h3 class="card__title">Physical Practice</h3>
                     <div class="card__content">
                         <p>Group classes focused on developing embodied capacities.</p>
@@ -665,7 +754,7 @@ body {
                     </div>
                 </div>
 
-                <div class="card" data-aos="fade-left">
+                <div class="card" data-aos="fade-up" data-aos-delay="400">
                     <h3 class="card__title">Connection Skills</h3>
                     <div class="card__content">
                         <p>Group workshops for developing authentic relating.</p>
@@ -728,9 +817,9 @@ body {
     <section class="section bg-alt" id="community">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">Join Our Community</h2>
-            <p class="subtitle" data-aos="fade-up">Be part of a growing community dedicated to authentic experience and expression in movement and emotion.</p>
+            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Be part of a growing community dedicated to authentic experience and expression in movement and emotion.</p>
             
-            <div class="button-group" data-aos="fade-up">
+            <div class="button-group" data-aos="fade-up" data-aos-delay="200">
                 <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
@@ -741,7 +830,35 @@ body {
                 </a>
             </div>
 
-            <p class="content-text">Mailing list coming soon...</p>
+            <!-- Mailchimp form -->
+            <div id="mc_embed_signup" data-aos="fade-up" data-aos-delay="300">
+                <form action="https://github.us3.list-manage.com/subscribe/post?u=209d0db503684cd8f7cd035b6&amp;id=61b84038f4&amp;f_id=006fd2e0f0" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank">
+                    <div id="mc_embed_signup_scroll">
+                        <h2>Subscribe to our newsletter</h2>
+                        <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
+                        <div class="mc-field-group">
+                            <label for="mce-EMAIL">Email Address <span class="asterisk">*</span></label>
+                            <input type="email" name="EMAIL" class="required email" id="mce-EMAIL" required="" value="">
+                        </div>
+                        <div class="mc-field-group">
+                            <label for="mce-FNAME">First Name </label>
+                            <input type="text" name="FNAME" class="text" id="mce-FNAME" value="">
+                        </div>
+                        <div id="mce-responses" class="clear foot">
+                            <div class="response" id="mce-error-response" style="display: none"></div>
+                            <div class="response" id="mce-success-response" style="display: none"></div>
+                        </div>
+                        <div aria-hidden="true" style="position: absolute; left: -5000px;">
+                            <input type="text" name="b_209d0db503684cd8f7cd035b6_61b84038f4" tabindex="-1" value="">
+                        </div>
+                        <div class="optionalParent">
+                            <div class="clear foot">
+                                <input type="submit" name="subscribe" id="mc-embedded-subscribe" class="button" value="Subscribe">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </section>
 
@@ -749,10 +866,10 @@ body {
     <section class="section section--accent" id="practitioners">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">For Practitioners</h2>
-            <p class="subtitle" data-aos="fade-up">Creating collaborative spaces for integrated practice</p>
+            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Creating collaborative spaces for integrated practice</p>
             
             <div class="text-block">
-                <div class="card card--static" data-aos="fade-up">
+                <div class="card card--static" data-aos="fade-in" data-aos-delay="200">
                     <p class="card__content content-text">We're building an inclusive community bringing together practitioners from diverse backgrounds to support authentic expression and freedom through movement and internal awareness.</p>
                     
                     <ul class="bullet-list">
@@ -852,6 +969,44 @@ body {
             window.addEventListener('scroll', updateProgress);
             updateProgress(); // Initial call
         });
+    </script>
+
+    <!-- Mailchimp script -->
+    <script type="text/javascript" src="https://s3.amazonaws.com/downloads.mailchimp.com/js/mc-validate.js"></script>
+    <script type="text/javascript">
+    (function($) {
+        window.fnames = new Array();
+        window.ftypes = new Array();
+        fnames[0]='EMAIL';
+        ftypes[0]='email';
+        fnames[1]='FNAME';
+        ftypes[1]='text';
+        fnames[2]='LNAME';
+        ftypes[2]='text';
+        fnames[3]='ADDRESS';
+        ftypes[3]='address';
+        fnames[4]='PHONE';
+        ftypes[4]='phone';
+        fnames[5]='BIRTHDAY';
+        ftypes[5]='birthday';
+        fnames[6]='COMPANY';
+        ftypes[6]='text';
+    }(jQuery));
+    var $mcj = jQuery.noConflict(true);
+
+    document.getElementById('mc-embedded-subscribe-form').addEventListener('submit', function(e) {
+        const button = document.getElementById('mc-embedded-subscribe');
+        button.disabled = true;
+        button.classList.add('loading');
+        button.value = 'Subscribing';
+        
+        // Re-enable after 5 seconds (in case of error)
+        setTimeout(() => {
+            button.disabled = false;
+            button.classList.remove('loading');
+            button.value = 'Subscribe';
+        }, 5000);
+    });
     </script>
 </body>
 </html>
