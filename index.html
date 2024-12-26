@@ -1,9 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Basic Meta Tags -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0">
     <title>Butterfly Resonance - Integrated Psychotherapy & Movement</title>
+    <meta name="description" content="Butterfly Resonance integrates psychodynamic psychotherapy with movement culture to support authentic expression and embodied freedom. Through a combination of depth therapy, somatic awareness, and movement practice, we create pathways for healing and self-discovery.">
+    <meta name="author" content="David O'Donohue">
+    <meta name="keywords" content="psychotherapy, movement, somatic therapy, psychodynamic therapy, embodied practice, mindful movement, authentic expression, mental health, physical practice, movement culture">
+
+    <!-- Language and Region -->
+    <meta property="og:locale" content="en_AU">
+    <link rel="alternate" href="https://butterflyresonance.github.io/" hreflang="en-AU">
+    <meta name="geo.region" content="AU">
+    <meta name="geo.placename" content="Canberra">
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://butterflyresonance.github.io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://butterflyresonance.github.io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://butterflyresonance.github.io/favicon-16x16.png">
+    <link rel="manifest" href="https://butterflyresonance.github.io/site.webmanifest">
+    <link rel="mask-icon" href="https://butterflyresonance.github.io/safari-pinned-tab.svg" color="#614385">
+    <meta name="msapplication-TileColor" content="#614385">
+    <meta name="theme-color" content="#614385">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Butterfly Resonance">
+    <meta property="og:title" content="Butterfly Resonance - Integrated Psychotherapy & Movement">
+    <meta property="og:description" content="Integrating psychodynamic psychotherapy with movement culture to support authentic expression and embodied freedom. Through depth therapy, somatic awareness, and movement practice, we create pathways for healing and self-discovery.">
+    <meta property="og:url" content="https://butterflyresonance.github.io/">
+    <meta property="og:image" content="https://butterflyresonance.github.io/android-chrome-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Butterfly Resonance - Integrated Psychotherapy & Movement">
+    <meta name="twitter:description" content="Integrating psychodynamic psychotherapy with movement culture for authentic expression and embodied freedom.">
+    <meta name="twitter:image" content="https://butterflyresonance.github.io/android-chrome-512x512.png">
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
@@ -11,6 +46,60 @@
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+
+<!-- Structured Data -->
+<script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "ProfessionalService",
+        "name": "Butterfly Resonance",
+        "image": "https://butterflyresonance.github.io/android-chrome-512x512.png",
+        "description": "Integrated psychotherapy and movement practice supporting authentic expression and embodied freedom",
+        "@id": "https://butterflyresonance.github.io",
+        "url": "https://butterflyresonance.github.io",
+        "telephone": "",
+        "email": "butterflyresonance@gmail.com",
+        "sameAs": [
+            "https://instagram.com/butterflyresonance",
+        ],
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Canberra",
+            "addressRegion": "ACT",
+            "addressCountry": "AU"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": "-35.3075",
+            "longitude": "149.1244"
+        },
+        "founder": {
+            "@type": "Person",
+            "name": "David O'Donohue",
+            "jobTitle": "Clinical Psychologist",
+            "url": "https://butterflyresonance.github.io"
+        },
+        "areaServed": {
+            "@type": "State",
+            "name": "Australian Capital Territory"
+        },
+        "potentialAction": {
+            "@type": "JoinAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://butterflyresonance.github.io/#community",
+                "actionPlatform": [
+                    "http://schema.org/DesktopWebPlatform",
+                    "http://schema.org/MobileWebPlatform"
+                ]
+            },
+            "result": {
+                "@type": "JoinActionResult",
+                "name": "Community Membership"
+            }
+        }
+    }
+    </script>
     
     <style>
 /* Reset and Base Styles */
@@ -456,6 +545,10 @@ body {
     :root {
         --section-padding: var(--spacing-xl);
         --container-padding: var(--spacing-sm);
+    }
+
+    [data-aos-delay] {
+        transition-delay: 0s;
     }
 
     .nav-toggle {
