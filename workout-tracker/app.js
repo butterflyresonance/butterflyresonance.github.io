@@ -72,7 +72,7 @@ function selectExercise(exercise) {
 function getIntensityOptions(measurementType) {
     if (measurementType === 'reps') {
         return `
-            <option value="speed-drop">Bar Speed Slowing</option>
+            <option value="speed-drop">Rep Speed Slowing</option>
             <option value="form-change">Form Starting to Change</option>
             <option value="failure">Cannot Complete Rep</option>
         `;
@@ -104,23 +104,51 @@ function removeSet(button) {
     button.parentElement.remove();
 }
 
+function showNotification(message, type = 'info') {
+    // Remove any existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // Insert at the top of the sets container
+    const setsContainer = document.querySelector('.sets-container');
+    setsContainer.insertBefore(notification, setsContainer.firstChild);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
 function saveWorkout() {
     if (!currentExercise) return;
 
     const setInputs = document.querySelectorAll('.set-input');
-    const sets = Array.from(setInputs).map(setInput => ({
-        amount: parseInt(setInput.querySelector('input').value) || 0,
-        intensity: setInput.querySelector('select').value
-    }));
-    
-    if (sets.some(set => set.amount <= 0)) {
-        alert('Please enter valid numbers for all sets');
+    const validSets = Array.from(setInputs)
+        .map(setInput => ({
+            amount: parseInt(setInput.querySelector('input').value) || 0,
+            intensity: setInput.querySelector('select').value
+        }))
+        .filter(set => set.amount > 0); // Only include sets with valid amounts
+
+    if (validSets.length === 0) {
+        showNotification('Please add at least one set with a valid amount', 'error');
         return;
     }
 
     const workout = {
         exerciseId: currentExercise.id,
-        sets,
+        sets: validSets,
         date: new Date().toISOString()
     };
 
@@ -129,6 +157,7 @@ function saveWorkout() {
     
     resetSets();
     renderWorkoutHistory(currentExercise.id);
+    showNotification('Workout saved successfully');
 }
 
 function resetSets() {
@@ -147,7 +176,7 @@ function resetSets() {
 function getIntensityLabel(intensity, measurementType) {
     const labels = {
         'reps': {
-            'speed-drop': 'Bar Speed Slowing',
+            'speed-drop': 'Rep Speed Slowing',
             'form-change': 'Form Starting to Change',
             'failure': 'Cannot Complete Rep'
         },
