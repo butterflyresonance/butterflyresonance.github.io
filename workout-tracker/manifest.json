@@ -1,15 +1,35 @@
 {
-    "name": "Workout Tracker",
+    "name": "Butterfly Resonance Workout Tracker",
     "short_name": "Workout",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#4CAF50",
-    "theme_color": "#4CAF50",
+    "background_color": "#614385",
+    "theme_color": "#614385",
     "icons": [
         {
-            "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGwSURBVFhH7ZY9TsNAEIVdREiIBgmJFiEhV6FLQ4dEwwE4AKKh5xZwAa5AiZ0TUEEFeQeygxNCwvuMvYvXa8dr7FghQvmk0ezO7M7b2Tg/qWmaP4UNi8KGRWHDorBhUdiwKGxYFDYsChtOyPv9fjWdTp/n8/mN1k6n0yP53kH+QKMucF0uQYqQIvJKWA6Hw+tms3khDA6S38h6RaOucF0uQYoYCRgMBk/NX/LebDb3yC11VpwEYL1evyyXy1spfhv7IED2INaDweBZ99hsNi96D3r2+/0b+Q5c7ypgg0GEiFqQIEDf76MQ3bA/+aHEF7PZ7CFGQl24LpcgRawEKYJAeNYHbZYj8WOEgGtwCS7RVoKuGQ6HD3ov1ut8nOd0XEKXEHa73Ymumc1mryZBrSiJbZYRdYAEMBN6Tffkdrsd0SSoBV2iG9ls1xF1gASgCxZe67wkhLAEyWwRvfhYwv9rqeuII/S/gQQYwn+XZvE/QddE/Re4RIREm1kEXC/ZZrXgElzCvlGVoGts5zngEl2EdCXoGlu8C1yCFG0J6nD/LtzPsg8uwSW4BBv+Hmz4W5jkE90DFWVhWcMBAAAAAElFTkSuQmCC",
+            "src": "../favicon-16x16.png",
+            "sizes": "16x16",
+            "type": "image/png"
+        },
+        {
+            "src": "../favicon-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "../apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        },
+        {
+            "src": "../android-chrome-192x192.png",
             "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "../android-chrome-512x512.png",
+            "sizes": "512x512",
             "type": "image/png"
         }
     ]
