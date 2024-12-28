@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Workout Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Exercise List View -->
+    <div id="exercise-list-view" class="view active">
+        <div class="header">
+            <h1>Exercises</h1>
+            <button class="nav-button" onclick="showView('exercise-form-view')">Add Exercise</button>
+        </div>
+        <div id="exercise-list" class="exercise-list">
+            <!-- Exercise list items will be added here -->
+        </div>
+    </div>
+
+    <!-- Exercise Form View -->
+    <div id="exercise-form-view" class="view">
+        <div class="header">
+            <h1>Add Exercise</h1>
+            <button class="nav-button" onclick="showView('exercise-list-view')">Back</button>
+        </div>
+        <div class="card">
+            <div class="input-group">
+                <label for="exercise-name">Exercise Name</label>
+                <input type="text" id="exercise-name" placeholder="e.g., Bench Press">
+            </div>
+            <div class="input-group">
+                <label for="measurement-type">Measurement Type</label>
+                <select id="measurement-type">
+                    <option value="reps">Reps</option>
+                    <option value="seconds">Static Hold (seconds)</option>
+                </select>
+            </div>
+            <button onclick="saveExercise()">Save Exercise</button>
+        </div>
+    </div>
+
+    <!-- Exercise Detail View -->
+    <div id="exercise-detail-view" class="view">
+        <div class="header">
+            <button class="nav-button" onclick="showView('exercise-list-view')">Back</button>
+        </div>
+        
+        <!-- Current Workout Entry -->
+        <div class="card">
+            <h2 id="current-exercise-name" style="margin-bottom: 15px;"></h2>
+            <div class="sets-container">
+                <div id="sets">
+                    <div class="set-input">
+                        <input type="number" placeholder="Amount" min="0">
+                        <select class="intensity-select">
+                            <!-- Will be populated by JavaScript based on exercise type -->
+                        </select>
+                        <button class="remove-set" onclick="removeSet(this)">×</button>
+                    </div>
+                </div>
+                <button onclick="addSet()">Add Set</button>
+            </div>
+            <button onclick="saveWorkout()">Save Workout</button>
+        </div>
+
+        <!-- Workout History -->
+        <div id="workout-history" class="history-list">
+            <!-- Workout history items will be added here -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
