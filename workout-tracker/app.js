@@ -38,7 +38,20 @@ function saveExercise() {
 
 function deleteExercise(event, exerciseId) {
     event.stopPropagation();
-    if (confirm('Are you sure you want to delete this exercise?')) {
+    const button = event.target;
+    
+    if (!button.classList.contains('confirming')) {
+        // First click
+        button.classList.add('confirming');
+        button.textContent = 'Tap to confirm';
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            button.classList.remove('confirming');
+            button.textContent = 'Delete';
+        }, 3000);
+    } else {
+        // Second click - confirm delete
         exercises = exercises.filter(ex => ex.id !== exerciseId);
         workouts = workouts.filter(w => w.exerciseId !== exerciseId);
         localStorage.setItem('exercises', JSON.stringify(exercises));
@@ -147,13 +160,67 @@ function getIntensityLabel(intensity, measurementType) {
     return labels[measurementType][intensity] || intensity;
 }
 
+function analyzeSetDropoffs(workouts) {
+    const analysis = {
+        'speed-drop': { dropoffs: [], subsequentSets: [] },
+        'form-change': { dropoffs: [], subsequentSets: [] },
+        'failure': { dropoffs: [], subsequentSets: [] }
+    };
+
+    workouts.forEach(workout => {
+        for (let i = 0; i < workout.sets.length - 1; i++) {
+            const currentSet = workout.sets[i];
+            const nextSet = workout.sets[i + 1];
+            const dropoff = ((currentSet.amount - nextSet.amount) / currentSet.amount) * 100;
+            const remainingSets = workout.sets.length - (i + 1);
+            
+            analysis[currentSet.intensity].dropoffs.push(dropoff);
+            analysis[currentSet.intensity].subsequentSets.push(remainingSets);
+        }
+    });
+
+    // Calculate averages
+    const results = {};
+    Object.keys(analysis).forEach(intensity => {
+        const { dropoffs, subsequentSets } = analysis[intensity];
+        if (dropoffs.length > 0) {
+            results[intensity] = {
+                avgDropoff: dropoffs.reduce((a, b) => a + b, 0) / dropoffs.length,
+                avgSubsequentSets: subsequentSets.reduce((a, b) => a + b, 0) / subsequentSets.length
+            };
+        }
+    });
+
+    return results;
+}
+
 function renderWorkoutHistory(exerciseId) {
     const container = document.getElementById('workout-history');
     const exerciseWorkouts = workouts
         .filter(workout => workout.exerciseId === exerciseId)
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    container.innerHTML = exerciseWorkouts.map(workout => `
+    // Analyze patterns
+    const analysis = analyzeSetDropoffs(exerciseWorkouts);
+    
+    // Create analysis HTML
+    const analysisHtml = Object.keys(analysis).length ? `
+        <div class="card" style="margin-bottom: 20px;">
+            <h3 style="margin-bottom: 10px;">Performance Analysis</h3>
+            ${Object.entries(analysis).map(([intensity, stats]) => `
+                <div style="margin-bottom: 8px;">
+                    <strong>${getIntensityLabel(intensity, currentExercise.measurementType)}:</strong>
+                    <ul style="margin-top: 4px; padding-left: 20px;">
+                        <li>Average drop in next set: ${stats.avgDropoff.toFixed(1)}%</li>
+                        <li>Average remaining sets: ${stats.avgSubsequentSets.toFixed(1)}</li>
+                    </ul>
+                </div>
+            `).join('')}
+        </div>
+    ` : '';
+
+    // Render history with analysis
+    container.innerHTML = analysisHtml + (exerciseWorkouts.map(workout => `
         <div class="history-item">
             <div class="history-date">
                 ${new Date(workout.date).toLocaleDateString()} 
@@ -171,7 +238,7 @@ function renderWorkoutHistory(exerciseId) {
                 </div>
             </div>
         </div>
-    `).join('') || '<div class="card">No workout history yet</div>';
+    `).join('') || '<div class="card">No workout history yet</div>');
 }
 
 function renderExercises() {
