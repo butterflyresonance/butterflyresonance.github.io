@@ -15,6 +15,7 @@ function showView(viewId) {
 function saveExercise() {
     const name = document.getElementById('exercise-name').value;
     const measurementType = document.getElementById('measurement-type').value;
+    const requiresWeight = document.getElementById('requires-weight').checked;
     
     if (!name) {
         alert('Please enter an exercise name');
@@ -25,6 +26,7 @@ function saveExercise() {
         id: Date.now().toString(),
         name,
         measurementType,
+        requiresWeight,
         dateCreated: new Date().toISOString()
     };
 
@@ -32,6 +34,7 @@ function saveExercise() {
     localStorage.setItem('exercises', JSON.stringify(exercises));
     
     document.getElementById('exercise-name').value = '';
+    document.getElementById('requires-weight').checked = false;
     showView('exercise-list-view');
     renderExercises();
 }
@@ -72,9 +75,9 @@ function selectExercise(exercise) {
 function getIntensityOptions(measurementType) {
     if (measurementType === 'reps') {
         return `
-            <option value="speed-drop">Rep Speed Slowing</option>
-            <option value="form-change">Form Starting to Change</option>
-            <option value="failure">Cannot Complete Rep</option>
+            <option value="difficult">Getting Difficult</option>
+            <option value="approaching-failure">Approaching Failure</option>
+            <option value="failure">Achieved Failure</option>
         `;
     } else {
         return `
@@ -85,12 +88,23 @@ function getIntensityOptions(measurementType) {
     }
 }
 
-// Workout management
 function addSet() {
     const setsDiv = document.getElementById('sets');
     const newSet = document.createElement('div');
     newSet.className = 'set-input';
+    
+    let weightInput = '';
+    if (currentExercise.requiresWeight) {
+        weightInput = `
+            <div class="weight-input-group">
+                <input type="number" class="weight-amount" placeholder="Weight" min="0" step="0.5">
+                <button class="bodyweight-toggle" onclick="toggleBodyweight(this)">BW</button>
+            </div>
+        `;
+    }
+    
     newSet.innerHTML = `
+        ${weightInput}
         <input type="number" placeholder="Amount" min="0">
         <select class="intensity-select">
             ${getIntensityOptions(currentExercise.measurementType)}
@@ -98,6 +112,21 @@ function addSet() {
         <button class="remove-set" onclick="removeSet(this)">×</button>
     `;
     setsDiv.appendChild(newSet);
+}
+
+function toggleBodyweight(button) {
+    const weightInput = button.previousElementSibling;
+    if (button.classList.contains('active')) {
+        // Switch back to weight input
+        button.classList.remove('active');
+        weightInput.removeAttribute('disabled');
+        weightInput.value = '';
+    } else {
+        // Switch to bodyweight
+        button.classList.add('active');
+        weightInput.setAttribute('disabled', 'disabled');
+        weightInput.value = 'BW';
+    }
 }
 
 function removeSet(button) {
@@ -135,14 +164,25 @@ function saveWorkout() {
 
     const setInputs = document.querySelectorAll('.set-input');
     const validSets = Array.from(setInputs)
-        .map(setInput => ({
-            amount: parseInt(setInput.querySelector('input').value) || 0,
-            intensity: setInput.querySelector('select').value
-        }))
-        .filter(set => set.amount > 0); // Only include sets with valid amounts
+        .map(setInput => {
+            const set = {
+                amount: parseInt(setInput.querySelector('input[placeholder="Amount"]').value) || 0,
+                intensity: setInput.querySelector('select').value
+            };
+
+            if (currentExercise.requiresWeight) {
+                const weightInput = setInput.querySelector('.weight-amount');
+                const bodyweightButton = setInput.querySelector('.bodyweight-toggle');
+                set.weight = bodyweightButton.classList.contains('active') ? 'BW' : 
+                    (parseFloat(weightInput.value) || 0);
+            }
+
+            return set;
+        })
+        .filter(set => set.amount > 0 && (!currentExercise.requiresWeight || set.weight === 'BW' || set.weight > 0));
 
     if (validSets.length === 0) {
-        showNotification('Please add at least one set with a valid amount', 'error');
+        showNotification('Please add at least one set with valid amounts', 'error');
         return;
     }
 
@@ -162,8 +202,19 @@ function saveWorkout() {
 
 function resetSets() {
     const setsDiv = document.getElementById('sets');
+    let weightInput = '';
+    if (currentExercise.requiresWeight) {
+        weightInput = `
+            <div class="weight-input-group">
+                <input type="number" class="weight-amount" placeholder="Weight" min="0" step="0.5">
+                <button class="bodyweight-toggle" onclick="toggleBodyweight(this)">BW</button>
+            </div>
+        `;
+    }
+    
     setsDiv.innerHTML = `
         <div class="set-input">
+            ${weightInput}
             <input type="number" placeholder="Amount" min="0">
             <select class="intensity-select">
                 ${getIntensityOptions(currentExercise.measurementType)}
@@ -176,9 +227,9 @@ function resetSets() {
 function getIntensityLabel(intensity, measurementType) {
     const labels = {
         'reps': {
-            'speed-drop': 'Rep Speed Slowing',
-            'form-change': 'Form Starting to Change',
-            'failure': 'Cannot Complete Rep'
+            'difficult': 'Getting Difficult',
+            'approaching-failure': 'Approaching Failure',
+            'failure': 'Achieved Failure'
         },
         'seconds': {
             'stable': 'Position Stable',
@@ -191,9 +242,11 @@ function getIntensityLabel(intensity, measurementType) {
 
 function analyzeSetDropoffs(workouts) {
     const analysis = {
-        'speed-drop': { dropoffs: [], subsequentSets: [] },
-        'form-change': { dropoffs: [], subsequentSets: [] },
-        'failure': { dropoffs: [], subsequentSets: [] }
+        'difficult': { dropoffs: [], subsequentSets: [] },
+        'approaching-failure': { dropoffs: [], subsequentSets: [] },
+        'failure': { dropoffs: [], subsequentSets: [] },
+        'stable': { dropoffs: [], subsequentSets: [] },
+        'shaking': { dropoffs: [], subsequentSets: [] }
     };
 
     workouts.forEach(workout => {
@@ -203,8 +256,10 @@ function analyzeSetDropoffs(workouts) {
             const dropoff = ((currentSet.amount - nextSet.amount) / currentSet.amount) * 100;
             const remainingSets = workout.sets.length - (i + 1);
             
-            analysis[currentSet.intensity].dropoffs.push(dropoff);
-            analysis[currentSet.intensity].subsequentSets.push(remainingSets);
+            if (analysis[currentSet.intensity]) {
+                analysis[currentSet.intensity].dropoffs.push(dropoff);
+                analysis[currentSet.intensity].subsequentSets.push(remainingSets);
+            }
         }
     });
 
@@ -223,6 +278,13 @@ function analyzeSetDropoffs(workouts) {
     return results;
 }
 
+function calculateVolume(sets) {
+    return sets.reduce((total, set) => {
+        const weight = set.weight === 'BW' ? 0 : set.weight; // You might want to add actual bodyweight here
+        return total + (weight * set.amount);
+    }, 0);
+}
+
 function renderWorkoutHistory(exerciseId) {
     const container = document.getElementById('workout-history');
     const exerciseWorkouts = workouts
@@ -234,12 +296,12 @@ function renderWorkoutHistory(exerciseId) {
     
     // Create analysis HTML
     const analysisHtml = Object.keys(analysis).length ? `
-        <div class="card" style="margin-bottom: 20px;">
-            <h3 style="margin-bottom: 10px;">Performance Analysis</h3>
+        <div class="card">
+            <h3>Performance Analysis</h3>
             ${Object.entries(analysis).map(([intensity, stats]) => `
-                <div style="margin-bottom: 8px;">
+                <div class="analysis-item">
                     <strong>${getIntensityLabel(intensity, currentExercise.measurementType)}:</strong>
-                    <ul style="margin-top: 4px; padding-left: 20px;">
+                    <ul>
                         <li>Average drop in next set: ${stats.avgDropoff.toFixed(1)}%</li>
                         <li>Average remaining sets: ${stats.avgSubsequentSets.toFixed(1)}</li>
                     </ul>
@@ -258,12 +320,19 @@ function renderWorkoutHistory(exerciseId) {
             <div class="history-sets">
                 ${workout.sets.map(set => `
                     <div class="set-display">
+                        ${currentExercise.requiresWeight ? 
+                            `<span>${set.weight === 'BW' ? 'Bodyweight' : set.weight + ' kg'}</span>` : 
+                            ''
+                        }
                         <span>${set.amount} ${currentExercise.measurementType}</span>
                         <span>(${getIntensityLabel(set.intensity, currentExercise.measurementType)})</span>
                     </div>
                 `).join('')}
-                <div style="margin-top: 5px">
+                <div class="total-stats">
                     Total: ${workout.sets.reduce((sum, set) => sum + set.amount, 0)} ${currentExercise.measurementType}
+                    ${currentExercise.requiresWeight ? 
+                        `| Volume: ${calculateVolume(workout.sets)} kg` : 
+                        ''}
                 </div>
             </div>
         </div>
@@ -282,6 +351,7 @@ function renderExercises() {
                     <div class="exercise-name">${exercise.name}</div>
                     <div class="exercise-details">
                         Measurement: ${exercise.measurementType === 'seconds' ? 'Static Hold (seconds)' : 'Reps'}<br>
+                        ${exercise.requiresWeight ? 'Tracks weight<br>' : ''}
                         ${lastWorkout ? 
                             `Last workout: ${new Date(lastWorkout.date).toLocaleDateString()}` : 
                             'No workouts yet'

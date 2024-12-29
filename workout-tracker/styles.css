@@ -37,6 +37,17 @@ body {
     margin: 0 auto;
 }
 
+/* Input field sizing */
+#exercise-name,
+#measurement-type {
+    max-width: calc(100% - 2rem);
+    box-sizing: border-box;
+}
+
+.input-group {
+    padding: 0 1rem;
+}
+
 /* View System */
 .view {
     display: none;
@@ -127,6 +138,27 @@ button:hover {
     box-shadow: var(--shadow-md);
 }
 
+/* Weight Input Styles */
+.weight-input-group {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.weight-input-group input {
+    flex: 1;
+}
+
+.bodyweight-toggle {
+    width: auto !important;
+    padding: var(--spacing-sm) !important;
+    background: var(--color-text-light);
+    transition: var(--transition-base);
+}
+
+.bodyweight-toggle.active {
+    background: var(--color-primary);
+}
+
 /* Card Styles */
 .card {
     background: white;
@@ -205,11 +237,10 @@ button:hover {
 
 .set-input {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: auto 1fr auto auto;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
     align-items: center;
-    animation: slideIn 0.3s ease-out;
 }
 
 .remove-set {
@@ -260,6 +291,13 @@ button:hover {
     background: var(--color-background-alt);
     border-radius: 6px;
     margin-bottom: var(--spacing-xs);
+}
+
+.total-stats {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-background-alt);
+    color: var(--color-text-light);
 }
 
 /* Notification Styles */
@@ -330,6 +368,11 @@ button:hover {
     }
     
     .set-input {
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .weight-input-group {
+        width: 100%;
     }
 }

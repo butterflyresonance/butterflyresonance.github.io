@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workout Tracker</title>
-    <link rel="stylesheet" href="https://butterflyresonance.github.io/workout-tracker/styles.css">
+    <link rel="stylesheet" href="styles.css">
 
     <!-- Favicon and PWA -->
     <link rel="apple-touch-icon" sizes="180x180" href="https://butterflyresonance.github.io/apple-touch-icon.png">
@@ -51,6 +51,12 @@
                     <option value="seconds">Static Hold (seconds)</option>
                 </select>
             </div>
+            <div class="input-group">
+                <label>
+                    <input type="checkbox" id="requires-weight"> 
+                    Track weight for this exercise
+                </label>
+            </div>
             <button onclick="saveExercise()">Save Exercise</button>
         </div>
     </div>
@@ -66,15 +72,9 @@
             <h2 id="current-exercise-name" style="margin-bottom: 15px;"></h2>
             <div class="sets-container">
                 <div id="sets">
-                    <div class="set-input">
-                        <input type="number" placeholder="Amount" min="0">
-                        <select class="intensity-select">
-                            <!-- Will be populated by JavaScript based on exercise type -->
-                        </select>
-                        <button class="remove-set" onclick="removeSet(this)">×</button>
-                    </div>
+                    <!-- Set inputs will be added here -->
                 </div>
-                <button onclick="addSet()">Add Set</button>
+                <button onclick="addSet()">Add Another Set</button>
             </div>
             <button onclick="saveWorkout()">Save Workout</button>
         </div>
