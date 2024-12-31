@@ -232,7 +232,6 @@ body {
 
 .card:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-4px);
 }
 
 .card--static:hover {
@@ -545,6 +544,46 @@ body {
     margin-bottom: 0;
 }
 
+#possibilities .card--available,
+#possibilities .card--future {
+    position: relative;
+    overflow: hidden;
+}
+
+#possibilities .card--available {
+    border: 2px solid rgba(34, 197, 94, 0.3);
+}
+
+#possibilities .card--future {
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Status Ribbons */
+#possibilities .card::before {
+    content: attr(data-status);
+    position: absolute;
+    top: 30px;
+    right: -70px;
+    background: var(--color-primary);
+    color: white;
+    padding: 8px 70px;
+    transform: rotate(45deg);
+    transition: var(--transition-base);
+    font-size: 0.875rem;
+    text-align: center;
+    pointer-events: none;
+    width: 240px;
+    opacity: 0;
+}
+
+#possibilities .card--available::before {
+    background: #22C55E;
+}
+
+#possibilities .card:hover::before {
+    opacity: 1;
+}
+
 /* Responsive Design */
 
 @media (max-width: 768px) {
@@ -831,44 +870,56 @@ body {
     <section class="section bg-alt" id="possibilities">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">Possibilities</h2>
-            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Integrating depth therapy, embodied awareness, and movement practice</p>
-            
-            <div class="grid grid--3col">
-                <div class="card" data-aos="fade-up" data-aos-delay="200">
-                    <h3 class="card__title">Individual Therapy</h3>
-                    <div class="card__content">
-                        <p>Currently available through <a href="https://pendulumpsychology.com.au/" target="_blank">Pendulum Psychology</a>, offering psychodynamic psychotherapy with a relational approach.</p>
-                        <ul class="bullet-list">
-                            <li>Depth Psychotherapy</li>
-                            <li>Trauma-Informed Practice</li>
-                            <li>Relational approach</li>
-                        </ul>
+            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">
+                Integrating depth therapy, embodied awareness, and movement practice
+            </p>
+    
+            <!-- Currently Available -->
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up" data-aos-delay="200">Current Offerings</h3>
+                <div data-aos="fade-up" data-aos-delay="300">
+                    <div class="card card--available" data-status="Available Now">
+                        <h3 class="card__title">Individual Therapy</h3>
+                        <div class="card__content">
+                            <p>Currently available through <a href="https://pendulumpsychology.com.au/" target="_blank">Pendulum Psychology</a>, offering psychodynamic psychotherapy with a relational approach.</p>
+                            <ul class="bullet-list">
+                                <li>Depth Psychotherapy</li>
+                                <li>Trauma-Informed Practice</li>
+                                <li>Relational approach</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-
-                <div class="card" data-aos="fade-up" data-aos-delay="300">
-                    <h3 class="card__title">Physical Practice</h3>
-                    <div class="card__content">
-                        <p>Group classes focused on developing embodied capacities.</p>
-                        <ul class="bullet-list">
-                            <li>Mobility Classes</li>
-                            <li>Strength Training</li>
-                            <li>Skills Development</li>
-                            <li>Expressive Movement</li>
-                        </ul>
+            </div>
+    
+            <!-- Future Vision -->
+            <div class="content-block">
+                <h3 class="heading-lg" data-aos="fade-up">Future Vision</h3>
+                <div class="grid grid--2col">
+                    <div class="card card--future" data-status="Future Vision" data-aos="fade-up" data-aos-delay="100">
+                        <h3 class="card__title">Physical Practice</h3>
+                        <div class="card__content">
+                            <p>Group classes focused on developing embodied capacities.</p>
+                            <ul class="bullet-list">
+                                <li>Mobility Classes</li>
+                                <li>Strength Training</li>
+                                <li>Skills Development</li>
+                                <li>Expressive Movement</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
-
-                <div class="card" data-aos="fade-up" data-aos-delay="400">
-                    <h3 class="card__title">Connection Skills</h3>
-                    <div class="card__content">
-                        <p>Group workshops for developing authentic relating.</p>
-                        <ul class="bullet-list">
-                            <li>Assertiveness Training</li>
-                            <li>Validation & Deep Listening</li>
-                            <li>Self-Compassion Practice</li>
-                            <li>Compassionate Touch</li>
-                        </ul>
+    
+                    <div class="card card--future" data-status="Future Vision" data-aos="fade-up" data-aos-delay="200">
+                        <h3 class="card__title">Connection Skills</h3>
+                        <div class="card__content">
+                            <p>Group workshops for developing authentic relating to others and to self.</p>
+                            <ul class="bullet-list">
+                                <li>Assertiveness Training</li>
+                                <li>Validation & Deep Listening</li>
+                                <li>Mindfulness & Self-Compassion Practice</li>
+                                <li>Compassionate Touch</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -925,7 +976,7 @@ body {
             <p class="subtitle" data-aos="fade-up" data-aos-delay="100">Be part of a growing community dedicated to authentic experience and expression in movement and emotion.</p>
             
             <div class="button-group" data-aos="fade-up" data-aos-delay="200">
-                <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
+                <a href="https://instagram.com/butterflyresonance" target="_blank" class="btn btn--instagram">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                         <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
@@ -992,7 +1043,7 @@ body {
 
                     <div class="button-group">
                         <a href="mailto:butterflyresonance@gmail.com" class="btn btn--primary">Email Us</a>
-                        <a href="https://instagram.com/butterflyresonance" class="btn btn--instagram">
+                        <a href="https://instagram.com/butterflyresonance" target="_blank" class="btn btn--instagram">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
                                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
