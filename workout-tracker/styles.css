@@ -38,9 +38,8 @@ body {
 }
 
 /* Input field sizing */
-#exercise-name,
-#measurement-type {
-    max-width: calc(100% - 2rem);
+input:not([type="checkbox"]) {
+    width: 100%;
     box-sizing: border-box;
 }
 
