@@ -659,53 +659,116 @@ body {
     <!-- Mailchimp -->
     <link href="https://cdn-images.mailchimp.com/embedcode/classic-061523.css" rel="stylesheet" type="text/css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <style type="text/css">
+    <style>
+        /* Form Container */
         #mc_embed_signup {
+            width: 100% !important;
+            max-width: 600px !important;
+            margin: var(--spacing-xl) auto !important;
+            color: var(--color-text) !important;
             background: transparent !important;
-            clear: left;
-            font-family: var(--font-primary) !important;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
         }
         
+        /* Form Title */
+        #mc_embed_signup h2 {
+            color: white !important;
+            font-family: var(--font-secondary) !important;
+            text-align: center !important;
+            margin-bottom: var(--spacing-lg) !important;
+            font-size: 1.5rem !important;
+        }
+        
+        /* Labels */
+        #mc_embed_signup label {
+            color: white !important;
+            font-weight: 400 !important;
+        }
+        
+        /* Required Text & Asterisk */
+        #mc_embed_signup .indicates-required,
+        #mc_embed_signup .asterisk {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        /* Input Fields */
+        #mc_embed_signup input[type="email"],
+        #mc_embed_signup input[type="text"] {
+            background-color: white !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            color: var(--color-text) !important;
+        }
+        
+        #mc_embed_signup input[type="email"]:focus,
+        #mc_embed_signup input[type="text"]:focus {
+            border-color: var(--color-primary) !important;
+        }
+        
+        /* Footer Grid Override */
+        #mc_embed_signup .foot {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        /* Clear Grid Layout */
+        #mc_embed_signup #mc-embedded-subscribe-form input, 
+        #mc_embed_signup #mc-embedded-subscribe-form select {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        /* Submit Button */
         #mc_embed_signup .button {
-            background: var(--color-primary) !important;
-            transition: var(--transition-base);
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: var(--spacing-sm) !important;
+            padding: var(--spacing-sm) var(--spacing-xl) !important;
+            border-radius: var(--radius-sm) !important;
+            font-size: 1.1rem !important;
+            font-weight: 500 !important;
+            text-decoration: none !important;
+            transition: var(--transition-base) !important;
+            min-width: 200px !important;
+            cursor: pointer !important;
+            border: 2px solid white !important;
+            background: transparent !important;
+            color: white !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 300px !important;
+            height: auto !important;
+            line-height: normal !important;
         }
         
         #mc_embed_signup .button:hover {
-            background: #523672 !important;
+            background: rgba(255, 255, 255, 0.1) !important;
         }
         
-        #mc_embed_signup form {
-            padding: var(--spacing-lg) !important;
+        /* Response Messages */
+        #mc_embed_signup #mce-success-response {
+            color: #2ecc71 !important;
+            background: rgba(46, 204, 113, 0.1) !important;
+            padding: var(--spacing-sm) !important;
+            border-radius: var(--radius-sm) !important;
         }
         
-        #mc_embed_signup h2 {
-            font-family: var(--font-secondary) !important;
-            color: var(--color-primary);
-        }
-
-        #mc_embed_signup .button:disabled {
-            background: #cccccc !important;
-            cursor: not-allowed;
-        }
-
-        /* Optional loading indicator */
-        #mc_embed_signup .button.loading::after {
-            content: "...";
-            display: inline-block;
-            margin-left: 4px;
+        #mc_embed_signup #mce-error-response {
+            color: #e74c3c !important;
+            background: rgba(231, 76, 60, 0.1) !important;
+            padding: var(--spacing-sm) !important;
+            border-radius: var(--radius-sm) !important;
         }
         
         @media (max-width: 768px) {
             #mc_embed_signup {
-                width: 100%;
-                padding: 0 var(--spacing-sm);
+                padding: 0;
+            }
+            
+            #mc_embed_signup .button {
+                width: 100% !important;
             }
         }
-    </style>
+        </style>
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
@@ -720,7 +783,7 @@ body {
                 <ul class="nav__list">
                     <li><a href="#about" class="nav__link">About</a></li>
                     <li><a href="#framework" class="nav__link">Framework</a></li>
-                    <li><a href="#lab" class="nav__link">Lab</a></li>
+                    <li><a href="#ideas" class="nav__link">Ideas</a></li>
                     <li><a href="#resources" class="nav__link">Resources</a></li>
                     <li><a href="#community" class="nav__link">Community</a></li>
                 </ul>
@@ -744,10 +807,10 @@ body {
                     By following what resonates within us in feeling and in movement, we open space for the subtle parts of ourselves to emerge, and slowly discover the freedom to feel, move, and be who we authentically are.
                 </p>
                 <p class="featured-subtitle">
-                    Exploring and synthesising diverse embodied and contemplative traditions
+                    A personal journey weaving together diverse embodied and contemplative traditions
                 </p>
                 <div class="button-group">
-                    <a href="#lab" class="btn btn--primary">Visit the Lab</a>
+                    <a href="#ideas" class="btn btn--primary">Explore Emerging Ideas</a>
                     <a href="https://instagram.com/butterflyresonance" target="_blank" class="btn btn--instagram">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
@@ -764,17 +827,13 @@ body {
     <section class="section" id="about">
         <div class="container">
             <h2 class="heading-xl" data-aos="fade-up">About This Space</h2>
-            <p class="subtitle" data-aos="fade-up" data-aos-delay="100">
-                A personal laboratory for exploring the integration of movement, embodiment, and contemplative practices
-            </p>
-            
-            <div class="content-block" data-aos="fade-up" data-aos-delay="200">
+            <div class="content-block" data-aos="fade-up" data-aos-delay="100">
                 <h3 class="heading-lg">A Space for Exploration</h3>
                 <p class="content-text">Welcome to my personal learning journey. While I'm a clinical psychologist by profession, this space exists separately from that role - it's where I document my ongoing exploration of movement, embodiment, and contemplative practices.</p>
                 <p class="content-text">Here, I share my experiences, discoveries, and reflections as I integrate different traditions and approaches. This isn't about treatment or professional services; it's about curiosity, learning, and connecting with others who share these interests.</p>
             </div>
 
-            <div class="content-block" data-aos="fade-up" data-aos-delay="300">
+            <div class="content-block" data-aos="fade-up" data-aos-delay="200">
                 <h3 class="heading-lg">What You'll Find Here</h3>
                 <ul class="bullet-list">
                     <li>Documentation of my personal movement practice and discoveries</li>
@@ -783,9 +842,7 @@ body {
                     <li>A growing collection of resources and insights from my learning journey</li>
                 </ul>
             </div>
-    
-            <!-- Professional context as regular text since it's more explanatory -->
-            <div class="content-block" data-aos="fade-up" data-aos-delay="400">
+            <div class="content-block" data-aos="fade-up" data-aos-delay="300">
                 <h3 class="heading-lg">A Note on Professional Context</h3>
                     <p class="content-text">While my background as a clinical psychologist informs my perspective, this space represents my personal exploration rather than professional practice. The ideas, practices, and reflections shared here are part of my own learning journey and shouldn't be taken as therapeutic advice or treatment.</p>
                     <p class="content-text">If you're seeking psychological support or treatment, please connect with a mental health professional in your area who can provide appropriate care within a therapeutic context.</p>
@@ -873,10 +930,10 @@ body {
 </section>
 
 
-<!-- Resonance Lab Section -->
-<section class="section" id="lab">
+<!-- Emerging Ideas Section -->
+<section class="section" id="ideas">
     <div class="container">
-        <h2 class="heading-xl" data-aos="fade-up">Resonance Lab</h2>
+        <h2 class="heading-xl" data-aos="fade-up">Emerging Ideas</h2>
         <p class="subtitle" data-aos="fade-up" data-aos-delay="100">
             Exploring the dialogue between movement practice, embodied traditions, and psychological understanding
         </p>
@@ -971,7 +1028,7 @@ body {
         </p>
         
         <div class="text-block">
-            <div class="card card--static" data-aos="fade-in" data-aos-delay="200">
+            <div class="card card--static" data-aos="fade-up" data-aos-delay="200">
                 <div class="card__content">
                     <p class="content-text">
                         I'm building connections with people interested in exploring authentic expression and freedom through movement and internal awareness. Whether you're coming from:
@@ -990,6 +1047,37 @@ body {
                         I'd love to connect and share in this exploration toward the freedom to feel all feelings, to embody all parts of ourselves, and to move in ways that authentically express who we are.
                     </p>
 
+                    <!-- Mailchimp Form -->
+                    <div id="mc_embed_signup" data-aos="fade-in" data-aos-delay="300">
+                        <form action="https://github.us3.list-manage.com/subscribe/post?u=209d0db503684cd8f7cd035b6&amp;id=61b84038f4&amp;f_id=006fd2e0f0" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank">
+                            <div id="mc_embed_signup_scroll">
+                                <h2>Join our newsletter</h2>
+                                <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
+                                <div class="mc-field-group">
+                                    <label for="mce-EMAIL">Email Address <span class="asterisk">*</span></label>
+                                    <input type="email" name="EMAIL" class="required email" id="mce-EMAIL" required="" value="">
+                                </div>
+                                <div class="mc-field-group">
+                                    <label for="mce-FNAME">First Name </label>
+                                    <input type="text" name="FNAME" class="text" id="mce-FNAME" value="">
+                                </div>
+                                <div id="mce-responses" class="clear foot">
+                                    <div class="response" id="mce-error-response" style="display: none"></div>
+                                    <div class="response" id="mce-success-response" style="display: none"></div>
+                                </div>
+                                <div aria-hidden="true" style="position: absolute; left: -5000px;">
+                                    <input type="text" name="b_209d0db503684cd8f7cd035b6_61b84038f4" tabindex="-1" value="">
+                                </div>
+                                <div class="optionalParent">
+                                    <div class="clear foot">
+                                        <input type="submit" name="subscribe" id="mc-embedded-subscribe" class="button" value="Subscribe">
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Social Links -->
                     <div class="button-group">
                         <a href="https://instagram.com/butterflyresonance" target="_blank" class="btn btn--instagram">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
