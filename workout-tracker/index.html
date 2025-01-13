@@ -57,6 +57,16 @@
                     Track weight for this exercise
                 </label>
             </div>
+            <div class="input-group bodyweight-input" style="display: none;">
+                <label for="bodyweight">Your bodyweight (kg)</label>
+                <input type="number" 
+                       id="bodyweight" 
+                       inputmode="decimal" 
+                       step="0.1" 
+                       min="20" 
+                       max="300"
+                       placeholder="Enter your bodyweight">
+            </div>
             <button onclick="saveExercise()">Save Exercise</button>
         </div>
     </div>
@@ -84,6 +94,45 @@
             <!-- Workout history items will be added here -->
         </div>
     </div>
+
+    <!-- Templates -->
+    <template id="set-input-template">
+        <div class="set-input">
+            <div class="weight-input-group">
+                <input type="text" 
+                       inputmode="decimal" 
+                       pattern="[0-9]*[.,]?[0-9]*"
+                       class="weight-amount" 
+                       placeholder="Weight">
+                <button class="bodyweight-toggle" 
+                        onclick="toggleBodyweight(this)">
+                    BW
+                </button>
+            </div>
+            <input type="number" 
+                   inputmode="numeric" 
+                   pattern="[0-9]*"
+                   placeholder="Amount" 
+                   min="0">
+            <button class="remove-set" onclick="removeSet(this)">×</button>
+        </div>
+    </template>
+
+    <!-- Analysis Container -->
+    <template id="strength-analysis-template">
+        <div class="strength-analysis">
+            <h3>Strength Analysis</h3>
+            <p class="best-set"></p>
+            
+            <h4>Weight Analysis</h4>
+            <div class="weight-analysis"></div>
+            
+            <div class="recommendations-section">
+                <h4>Recommendations</h4>
+                <div class="recommendations"></div>
+            </div>
+        </div>
+    </template>
 
     <script src="app.js"></script>
 </body>
