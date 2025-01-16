@@ -1,0 +1,23 @@
+{
+    "name": "Movement Practice | Butterfly Resonance",
+    "short_name": "Movement Practice",
+    "description": "A spaced repetition app for movement practice",
+    "start_url": "/spaced-repetition-movement/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#614385",
+    "icons": [
+      {
+        "src": "https://butterflyresonance.github.io/android-chrome-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "https://butterflyresonance.github.io/android-chrome-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any"
+      }
+    ]
+  }
