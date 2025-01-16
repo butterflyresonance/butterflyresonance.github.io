@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Butterfly Practice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .password-form {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:disabled {
+            background: #ccc;
+        }
+
+        button:hover:not(:disabled) {
+            background: #45a049;
+        }
+
+        .player-container {
+            display: none;
+            width: 100%;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #f44336;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            input[type="password"],
+            button {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Butterfly Practice</h1>
+        
+        <div id="passwordForm" class="password-form">
+            <div class="input-group">
+                <label for="password">Enter Password:</label>
+                <input type="password" id="password" autocomplete="off">
+            </div>
+            <button onclick="decryptAudio()" id="decryptButton">Play Audio</button>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="playerContainer" class="player-container">
+            <audio id="audioPlayer" controls>
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+    </div>
+
+    <script>
+        let cachedAudioUrl = null;
+
+        async function decryptAudio() {
+            const passwordInput = document.getElementById('password');
+            const button = document.getElementById('decryptButton');
+            const error = document.getElementById('error');
+            const playerContainer = document.getElementById('playerContainer');
+            const audioPlayer = document.getElementById('audioPlayer');
+
+            error.textContent = '';
+            button.disabled = true;
+            button.textContent = 'Loading...';
+
+            try {
+                // Fetch encrypted audio file
+                const response = await fetch('butterfly_practice.mp3.encrypted');
+                const encryptedData = await response.arrayBuffer();
+
+                // Extract IV and encrypted content
+                const iv = new Uint8Array(encryptedData.slice(0, 12));
+                const encrypted = new Uint8Array(encryptedData.slice(12));
+
+                // Generate key from password
+                const encoder = new TextEncoder();
+                const passwordData = encoder.encode(passwordInput.value);
+                const passwordHash = await crypto.subtle.digest('SHA-256', passwordData);
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    passwordHash,
+                    { name: 'AES-GCM' },
+                    false,
+                    ['decrypt']
+                );
+
+                // Decrypt the audio
+                const decrypted = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv
+                    },
+                    key,
+                    encrypted
+                );
+
+                // Create audio URL
+                if (cachedAudioUrl) {
+                    URL.revokeObjectURL(cachedAudioUrl);
+                }
+                const blob = new Blob([decrypted], { type: 'audio/mpeg' });
+                cachedAudioUrl = URL.createObjectURL(blob);
+                
+                // Set up audio player
+                audioPlayer.src = cachedAudioUrl;
+                playerContainer.style.display = 'block';
+                passwordInput.value = '';
+                button.textContent = 'Play Audio';
+                button.disabled = false;
+
+                // Auto-play (note: may not work on mobile due to browser policies)
+                try {
+                    await audioPlayer.play();
+                } catch (playError) {
+                    console.log('Auto-play prevented by browser');
+                }
+
+            } catch (error) {
+                console.error('Decryption failed:', error);
+                document.getElementById('error').textContent = 'Incorrect password or error playing audio';
+                button.textContent = 'Play Audio';
+                button.disabled = false;
+            }
+        }
+
+        // Clean up on page unload
+        window.addEventListener('unload', () => {
+            if (cachedAudioUrl) {
+                URL.revokeObjectURL(cachedAudioUrl);
+            }
+        });
+    </script>
+</body>
+</html>
