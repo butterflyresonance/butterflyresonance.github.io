@@ -10,7 +10,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Movement Practice">
     
-    <!-- Using your existing icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="https://butterflyresonance.github.io/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="https://butterflyresonance.github.io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="https://butterflyresonance.github.io/favicon-16x16.png">
@@ -117,8 +116,18 @@ body {
 }
 
 .btn:hover {
-    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+}
+
+.btn--primary {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.btn-center {
+    margin: 0 auto;
+    max-width: 200px;
+    display: block;
 }
 
 .btn--secondary {
@@ -143,12 +152,6 @@ body {
     color: var(--color-primary);
 }
 
-.exercise-category {
-    font-size: 1.1rem;
-    color: var(--color-text-light);
-    margin-bottom: var(--spacing-sm);
-}
-
 .priority-stars {
     color: var(--color-primary);
     font-size: 1.2rem;
@@ -165,14 +168,91 @@ body {
     color: var(--color-text);
 }
 
-.form-group input,
-.form-group select {
+.form-group input[type="text"] {
     width: 100%;
     padding: var(--spacing-sm);
     border: 1px solid rgba(0,0,0,0.1);
     border-radius: var(--radius-sm);
     font-family: var(--font-primary);
     font-size: 1rem;
+}
+
+.slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #e0e0e0 0%, var(--color-primary) 100%);
+    outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    transition: var(--transition-base);
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+}
+
+.slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    transition: var(--transition-base);
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+}
+
+.slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.priority-value {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--color-primary);
+    min-width: 30px;
+    text-align: center;
+}
+
+.priority-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 12px;
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+.priority-display {
+    text-align: center;
+    margin-top: var(--spacing-xs);
+    color: var(--color-text-light);
 }
 
 .exercise-list {
@@ -227,7 +307,6 @@ body {
     display: none;
 }
 
-/* Responsive adjustments */
 @media (min-width: 768px) {
     .button-group {
         flex-direction: row;
@@ -262,15 +341,21 @@ body {
         <!-- Exercise Display Card -->
         <div class="card">
             <div class="exercise-display">
-                <div id="initialMessage">Add some movements and press "Next" to begin your practice</div>
+                <div id="defaultState">
+                    <p>Ready for your next movement?</p>
+                    <div class="button-group">
+                        <button onclick="selectNextExercise()" id="nextButton" class="btn btn--primary btn-center">Next Movement</button>
+                    </div>
+                </div>
                 <div id="exerciseContent" class="hidden">
                     <h2 id="exerciseName" class="exercise-name"></h2>
                     <div id="priority" class="priority-stars"></div>
+                    <div class="button-group">
+                        <button onclick="completeExercise(false)" id="completeButton" class="btn btn--secondary">Complete</button>
+                        <button onclick="completeExercise(true)" id="completeNextButton" class="btn">Complete & Next</button>
+                        <button onclick="freezeCurrentAndNext()" id="freezeButton" class="btn btn--secondary">Freeze</button>
+                    </div>
                 </div>
-            </div>
-            <div class="button-group">
-                <button onclick="selectNextExercise()" class="btn btn--primary">Next Movement</button>
-                <button onclick="freezeCurrentAndNext()" id="freezeButton" class="btn btn--secondary hidden">Freeze & Next</button>
             </div>
         </div>
 
@@ -282,21 +367,27 @@ body {
                     <input type="text" id="exerciseInput" required>
                 </div>
                 <div class="form-group">
-                    <label for="categoryInput">Category</label>
-                    <select id="categoryInput" required>
-                        <option value="strength">Strength</option>
-                        <option value="flexibility">Flexibility</option>
-                        <option value="skill">Skill</option>
-                        <option value="balance">Balance</option>
-                        <option value="mobility">Mobility</option>
-                        <option value="flow">Flow</option>
-                    </select>
+                    <label for="priorityInput">Priority</label>
+                    <div class="slider-container">
+                        <div class="slider-wrapper">
+                            <input type="range" 
+                                   id="priorityInput" 
+                                   class="slider" 
+                                   min="1" 
+                                   max="5" 
+                                   value="3" 
+                                   step="1"
+                                   oninput="updatePriorityDisplay(this.value)">
+                            <span class="priority-value" id="priorityValue">3</span>
+                        </div>
+                        <div class="priority-labels">
+                            <span>Lower</span>
+                            <span>Higher</span>
+                        </div>
+                        <div class="priority-display" id="priorityStars">★★★☆☆</div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="priorityInput">Priority (1-5)</label>
-                    <input type="number" id="priorityInput" min="1" max="5" required value="3">
-                </div>
-                <button type="submit" class="btn">Add Movement</button>
+                <button type="submit" class="btn btn-center">Add Movement</button>
             </form>
         </div>
 
@@ -312,122 +403,157 @@ body {
             <div id="history"></div>
         </div>
     </div>
+    <script>
+    let exercises = [];
+    const exerciseHistory = [];
+    let currentExercise = null;
+    
+    function getStars(priority) {
+        return '★'.repeat(priority) + '☆'.repeat(5 - priority);
+    }
 
-    <script>let exercises = [];
-        const exerciseHistory = [];
-        let currentExercise = null;
+    function updatePriorityDisplay(value) {
+        document.getElementById('priorityValue').textContent = value;
+        document.getElementById('priorityStars').textContent = getStars(parseInt(value));
+    }
+    
+    function addExercise(event) {
+        event.preventDefault();
         
-        // Helper function for star rating display
-        function getStars(priority) {
-            return '★'.repeat(priority) + '☆'.repeat(5 - priority);
+        const name = document.getElementById('exerciseInput').value;
+        const priority = parseInt(document.getElementById('priorityInput').value);
+        
+        const newExercise = {
+            id: Date.now(),
+            name,
+            priority,
+            lastCompleted: null,
+            frozen: false
+        };
+        
+        exercises.push(newExercise);
+        saveExercises();
+        updateExerciseList();
+        
+        document.getElementById('addExerciseForm').reset();
+
+        // If this is the first exercise, select it
+        if (exercises.length === 1) {
+            selectNextExercise();
         }
-        
-        // Add new exercise
-        function addExercise(event) {
-            event.preventDefault();
-            
-            const name = document.getElementById('exerciseInput').value;
-            const category = document.getElementById('categoryInput').value;
-            const priority = parseInt(document.getElementById('priorityInput').value);
-            
-            const newExercise = {
-                id: Date.now(),
-                name,
-                category,
-                priority,
-                lastShown: null,
-                frozen: false
-            };
-            
-            exercises.push(newExercise);
-            saveExercises();
-            updateExerciseList();
-            
-            document.getElementById('addExerciseForm').reset();
-        }
-        
-        // Delete exercise
-        function deleteExercise(id) {
-            exercises = exercises.filter(ex => ex.id !== id);
-            saveExercises();
-            updateExerciseList();
-        }
-        
-        // Toggle freeze state
-        function toggleFreeze(id) {
-            const exercise = exercises.find(ex => ex.id === id);
+    }
+    
+    function completeExercise(andNext) {
+        if (currentExercise) {
+            const exercise = exercises.find(ex => ex.id === currentExercise.id);
             if (exercise) {
-                exercise.frozen = !exercise.frozen;
+                const now = Date.now();
+                exercise.lastCompleted = now;
+                exerciseHistory.unshift({ 
+                    ...exercise,
+                    timestamp: now,
+                    completed: true
+                });
+                if (exerciseHistory.length > 50) exerciseHistory.pop();
+                
                 saveExercises();
-                updateExerciseList();
-                // If we're unfreezing the current exercise, hide the freeze button
-                if (currentExercise && currentExercise.id === id && !exercise.frozen) {
+                updateHistory();
+                saveHistory();
+                
+                // Hide the action buttons if not moving to next
+                if (!andNext) {
+                    document.getElementById('completeButton').style.display = 'none';
+                    document.getElementById('completeNextButton').style.display = 'none';
                     document.getElementById('freezeButton').style.display = 'none';
                 }
             }
-        }
-        
-        // Freeze current and select next
-        function freezeCurrentAndNext() {
-            if (currentExercise) {
-                const exercise = exercises.find(ex => ex.id === currentExercise.id);
-                if (exercise) {
-                    exercise.frozen = true;
-                    saveExercises();
-                    updateExerciseList();
-                }
+            
+            if (andNext) {
                 selectNextExercise();
             }
         }
-        
-        // Select next exercise
-        function selectNextExercise() {
-            const availableExercises = exercises.filter(ex => !ex.frozen);
-            
-            if (availableExercises.length === 0) {
-                document.getElementById('exerciseName').textContent = 'All movements are frozen!';
-                document.getElementById('priority').textContent = '';
-                document.getElementById('freezeButton').style.display = 'none';
-                document.getElementById('initialMessage').style.display = 'block';
-                document.getElementById('exerciseContent').style.display = 'none';
-                currentExercise = null;
-                return;
+    }
+    
+    function freezeCurrentAndNext() {
+        if (currentExercise) {
+            const exercise = exercises.find(ex => ex.id === currentExercise.id);
+            if (exercise) {
+                exercise.frozen = true;
+                saveExercises();
+                updateExerciseList();
             }
-        
-            const now = Date.now();
-            
-            const scored = availableExercises.map(ex => {
-                const lastShownTime = exerciseHistory.find(h => h.id === ex.id)?.timestamp || 0;
-                const timeSinceLastShown = now - lastShownTime;
-                const baseScore = timeSinceLastShown / (1000 * 60 * 60 * 24); // Convert to days
-                return {
-                    ...ex,
-                    score: baseScore * (1 + ex.priority * 0.2)
-                };
-            });
-            
-            const selected = [...scored].sort((a, b) => b.score - a.score)[0];
-            
-            document.getElementById('initialMessage').style.display = 'none';
-            document.getElementById('exerciseContent').style.display = 'block';
-            document.getElementById('freezeButton').style.display = 'block';
-            document.getElementById('exerciseName').textContent = selected.name;
-            document.getElementById('priority').textContent = getStars(selected.priority);
-            
-            currentExercise = selected;
-            
-            // Add to history
-            exerciseHistory.unshift({ 
-                ...selected, 
-                timestamp: now,
-                frozen: false // Initial state when added to history
-            });
-            if (exerciseHistory.length > 50) exerciseHistory.pop(); // Keep history manageable
-            updateHistory();
-            saveHistory();
+            selectNextExercise();
         }
+    }
+    
+    function showDefaultState() {
+        document.getElementById('defaultState').style.display = 'block';
+        document.getElementById('exerciseContent').style.display = 'none';
+        currentExercise = null;
+    }
+    
+    function showExerciseState() {
+        document.getElementById('defaultState').style.display = 'none';
+        document.getElementById('exerciseContent').style.display = 'block';
+    }
+    
+    function completeExercise(andNext) {
+        if (currentExercise) {
+            const exercise = exercises.find(ex => ex.id === currentExercise.id);
+            if (exercise) {
+                const now = Date.now();
+                exercise.lastCompleted = now;
+                exerciseHistory.unshift({ 
+                    ...exercise,
+                    timestamp: now,
+                    completed: true
+                });
+                if (exerciseHistory.length > 50) exerciseHistory.pop();
+                
+                saveExercises();
+                updateHistory();
+                saveHistory();
+            }
+            
+            if (andNext) {
+                selectNextExercise();
+            } else {
+                showDefaultState();
+            }
+        }
+    }
+    
+    function selectNextExercise() {
+        const availableExercises = exercises.filter(ex => !ex.frozen);
         
-        // Update exercise list display
+        if (availableExercises.length === 0) {
+            document.getElementById('exerciseName').textContent = 'All movements are frozen!';
+            document.getElementById('priority').textContent = '';
+            showDefaultState();
+            return;
+        }
+
+        const now = Date.now();
+        
+        const scored = availableExercises.map(ex => {
+            const lastCompletedTime = ex.lastCompleted || 0;
+            const timeSinceLastCompleted = now - lastCompletedTime;
+            const baseScore = timeSinceLastCompleted / (1000 * 60 * 60 * 24); // Convert to days
+            return {
+                ...ex,
+                score: baseScore * (1 + ex.priority * 0.2)
+            };
+        });
+        
+        const selected = [...scored].sort((a, b) => b.score - a.score)[0];
+        
+        document.getElementById('exerciseName').textContent = selected.name;
+        document.getElementById('priority').textContent = getStars(selected.priority);
+        
+        currentExercise = selected;
+        showExerciseState();
+    }
+        
         function updateExerciseList() {
             const listDiv = document.getElementById('exerciseList');
             if (exercises.length === 0) {
@@ -440,7 +566,6 @@ body {
                     <div>
                         <span style="font-weight: 500">${ex.name}</span>
                         <span style="color: var(--color-text-light); margin-left: 8px">${getStars(ex.priority)}</span>
-                        <span style="color: var(--color-text-light); margin-left: 8px">${ex.category}</span>
                         ${ex.frozen ? '<span style="color: var(--color-text-light); margin-left: 8px">(Frozen)</span>' : ''}
                     </div>
                     <div class="exercise-item-buttons">
@@ -453,8 +578,27 @@ body {
                 </div>
             `).join('');
         }
+
+        function deleteExercise(id) {
+            exercises = exercises.filter(ex => ex.id !== id);
+            saveExercises();
+            updateExerciseList();
+        }
+
+        function toggleFreeze(id) {
+            const exercise = exercises.find(ex => ex.id === id);
+            if (exercise) {
+                exercise.frozen = !exercise.frozen;
+                saveExercises();
+                updateExerciseList();
+                if (currentExercise && currentExercise.id === id && !exercise.frozen) {
+                    document.getElementById('completeButton').style.display = 'none';
+                    document.getElementById('completeNextButton').style.display = 'none';
+                    document.getElementById('freezeButton').style.display = 'none';
+                }
+            }
+        }
         
-        // Update history display
         function updateHistory() {
             const historyDiv = document.getElementById('history');
             if (exerciseHistory.length === 0) {
@@ -466,36 +610,33 @@ body {
                 <div class="exercise-item">
                     <div>
                         <span style="font-weight: 500">${ex.name}</span>
-                        <span style="color: var(--color-text-light); margin-left: 8px">${ex.category}</span>
                     </div>
                     <span style="color: var(--color-text-light)">${new Date(ex.timestamp).toLocaleTimeString()}</span>
                 </div>
             `).join('');
         }
         
-        // Save exercises to localStorage
         function saveExercises() {
             localStorage.setItem('movement_practice_exercises', JSON.stringify(exercises));
         }
         
-        // Save history to localStorage
         function saveHistory() {
             localStorage.setItem('movement_practice_history', JSON.stringify(exerciseHistory));
         }
         
-        // Load saved exercises
         const savedExercises = localStorage.getItem('movement_practice_exercises');
         if (savedExercises) {
             exercises = JSON.parse(savedExercises);
             updateExerciseList();
+            showDefaultState(); // Always start in default state
         }
-        
-        // Load saved history
+
         const savedHistory = localStorage.getItem('movement_practice_history');
         if (savedHistory) {
             exerciseHistory.push(...JSON.parse(savedHistory));
             updateHistory();
         }
-    </script>
-</body>
-</html>
+        updatePriorityDisplay(3);
+        </script>
+    </body>
+    </html>
