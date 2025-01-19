@@ -436,6 +436,7 @@ body {
         updateExerciseList();
         
         document.getElementById('addExerciseForm').reset();
+        updatePriorityDisplay(3); // Add this line to update the display when form resets
 
         // If this is the first exercise, select it
         if (exercises.length === 1) {
