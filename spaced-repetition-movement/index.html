@@ -17,198 +17,242 @@
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --color-primary: #614385;
-            --color-secondary: #516395;
-            --color-text: #2C3E50;
-            --color-text-light: #64748b;
-            --color-background: #ffffff;
-            --color-background-alt: #f8f9fa;
-            --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-            --gradient-featured: linear-gradient(135deg, #2C3E50 0%, #6B4984 30%, #B8719A 70%, #DBA834 100%);
-            --font-primary: 'Outfit', sans-serif;
-            --font-secondary: 'Cormorant', serif;
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.25rem;
-            --spacing-lg: 1.5rem;
-            --spacing-xl: 2rem;
-            --spacing-2xl: 3rem;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition-base: all 0.3s ease;
-        }
+:root {
+    --color-primary: #614385;
+    --color-secondary: #516395;
+    --color-text: #2C3E50;
+    --color-text-light: #64748b;
+    --color-background: #ffffff;
+    --color-background-alt: #f8f9fa;
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    --gradient-featured: linear-gradient(135deg, #2C3E50 0%, #6B4984 30%, #B8719A 70%, #DBA834 100%);
+    --font-primary: 'Outfit', sans-serif;
+    --font-secondary: 'Cormorant', serif;
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.25rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition-base: all 0.3s ease;
+}
 
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        body {
-            font-family: var(--font-primary);
-            line-height: 1.6;
-            color: var(--color-text);
-            background: var(--color-background);
-            min-height: 100vh;
-            padding: var(--spacing-xl);
-        }
+body {
+    font-family: var(--font-primary);
+    line-height: 1.6;
+    color: var(--color-text);
+    background: var(--color-background);
+    min-height: 100vh;
+    padding: var(--spacing-xl);
+}
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
 
-        .card {
-            background: white;
-            padding: var(--spacing-xl);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-md);
-            margin-bottom: var(--spacing-xl);
-            transition: var(--transition-base);
-        }
+.card {
+    background: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-xl);
+    transition: var(--transition-base);
+}
 
-        .card:hover {
-            box-shadow: var(--shadow-lg);
-        }
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
 
-        .heading-xl {
-            font-family: var(--font-secondary);
-            font-size: 2.5rem;
-            color: var(--color-primary);
-            text-align: center;
-            margin-bottom: var(--spacing-xl);
-        }
+.heading-xl {
+    font-family: var(--font-secondary);
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
 
-        .subtitle {
-            font-size: 1.25rem;
-            color: var(--color-text-light);
-            text-align: center;
-            margin-bottom: var(--spacing-xl);
-        }
+.subtitle {
+    font-size: 1.25rem;
+    color: var(--color-text-light);
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--spacing-sm) var(--spacing-xl);
-            border-radius: var(--radius-sm);
-            font-size: 1.1rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: var(--transition-base);
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            background: var(--gradient-primary);
-            color: white;
-        }
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+    width: 100%;
+}
 
-        .btn:hover {
-            transform: translateY(-2px);
-        }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--transition-base);
+    border: none;
+    cursor: pointer;
+    flex: 1;
+    background: var(--gradient-primary);
+    color: white;
+}
 
-        .exercise-display {
-            text-align: center;
-            padding: var(--spacing-xl);
-        }
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
 
-        .exercise-name {
-            font-family: var(--font-secondary);
-            font-size: 2rem;
-            margin-bottom: var(--spacing-md);
-            color: var(--color-primary);
-        }
+.btn--secondary {
+    background: white;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+}
 
-        .exercise-category {
-            font-size: 1.1rem;
-            color: var(--color-text-light);
-            margin-bottom: var(--spacing-sm);
-        }
+.btn--secondary:hover {
+    background: rgba(97, 67, 133, 0.1);
+}
 
-        .priority-stars {
-            color: var(--color-primary);
-            font-size: 1.2rem;
-            margin-bottom: var(--spacing-xl);
-        }
+.exercise-display {
+    text-align: center;
+    padding: var(--spacing-xl);
+}
 
-        .form-group {
-            margin-bottom: var(--spacing-lg);
-        }
+.exercise-name {
+    font-family: var(--font-secondary);
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-primary);
+}
 
-        .form-group label {
-            display: block;
-            margin-bottom: var(--spacing-xs);
-            color: var(--color-text);
-        }
+.exercise-category {
+    font-size: 1.1rem;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-sm);
+}
 
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: var(--spacing-sm);
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: var(--radius-sm);
-            font-family: var(--font-primary);
-            font-size: 1rem;
-        }
+.priority-stars {
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-xl);
+}
 
-        .exercise-list {
-            list-style: none;
-            margin-top: var(--spacing-lg);
-        }
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
 
-        .exercise-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--spacing-sm);
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-        }
+.form-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text);
+}
 
-        .exercise-item:last-child {
-            border-bottom: none;
-        }
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-primary);
+    font-size: 1rem;
+}
 
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #e74c3c;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: var(--spacing-xs);
-        }
+.exercise-list {
+    list-style: none;
+    margin-top: var(--spacing-lg);
+}
 
-        .history-list {
-            list-style: none;
-            margin-top: var(--spacing-lg);
-        }
+.exercise-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    transition: var(--transition-base);
+}
 
-        .history-item {
-            padding: var(--spacing-sm);
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+.exercise-item.frozen {
+    background-color: var(--color-background-alt);
+}
 
-        @media (max-width: 768px) {
-            body {
-                padding: var(--spacing-sm);
-            }
+.exercise-item:last-child {
+    border-bottom: none;
+}
 
-            .heading-xl {
-                font-size: 2rem;
-            }
+.exercise-item-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+}
 
-            .exercise-name {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    font-size: 1.2rem;
+    transition: var(--transition-base);
+}
+
+.delete-btn {
+    color: #e74c3c;
+}
+
+.freeze-btn {
+    color: #3498db;
+}
+
+.thaw-btn {
+    color: #e67e22;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .button-group {
+        flex-direction: row;
+        gap: var(--spacing-lg);
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: var(--spacing-sm);
+    }
+
+    .heading-xl {
+        font-size: 2rem;
+    }
+
+    .exercise-name {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: var(--spacing-lg);
+    }
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -221,11 +265,13 @@
                 <div id="initialMessage">Add some movements and press "Next" to begin your practice</div>
                 <div id="exerciseContent" class="hidden">
                     <h2 id="exerciseName" class="exercise-name"></h2>
-                    <div id="category" class="exercise-category"></div>
                     <div id="priority" class="priority-stars"></div>
                 </div>
             </div>
-            <button onclick="selectNextExercise()" class="btn">Next Movement</button>
+            <div class="button-group">
+                <button onclick="selectNextExercise()" class="btn btn--primary">Next Movement</button>
+                <button onclick="freezeCurrentAndNext()" id="freezeButton" class="btn btn--secondary hidden">Freeze & Next</button>
+            </div>
         </div>
 
         <!-- Add Exercise Form -->
@@ -267,26 +313,16 @@
         </div>
     </div>
 
-    <script>
-        let exercises = [];
+    <script>let exercises = [];
         const exerciseHistory = [];
-
-        function getCategoryIcon(category) {
-            const icons = {
-                strength: '💪',
-                flexibility: '🤸',
-                skill: '🧠',
-                balance: '⚖️',
-                mobility: '🔄',
-                flow: '🌊'
-            };
-            return icons[category] || '📝';
-        }
-
+        let currentExercise = null;
+        
+        // Helper function for star rating display
         function getStars(priority) {
             return '★'.repeat(priority) + '☆'.repeat(5 - priority);
         }
-
+        
+        // Add new exercise
         function addExercise(event) {
             event.preventDefault();
             
@@ -299,7 +335,8 @@
                 name,
                 category,
                 priority,
-                lastShown: null
+                lastShown: null,
+                frozen: false
             };
             
             exercises.push(newExercise);
@@ -308,44 +345,61 @@
             
             document.getElementById('addExerciseForm').reset();
         }
-
+        
+        // Delete exercise
         function deleteExercise(id) {
             exercises = exercises.filter(ex => ex.id !== id);
             saveExercises();
             updateExerciseList();
         }
-
-        function updateExerciseList() {
-            const listDiv = document.getElementById('exerciseList');
-            if (exercises.length === 0) {
-                listDiv.innerHTML = '<p style="text-align: center; color: var(--color-text-light);">No movements added yet</p>';
-                return;
+        
+        // Toggle freeze state
+        function toggleFreeze(id) {
+            const exercise = exercises.find(ex => ex.id === id);
+            if (exercise) {
+                exercise.frozen = !exercise.frozen;
+                saveExercises();
+                updateExerciseList();
+                // If we're unfreezing the current exercise, hide the freeze button
+                if (currentExercise && currentExercise.id === id && !exercise.frozen) {
+                    document.getElementById('freezeButton').style.display = 'none';
+                }
             }
-            
-            listDiv.innerHTML = exercises.map(ex => `
-                <div class="exercise-item">
-                    <div>
-                        <span style="margin-right: 8px">${getCategoryIcon(ex.category)}</span>
-                        <span style="font-weight: 500">${ex.name}</span>
-                        <span style="color: var(--color-text-light); margin-left: 8px">${getStars(ex.priority)}</span>
-                    </div>
-                    <button onclick="deleteExercise(${ex.id})" class="delete-btn">❌</button>
-                </div>
-            `).join('');
         }
-
+        
+        // Freeze current and select next
+        function freezeCurrentAndNext() {
+            if (currentExercise) {
+                const exercise = exercises.find(ex => ex.id === currentExercise.id);
+                if (exercise) {
+                    exercise.frozen = true;
+                    saveExercises();
+                    updateExerciseList();
+                }
+                selectNextExercise();
+            }
+        }
+        
+        // Select next exercise
         function selectNextExercise() {
-            if (exercises.length === 0) {
-                alert('Please add some movements first!');
+            const availableExercises = exercises.filter(ex => !ex.frozen);
+            
+            if (availableExercises.length === 0) {
+                document.getElementById('exerciseName').textContent = 'All movements are frozen!';
+                document.getElementById('priority').textContent = '';
+                document.getElementById('freezeButton').style.display = 'none';
+                document.getElementById('initialMessage').style.display = 'block';
+                document.getElementById('exerciseContent').style.display = 'none';
+                currentExercise = null;
                 return;
             }
-
+        
             const now = Date.now();
             
-            const scored = exercises.map(ex => {
+            const scored = availableExercises.map(ex => {
                 const lastShownTime = exerciseHistory.find(h => h.id === ex.id)?.timestamp || 0;
                 const timeSinceLastShown = now - lastShownTime;
-                const baseScore = timeSinceLastShown / (1000 * 60 * 60 * 24);
+                const baseScore = timeSinceLastShown / (1000 * 60 * 60 * 24); // Convert to days
                 return {
                     ...ex,
                     score: baseScore * (1 + ex.priority * 0.2)
@@ -356,64 +410,91 @@
             
             document.getElementById('initialMessage').style.display = 'none';
             document.getElementById('exerciseContent').style.display = 'block';
+            document.getElementById('freezeButton').style.display = 'block';
             document.getElementById('exerciseName').textContent = selected.name;
-            document.getElementById('category').textContent = `${getCategoryIcon(selected.category)} ${selected.category}`;
             document.getElementById('priority').textContent = getStars(selected.priority);
             
-            exerciseHistory.unshift({ ...selected, timestamp: now });
-            updateHistory();
+            currentExercise = selected;
             
+            // Add to history
+            exerciseHistory.unshift({ 
+                ...selected, 
+                timestamp: now,
+                frozen: false // Initial state when added to history
+            });
+            if (exerciseHistory.length > 50) exerciseHistory.pop(); // Keep history manageable
+            updateHistory();
             saveHistory();
         }
-
+        
+        // Update exercise list display
+        function updateExerciseList() {
+            const listDiv = document.getElementById('exerciseList');
+            if (exercises.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: var(--color-text-light);">No movements added yet</p>';
+                return;
+            }
+            
+            listDiv.innerHTML = exercises.map(ex => `
+                <div class="exercise-item ${ex.frozen ? 'frozen' : ''}">
+                    <div>
+                        <span style="font-weight: 500">${ex.name}</span>
+                        <span style="color: var(--color-text-light); margin-left: 8px">${getStars(ex.priority)}</span>
+                        <span style="color: var(--color-text-light); margin-left: 8px">${ex.category}</span>
+                        ${ex.frozen ? '<span style="color: var(--color-text-light); margin-left: 8px">(Frozen)</span>' : ''}
+                    </div>
+                    <div class="exercise-item-buttons">
+                        ${ex.frozen ? 
+                            `<button onclick="toggleFreeze(${ex.id})" class="action-btn thaw-btn" title="Thaw">🌞</button>` :
+                            `<button onclick="toggleFreeze(${ex.id})" class="action-btn freeze-btn" title="Freeze">❄️</button>`
+                        }
+                        <button onclick="deleteExercise(${ex.id})" class="action-btn delete-btn" title="Delete">❌</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Update history display
         function updateHistory() {
             const historyDiv = document.getElementById('history');
             if (exerciseHistory.length === 0) {
                 historyDiv.innerHTML = '<p style="text-align: center; color: var(--color-text-light);">No practice history yet</p>';
                 return;
             }
-
+        
             historyDiv.innerHTML = exerciseHistory.slice(0, 5).map(ex => `
-                <div class="history-item">
-                    <span style="font-weight: 500">${ex.name}</span>
+                <div class="exercise-item">
+                    <div>
+                        <span style="font-weight: 500">${ex.name}</span>
+                        <span style="color: var(--color-text-light); margin-left: 8px">${ex.category}</span>
+                    </div>
                     <span style="color: var(--color-text-light)">${new Date(ex.timestamp).toLocaleTimeString()}</span>
                 </div>
             `).join('');
         }
-
+        
+        // Save exercises to localStorage
         function saveExercises() {
             localStorage.setItem('movement_practice_exercises', JSON.stringify(exercises));
         }
-
+        
+        // Save history to localStorage
         function saveHistory() {
             localStorage.setItem('movement_practice_history', JSON.stringify(exerciseHistory));
         }
-
+        
+        // Load saved exercises
         const savedExercises = localStorage.getItem('movement_practice_exercises');
         if (savedExercises) {
             exercises = JSON.parse(savedExercises);
             updateExerciseList();
         }
-
+        
+        // Load saved history
         const savedHistory = localStorage.getItem('movement_practice_history');
         if (savedHistory) {
             exerciseHistory.push(...JSON.parse(savedHistory));
             updateHistory();
-        }
-    </script>
-
-    <script>
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
         }
     </script>
 </body>
