@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classes | Butterfly Resonance</title>
+    <style>
+:root {
+    /* Colors */
+    --color-primary: #614385;
+    --color-secondary: #516395;
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    --color-text: #2C3E50;
+    --color-text-light: #64748b;
+    --color-background: #ffffff;
+    --color-background-alt: #f8f9fa;
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.25rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+}
+
+/* Container Layout */
+.classes-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
+
+/* Section Headers */
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-header h2 {
+    color: var(--color-primary);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    font-family: var(--font-secondary, 'Cormorant', serif);
+}
+
+.section-description {
+    color: var(--color-text-light);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Class Series */
+.class-series {
+    margin-bottom: 3rem;
+}
+
+.series-title {
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-primary);
+    font-family: var(--font-secondary, 'Cormorant', serif);
+}
+
+/* Class Cards */
+.class-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.class-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.class-title {
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-family: var(--font-secondary, 'Cormorant', serif);
+}
+
+.class-meta {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    margin-bottom: 1rem;
+}
+
+.class-description {
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* Class Details List */
+.class-details {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.class-details li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--color-text);
+}
+
+.class-details li::before {
+    content: "•";
+    color: var(--color-primary);
+    position: absolute;
+    left: 0;
+}
+
+/* Notes and Prerequisites */
+.note {
+    font-style: italic;
+    color: var(--color-text-light);
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(97, 67, 133, 0.1);
+    border-radius: var(--radius-sm);
+    line-height: 1.5;
+}
+
+.prerequisites {
+    font-size: 0.9rem;
+    color: var(--color-primary);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Form Container */
+.form-container {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.form-container iframe {
+    width: 100%;
+    min-height: 700px;
+    border: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .classes-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.75rem;
+    }
+
+    .series-title {
+        font-size: 1.25rem;
+    }
+
+    .class-card {
+        padding: 1.25rem;
+    }
+
+    .form-container {
+        padding: 1rem;
+        margin-top: 2rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.class-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Additional Utility Classes */
+.text-center {
+    text-align: center;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+/* Focus States */
+.class-card:focus-within {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .class-card {
+        animation: none;
+        transition: none;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="classes-container">
+        <div class="section-header">
+            <h2>Exploring Classes</h2>
+            <p class="section-description">
+                These offerings focus on developing deeper awareness, authentic connection, and emotional capacity. 
+                Each session's length will be responsive to the group's needs and process, allowing space for 
+                natural understanding to emerge.
+            </p>
+        </div>
+
+        <div class="class-series">
+            <h3 class="series-title">Core Practice</h3>
+            
+            <div class="class-card">
+                <h4 class="class-title">The Butterfly Practice</h4>
+                <p class="class-description">
+                    A guided practice that creates space for discovering what naturally emerges when we slow down 
+                    and pay attention. Through four stages, we explore the journey from internal awareness to authentic expression.
+                </p>
+                <ul class="class-details">
+                    <li>Egg Stage: Opening to diffuse body awareness, moving away from habitual avoidance</li>
+                    <li>Caterpillar Stage: Following natural movement impulses that arise from internal awareness</li>
+                    <li>Chrysalis Stage: Creating a stable container of aware stillness</li>
+                    <li>Butterfly Stage: Moving into paired sharing and deep listening</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="class-series">
+            <h3 class="series-title">Listening Series (Progressive)</h3>
+            
+            <div class="class-card">
+                <h4 class="class-title">Reflective Listening (Part 1)</h4>
+                <p class="class-description">
+                    Learn the foundations of reflective listening and discover how premature solution-seeking can 
+                    actually intensify distress by modelling an inability to stay with difficult feelings.
+                </p>
+                <ul class="class-details">
+                    <li>Understanding the principles and practice of reflective listening</li>
+                    <li>Exploring the value of simply feeling understood in our experience</li>
+                    <li>Learning when solution-seeking helps and when it adds to pressure</li>
+                    <li>Practicing validation even when we disagree or find feelings "irrational"</li>
+                    <li>Developing skills through guided group practice</li>
+                </ul>
+                <p class="note">
+                    This foundational class explores how staying with feelings, rather than rushing to solutions, 
+                    can create space for connection, coregulation, deeper understanding, and natural resolution.
+                </p>
+            </div>
+
+            <div class="class-card">
+                <h4 class="class-title">Being With Difficult Feelings (Part 2)</h4>
+                <p class="prerequisites">Prerequisites: Reflective Listening (Part 1)</p>
+                <p class="class-description">
+                    Explore how pain transforms when met with an empathic witness. Learn how providing a 
+                    "relational home" for difficult feelings can prevent pain from becoming trauma.
+                </p>
+                <ul class="class-details">
+                    <li>Deepening understanding of validation, especially with challenging emotions</li>
+                    <li>Understanding how unwitnessed pain can become trauma</li>
+                    <li>Working with recent experiences of fear, shame, or overwhelm</li>
+                    <li>Practicing being an empathic witness for others' difficult feelings</li>
+                    <li>Creating space for feelings to be fully felt and naturally transform</li>
+                    <li>Learning to stay present without trying to change or fix</li>
+                </ul>
+                <p class="note">
+                    Through paired practice, we'll experience how simply being witnessed with acceptance 
+                    can transform our relationship with difficult feelings.
+                </p>
+            </div>
+
+            <div class="class-card">
+                <h4 class="class-title">Non-Defensive Listening (Part 3)</h4>
+                <p class="prerequisites">Prerequisites: Parts 1 & 2 of the Listening Series</p>
+                <p class="class-description">
+                    Learn to recognise when apparent attacks are expressions of fear, and discover how 
+                    understanding transference can transform challenging interactions into opportunities for connection.
+                </p>
+                <ul class="class-details">
+                    <li>Understanding transference and projection in relationships</li>
+                    <li>Recognising the fear beneath defensive reactions</li>
+                    <li>Practicing seeing the vulnerable child behind challenging behaviors</li>
+                    <li>Learning to pause and respond with curiosity rather than reactivity</li>
+                    <li>Transforming confrontational moments through reflective listening</li>
+                </ul>
+                <p class="note">
+                    Through paired exercises, we'll practice staying present and compassionate even when 
+                    facing apparently hostile or challenging communications.
+                </p>
+            </div>
+
+            <div class="class-card">
+                <h4 class="class-title">Reverie Listening (Part 4)</h4>
+                <p class="prerequisites">Prerequisites: Parts 1-3 of the Listening Series</p>
+                <p class="class-description">
+                    Explore the subtle realm of right-brain communication, where deeper understanding can 
+                    emerge through attunement beyond words.
+                </p>
+                <ul class="class-details">
+                    <li>Understanding right-brain to right-brain communication</li>
+                    <li>Learning to track our internal responses while listening</li>
+                    <li>Opening to emergent images and metaphors</li>
+                    <li>Experiencing how two people's internal states can naturally synchronise</li>
+                    <li>Discovering how understanding can arise without words</li>
+                </ul>
+                <p class="note">
+                    Through shared silence and attentive presence, we'll explore how deeper understanding 
+                    can emerge when both people attend to their internal experience.
+                </p>
+            </div>
+        </div>
+
+        <div class="class-series">
+            <h3 class="series-title">Movement & Awareness Series</h3>
+            
+            <div class="class-card">
+                <h4 class="class-title">Somatic Awareness Practice</h4>
+                <p class="class-description">
+                    An exploration of internal body awareness through progressive stages, moving from 
+                    focused attention to more diffuse awareness of subtle sensations.
+                </p>
+                <ul class="class-details">
+                    <li>Beginning with systematic body scan practice</li>
+                    <li>Transitioning to more panoramic, diffuse attention</li>
+                    <li>Developing nonjudgmental awareness - neither clinging to nor avoiding sensations</li>
+                    <li>Cultivating receptivity to subtle sensations in areas we typically overlook</li>
+                </ul>
+                <p class="note">
+                    This practice develops the capacity to rest in open, receptive awareness of our embodied experience.
+                </p>
+            </div>
+            
+            <div class="class-card">
+                <h4 class="class-title">Authentic Movement</h4>
+                <p class="class-description">
+                    A form of self-directed movement practice where movers follow their body's impulses 
+                    in the presence of a witnessing partner or group.
+                </p>
+                <ul class="class-details">
+                    <li>Understanding the roles of mover and witness</li>
+                    <li>Learning to distinguish and follow genuine movement impulses</li>
+                    <li>Working with eyes closed to deepen internal awareness</li>
+                    <li>Practicing both active movement and conscious stillness</li>
+                    <li>Developing trust in the body's natural wisdom</li>
+                    <li>Processing movement experiences through drawing or writing</li>
+                    <li>Learning to share movement experiences without interpretation</li>
+                </ul>
+                <p class="note">
+                    No movement experience necessary - this practice welcomes all forms of movement 
+                    or stillness that authentically arise.
+                </p>
+            </div>
+            
+            <div class="class-card">
+                <h4 class="class-title">Self-Compassion</h4>
+                <p class="class-description">
+                    Explore the nature of self-compassion and the common barriers that arise when we 
+                    try to be kinder to ourselves. Learn to understand and work with your inner critic 
+                    while accessing deeper levels of self-compassion.
+                </p>
+                <ul class="class-details">
+                    <li>Understanding what self-compassion is and isn't</li>
+                    <li>Recognising how our inner critic attempts to protect us</li>
+                    <li>Exploring and working with fears about self-compassion</li>
+                    <li>Learning to meet our inner critic with understanding and compassion</li>
+                    <li>Accessing deeper compassion through inner child work</li>
+                    <li>Understanding how our self-treatment often mirrors past relationships, and discovering how cultivating self-compassion can transform these inherited patterns and attract healthier connections</li>
+                </ul>
+                <p class="note">
+                    This class combines understanding with practical exercises to help develop 
+                    a more compassionate relationship with ourselves.
+                </p>
+            </div>
+
+        <div class="form-container">
+            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdAx_z6Z4UY9E5RNs5TAN7Dn2evwQBhMqg4DmeYZBvlHkq91A/viewform?embedded=true" width="640" height="1240" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+        </div>
+    </div>
+</body>
+</html>
