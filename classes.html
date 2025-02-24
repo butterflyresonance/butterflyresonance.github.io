@@ -394,6 +394,104 @@
 }
 </style>
     <div class="classes-container">
+        <!-- Add this right after the opening of classes-container div -->
+<div class="upcoming-class-banner">
+    <div class="banner-content">
+        <h2>Upcoming Class: April 10th</h2>
+        <div class="class-details-grid">
+            <div class="detail-item">
+                <span class="detail-label">Location:</span>
+                <span class="detail-value">Praksis, 15 Proven Street, Campbell ACT</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Time:</span>
+                <span class="detail-value">7:30 PM - 9:00 PM</span>
+            </div>
+        </div>
+        <div class="timeline-info">
+            <p>📋 Interest poll closes: March 10th</p>
+            <p>🎟️ Class details and registration information will be announced after the poll closes</p>
+        </div>
+        <div class="registration-note">
+            <p>I'm planning to run a class exploring one of the practices described below. Please complete the interest poll to help determine which offering would be most valuable for the community. The specific practice and other details will be chosen based on poll responses.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.upcoming-class-banner {
+    background: var(--gradient-primary);
+    color: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-2xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.banner-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.banner-content h2 {
+    color: white;
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    font-family: 'Cormorant', serif;
+    font-size: 1.8rem;
+}
+
+.class-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.detail-value {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.timeline-info {
+    background: rgba(255, 255, 255, 0.1);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.timeline-info p {
+    margin: var(--spacing-xs) 0;
+}
+
+.registration-note {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .upcoming-class-banner {
+        padding: var(--spacing-lg);
+        margin: var(--spacing-lg) 0;
+    }
+    
+    .class-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
         <div class="section-header">
             <h2>Exploring Classes</h2>
             <p class="section-description">
