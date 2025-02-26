@@ -781,6 +781,7 @@ body {
             <a href="/" class="header__logo" onclick="event.preventDefault(); window.scrollTo({top: 0, behavior: 'smooth'});">Butterfly Resonance</a>
             <nav>
                 <ul class="nav__list">
+                    <li><a href="#events" class="nav__link">Events</a></li>
                     <li><a href="#about" class="nav__link">About</a></li>
                     <li><a href="#framework" class="nav__link">Framework</a></li>
                     <li><a href="#ideas" class="nav__link">Ideas</a></li>
@@ -823,6 +824,80 @@ body {
             </div>
         </div>
     </section>
+
+    <!-- Events Section -->
+<section class="section bg-alt" id="events">
+    <div class="container">
+        <h2 class="heading-xl" data-aos="fade-up">Upcoming Events</h2>
+        <p class="subtitle" data-aos="fade-up" data-aos-delay="100">
+            Join us for guided explorations of embodied awareness and authentic connection
+        </p>
+
+        <div class="grid grid--1col">
+            <div class="card" data-aos="fade-up" data-aos-delay="200">
+                <h3 class="card__title">Shining a Light on the Guardrails: The Invisible Forces That Shape Our Connections</h3>
+                <div class="event-details">
+                    <div class="event-detail">
+                        <span class="event-icon">📅</span>
+                        <span class="event-info">April 10th, 2025 • 7:30 PM</span>
+                    </div>
+                    <div class="event-detail">
+                        <span class="event-icon">📍</span>
+                        <span class="event-info">Praksis, 15 Proven Street, Campbell ACT</span>
+                    </div>
+                </div>
+                <p class="content-text">
+                    Have you noticed familiar patterns repeating in your relationships? Perhaps a feeling of always playing the same role? This workshop explores the invisible mental models that shape how we connect with others and ourselves.
+                </p>
+                <p class="content-text">
+                    Through guided exercises and reflective practices, we'll explore:
+                </p>
+                <ul class="bullet-list">
+                    <li>The protective boundaries we unconsciously create</li>
+                    <li>How our expectations shape what we experience</li>
+                    <li>What these patterns might be protecting us from</li>
+                    <li>What they might be costing us</li>
+                    <li>How to recognise these patterns in real-time</li>
+                    <li>Practices for finding greater freedom in our connections</li>
+                </ul>
+                <div class="button-group">
+                    <a href="#register" class="btn btn--primary">
+                        Register Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Additional styles for events section */
+    .grid--1col {
+        grid-template-columns: 1fr;
+    }
+    
+    .event-details {
+        margin: var(--spacing-md) 0;
+        background: rgba(97, 67, 133, 0.05);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+    }
+    
+    .event-detail {
+        display: flex;
+        align-items: center;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .event-icon {
+        margin-right: var(--spacing-sm);
+        font-size: 1.2rem;
+    }
+    
+    .event-info {
+        font-weight: 500;
+    }
+</style>
 
     <section class="section" id="about">
         <div class="container">
