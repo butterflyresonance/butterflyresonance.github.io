@@ -1,13 +1,13 @@
 // Attune Game Service Worker
-const CACHE_NAME = 'attune-v1.0.0';
+const CACHE_NAME = 'attune-v1.0.1'; // Increment version to force update
 const urlsToCache = [
-    './',
-    './index.html',
-    './styles.css',
-    './app.js',
-    './manifest.json',
-    './icon-192.png',
-    './icon-512.png'
+    'https://butterflyresonance.github.io/attune/',
+    'https://butterflyresonance.github.io/attune/index.html',
+    'https://butterflyresonance.github.io/attune/styles.css',
+    'https://butterflyresonance.github.io/attune/app.js',
+    'https://butterflyresonance.github.io/attune/manifest.json',
+    'https://butterflyresonance.github.io/android-chrome-192x192.png',
+    'https://butterflyresonance.github.io/android-chrome-512x512.png'
 ];
 
 // Install event - cache resources
@@ -46,48 +46,72 @@ self.addEventListener('activate', (event) => {
     return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network-first strategy for HTML, cache-first for assets
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') {
         return;
     }
     
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Return cached version or fetch from network
-                if (response) {
-                    console.log('Attune SW: Serving from cache:', event.request.url);
-                    return response;
-                }
-                
-                console.log('Attune SW: Fetching from network:', event.request.url);
-                return fetch(event.request)
-                    .then((response) => {
-                        // Don't cache if not a valid response
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-                        
-                        // Clone the response for caching
+    const url = new URL(event.request.url);
+    const isHTMLRequest = event.request.destination === 'document' || 
+                         url.pathname.endsWith('.html') || 
+                         url.pathname.endsWith('/');
+    
+    if (isHTMLRequest) {
+        // Network-first strategy for HTML files
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response && response.status === 200) {
+                        console.log('Attune SW: Serving fresh HTML from network:', event.request.url);
+                        // Update cache with fresh content
                         const responseToCache = response.clone();
                         caches.open(CACHE_NAME)
                             .then((cache) => {
                                 cache.put(event.request, responseToCache);
                             });
-                        
                         return response;
-                    })
-                    .catch((error) => {
-                        console.error('Attune SW: Fetch failed:', error);
-                        // Return a basic offline page if available
-                        if (event.request.destination === 'document') {
-                            return caches.match('./index.html');
-                        }
-                    });
-            })
-    );
+                    }
+                    throw new Error('Network response not ok');
+                })
+                .catch((error) => {
+                    console.log('Attune SW: Network failed, serving HTML from cache:', event.request.url);
+                    return caches.match(event.request);
+                })
+        );
+    } else {
+        // Cache-first strategy for assets (CSS, JS, images)
+        event.respondWith(
+            caches.match(event.request)
+                .then((response) => {
+                    if (response) {
+                        console.log('Attune SW: Serving asset from cache:', event.request.url);
+                        return response;
+                    }
+                    
+                    console.log('Attune SW: Fetching asset from network:', event.request.url);
+                    return fetch(event.request)
+                        .then((response) => {
+                            if (!response || response.status !== 200 || response.type !== 'basic') {
+                                return response;
+                            }
+                            
+                            // Clone and cache the response
+                            const responseToCache = response.clone();
+                            caches.open(CACHE_NAME)
+                                .then((cache) => {
+                                    cache.put(event.request, responseToCache);
+                                });
+                            
+                            return response;
+                        })
+                        .catch((error) => {
+                            console.error('Attune SW: Asset fetch failed:', error);
+                        });
+                })
+        );
+    }
 });
 
 // Background sync for updates
@@ -109,49 +133,31 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// Function to check for updates
+// Simplified update check function
 async function checkForUpdates() {
     try {
         console.log('Attune SW: Checking for app updates...');
         
-        // Check if any of our cached resources have been updated
-        const cache = await caches.open(CACHE_NAME);
-        const requests = await cache.keys();
-        
-        for (const request of requests) {
-            try {
-                const networkResponse = await fetch(request.url, {
-                    cache: 'no-cache'
-                });
-                
-                if (networkResponse.ok) {
-                    const cachedResponse = await cache.match(request);
-                    
-                    if (cachedResponse) {
-                        const networkHeaders = networkResponse.headers.get('last-modified') || 
-                                             networkResponse.headers.get('etag');
-                        const cachedHeaders = cachedResponse.headers.get('last-modified') || 
-                                            cachedResponse.headers.get('etag');
-                        
-                        if (networkHeaders && cachedHeaders && networkHeaders !== cachedHeaders) {
-                            console.log('Attune SW: Update found for:', request.url);
-                            // Update the cache
-                            await cache.put(request, networkResponse.clone());
-                            
-                            // Notify clients about the update
-                            const clients = await self.clients.matchAll();
-                            clients.forEach(client => {
-                                client.postMessage({
-                                    type: 'UPDATE_AVAILABLE',
-                                    url: request.url
-                                });
-                            });
-                        }
-                    }
-                }
-            } catch (fetchError) {
-                console.log('Attune SW: Could not check update for:', request.url, fetchError);
+        // Force check the main HTML file
+        const response = await fetch('https://butterflyresonance.github.io/attune/index.html', {
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache'
             }
+        });
+        
+        if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('https://butterflyresonance.github.io/attune/index.html', response.clone());
+            
+            // Notify clients about the update
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+                client.postMessage({
+                    type: 'UPDATE_AVAILABLE',
+                    message: 'New version available!'
+                });
+            });
         }
     } catch (error) {
         console.error('Attune SW: Update check failed:', error);
@@ -176,6 +182,6 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     
     event.waitUntil(
-        clients.openWindow('./')
+        clients.openWindow('https://butterflyresonance.github.io/attune/')
     );
 });
