@@ -19,12 +19,40 @@ const QUESTIONS = [
         you: "For everyone: what do you sense about who I am afraid to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
+        you: "What's one way you see yourself reflected in someone else here?"
+    },
+    {
+        you: "What do you think we are hoping for from this experience?"
+    },
+    {
+        you: "What's something you imagine everyone here understands about you without having to explain it?"
+    },
+    {
         you: "Get into a comfortable position, close your eyes, and let your mind wander.",
         partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Let them know what caused you to bring them back. Compare where your minds wandered."
     },
     {
         you: "Ask your partner what it is that they think you most need to hear right now.",
-        partner: "Respond instinctively, without any thought or consideration."
+        partner: "Respond instinctively, with minimal thought or consideration."
+    },
+    {
+        you: "For everyone: Describe my inner child."
+    },
+    {
+        you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
+        partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice with your partner."
+    },
+    {
+        you: "Find somewhere comfortable to stand, away from others.",
+        partner: "Stand up and face your partner. Walk towards them slowly, and stop when you sense their personal boundary. Speak about what you noticed change within you or your partner when you reached the boundary."
+    },
+    {
+        you: "Share an emotionally important memory.",
+        partner: "Clarify the emotions that you believe your partner is communicating, as well as the emotions beyond what they are communicating."
+    },
+    {
+        you: "Make an assumption about your partner.",
+        partner: "Respond instinctively, with minimal thought or consideration."
     },
     {
         you: "Take a few moments to drop into your body. What sensations are you noticing inside?"
