@@ -23,20 +23,6 @@
 
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
-            <!-- Spinner Screen -->
-            <div id="spinner-container" class="spinner-screen">
-                <div class="spinner-title">Who goes first?</div>
-                <div class="spinner-wheel">
-                    <div class="spinner-pointer"></div>
-                    <div class="spinner-circle">
-                        <div class="spinner-section" data-player="1">You</div>
-                        <div class="spinner-section" data-player="2">Partner</div>
-                    </div>
-                </div>
-                <button id="spin-btn" class="primary-btn">Spin!</button>
-                <button id="skip-spin-btn" class="tertiary-btn">Skip</button>
-            </div>
-            
             <!-- Card Display -->
             <div id="card-display" class="card-display">
                 <div class="card-container">
@@ -62,10 +48,29 @@
                 <div class="game-controls">
                     <button id="next-card-btn" class="secondary-btn">Next Card</button>
                     <button id="start-again-btn" class="tertiary-btn">Start Again</button>
+                    <button id="show-spinner-btn" class="spinner-btn" title="Show Spinner">🎯</button>
                 </div>
                 
                 <div class="deck-counter">
                     <span id="cards-remaining">0</span> cards remaining
+                </div>
+            </div>
+        </div>
+        
+        <!-- Spinner Modal -->
+        <div id="spinner-modal" class="spinner-modal">
+            <div class="spinner-modal-content">
+                <div class="spinner-modal-header">
+                    <h3 class="spinner-title">Spin the Bottle</h3>
+                    <button id="close-spinner-btn" class="close-btn">×</button>
+                </div>
+                <div class="spinner-wheel">
+                    <div class="spinner-circle">
+                        <div class="spinner-bottle"></div>
+                    </div>
+                </div>
+                <div class="spinner-controls">
+                    <button id="spin-btn" class="primary-btn">Spin!</button>
                 </div>
             </div>
         </div>

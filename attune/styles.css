@@ -272,30 +272,35 @@ body::before {
     border-radius: 50%;
     border: 4px solid var(--opal-green);
     position: relative;
-    display: flex;
     background: var(--card-bg);
     box-shadow: 0 10px 30px var(--shadow);
     transition: transform 3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.spinner-section {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: var(--opal-darker);
-    font-size: 1.1rem;
-    position: relative;
+.spinner-bottle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 80px;
+    background: linear-gradient(180deg, var(--opal-darker) 0%, var(--accent) 100%);
+    transform-origin: bottom center;
+    transform: translateX(-50%) translateY(-100%);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 2px 8px var(--shadow);
 }
 
-.spinner-section:first-child {
-    border-right: 2px solid var(--opal-green);
-    border-radius: 50% 0 0 50%;
-}
-
-.spinner-section:last-child {
-    border-radius: 0 50% 50% 0;
+.spinner-bottle::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 12px solid var(--accent);
 }
 
 .spinner-pointer {
@@ -334,6 +339,104 @@ body::before {
     gap: 16px;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
+}
+
+.spinner-btn {
+    background: var(--opal-light);
+    color: var(--opal-darker);
+    border: none;
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px var(--shadow);
+}
+
+.spinner-btn:hover {
+    background: var(--opal-green);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow);
+}
+
+/* Spinner Modal */
+.spinner-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner-modal.active {
+    display: flex;
+}
+
+.spinner-modal-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--opal-light);
+    position: relative;
+    text-align: center;
+}
+
+.spinner-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.spinner-title {
+    font-size: 1.5rem;
+    color: var(--opal-darker);
+    font-weight: 300;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--opal-darker);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: var(--opal-light);
+    transform: rotate(90deg);
+}
+
+.spinner-controls {
+    margin: 1.5rem 0;
+}
+
+.spinner-wheel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem 0;
 }
 
 .deck-counter {
@@ -411,12 +514,20 @@ body::before {
     }
     
     .spinner-circle {
-        width: 160px;
-        height: 160px;
+        width: 150px;
+        height: 150px;
+    }
+    
+    .spinner-bottle {
+        height: 60px;
+    }
+    
+    .spinner-modal-content {
+        padding: 1.5rem;
     }
     
     .spinner-title {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 }
 
@@ -439,12 +550,16 @@ body::before {
     }
     
     .spinner-circle {
-        width: 140px;
-        height: 140px;
+        width: 130px;
+        height: 130px;
     }
     
-    .spinner-section {
-        font-size: 1rem;
+    .spinner-bottle {
+        height: 50px;
+    }
+    
+    .spinner-modal-content {
+        padding: 1.2rem;
     }
 }
 

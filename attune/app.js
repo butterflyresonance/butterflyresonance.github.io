@@ -1,5 +1,3 @@
-// Attune - Conversation Card Game Logic
-
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
@@ -91,19 +89,16 @@ class AttuneGame {
     constructor() {
         this.questions = [];
         this.activeDeck = [];
-        this.currentCard = null;
         
         // Initialize DOM elements
         this.startScreen = document.getElementById('start-screen');
         this.gameScreen = document.getElementById('game-screen');
-        this.spinnerContainer = document.getElementById('spinner-container');
         this.cardDisplay = document.getElementById('card-display');
         
         this.beginBtn = document.getElementById('begin-btn');
-        this.spinBtn = document.getElementById('spin-btn');
-        this.skipSpinBtn = document.getElementById('skip-spin-btn');
         this.nextCardBtn = document.getElementById('next-card-btn');
         this.startAgainBtn = document.getElementById('start-again-btn');
+        this.showSpinnerBtn = document.getElementById('show-spinner-btn');
         
         this.cardElement = document.getElementById('current-card');
         this.cardType = document.querySelector('.card-type');
@@ -112,7 +107,11 @@ class AttuneGame {
         this.partnerSection = document.querySelector('.partner-section');
         this.cardsRemaining = document.getElementById('cards-remaining');
         
+        // Spinner modal elements
+        this.spinnerModal = document.getElementById('spinner-modal');
         this.spinnerCircle = document.querySelector('.spinner-circle');
+        this.spinBtn = document.getElementById('spin-btn');
+        this.closeSpinnerBtn = document.getElementById('close-spinner-btn');
         
         this.init();
     }
@@ -129,10 +128,25 @@ class AttuneGame {
     
     bindEvents() {
         this.beginBtn.addEventListener('click', () => this.startGame());
-        this.spinBtn.addEventListener('click', () => this.spinWheel());
-        this.skipSpinBtn.addEventListener('click', () => this.skipSpinner());
         this.nextCardBtn.addEventListener('click', () => this.drawNextCard());
         this.startAgainBtn.addEventListener('click', () => this.restartGame());
+        this.showSpinnerBtn.addEventListener('click', () => this.showSpinner());
+        this.spinBtn.addEventListener('click', () => this.performSpin());
+        this.closeSpinnerBtn.addEventListener('click', () => this.hideSpinner());
+        
+        // Close spinner when clicking outside modal
+        this.spinnerModal.addEventListener('click', (e) => {
+            if (e.target === this.spinnerModal) {
+                this.hideSpinner();
+            }
+        });
+        
+        // Close spinner with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.spinnerModal.classList.contains('active')) {
+                this.hideSpinner();
+            }
+        });
     }
     
     // Seeded random number generator using current time
@@ -167,70 +181,13 @@ class AttuneGame {
         // Hide start screen, show game screen
         this.startScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
+        this.cardDisplay.classList.add('active');
         
         // Clone questions to active deck
         this.cloneQuestionsToActiveDeck();
         
-        // Check if first card needs spinner (has partner field)
-        if (this.activeDeck.length > 0 && this.activeDeck[0].partner) {
-            this.showSpinner();
-        } else {
-            this.skipSpinner();
-        }
-    }
-    
-    showSpinner() {
-        this.spinnerContainer.style.display = 'flex';
-        this.cardDisplay.classList.remove('active');
-    }
-    
-    hideSpinner() {
-        this.spinnerContainer.style.display = 'none';
-        this.cardDisplay.classList.add('active');
-    }
-    
-    skipSpinner() {
-        this.hideSpinner();
+        // Draw first card
         this.drawNextCard();
-    }
-    
-    spinWheel() {
-        const spinButton = this.spinBtn;
-        spinButton.disabled = true;
-        this.skipSpinBtn.disabled = true;
-        
-        // Generate random spin (2-4 full rotations plus random degrees)
-        const randomRotations = 720 + (Math.random() * 720); // 2-4 rotations
-        const finalPosition = randomRotations % 360;
-        
-        // Set CSS custom property for animation
-        this.spinnerCircle.style.setProperty('--spin-degrees', `${randomRotations}deg`);
-        this.spinnerCircle.classList.add('spinning');
-        
-        // Determine winner based on final position
-        // 0-180 degrees = first half (You), 180-360 = second half (Partner)
-        const winner = finalPosition < 180 ? 'You' : 'Partner';
-        
-        setTimeout(() => {
-            this.showSpinResult(winner);
-            setTimeout(() => {
-                this.hideSpinner();
-                this.drawNextCard();
-            }, 2000);
-        }, 3000);
-    }
-    
-    showSpinResult(winner) {
-        // Create result element if it doesn't exist
-        let resultElement = document.querySelector('.spinner-result');
-        if (!resultElement) {
-            resultElement = document.createElement('div');
-            resultElement.className = 'spinner-result';
-            this.spinnerContainer.appendChild(resultElement);
-        }
-        
-        resultElement.textContent = `${winner} goes first!`;
-        resultElement.classList.add('show');
     }
     
     drawNextCard() {
@@ -277,28 +234,13 @@ class AttuneGame {
     
     restartGame() {
         // Reset spinner state
-        this.spinnerCircle.classList.remove('spinning');
-        this.spinnerCircle.style.removeProperty('--spin-degrees');
-        
-        // Remove any existing result
-        const resultElement = document.querySelector('.spinner-result');
-        if (resultElement) {
-            resultElement.remove();
-        }
-        
-        // Re-enable spinner buttons
-        this.spinBtn.disabled = false;
-        this.skipSpinBtn.disabled = false;
+        this.resetSpinner();
         
         // Clone questions back to active deck
         this.cloneQuestionsToActiveDeck();
         
-        // Check if first card needs spinner
-        if (this.activeDeck.length > 0 && this.activeDeck[0].partner) {
-            this.showSpinner();
-        } else {
-            this.drawNextCard();
-        }
+        // Draw first card
+        this.drawNextCard();
     }
     
     updateCardsRemaining() {
@@ -310,6 +252,44 @@ class AttuneGame {
         this.youText.textContent = "🎉 All cards completed! Click 'Start Again' to shuffle and play another round.";
         this.partnerSection.style.display = 'none';
         this.updateCardsRemaining();
+    }
+    
+    // Spinner functionality
+    showSpinner() {
+        this.spinnerModal.classList.add('active');
+        this.resetSpinner();
+    }
+    
+    hideSpinner() {
+        this.spinnerModal.classList.remove('active');
+    }
+    
+    performSpin() {
+        this.spinBtn.disabled = true;
+        
+        // Reset any previous spin state
+        this.spinnerCircle.classList.remove('spinning');
+        this.spinnerCircle.style.removeProperty('--spin-degrees');
+        
+        // Force a reflow to ensure the reset takes effect
+        this.spinnerCircle.offsetHeight;
+        
+        // Generate random spin (2-4 full rotations plus random degrees)
+        const randomRotations = 720 + (Math.random() * 720); // 2-4 rotations
+        
+        // Set CSS custom property for animation
+        this.spinnerCircle.style.setProperty('--spin-degrees', `${randomRotations}deg`);
+        this.spinnerCircle.classList.add('spinning');
+        
+        setTimeout(() => {
+            this.spinBtn.disabled = false;
+        }, 3000);
+    }
+    
+    resetSpinner() {
+        this.spinnerCircle.classList.remove('spinning');
+        this.spinnerCircle.style.removeProperty('--spin-degrees');
+        this.spinBtn.disabled = false;
     }
 }
 
