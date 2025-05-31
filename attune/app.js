@@ -1,22 +1,22 @@
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
-        you: "For everyone: what do you sense about who I am, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I am, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "For everyone: what do you sense about what I am most afraid of, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I am most afraid of, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "For everyone: what do you sense about what I am most proud of, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I am most proud of, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "For everyone: what do you sense about who I want to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I want to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "For everyone: what do you sense about what I need, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I need, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "For everyone: what do you sense about who I am afraid to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I am afraid to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
         you: "What's one way you see yourself reflected in someone else here?"
@@ -75,7 +75,7 @@ const QUESTIONS = [
         partner: "Respond instinctively, with minimal thought or consideration."
     },
     {
-        you: "For everyone: Describe my inner child."
+        everyone: "For everyone: Describe my inner child."
     },
     {
         you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
@@ -88,10 +88,6 @@ const QUESTIONS = [
     {
         you: "Share an emotionally important memory.",
         partner: "Clarify the emotions that you believe your partner is communicating, as well as the emotions beyond what they are communicating."
-    },
-    {
-        you: "Make an assumption about your partner.",
-        partner: "Respond instinctively, with minimal thought or consideration."
     },
     {
         you: "Take a few moments to drop into your body. What sensations are you noticing inside?"
@@ -254,13 +250,14 @@ const QUESTIONS = [
     },
     {
         you: "What feels scary about being with yourself? What do you do to avoid being with yourself?"
-    },
+    }
 ];
 
 class AttuneGame {
     constructor() {
         this.questions = [];
         this.activeDeck = [];
+        this.currentCard = null;
         
         // Initialize DOM elements
         this.startScreen = document.getElementById('start-screen');
@@ -269,6 +266,7 @@ class AttuneGame {
         
         this.beginBtn = document.getElementById('begin-btn');
         this.nextCardBtn = document.getElementById('next-card-btn');
+        this.addBackBtn = document.getElementById('add-back-btn');
         this.startAgainBtn = document.getElementById('start-again-btn');
         this.showSpinnerBtn = document.getElementById('show-spinner-btn');
         
@@ -276,7 +274,10 @@ class AttuneGame {
         this.cardType = document.querySelector('.card-type');
         this.youText = document.querySelector('.you-text');
         this.partnerText = document.querySelector('.partner-text');
+        this.everyoneText = document.querySelector('.everyone-text');
+        this.youSection = document.querySelector('.you-section');
         this.partnerSection = document.querySelector('.partner-section');
+        this.everyoneSection = document.querySelector('.everyone-section');
         this.cardsRemaining = document.getElementById('cards-remaining');
         
         // Spinner modal elements
@@ -301,6 +302,7 @@ class AttuneGame {
     bindEvents() {
         this.beginBtn.addEventListener('click', () => this.startGame());
         this.nextCardBtn.addEventListener('click', () => this.drawNextCard());
+        this.addBackBtn.addEventListener('click', () => this.addBackToDeck());
         this.startAgainBtn.addEventListener('click', () => this.restartGame());
         this.showSpinnerBtn.addEventListener('click', () => this.showSpinner());
         this.spinBtn.addEventListener('click', () => this.performSpin());
@@ -379,6 +381,9 @@ class AttuneGame {
             // Remove the selected question from active deck
             this.activeDeck.splice(randomIndex, 1);
             
+            // Store current card for add back functionality
+            this.currentCard = selectedQuestion;
+            
             // Display the card
             this.displayCard(selectedQuestion);
             this.updateCardsRemaining();
@@ -389,18 +394,40 @@ class AttuneGame {
     }
     
     displayCard(question) {
-        // Set card type based on whether partner field exists
-        this.cardType.textContent = question.partner ? 'Both Players' : 'Solo';
-        
-        // Set you text
-        this.youText.textContent = question.you;
-        
-        // Handle partner section
-        if (question.partner) {
-            this.partnerText.textContent = question.partner;
-            this.partnerSection.style.display = 'block';
-        } else {
+        // Determine card type and display content
+        if (question.everyone) {
+            // Everyone card
+            this.cardType.textContent = 'Everyone';
+            this.everyoneText.textContent = question.everyone;
+            this.everyoneSection.style.display = 'block';
+            this.youSection.style.display = 'none';
             this.partnerSection.style.display = 'none';
+        } else if (question.partner) {
+            // Both players card
+            this.cardType.textContent = 'Both Players';
+            this.youText.textContent = question.you;
+            this.partnerText.textContent = question.partner;
+            this.youSection.style.display = 'block';
+            this.partnerSection.style.display = 'block';
+            this.everyoneSection.style.display = 'none';
+        } else {
+            // Solo card
+            this.cardType.textContent = 'Solo';
+            this.youText.textContent = question.you;
+            this.youSection.style.display = 'block';
+            this.partnerSection.style.display = 'none';
+            this.everyoneSection.style.display = 'none';
+        }
+    }
+    
+    addBackToDeck() {
+        if (this.currentCard) {
+            // Add current card back to active deck
+            this.activeDeck.push(this.currentCard);
+            this.updateCardsRemaining();
+            
+            // Draw a new card
+            this.drawNextCard();
         }
     }
     
@@ -422,8 +449,11 @@ class AttuneGame {
     showGameComplete() {
         this.cardType.textContent = 'Complete!';
         this.youText.textContent = "🎉 All cards completed! Click 'Start Again' to shuffle and play another round.";
+        this.youSection.style.display = 'block';
         this.partnerSection.style.display = 'none';
+        this.everyoneSection.style.display = 'none';
         this.updateCardsRemaining();
+        this.currentCard = null;
     }
     
     // Spinner functionality

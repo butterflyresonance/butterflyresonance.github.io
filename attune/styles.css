@@ -88,6 +88,7 @@ body::before {
 .primary-btn,
 .secondary-btn,
 .tertiary-btn,
+.quaternary-btn,
 .spinner-btn {
     border: none;
     cursor: pointer;
@@ -103,6 +104,7 @@ body::before {
 .primary-btn:focus-visible,
 .secondary-btn:focus-visible,
 .tertiary-btn:focus-visible,
+.quaternary-btn:focus-visible,
 .spinner-btn:focus-visible,
 .close-btn:focus-visible {
     outline: 2px solid var(--opal-darker);
@@ -164,6 +166,24 @@ body::before {
     background: var(--opal-light);
     color: var(--accent);
     transform: translateY(-2px);
+}
+
+.quaternary-btn {
+    background: rgba(77, 182, 172, 0.1);
+    color: var(--accent);
+    border: 1px solid var(--opal-dark);
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 400;
+    min-width: 120px;
+    margin: 0 8px;
+}
+
+.quaternary-btn:hover:not(:disabled) {
+    background: rgba(77, 182, 172, 0.2);
+    color: var(--opal-darker);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px var(--shadow);
 }
 
 /* Card Styles */
@@ -241,7 +261,7 @@ body::before {
     gap: 1.5rem;
 }
 
-.you-section, .partner-section {
+.you-section, .partner-section, .everyone-section {
     flex: 1;
 }
 
@@ -252,7 +272,7 @@ body::before {
     margin-bottom: 0.5rem;
 }
 
-.you-text, .partner-text {
+.you-text, .partner-text, .everyone-text {
     font-size: 1.2rem;
     line-height: 1.5;
     color: var(--text-dark);
@@ -514,7 +534,7 @@ body::before {
         min-height: 280px;
     }
     
-    .you-text, .partner-text {
+    .you-text, .partner-text, .everyone-text {
         font-size: 1.1rem;
     }
     
@@ -524,7 +544,8 @@ body::before {
     }
     
     .secondary-btn,
-    .tertiary-btn {
+    .tertiary-btn,
+    .quaternary-btn {
         width: 200px;
         margin: 0;
     }
@@ -557,7 +578,7 @@ body::before {
         min-height: 250px;
     }
     
-    .you-text, .partner-text {
+    .you-text, .partner-text, .everyone-text {
         font-size: 1rem;
     }
     
