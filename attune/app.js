@@ -28,6 +28,45 @@ const QUESTIONS = [
         you: "What's something you imagine everyone here understands about you without having to explain it?"
     },
     {
+        you: "What do you alternate between having too much of and not enough of? What does each extreme protect you from feeling?"
+    },
+    {
+        you: "Describe a recent moment when you caught yourself acting automatically. What was driving that automaticity?"
+    },
+    {
+        you: "What are you seeking in other people that you're unwilling to find in yourself?"
+    },
+    {
+        you: "Describe the part of you that feels like it's still searching. What is it looking for?"
+    },
+    {
+        you: "What makes you feel most seen, and what makes you want to hide when you feel seen?"
+    },
+    {
+        you: "When do you use love as a way to avoid love?"
+    },
+    {
+        you: "Do you ever do things to feel special that make you feel more alone? What does that look like?"
+    },
+    {
+        you: "Have you noticed times when giving becomes about control, or withholding becomes about connection?"
+    },
+    {
+        you: "Are there ways you try to feel safe that backfire? What are they?"
+    },
+    {
+        you: "Do you ever push away or reject the thing you want most? What is pushing you to do this?"
+    },
+    {
+        you: "What do you desperately want to be understood about, and do you do anything that makes it difficult to understand?"
+    },
+    {
+        you: "Have you ever betrayed yourself in an attempt to feel loved?"
+    },
+    {
+        you: "Is there anything you reveal about yourself in order to hide something else?"
+    },
+    {
         you: "Get into a comfortable position, close your eyes, and let your mind wander.",
         partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Let them know what caused you to bring them back. Compare where your minds wandered."
     },
@@ -195,7 +234,7 @@ const QUESTIONS = [
     },
     {
         you: "Face your partner and look into their eyes. Pay attention to their face and to where your mind wanders.",
-        partner: "Do the same as your partner. Stop either when the eye contact becoems uncomfortable, or when it is clear that it won't become uncomfortable. Take turns sharing where your mind wandered, and notice any similarities."
+        partner: "Do the same as your partner. Stop either when the eye contact becomes uncomfortable, or when it is clear that it won't become uncomfortable. Take turns sharing where your mind wandered, and notice any similarities."
     },
     {
         you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had to the experience.",
