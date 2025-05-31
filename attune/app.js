@@ -1,88 +1,193 @@
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
-        you: "What moment in your childhood most shaped who you are today?"
+        you: "For everyone: what do you sense about who I am, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "If you could have dinner with anyone, living or dead, who would it be and why?"
+        you: "For everyone: what do you sense about what I am most afraid of, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "Share something you've always wanted to try but haven't yet",
-        partner: "Listen and ask a follow-up question about their dream experience"
+        you: "For everyone: what do you sense about what I am most proud of, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "What does home mean to you?"
+        you: "For everyone: what do you sense about who I want to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "When do you feel most creative?"
+        you: "For everyone: what do you sense about what I need, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "Describe a belief you once held strongly but later changed",
-        partner: "Share your own experience of changing your mind about something important"
+        you: "For everyone: what do you sense about who I am afraid to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
     },
     {
-        you: "If you could master any skill instantly, what would it be?"
+        you: "Get into a comfortable position, close your eyes, and let your mind wander.",
+        partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Let them know what caused you to bring them back. Compare where your minds wandered."
     },
     {
-        you: "What's the most beautiful place you've ever been?"
+        you: "Ask your partner what it is that they think you most need to hear right now.",
+        partner: "Respond instinctively, without any thought or consideration."
     },
     {
-        you: "Share something you're grateful for that others might take for granted",
-        partner: "Share your own overlooked blessing and discuss how gratitude shapes your daily life"
+        you: "Take a few moments to drop into your body. What sensations are you noticing inside?"
     },
     {
-        you: "What would you do differently if you knew no one would judge you?"
+        you: "What feels most alive or true for you right now?"
     },
     {
-        you: "What's a small act of kindness that had a big impact on you?"
+        you: "How do you want to be seen right now? Why is this important to you? What do you do to encourage people to see you in this way?"
     },
     {
-        you: "Give advice to your younger self",
-        partner: "Share what advice you'd give your younger self, then discuss how you've both grown"
+        you: "How are you afraid of being seen right now? Why is this scary for you? What do you do to avoid being seen this way?"
     },
     {
-        you: "What's something you've learned recently that surprised you?"
+        you: "Talk about one of the most mundane things that have happened to you this week.",
+        partner: "Attempt to make this story meaningful or noteworthy by using clarifying questions."
     },
     {
-        you: "What makes you lose track of time?"
+        you: "What is something most people misunderstand about you? What do they get wrong?"
     },
     {
-        you: "Share a tradition from your family or culture that you cherish",
-        partner: "Share one of your own cherished traditions, then create a new mini-tradition together right now"
+        you: "What validation or reassurance are you secretly hoping for?"
     },
     {
-        you: "If you could change one thing about the world, what would it be?"
+        you: "What emotion in yourself feels most difficult to feel or express? What narratives do you have around this emotion? What do you do to avoid it? What would you need to feel safe to feel or express it?"
     },
     {
-        you: "What's something you're passionate about that others might not expect?"
+        you: "What emotion in others feels most difficult for you to sit with, without trying to change it? What narratives do you have around this emotion? What do you do to change this emotion in others? How does this emotion feel threatening?"
     },
     {
-        you: "Demonstrate your favorite way to show someone you care",
-        partner: "Show your own way of expressing care, then practice both methods on each other"
+        you: "What emotion in yourself feels most welcome to be felt or expressed? What narratives do you have around this emotion? What do you do to chase this emotion? What feels safe about this emotion?"
     },
     {
-        you: "What's a fear you've overcome or are working to overcome?"
+        you: "What emotion in others feels most welcome to be in the presence of? What narratives do you have around this emotion? What do you do to influence others to feel this emotion? What don't you need to worry about in the presence of this emotion?"
     },
     {
-        you: "What does success mean to you personally?"
+        you: "Speak about a time that someone who you trusted let you down. Did this change how you relate to people? What are the tradeoffs of this change?"
     },
     {
-        you: "Share something you wish people knew about you",
-        partner: "Share your own hidden aspect, then take turns asking gentle questions to learn more"
+        you: "Speak about a time a relationship or friendship ended, from the perspective of the other person."
     },
     {
-        you: "If you could live anywhere in the world, where would it be and why?"
+        you: "Think about your previous relationships or friendships. Are there any common themes? Are there any themes that are completely absent?"
     },
     {
-        you: "What's a book, movie, or song that changed your perspective?"
+        you: "What feels scary about feeling fundamentally misunderstood?"
     },
     {
-        you: "Show how you recharge when feeling drained",
-        partner: "Demonstrate your own recharging method, then try each other's techniques together"
+        you: "What thoughts, emotions, or behaviours do you use to avoid other emotions?"
     },
     {
-        you: "What's a memory that always makes you smile?"
-    }
+        you: "What feels comfortable about feeling fundamentally misunderstood?"
+    },
+    {
+        you: "What feels scary about feeling deeply understood?"
+    },
+    {
+        you: "What feels comfortable about feeling deeply understood?"
+    },
+    {
+        you: "Describe a recent experience, but don't say anything about how you felt.",
+        partner: "Watch your partner's face. Pause them every time you notice a feeling arise, and check whether you are accurate."
+    },
+    {
+        you: "Describe an experience using only the emotions it made you feel.",
+        partner: "Propose details about what the experience might have been, and check for accuracy."
+    },
+    {
+        you: "Describe an experience using only the sensory details.",
+        partner: "Propose details about what the experience might have been, and check for accuracy."
+    },
+    {
+        you: "Describe a situation which you found challenging, but do not share why you found it challenging.",
+        partner: "Let your partner know what you believe would be challenging about that situation for yourself, and what you imagine would have been challenging for them."
+    },
+    {
+        you: "Describe an experience from the point of view of someone you know, without saying who it is.",
+        partner: "Guess who this person is to your partner."
+    },
+    {
+        you: "Find the part of yourself which feels uncomfortable receiving compliments. What would it say if you gave it a voice?"
+    },
+    {
+        you: "Find the part of yourself which feels comfortable receiving criticism. What would it say if you gave it a voice?"
+    },
+    {
+        you: "Find the part of yourself which feels most shameful or unlovable. What is it afraid of?"
+    },
+    {
+        you: "Talk about something emotional which has happened to you.",
+        partner: "Ignore your partner's words. Pay attention to their face, their body, and your own body. Share with your partner what you noticed."
+    },
+    {
+        you: "Talk about a common, everyday experience you've had recently.",
+        partner: "Attempt to make this story unique by asking clarifying questions."
+    },
+    {
+        you: "Think of something you feel so confident explaining, that you could explain it to a 5 year old. Explain it to your partner as if they were a 5 year old.",
+        partner: "Suggest something to your partner about what they have explained that you don't think they have thought about. Tell your partner to sit with the suggestion without dismissing it."
+    },
+    {
+        you: "What behaviour in others makes you want to open up?"
+    },
+    {
+        you: "What behaviour in others makes you want to close down?"
+    },
+    {
+        you: "When have you chosen a certain misery over the misery of uncertainty?"
+    },
+    {
+        you: "Tell your partner about a problem you would really like a solution to.",
+        partner: "Respond in the most loving way possible, but don't mention a single possible solution."
+    },
+    {
+        you: "Tell your partner something you would enjoy doing if you woke up tomorrow in their body.",
+        partner: "Tell your partner something you would enjoy doing if you woke up tomorrow in their body."
+    },
+    {
+        you: "What would you change about how you interact with people if you were completely safe, physically and emotionally?"
+    },
+    {
+        you: "Speak about a time you went against your values out of fear.",
+        partner: "Listen to your partner as if they were an innocent baby. Let them know your honest thoughts and feelings about what they have said."
+    },
+    {
+        you: "When have you regretted being vulnerable?"
+    },
+    {
+        you: "When has being vulnerable paid off?"
+    },
+    {
+        you: "When have you regretted not being vulnerable?"
+    },
+    {
+        you: "When has not being vulnerable paid off?"
+    },
+    {
+        you: "Face your partner and look into their eyes. Invite an emotion to arise, without speaking about it.",
+        partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you feel something from them."
+    },
+    {
+        you: "Face your partner and look into their eyes. Pay attention to their face and to where your mind wanders.",
+        partner: "Do the same as your partner. Stop either when the eye contact becoems uncomfortable, or when it is clear that it won't become uncomfortable. Take turns sharing where your mind wandered, and notice any similarities."
+    },
+    {
+        you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had to the experience.",
+        partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion was the deceptive one, and what they really felt instead."
+    },
+    {
+        you: "Speak about something you judge others for. Now, dig deeper and speak about how that thing is a threat to you."
+    },
+    {
+        you: "Describe the persona you are currently presenting, and what would happen if you dropped it."
+    },
+    {
+        you: "Share something you are afraid of being judged for. Now, dig deeper and explain why this thing is beautiful."
+    },
+    {
+        you: "Would anything in your relationships change if you no longer needed anything practical or emotional from anyone else?"
+    },
+    {
+        you: "What feels scary about being with yourself? What do you do to avoid being with yourself?"
+    },
 ];
 
 class AttuneGame {
@@ -257,14 +362,30 @@ class AttuneGame {
     // Spinner functionality
     showSpinner() {
         this.spinnerModal.classList.add('active');
+        this.spinnerModal.setAttribute('aria-hidden', 'false');
         this.resetSpinner();
+        
+        // Focus the spin button for accessibility
+        this.spinBtn.focus();
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
     }
     
     hideSpinner() {
         this.spinnerModal.classList.remove('active');
+        this.spinnerModal.setAttribute('aria-hidden', 'true');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Return focus to spinner button
+        this.showSpinnerBtn.focus();
     }
     
     performSpin() {
+        if (this.spinBtn.disabled) return; // Prevent multiple clicks
+        
         this.spinBtn.disabled = true;
         
         // Reset any previous spin state
@@ -275,10 +396,13 @@ class AttuneGame {
         this.spinnerCircle.offsetHeight;
         
         // Generate random spin (2-4 full rotations plus random degrees)
-        const randomRotations = 720 + (Math.random() * 720); // 2-4 rotations
+        const baseRotations = 720; // 2 full rotations minimum
+        const extraRotations = Math.random() * 720; // Up to 2 more rotations
+        const randomDegrees = Math.random() * 360; // Final position
+        const totalRotation = baseRotations + extraRotations + randomDegrees;
         
         // Set CSS custom property for animation
-        this.spinnerCircle.style.setProperty('--spin-degrees', `${randomRotations}deg`);
+        this.spinnerCircle.style.setProperty('--spin-degrees', `${totalRotation}deg`);
         this.spinnerCircle.classList.add('spinning');
         
         setTimeout(() => {

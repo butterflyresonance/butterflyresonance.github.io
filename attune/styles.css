@@ -13,7 +13,9 @@
     --accent: #00695c;
 }
 
-* {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -39,6 +41,7 @@ body::before {
                 radial-gradient(circle at 80% 20%, var(--opal-light) 0%, transparent 50%);
     opacity: 0.3;
     z-index: -1;
+    pointer-events: none;
 }
 
 .container {
@@ -65,7 +68,7 @@ body::before {
 
 /* Start Screen Styles */
 .game-title {
-    font-size: 4rem;
+    font-size: clamp(2.5rem, 8vw, 4rem);
     font-weight: 300;
     color: var(--opal-darker);
     margin-bottom: 0.5rem;
@@ -74,7 +77,7 @@ body::before {
 }
 
 .game-subtitle {
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
     color: var(--accent);
     margin-bottom: 3rem;
     font-weight: 300;
@@ -82,25 +85,51 @@ body::before {
 }
 
 /* Button Styles */
+.primary-btn,
+.secondary-btn,
+.tertiary-btn,
+.spinner-btn {
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border-radius: 25px;
+    font-family: inherit;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.primary-btn:focus-visible,
+.secondary-btn:focus-visible,
+.tertiary-btn:focus-visible,
+.spinner-btn:focus-visible,
+.close-btn:focus-visible {
+    outline: 2px solid var(--opal-darker);
+    outline-offset: 2px;
+}
+
 .primary-btn {
     background: linear-gradient(135deg, var(--opal-green) 0%, var(--opal-darker) 100%);
     color: var(--text-light);
-    border: none;
     padding: 18px 36px;
     font-size: 1.3rem;
     border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
     box-shadow: 0 8px 25px var(--shadow);
-    font-weight: 500;
     letter-spacing: 1px;
     min-width: 150px;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: 0 12px 35px var(--shadow);
     background: linear-gradient(135deg, var(--opal-darker) 0%, var(--accent) 100%);
+}
+
+.primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .secondary-btn {
@@ -109,15 +138,11 @@ body::before {
     border: 2px solid var(--opal-green);
     padding: 12px 24px;
     font-size: 1rem;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
     min-width: 120px;
     margin: 0 8px;
 }
 
-.secondary-btn:hover {
+.secondary-btn:hover:not(:disabled) {
     background: var(--opal-green);
     color: var(--text-light);
     transform: translateY(-2px);
@@ -130,15 +155,12 @@ body::before {
     border: 1px solid var(--opal-light);
     padding: 12px 24px;
     font-size: 1rem;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
     font-weight: 400;
     min-width: 120px;
     margin: 0 8px;
 }
 
-.tertiary-btn:hover {
+.tertiary-btn:hover:not(:disabled) {
     background: var(--opal-light);
     color: var(--accent);
     transform: translateY(-2px);
@@ -344,20 +366,17 @@ body::before {
 .spinner-btn {
     background: var(--opal-light);
     color: var(--opal-darker);
-    border: none;
     width: 44px;
     height: 44px;
     font-size: 1.5rem;
     border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 15px var(--shadow);
 }
 
-.spinner-btn:hover {
+.spinner-btn:hover:not(:disabled) {
     background: var(--opal-green);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px var(--shadow);
@@ -421,6 +440,7 @@ body::before {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    font-family: inherit;
 }
 
 .close-btn:hover {
@@ -489,10 +509,6 @@ body::before {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .game-title {
-        font-size: 3rem;
-    }
-    
     .card {
         max-width: 350px;
         min-height: 280px;
@@ -532,8 +548,8 @@ body::before {
 }
 
 @media (max-width: 480px) {
-    .game-title {
-        font-size: 2.5rem;
+    .container {
+        padding: 15px;
     }
     
     .card {
@@ -560,6 +576,12 @@ body::before {
     
     .spinner-modal-content {
         padding: 1.2rem;
+        margin: 10px;
+    }
+    
+    .primary-btn {
+        font-size: 1.1rem;
+        padding: 15px 30px;
     }
 }
 
