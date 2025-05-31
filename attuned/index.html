@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attune - Conversation Card Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7dd3c7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Attune">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <div class="container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1 class="game-title">Attune</h1>
+            <p class="game-subtitle">A conversation card game</p>
+            <button id="begin-btn" class="primary-btn">Begin</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Spinner Screen -->
+            <div id="spinner-container" class="spinner-screen">
+                <div class="spinner-title">Who goes first?</div>
+                <div class="spinner-wheel">
+                    <div class="spinner-pointer"></div>
+                    <div class="spinner-circle">
+                        <div class="spinner-section" data-player="1">You</div>
+                        <div class="spinner-section" data-player="2">Partner</div>
+                    </div>
+                </div>
+                <button id="spin-btn" class="primary-btn">Spin!</button>
+                <button id="skip-spin-btn" class="tertiary-btn">Skip</button>
+            </div>
+            
+            <!-- Card Display -->
+            <div id="card-display" class="card-display">
+                <div class="card-container">
+                    <div id="current-card" class="card">
+                        <div class="card-content">
+                            <div class="card-header">
+                                <span class="card-type"></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="you-section">
+                                    <div class="role-label">You:</div>
+                                    <p class="you-text"></p>
+                                </div>
+                                <div class="partner-section" style="display: none;">
+                                    <div class="role-label">Partner:</div>
+                                    <p class="partner-text"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-controls">
+                    <button id="next-card-btn" class="secondary-btn">Next Card</button>
+                    <button id="start-again-btn" class="tertiary-btn">Start Again</button>
+                </div>
+                
+                <div class="deck-counter">
+                    <span id="cards-remaining">0</span> cards remaining
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                        // Check for updates
+                        registration.update();
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
