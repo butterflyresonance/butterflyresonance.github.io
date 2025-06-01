@@ -1,81 +1,68 @@
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
-        everyone: "What do you sense about who I am, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I am, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
-        everyone: "What do you sense about what I am most afraid of, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I am most afraid of, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
-        everyone: "What do you sense about what I am most proud of, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I am most proud of, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
-        everyone: "What do you sense about who I want to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I want to be seen as, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
-        everyone: "What do you sense about what I need, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about what I need, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
-        everyone: "What do you sense about who I am afraid to be seen as, beyond what I've told you? Does this sense reflect something about me, or about you?"
+        everyone: "What do you sense about who I am afraid to be seen as, beyond what I've told you? Could this sense reflect something about you?"
     },
     {
         you: "What's one way you see yourself reflected in someone else here?"
     },
     {
-        you: "What do you think we are hoping for from this experience?"
+        you: "What do you think we are hoping for, from this experience?"
     },
     {
-        you: "What's something you imagine everyone here understands about you without having to explain it?"
+        you: "What's something you imagine everyone here understands about you, without having to explain it?"
     },
     {
-        you: "What do you alternate between having too much of and not enough of? What does each extreme protect you from feeling?"
+        you: "What do you alternate between having too much of and not enough of? Does each extreme protect you from anything?"
     },
     {
         you: "Describe a recent moment when you caught yourself acting automatically. What was driving that automaticity?"
     },
     {
-        you: "What are you seeking in other people that you're unwilling to find in yourself?"
+        you: "What are you seeking in other people?"
     },
     {
-        you: "Describe the part of you that feels like it's still searching. What is it looking for?"
+        you: "Describe the part of you that feels like it's seeking something. What is it looking for?"
     },
     {
         you: "What makes you feel most seen, and what makes you want to hide when you feel seen?"
     },
     {
-        you: "When do you use love as a way to avoid love?"
+        you: "Do you ever do things to feel special that end up making you feel more isolated? What does that look like?"
     },
     {
-        you: "Do you ever do things to feel special that make you feel more alone? What does that look like?"
+        you: "Are there ways you try to feel safe or connected that backfire? What are they?"
     },
     {
-        you: "Have you noticed times when giving becomes about control, or withholding becomes about connection?"
-    },
-    {
-        you: "Are there ways you try to feel safe that backfire? What are they?"
-    },
-    {
-        you: "Do you ever push away or reject the thing you want most? What is pushing you to do this?"
+        you: "Do you ever push away or reject the thing you want most? What is driving you to do this?"
     },
     {
         you: "What do you desperately want to be understood about, and do you do anything that makes it difficult to understand?"
-    },
-    {
-        you: "Have you ever betrayed yourself in an attempt to feel loved?"
     },
     {
         you: "Is there anything you reveal about yourself in order to hide something else?"
     },
     {
         you: "Get into a comfortable position, close your eyes, and let your mind wander.",
-        partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Let them know what caused you to bring them back. Compare where your minds wandered."
+        partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
     },
     {
-        you: "Ask your partner what it is that they think you most need to hear right now.",
-        partner: "Respond instinctively, with minimal thought or consideration."
-    },
-    {
-        everyone: "For everyone: Describe my inner child."
+        everyone: "For everyone: Describe how you see my inner child."
     },
     {
         you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
@@ -133,19 +120,16 @@ const QUESTIONS = [
         you: "Think about your previous relationships or friendships. Are there any common themes? Are there any themes that are completely absent?"
     },
     {
-        you: "What feels scary about feeling fundamentally misunderstood?"
+        you: "What does it feel like to be misunderstood?"
     },
     {
-        you: "What thoughts, emotions, or behaviours do you use to avoid other emotions?"
+        you: "Do you use any thoughts, emotions, or behaviours to avoid other emotions?"
     },
     {
-        you: "What feels comfortable about feeling fundamentally misunderstood?"
+        you: "Does anything feel scary about feeling deeply understood?"
     },
     {
-        you: "What feels scary about feeling deeply understood?"
-    },
-    {
-        you: "What feels comfortable about feeling deeply understood?"
+        you: "What does it feel like to be deeply understood?"
     },
     {
         you: "Describe a recent experience, but don't say anything about how you felt.",
@@ -153,18 +137,18 @@ const QUESTIONS = [
     },
     {
         you: "Describe an experience using only the emotions it made you feel.",
-        partner: "Propose details about what the experience might have been, and check for accuracy."
+        partner: "See whether you can figure out the details of what happened."
     },
     {
         you: "Describe an experience using only the sensory details.",
-        partner: "Propose details about what the experience might have been, and check for accuracy."
+        partner: "See whether you can figure out the details of what happened."
     },
     {
         you: "Describe a situation which you found challenging, but do not share why you found it challenging.",
-        partner: "Let your partner know what you believe would be challenging about that situation for yourself, and what you imagine would have been challenging for them."
+        partner: "Let your partner know whether there would be anything challenging about that situation for yourself, and what you imagine would have been challenging for them."
     },
     {
-        you: "Describe an experience from the point of view of someone you know, without saying who it is.",
+        you: "Describe a shared experience from the point of view of someone you know, without saying who it is.",
         partner: "Guess who this person is to your partner."
     },
     {
