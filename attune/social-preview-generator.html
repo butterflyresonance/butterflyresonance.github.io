@@ -246,62 +246,35 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 1200, 630);
             
-            // Add subtle background circles
-            ctx.globalAlpha = 0.2;
-            
-            // Circle 1
-            const grad1 = ctx.createRadialGradient(180, 535, 0, 180, 535, 200);
-            grad1.addColorStop(0, '#7dd3c7');
-            grad1.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad1;
-            ctx.fillRect(0, 0, 1200, 630);
-            
-            // Circle 2  
-            const grad2 = ctx.createRadialGradient(1020, 95, 0, 1020, 95, 200);
-            grad2.addColorStop(0, '#a8e6dc');
-            grad2.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad2;
-            ctx.fillRect(0, 0, 1200, 630);
-            
-            // IMPORTANT: Reset globalAlpha to 1 for all subsequent drawing
-            ctx.globalAlpha = 1;
-            
             // Draw title "Attune"
             ctx.fillStyle = '#26a69a';
             ctx.font = 'italic 600 110px "Crimson Text", serif';
             ctx.textAlign = 'left';
-            ctx.fillText('Attune', 80, 200);
+            ctx.fillText('attune', 80, 300);
             
             // Draw tagline
             ctx.fillStyle = '#00695c';
             ctx.font = '300 36px "Inter", sans-serif';
-            ctx.fillText('deepen connection through', 80, 260);
-            ctx.fillText('presence and curiosity', 80, 310);
+            ctx.fillText('deepen connection through', 80, 360);
+            ctx.fillText('presence and curiosity', 80, 410);
             
             // Draw begin button
-            const buttonGrad = ctx.createLinearGradient(80, 370, 230, 420);
-            buttonGrad.addColorStop(0, '#7dd3c7');
-            buttonGrad.addColorStop(1, '#26a69a');
+            // const buttonGrad = ctx.createLinearGradient(80, 370, 230, 420);
+            // buttonGrad.addColorStop(0, '#7dd3c7');
+            // buttonGrad.addColorStop(1, '#26a69a');
             
-            ctx.fillStyle = buttonGrad;
-            ctx.roundRect(80, 370, 150, 50, 25);
-            ctx.fill();
+            // ctx.fillStyle = buttonGrad;
+            // ctx.roundRect(80, 420, 150, 50, 25);
+            // ctx.fill();
             
-            // Debug: Draw a test rectangle to see if anything is working
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(140, 385, 30, 20); // Small red rectangle where text should be
-            
-            // Test with a system font that's guaranteed to work
-            ctx.fillStyle = '#0000ff'; // Blue text for contrast
-            ctx.font = 'bold 30px Arial';
-            ctx.textAlign = 'center';
-            console.log('About to draw text at:', 155, 398);
-            ctx.fillText('begin', 155, 398);
-            console.log('Text drawn');
+            // ctx.fillStyle = 'white';
+            // ctx.font = '500 30px "Inter", sans-serif';
+            // ctx.textAlign = 'center';
+            // ctx.fillText('begin', 155, 452);
             
             // Draw card background with rotation
             ctx.save();
-            ctx.translate(800, 315);
+            ctx.translate(700, 215);
             ctx.rotate(-0.035); // -2 degrees in radians
             
             // Card shadow
@@ -332,7 +305,7 @@
             ctx.fillStyle = 'white';
             ctx.font = '500 18px "Inter", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('everyone', 160, 47);
+            ctx.fillText('solo', 160, 47);
             
             // Card text
             ctx.fillStyle = '#2c3e50';
@@ -340,7 +313,7 @@
             ctx.textAlign = 'center';
             
             // Wrap text manually
-            const text = 'What makes you feel most seen, and what makes you want to hide when you feel seen?';
+            const text = 'what makes you feel most seen, and what makes you want to hide when you feel seen?';
             const words = text.split(' ');
             let line = '';
             let y = 100;
