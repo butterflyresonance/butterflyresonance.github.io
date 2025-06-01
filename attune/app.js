@@ -83,7 +83,7 @@ const QUESTIONS = [
     },
     {
         you: "Find somewhere comfortable to stand, away from others.",
-        partner: "Stand up and face your partner. Walk towards them slowly, and stop when you sense their personal boundary. Speak about what you noticed change within you or your partner when you reached the boundary."
+        partner: "Stand up and face your partner. Walk towards them slowly, and stop when you sense a personal boundary. Speak about what you noticed change within you or your partner when you reached the boundary. Figure out whose boundary it was."
     },
     {
         you: "Share an emotionally important memory.",
