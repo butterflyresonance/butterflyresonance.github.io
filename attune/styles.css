@@ -119,7 +119,7 @@ body::before {
 
 /* Game Screen Layout */
 #game-screen {
-    display: flex;
+    display: none; /* Hidden by default */
     flex-direction: column;
 }
 
