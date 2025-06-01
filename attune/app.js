@@ -118,9 +118,6 @@ const QUESTIONS = [
         you: "What emotion in others feels most difficult for you to sit with, without trying to change it? What narratives do you have around this emotion? What do you do to change this emotion in others? How does this emotion feel threatening?"
     },
     {
-        you: "What emotion in yourself feels most welcome to be felt or expressed? What narratives do you have around this emotion? What do you do to chase this emotion? What feels safe about this emotion?"
-    },
-    {
         you: "What emotion in others feels most welcome to be in the presence of? What narratives do you have around this emotion? What do you do to influence others to feel this emotion? What don't you need to worry about in the presence of this emotion?"
     },
     {
@@ -255,258 +252,412 @@ const QUESTIONS = [
 
 class AttuneGame {
     constructor() {
-        this.questions = [];
+        this.questions = [...QUESTIONS];
         this.activeDeck = [];
         this.currentCard = null;
+        this.isAnimating = false;
+        this.lastShakeTime = 0;
+        this.shakeThreshold = 15;
+        this.lastAcceleration = { x: 0, y: 0, z: 0 };
         
-        // Initialize DOM elements
+        // Touch handling
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        this.touchCurrentX = 0;
+        this.touchCurrentY = 0;
+        this.isDragging = false;
+        
+        this.initializeElements();
+        this.bindEvents();
+        this.loadQuestions();
+    }
+    
+    initializeElements() {
+        // Screens
         this.startScreen = document.getElementById('start-screen');
         this.gameScreen = document.getElementById('game-screen');
-        this.cardDisplay = document.getElementById('card-display');
         
+        // Game elements
         this.beginBtn = document.getElementById('begin-btn');
-        this.nextCardBtn = document.getElementById('next-card-btn');
-        this.addBackBtn = document.getElementById('add-back-btn');
-        this.startAgainBtn = document.getElementById('start-again-btn');
-        this.showSpinnerBtn = document.getElementById('show-spinner-btn');
+        this.cardsCount = document.getElementById('cards-count');
+        this.cardContainer = document.querySelector('.card-container');
+        this.currentCard = document.getElementById('current-card');
         
-        this.cardElement = document.getElementById('current-card');
-        this.cardHeader = document.querySelector('.card-header');
-        this.cardBody = document.querySelector('.card-body');
+        // Card content elements
         this.cardType = document.querySelector('.card-type');
-        this.youText = document.querySelector('.you-text');
-        this.partnerText = document.querySelector('.partner-text');
-        this.everyoneText = document.querySelector('.everyone-text');
         this.youSection = document.querySelector('.you-section');
         this.partnerSection = document.querySelector('.partner-section');
         this.everyoneSection = document.querySelector('.everyone-section');
-        this.cardsRemaining = document.getElementById('cards-remaining');
+        this.dividerSection = document.querySelector('.divider-section');
+        this.youText = document.querySelector('.you-text');
+        this.partnerText = document.querySelector('.partner-text');
+        this.everyoneText = document.querySelector('.everyone-text');
         
-        // Spinner modal elements
+        // Tap zones
+        this.tapLeft = document.querySelector('.tap-left');
+        this.tapRight = document.querySelector('.tap-right');
+        
+        // Modals
         this.spinnerModal = document.getElementById('spinner-modal');
-        this.spinnerCircle = document.querySelector('.spinner-circle');
+        this.completeModal = document.getElementById('complete-modal');
         this.spinBtn = document.getElementById('spin-btn');
         this.closeSpinnerBtn = document.getElementById('close-spinner-btn');
-        
-        this.init();
-    }
-    
-    init() {
-        this.loadQuestions();
-        this.bindEvents();
-    }
-    
-    loadQuestions() {
-        // Use the questions from the JavaScript array
-        this.questions = [...QUESTIONS];
+        this.spinnerCircle = document.querySelector('.spinner-circle');
     }
     
     bindEvents() {
+        // Start game
         this.beginBtn.addEventListener('click', () => this.startGame());
-        this.nextCardBtn.addEventListener('click', () => this.drawNextCard());
-        this.addBackBtn.addEventListener('click', () => this.addBackToDeck());
-        this.startAgainBtn.addEventListener('click', () => this.restartGame());
-        this.showSpinnerBtn.addEventListener('click', () => this.showSpinner());
+        
+        // Touch events for swiping
+        this.cardContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        this.cardContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        this.cardContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        
+        // Tap zones
+        this.tapLeft.addEventListener('click', () => this.addBackToDeck());
+        this.tapRight.addEventListener('click', () => this.nextCard());
+        
+        // Spinner events
         this.spinBtn.addEventListener('click', () => this.performSpin());
         this.closeSpinnerBtn.addEventListener('click', () => this.hideSpinner());
-        
-        // Close spinner when clicking outside modal
         this.spinnerModal.addEventListener('click', (e) => {
-            if (e.target === this.spinnerModal) {
-                this.hideSpinner();
-            }
+            if (e.target === this.spinnerModal) this.hideSpinner();
         });
         
-        // Close spinner with Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.spinnerModal.classList.contains('active')) {
-                this.hideSpinner();
-            }
-        });
-    }
-    
-    // Seeded random number generator using current time
-    seedRandom(seed = Date.now()) {
-        this.seed = seed;
-        return () => {
-            this.seed = (this.seed * 9301 + 49297) % 233280;
-            return this.seed / 233280;
-        };
-    }
-    
-    // Fisher-Yates shuffle with seeded random
-    shuffleArray(array) {
-        const random = this.seedRandom();
-        const shuffled = [...array];
+        // Complete modal
+        this.completeModal.addEventListener('click', () => this.restartGame());
         
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        // Device motion for shake detection
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+            // iOS 13+ permission
+            this.requestMotionPermission();
+        } else if (window.DeviceMotionEvent) {
+            // Other devices
+            window.addEventListener('devicemotion', (e) => this.handleDeviceMotion(e));
         }
         
+        // Prevent context menu on long press
+        this.cardContainer.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Keyboard support for accessibility
+        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+    }
+    
+    async requestMotionPermission() {
+        try {
+            const permission = await DeviceMotionEvent.requestPermission();
+            if (permission === 'granted') {
+                window.addEventListener('devicemotion', (e) => this.handleDeviceMotion(e));
+            }
+        } catch (error) {
+            console.log('Motion permission not available');
+        }
+    }
+    
+    handleDeviceMotion(event) {
+        if (this.isAnimating) return;
+        
+        const acceleration = event.accelerationIncludingGravity;
+        if (!acceleration) return;
+        
+        const currentTime = Date.now();
+        if (currentTime - this.lastShakeTime < 1000) return; // Debounce
+        
+        const deltaX = Math.abs(acceleration.x - this.lastAcceleration.x);
+        const deltaY = Math.abs(acceleration.y - this.lastAcceleration.y);
+        const deltaZ = Math.abs(acceleration.z - this.lastAcceleration.z);
+        
+        const shakeIntensity = deltaX + deltaY + deltaZ;
+        
+        if (shakeIntensity > this.shakeThreshold) {
+            this.lastShakeTime = currentTime;
+            this.restartGame();
+            this.vibrate(200);
+        }
+        
+        this.lastAcceleration = { x: acceleration.x, y: acceleration.y, z: acceleration.z };
+    }
+    
+    handleTouchStart(e) {
+        if (this.isAnimating) return;
+        
+        this.touchStartX = e.touches[0].clientX;
+        this.touchStartY = e.touches[0].clientY;
+        this.touchCurrentX = this.touchStartX;
+        this.touchCurrentY = this.touchStartY;
+        this.isDragging = false;
+        
+        this.currentCard.classList.add('swiping');
+    }
+    
+    handleTouchMove(e) {
+        if (this.isAnimating) return;
+        
+        e.preventDefault();
+        
+        this.touchCurrentX = e.touches[0].clientX;
+        this.touchCurrentY = e.touches[0].clientY;
+        
+        const deltaX = this.touchCurrentX - this.touchStartX;
+        const deltaY = this.touchCurrentY - this.touchStartY;
+        
+        // Start showing hints when drag distance > 30px
+        if (Math.abs(deltaX) > 30 || Math.abs(deltaY) > 30) {
+            this.isDragging = true;
+        }
+        
+        // Show directional hints
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX > 30) {
+                this.currentCard.classList.add('show-right-hint');
+                this.currentCard.classList.remove('show-left-hint');
+            } else if (deltaX < -30) {
+                this.currentCard.classList.add('show-left-hint');
+                this.currentCard.classList.remove('show-right-hint');
+            }
+        } else {
+            this.currentCard.classList.remove('show-left-hint', 'show-right-hint');
+        }
+        
+        // Apply transform for visual feedback
+        const rotation = deltaX * 0.1;
+        const scale = 1 - Math.abs(deltaX) * 0.0002;
+        this.currentCard.style.transform = `translateX(${deltaX * 0.5}px) translateY(${deltaY * 0.3}px) rotate(${rotation}deg) scale(${scale})`;
+    }
+    
+    handleTouchEnd(e) {
+        if (this.isAnimating) return;
+        
+        this.currentCard.classList.remove('swiping', 'show-left-hint', 'show-right-hint');
+        
+        const deltaX = this.touchCurrentX - this.touchStartX;
+        const deltaY = this.touchCurrentY - this.touchStartY;
+        const absDeltaX = Math.abs(deltaX);
+        const absDeltaY = Math.abs(deltaY);
+        
+        // Reset transform
+        this.currentCard.style.transform = '';
+        
+        // Determine swipe direction
+        const swipeThreshold = 80;
+        
+        if (absDeltaX > absDeltaY && absDeltaX > swipeThreshold) {
+            // Horizontal swipe
+            if (deltaX > 0) {
+                this.swipeRight(); // Next card
+            } else {
+                this.swipeLeft(); // Add back
+            }
+        } else if (absDeltaY > swipeThreshold) {
+            // Vertical swipe
+            if (deltaY < 0) {
+                this.swipeUp(); // Restart
+            } else {
+                this.swipeDown(); // Spinner
+            }
+        }
+        
+        this.vibrate(50);
+    }
+    
+    handleKeyPress(e) {
+        if (this.isAnimating) return;
+        
+        switch(e.key) {
+            case 'ArrowRight':
+                this.nextCard();
+                break;
+            case 'ArrowLeft':
+                this.addBackToDeck();
+                break;
+            case 'ArrowUp':
+                this.restartGame();
+                break;
+            case 'ArrowDown':
+                this.showSpinner();
+                break;
+            case 'Escape':
+                if (this.spinnerModal.classList.contains('active')) {
+                    this.hideSpinner();
+                }
+                break;
+        }
+    }
+    
+    vibrate(duration) {
+        if (navigator.vibrate) {
+            navigator.vibrate(duration);
+        }
+    }
+    
+    loadQuestions() {
+        this.activeDeck = this.shuffleArray([...this.questions]);
+        this.updateCardsCount();
+    }
+    
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
         return shuffled;
     }
     
-    cloneQuestionsToActiveDeck() {
-        // Clone questions and shuffle them using current time as seed
-        this.activeDeck = this.shuffleArray(this.questions);
-        this.updateCardsRemaining();
-    }
-    
     startGame() {
-        // Hide start screen, show game screen
         this.startScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
-        this.cardDisplay.classList.add('active');
-        
-        // Clone questions to active deck
-        this.cloneQuestionsToActiveDeck();
-        
-        // Draw first card
-        this.drawNextCard();
+        this.loadQuestions();
+        this.displayCurrentCard();
     }
     
-    drawNextCard() {
+    displayCurrentCard() {
         if (this.activeDeck.length === 0) {
             this.showGameComplete();
             return;
         }
         
-        // Add flip animation
-        this.cardElement.classList.add('flipping');
+        this.currentCard = this.activeDeck[0];
+        const question = this.currentCard;
         
-        setTimeout(() => {
-            // Select random card from active deck using current time as additional entropy
-            const randomIndex = Math.floor((Date.now() % 1000) / 1000 * this.activeDeck.length);
-            const selectedQuestion = this.activeDeck[randomIndex];
-            
-            // Remove the selected question from active deck
-            this.activeDeck.splice(randomIndex, 1);
-            
-            // Store current card for add back functionality
-            this.currentCard = selectedQuestion;
-            
-            // Display the card
-            this.displayCard(selectedQuestion);
-            this.updateCardsRemaining();
-            
-            // Remove flip animation
-            this.cardElement.classList.remove('flipping');
-        }, 300);
-    }
-    
-    displayCard(question) {
-        // Determine card type and display content
+        // Reset visibility
+        this.youSection.style.display = 'none';
+        this.partnerSection.style.display = 'none';
+        this.everyoneSection.style.display = 'none';
+        this.dividerSection.style.display = 'none';
+        
         if (question.everyone) {
-            // Everyone card
             this.cardType.textContent = 'everyone';
             this.everyoneText.textContent = question.everyone;
-            this.everyoneSection.style.display = 'block';
-            this.youSection.style.display = 'none';
-            this.partnerSection.style.display = 'none';
+            this.everyoneSection.style.display = 'flex';
         } else if (question.partner) {
-            // Both players card
             this.cardType.textContent = 'both players';
             this.youText.textContent = question.you;
             this.partnerText.textContent = question.partner;
-            this.youSection.style.display = 'block';
-            this.partnerSection.style.display = 'block';
-            this.everyoneSection.style.display = 'none';
+            this.youSection.style.display = 'flex';
+            this.dividerSection.style.display = 'block';
+            this.partnerSection.style.display = 'flex';
         } else {
-            // Solo card
             this.cardType.textContent = 'solo';
             this.youText.textContent = question.you;
-            this.youSection.style.display = 'block';
-            this.partnerSection.style.display = 'none';
-            this.everyoneSection.style.display = 'none';
+            this.youSection.style.display = 'flex';
         }
+        
+        // Add flip in animation
+        this.document.getElementById('current-card').classList.add('flip-in');
+        setTimeout(() => {
+            this.document.getElementById('current-card').classList.remove('flip-in');
+        }, 600);
+    }
+    
+    nextCard() {
+        if (this.isAnimating || this.activeDeck.length === 0) return;
+        this.swipeRight();
     }
     
     addBackToDeck() {
-        if (this.currentCard) {
-            // Add current card back to active deck
-            this.activeDeck.push(this.currentCard);
-            this.updateCardsRemaining();
-            
-            // Draw a new card
-            this.drawNextCard();
-        }
+        if (this.isAnimating || this.activeDeck.length === 0) return;
+        this.activeDeck.push(this.activeDeck[0]); // Move current to end
+        this.swipeLeft();
+    }
+    
+    swipeLeft() {
+        this.isAnimating = true;
+        this.document.getElementById('current-card').classList.add('swipe-left');
+        
+        setTimeout(() => {
+            this.activeDeck.shift(); // Remove first card
+            this.document.getElementById('current-card').classList.remove('swipe-left');
+            this.displayCurrentCard();
+            this.updateCardsCount();
+            this.isAnimating = false;
+        }, 300);
+    }
+    
+    swipeRight() {
+        this.isAnimating = true;
+        this.document.getElementById('current-card').classList.add('swipe-right');
+        
+        setTimeout(() => {
+            this.activeDeck.shift(); // Remove first card
+            this.document.getElementById('current-card').classList.remove('swipe-right');
+            this.displayCurrentCard();
+            this.updateCardsCount();
+            this.isAnimating = false;
+        }, 300);
+    }
+    
+    swipeUp() {
+        this.isAnimating = true;
+        this.document.getElementById('current-card').classList.add('swipe-up');
+        
+        setTimeout(() => {
+            this.document.getElementById('current-card').classList.remove('swipe-up');
+            this.restartGame();
+            this.isAnimating = false;
+        }, 300);
+    }
+    
+    swipeDown() {
+        this.isAnimating = true;
+        this.document.getElementById('current-card').classList.add('swipe-down');
+        
+        setTimeout(() => {
+            this.document.getElementById('current-card').classList.remove('swipe-down');
+            this.showSpinner();
+            this.isAnimating = false;
+        }, 300);
     }
     
     restartGame() {
-        // Reset spinner state
-        this.resetSpinner();
-        
-        // Clone questions back to active deck
-        this.cloneQuestionsToActiveDeck();
-        
-        // Draw first card
-        this.drawNextCard();
+        this.loadQuestions();
+        this.displayCurrentCard();
+        this.hideCompleteModal();
     }
     
-    updateCardsRemaining() {
-        this.cardsRemaining.textContent = this.activeDeck.length;
+    updateCardsCount() {
+        this.cardsCount.textContent = this.activeDeck.length;
     }
     
     showGameComplete() {
-        this.cardType.textContent = 'complete!';
-        this.youText.textContent = "🎉 All cards completed! Click 'start again' to shuffle and play another round.";
-        this.youSection.style.display = 'block';
-        this.partnerSection.style.display = 'none';
-        this.everyoneSection.style.display = 'none';
-        this.updateCardsRemaining();
-        this.currentCard = null;
+        this.completeModal.classList.add('active');
     }
     
-    // Spinner functionality
+    hideCompleteModal() {
+        this.completeModal.classList.remove('active');
+    }
+    
     showSpinner() {
         this.spinnerModal.classList.add('active');
-        this.spinnerModal.setAttribute('aria-hidden', 'false');
-        this.resetSpinner();
-        
-        // Focus the spin button for accessibility
-        this.spinBtn.focus();
-        
-        // Prevent body scroll
         document.body.style.overflow = 'hidden';
     }
     
     hideSpinner() {
         this.spinnerModal.classList.remove('active');
-        this.spinnerModal.setAttribute('aria-hidden', 'true');
-        
-        // Restore body scroll
         document.body.style.overflow = '';
-        
-        // Return focus to spinner button
-        this.showSpinnerBtn.focus();
+        this.resetSpinner();
     }
     
     performSpin() {
-        if (this.spinBtn.disabled) return; // Prevent multiple clicks
+        if (this.spinBtn.disabled) return;
         
         this.spinBtn.disabled = true;
-        
-        // Reset any previous spin state
         this.spinnerCircle.classList.remove('spinning');
         this.spinnerCircle.style.removeProperty('--spin-degrees');
         
-        // Force a reflow to ensure the reset takes effect
+        // Force reflow
         this.spinnerCircle.offsetHeight;
         
-        // Generate random spin (2-4 full rotations plus random degrees)
-        const baseRotations = 720; // 2 full rotations minimum
-        const extraRotations = Math.random() * 720; // Up to 2 more rotations
-        const randomDegrees = Math.random() * 360; // Final position
-        const totalRotation = baseRotations + extraRotations + randomDegrees;
-        
-        // Set CSS custom property for animation
+        const totalRotation = 720 + Math.random() * 1440 + Math.random() * 360;
         this.spinnerCircle.style.setProperty('--spin-degrees', `${totalRotation}deg`);
         this.spinnerCircle.classList.add('spinning');
         
         setTimeout(() => {
             this.spinBtn.disabled = false;
         }, 3000);
+        
+        this.vibrate(100);
     }
     
     resetSpinner() {
@@ -516,45 +667,7 @@ class AttuneGame {
     }
 }
 
-// Initialize the game when DOM is loaded
+// Initialize the game
 document.addEventListener('DOMContentLoaded', () => {
     new AttuneGame();
-});
-
-// Add some visual flair - subtle background animation
-document.addEventListener('DOMContentLoaded', () => {
-    const body = document.body;
-    let mouseX = 0;
-    let mouseY = 0;
-    
-    document.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX / window.innerWidth;
-        mouseY = e.clientY / window.innerHeight;
-        
-        body.style.setProperty('--mouse-x', mouseX);
-        body.style.setProperty('--mouse-y', mouseY);
-    });
-});
-
-// Add touch support for mobile devices
-document.addEventListener('DOMContentLoaded', () => {
-    // Prevent zoom on double tap for iOS
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (event) => {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-            event.preventDefault();
-        }
-        lastTouchEnd = now;
-    }, false);
-    
-    // Add haptic feedback on button press (if supported)
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(button => {
-        button.addEventListener('click', () => {
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-        });
-    });
 });
