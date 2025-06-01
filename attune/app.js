@@ -118,6 +118,9 @@ const QUESTIONS = [
         you: "What emotion in others feels most difficult for you to sit with, without trying to change it? What narratives do you have around this emotion? What do you do to change this emotion in others? How does this emotion feel threatening?"
     },
     {
+        you: "What emotion in yourself feels most welcome to be felt or expressed? What narratives do you have around this emotion? What do you do to chase this emotion? What feels safe about this emotion?"
+    },
+    {
         you: "What emotion in others feels most welcome to be in the presence of? What narratives do you have around this emotion? What do you do to influence others to feel this emotion? What don't you need to worry about in the presence of this emotion?"
     },
     {
@@ -256,9 +259,6 @@ class AttuneGame {
         this.activeDeck = [];
         this.currentCard = null;
         this.isAnimating = false;
-        this.lastShakeTime = 0;
-        this.shakeThreshold = 15;
-        this.lastAcceleration = { x: 0, y: 0, z: 0 };
         
         // Touch handling
         this.touchStartX = 0;
@@ -266,6 +266,7 @@ class AttuneGame {
         this.touchCurrentX = 0;
         this.touchCurrentY = 0;
         this.isDragging = false;
+        this.hasMoved = false;
         
         this.initializeElements();
         this.bindEvents();
@@ -281,7 +282,6 @@ class AttuneGame {
         this.beginBtn = document.getElementById('begin-btn');
         this.cardsCount = document.getElementById('cards-count');
         this.cardContainer = document.querySelector('.card-container');
-        this.currentCard = document.getElementById('current-card');
         
         // Card content elements
         this.cardType = document.querySelector('.card-type');
@@ -328,15 +328,6 @@ class AttuneGame {
         // Complete modal
         this.completeModal.addEventListener('click', () => this.restartGame());
         
-        // Device motion for shake detection
-        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-            // iOS 13+ permission
-            this.requestMotionPermission();
-        } else if (window.DeviceMotionEvent) {
-            // Other devices
-            window.addEventListener('devicemotion', (e) => this.handleDeviceMotion(e));
-        }
-        
         // Prevent context menu on long press
         this.cardContainer.addEventListener('contextmenu', (e) => e.preventDefault());
         
@@ -344,51 +335,19 @@ class AttuneGame {
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
     }
     
-    async requestMotionPermission() {
-        try {
-            const permission = await DeviceMotionEvent.requestPermission();
-            if (permission === 'granted') {
-                window.addEventListener('devicemotion', (e) => this.handleDeviceMotion(e));
-            }
-        } catch (error) {
-            console.log('Motion permission not available');
-        }
-    }
-    
-    handleDeviceMotion(event) {
-        if (this.isAnimating) return;
-        
-        const acceleration = event.accelerationIncludingGravity;
-        if (!acceleration) return;
-        
-        const currentTime = Date.now();
-        if (currentTime - this.lastShakeTime < 1000) return; // Debounce
-        
-        const deltaX = Math.abs(acceleration.x - this.lastAcceleration.x);
-        const deltaY = Math.abs(acceleration.y - this.lastAcceleration.y);
-        const deltaZ = Math.abs(acceleration.z - this.lastAcceleration.z);
-        
-        const shakeIntensity = deltaX + deltaY + deltaZ;
-        
-        if (shakeIntensity > this.shakeThreshold) {
-            this.lastShakeTime = currentTime;
-            this.restartGame();
-            this.vibrate(200);
-        }
-        
-        this.lastAcceleration = { x: acceleration.x, y: acceleration.y, z: acceleration.z };
-    }
-    
     handleTouchStart(e) {
         if (this.isAnimating) return;
         
-        this.touchStartX = e.touches[0].clientX;
-        this.touchStartY = e.touches[0].clientY;
+        const touch = e.touches[0];
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
         this.touchCurrentX = this.touchStartX;
         this.touchCurrentY = this.touchStartY;
         this.isDragging = false;
+        this.hasMoved = false;
         
-        this.currentCard.classList.add('swiping');
+        const currentCardElement = document.getElementById('current-card');
+        currentCardElement.classList.add('swiping');
     }
     
     handleTouchMove(e) {
@@ -396,40 +355,49 @@ class AttuneGame {
         
         e.preventDefault();
         
-        this.touchCurrentX = e.touches[0].clientX;
-        this.touchCurrentY = e.touches[0].clientY;
+        const touch = e.touches[0];
+        this.touchCurrentX = touch.clientX;
+        this.touchCurrentY = touch.clientY;
         
         const deltaX = this.touchCurrentX - this.touchStartX;
         const deltaY = this.touchCurrentY - this.touchStartY;
+        
+        // Check if we've moved enough to be considered a drag
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+            this.hasMoved = true;
+        }
         
         // Start showing hints when drag distance > 30px
         if (Math.abs(deltaX) > 30 || Math.abs(deltaY) > 30) {
             this.isDragging = true;
         }
         
+        const currentCardElement = document.getElementById('current-card');
+        
         // Show directional hints
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
             if (deltaX > 30) {
-                this.currentCard.classList.add('show-right-hint');
-                this.currentCard.classList.remove('show-left-hint');
+                currentCardElement.classList.add('show-right-hint');
+                currentCardElement.classList.remove('show-left-hint');
             } else if (deltaX < -30) {
-                this.currentCard.classList.add('show-left-hint');
-                this.currentCard.classList.remove('show-right-hint');
+                currentCardElement.classList.add('show-left-hint');
+                currentCardElement.classList.remove('show-right-hint');
             }
         } else {
-            this.currentCard.classList.remove('show-left-hint', 'show-right-hint');
+            currentCardElement.classList.remove('show-left-hint', 'show-right-hint');
         }
         
         // Apply transform for visual feedback
         const rotation = deltaX * 0.1;
         const scale = 1 - Math.abs(deltaX) * 0.0002;
-        this.currentCard.style.transform = `translateX(${deltaX * 0.5}px) translateY(${deltaY * 0.3}px) rotate(${rotation}deg) scale(${scale})`;
+        currentCardElement.style.transform = `translateX(${deltaX * 0.5}px) translateY(${deltaY * 0.3}px) rotate(${rotation}deg) scale(${scale})`;
     }
     
     handleTouchEnd(e) {
         if (this.isAnimating) return;
         
-        this.currentCard.classList.remove('swiping', 'show-left-hint', 'show-right-hint');
+        const currentCardElement = document.getElementById('current-card');
+        currentCardElement.classList.remove('swiping', 'show-left-hint', 'show-right-hint');
         
         const deltaX = this.touchCurrentX - this.touchStartX;
         const deltaY = this.touchCurrentY - this.touchStartY;
@@ -437,7 +405,23 @@ class AttuneGame {
         const absDeltaY = Math.abs(deltaY);
         
         // Reset transform
-        this.currentCard.style.transform = '';
+        currentCardElement.style.transform = '';
+        
+        // If no significant movement, treat as a tap
+        if (!this.hasMoved) {
+            const tapX = this.touchStartX;
+            const screenWidth = window.innerWidth;
+            
+            if (tapX < screenWidth / 2) {
+                // Tapped left side
+                this.addBackToDeck();
+            } else {
+                // Tapped right side
+                this.nextCard();
+            }
+            this.vibrate(50);
+            return;
+        }
         
         // Determine swipe direction
         const swipeThreshold = 80;
@@ -545,9 +529,10 @@ class AttuneGame {
         }
         
         // Add flip in animation
-        this.document.getElementById('current-card').classList.add('flip-in');
+        const cardElement = document.getElementById('current-card');
+        cardElement.classList.add('flip-in');
         setTimeout(() => {
-            this.document.getElementById('current-card').classList.remove('flip-in');
+            cardElement.classList.remove('flip-in');
         }, 600);
     }
     
@@ -564,11 +549,12 @@ class AttuneGame {
     
     swipeLeft() {
         this.isAnimating = true;
-        this.document.getElementById('current-card').classList.add('swipe-left');
+        const cardElement = document.getElementById('current-card');
+        cardElement.classList.add('swipe-left');
         
         setTimeout(() => {
             this.activeDeck.shift(); // Remove first card
-            this.document.getElementById('current-card').classList.remove('swipe-left');
+            cardElement.classList.remove('swipe-left');
             this.displayCurrentCard();
             this.updateCardsCount();
             this.isAnimating = false;
@@ -577,11 +563,12 @@ class AttuneGame {
     
     swipeRight() {
         this.isAnimating = true;
-        this.document.getElementById('current-card').classList.add('swipe-right');
+        const cardElement = document.getElementById('current-card');
+        cardElement.classList.add('swipe-right');
         
         setTimeout(() => {
             this.activeDeck.shift(); // Remove first card
-            this.document.getElementById('current-card').classList.remove('swipe-right');
+            cardElement.classList.remove('swipe-right');
             this.displayCurrentCard();
             this.updateCardsCount();
             this.isAnimating = false;
@@ -590,10 +577,11 @@ class AttuneGame {
     
     swipeUp() {
         this.isAnimating = true;
-        this.document.getElementById('current-card').classList.add('swipe-up');
+        const cardElement = document.getElementById('current-card');
+        cardElement.classList.add('swipe-up');
         
         setTimeout(() => {
-            this.document.getElementById('current-card').classList.remove('swipe-up');
+            cardElement.classList.remove('swipe-up');
             this.restartGame();
             this.isAnimating = false;
         }, 300);
@@ -601,10 +589,11 @@ class AttuneGame {
     
     swipeDown() {
         this.isAnimating = true;
-        this.document.getElementById('current-card').classList.add('swipe-down');
+        const cardElement = document.getElementById('current-card');
+        cardElement.classList.add('swipe-down');
         
         setTimeout(() => {
-            this.document.getElementById('current-card').classList.remove('swipe-down');
+            cardElement.classList.remove('swipe-down');
             this.showSpinner();
             this.isAnimating = false;
         }, 300);
