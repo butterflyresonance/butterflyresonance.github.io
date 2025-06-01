@@ -32,20 +32,6 @@ body {
     padding: 0;
 }
 
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 20% 80%, var(--opal-green) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, var(--opal-light) 0%, transparent 50%);
-    opacity: 0.3;
-    z-index: -1;
-    pointer-events: none;
-}
-
 .app-container {
     width: 100vw;
     height: 100vh;
