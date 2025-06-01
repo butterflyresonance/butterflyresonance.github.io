@@ -265,25 +265,40 @@ class AttuneGame {
         this.touchStartY = 0;
         this.touchCurrentX = 0;
         this.touchCurrentY = 0;
-        this.isDragging = false;
         this.hasMoved = false;
         
         this.initializeElements();
         this.bindEvents();
         this.loadQuestions();
+        
+        // Debug mode - set to true to see debug info
+        this.debug = false;
+        this.log('Game initialized');
+    }
+    
+    log(message) {
+        if (this.debug) {
+            const debugEl = document.getElementById('debug');
+            if (debugEl) {
+                debugEl.style.display = 'block';
+                debugEl.innerHTML += message + '<br>';
+                // Keep only last 10 messages
+                const lines = debugEl.innerHTML.split('<br>');
+                if (lines.length > 10) {
+                    debugEl.innerHTML = lines.slice(-10).join('<br>');
+                }
+            }
+        }
+        console.log('AttuneGame:', message);
     }
     
     initializeElements() {
-        // Screens
         this.startScreen = document.getElementById('start-screen');
         this.gameScreen = document.getElementById('game-screen');
-        
-        // Game elements
         this.beginBtn = document.getElementById('begin-btn');
         this.cardsCount = document.getElementById('cards-count');
-        this.cardContainer = document.querySelector('.card-container');
+        this.cardContainer = document.getElementById('card-container');
         
-        // Card content elements
         this.cardType = document.querySelector('.card-type');
         this.youSection = document.querySelector('.you-section');
         this.partnerSection = document.querySelector('.partner-section');
@@ -293,7 +308,6 @@ class AttuneGame {
         this.partnerText = document.querySelector('.partner-text');
         this.everyoneText = document.querySelector('.everyone-text');
         
-        // Tap zones
         this.tapLeft = document.querySelector('.tap-left');
         this.tapRight = document.querySelector('.tap-right');
         
@@ -303,10 +317,11 @@ class AttuneGame {
         this.spinBtn = document.getElementById('spin-btn');
         this.closeSpinnerBtn = document.getElementById('close-spinner-btn');
         this.spinnerCircle = document.querySelector('.spinner-circle');
+        
+        this.log('Elements initialized');
     }
     
     bindEvents() {
-        // Start game
         this.beginBtn.addEventListener('click', () => this.startGame());
         
         // Touch events for swiping
@@ -315,24 +330,40 @@ class AttuneGame {
         this.cardContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
         
         // Tap zones
-        this.tapLeft.addEventListener('click', () => this.addBackToDeck());
-        this.tapRight.addEventListener('click', () => this.nextCard());
-        
-        // Spinner events
-        this.spinBtn.addEventListener('click', () => this.performSpin());
-        this.closeSpinnerBtn.addEventListener('click', () => this.hideSpinner());
-        this.spinnerModal.addEventListener('click', (e) => {
-            if (e.target === this.spinnerModal) this.hideSpinner();
+        this.tapLeft.addEventListener('click', () => {
+            this.log('Tap left clicked');
+            this.addBackToDeck();
+        });
+        this.tapRight.addEventListener('click', () => {
+            this.log('Tap right clicked');
+            this.nextCard();
         });
         
+        // Spinner events
+        if (this.spinBtn) {
+            this.spinBtn.addEventListener('click', () => this.performSpin());
+        }
+        if (this.closeSpinnerBtn) {
+            this.closeSpinnerBtn.addEventListener('click', () => this.hideSpinner());
+        }
+        if (this.spinnerModal) {
+            this.spinnerModal.addEventListener('click', (e) => {
+                if (e.target === this.spinnerModal) this.hideSpinner();
+            });
+        }
+        
         // Complete modal
-        this.completeModal.addEventListener('click', () => this.restartGame());
+        if (this.completeModal) {
+            this.completeModal.addEventListener('click', () => this.restartGame());
+        }
         
         // Prevent context menu on long press
         this.cardContainer.addEventListener('contextmenu', (e) => e.preventDefault());
         
         // Keyboard support for accessibility
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+        
+        this.log('Events bound');
     }
     
     handleTouchStart(e) {
@@ -343,11 +374,14 @@ class AttuneGame {
         this.touchStartY = touch.clientY;
         this.touchCurrentX = this.touchStartX;
         this.touchCurrentY = this.touchStartY;
-        this.isDragging = false;
         this.hasMoved = false;
         
         const currentCardElement = document.getElementById('current-card');
-        currentCardElement.classList.add('swiping');
+        if (currentCardElement) {
+            currentCardElement.classList.add('swiping');
+        }
+        
+        this.log(`Touch start: ${this.touchStartX}, ${this.touchStartY}`);
     }
     
     handleTouchMove(e) {
@@ -367,12 +401,8 @@ class AttuneGame {
             this.hasMoved = true;
         }
         
-        // Start showing hints when drag distance > 30px
-        if (Math.abs(deltaX) > 30 || Math.abs(deltaY) > 30) {
-            this.isDragging = true;
-        }
-        
         const currentCardElement = document.getElementById('current-card');
+        if (!currentCardElement) return;
         
         // Show directional hints
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -397,15 +427,17 @@ class AttuneGame {
         if (this.isAnimating) return;
         
         const currentCardElement = document.getElementById('current-card');
-        currentCardElement.classList.remove('swiping', 'show-left-hint', 'show-right-hint');
+        if (currentCardElement) {
+            currentCardElement.classList.remove('swiping', 'show-left-hint', 'show-right-hint');
+            currentCardElement.style.transform = '';
+        }
         
         const deltaX = this.touchCurrentX - this.touchStartX;
         const deltaY = this.touchCurrentY - this.touchStartY;
         const absDeltaX = Math.abs(deltaX);
         const absDeltaY = Math.abs(deltaY);
         
-        // Reset transform
-        currentCardElement.style.transform = '';
+        this.log(`Touch end: deltaX=${deltaX}, deltaY=${deltaY}, hasMoved=${this.hasMoved}`);
         
         // If no significant movement, treat as a tap
         if (!this.hasMoved) {
@@ -413,10 +445,10 @@ class AttuneGame {
             const screenWidth = window.innerWidth;
             
             if (tapX < screenWidth / 2) {
-                // Tapped left side
+                this.log('Tap left detected');
                 this.addBackToDeck();
             } else {
-                // Tapped right side
+                this.log('Tap right detected');
                 this.nextCard();
             }
             this.vibrate(50);
@@ -429,16 +461,20 @@ class AttuneGame {
         if (absDeltaX > absDeltaY && absDeltaX > swipeThreshold) {
             // Horizontal swipe
             if (deltaX > 0) {
+                this.log('Swipe right detected');
                 this.swipeRight(); // Next card
             } else {
+                this.log('Swipe left detected');
                 this.swipeLeft(); // Add back
             }
         } else if (absDeltaY > swipeThreshold) {
             // Vertical swipe
             if (deltaY < 0) {
+                this.log('Swipe up detected');
                 this.swipeUp(); // Restart
             } else {
-                this.swipeDown(); // Spinner
+                this.log('Swipe down detected');
+                this.swipeDown(); // Spinner or restart
             }
         }
         
@@ -462,7 +498,7 @@ class AttuneGame {
                 this.showSpinner();
                 break;
             case 'Escape':
-                if (this.spinnerModal.classList.contains('active')) {
+                if (this.spinnerModal && this.spinnerModal.classList.contains('active')) {
                     this.hideSpinner();
                 }
                 break;
@@ -478,6 +514,7 @@ class AttuneGame {
     loadQuestions() {
         this.activeDeck = this.shuffleArray([...this.questions]);
         this.updateCardsCount();
+        this.log(`Loaded ${this.activeDeck.length} questions`);
     }
     
     shuffleArray(array) {
@@ -490,6 +527,7 @@ class AttuneGame {
     }
     
     startGame() {
+        this.log('Starting game');
         this.startScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
         this.loadQuestions();
@@ -504,6 +542,8 @@ class AttuneGame {
         
         this.currentCard = this.activeDeck[0];
         const question = this.currentCard;
+        
+        this.log(`Displaying card: ${question.you || question.everyone || 'partner card'}`);
         
         // Reset visibility
         this.youSection.style.display = 'none';
@@ -530,19 +570,23 @@ class AttuneGame {
         
         // Add flip in animation
         const cardElement = document.getElementById('current-card');
-        cardElement.classList.add('flip-in');
-        setTimeout(() => {
-            cardElement.classList.remove('flip-in');
-        }, 600);
+        if (cardElement) {
+            cardElement.classList.add('flip-in');
+            setTimeout(() => {
+                cardElement.classList.remove('flip-in');
+            }, 600);
+        }
     }
     
     nextCard() {
         if (this.isAnimating || this.activeDeck.length === 0) return;
+        this.log('Next card');
         this.swipeRight();
     }
     
     addBackToDeck() {
         if (this.isAnimating || this.activeDeck.length === 0) return;
+        this.log('Add back to deck');
         this.activeDeck.push(this.activeDeck[0]); // Move current to end
         this.swipeLeft();
     }
@@ -550,11 +594,15 @@ class AttuneGame {
     swipeLeft() {
         this.isAnimating = true;
         const cardElement = document.getElementById('current-card');
-        cardElement.classList.add('swipe-left');
+        if (cardElement) {
+            cardElement.classList.add('swipe-left');
+        }
         
         setTimeout(() => {
             this.activeDeck.shift(); // Remove first card
-            cardElement.classList.remove('swipe-left');
+            if (cardElement) {
+                cardElement.classList.remove('swipe-left');
+            }
             this.displayCurrentCard();
             this.updateCardsCount();
             this.isAnimating = false;
@@ -564,11 +612,15 @@ class AttuneGame {
     swipeRight() {
         this.isAnimating = true;
         const cardElement = document.getElementById('current-card');
-        cardElement.classList.add('swipe-right');
+        if (cardElement) {
+            cardElement.classList.add('swipe-right');
+        }
         
         setTimeout(() => {
             this.activeDeck.shift(); // Remove first card
-            cardElement.classList.remove('swipe-right');
+            if (cardElement) {
+                cardElement.classList.remove('swipe-right');
+            }
             this.displayCurrentCard();
             this.updateCardsCount();
             this.isAnimating = false;
@@ -578,10 +630,14 @@ class AttuneGame {
     swipeUp() {
         this.isAnimating = true;
         const cardElement = document.getElementById('current-card');
-        cardElement.classList.add('swipe-up');
+        if (cardElement) {
+            cardElement.classList.add('swipe-up');
+        }
         
         setTimeout(() => {
-            cardElement.classList.remove('swipe-up');
+            if (cardElement) {
+                cardElement.classList.remove('swipe-up');
+            }
             this.restartGame();
             this.isAnimating = false;
         }, 300);
@@ -590,73 +646,102 @@ class AttuneGame {
     swipeDown() {
         this.isAnimating = true;
         const cardElement = document.getElementById('current-card');
-        cardElement.classList.add('swipe-down');
+        if (cardElement) {
+            cardElement.classList.add('swipe-down');
+        }
         
         setTimeout(() => {
-            cardElement.classList.remove('swipe-down');
-            this.showSpinner();
+            if (cardElement) {
+                cardElement.classList.remove('swipe-down');
+            }
+            // For now, just restart the game - can add spinner later
+            this.restartGame();
             this.isAnimating = false;
         }, 300);
     }
     
     restartGame() {
+        this.log('Restarting game');
         this.loadQuestions();
         this.displayCurrentCard();
         this.hideCompleteModal();
     }
     
     updateCardsCount() {
-        this.cardsCount.textContent = this.activeDeck.length;
+        if (this.cardsCount) {
+            this.cardsCount.textContent = this.activeDeck.length;
+        }
     }
     
     showGameComplete() {
-        this.completeModal.classList.add('active');
+        this.log('Game complete');
+        if (this.completeModal) {
+            this.completeModal.classList.add('active');
+        } else {
+            // Fallback if modal doesn't exist
+            alert('🎉 All cards completed! Tap to restart.');
+            this.restartGame();
+        }
     }
     
     hideCompleteModal() {
-        this.completeModal.classList.remove('active');
+        if (this.completeModal) {
+            this.completeModal.classList.remove('active');
+        }
     }
     
     showSpinner() {
-        this.spinnerModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+        if (this.spinnerModal) {
+            this.spinnerModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
     }
     
     hideSpinner() {
-        this.spinnerModal.classList.remove('active');
-        document.body.style.overflow = '';
-        this.resetSpinner();
+        if (this.spinnerModal) {
+            this.spinnerModal.classList.remove('active');
+            document.body.style.overflow = '';
+            this.resetSpinner();
+        }
     }
     
     performSpin() {
-        if (this.spinBtn.disabled) return;
+        if (!this.spinBtn || this.spinBtn.disabled) return;
         
         this.spinBtn.disabled = true;
-        this.spinnerCircle.classList.remove('spinning');
-        this.spinnerCircle.style.removeProperty('--spin-degrees');
-        
-        // Force reflow
-        this.spinnerCircle.offsetHeight;
-        
-        const totalRotation = 720 + Math.random() * 1440 + Math.random() * 360;
-        this.spinnerCircle.style.setProperty('--spin-degrees', `${totalRotation}deg`);
-        this.spinnerCircle.classList.add('spinning');
+        if (this.spinnerCircle) {
+            this.spinnerCircle.classList.remove('spinning');
+            this.spinnerCircle.style.removeProperty('--spin-degrees');
+            
+            // Force reflow
+            this.spinnerCircle.offsetHeight;
+            
+            const totalRotation = 720 + Math.random() * 1440 + Math.random() * 360;
+            this.spinnerCircle.style.setProperty('--spin-degrees', `${totalRotation}deg`);
+            this.spinnerCircle.classList.add('spinning');
+        }
         
         setTimeout(() => {
-            this.spinBtn.disabled = false;
+            if (this.spinBtn) {
+                this.spinBtn.disabled = false;
+            }
         }, 3000);
         
         this.vibrate(100);
     }
     
     resetSpinner() {
-        this.spinnerCircle.classList.remove('spinning');
-        this.spinnerCircle.style.removeProperty('--spin-degrees');
-        this.spinBtn.disabled = false;
+        if (this.spinnerCircle) {
+            this.spinnerCircle.classList.remove('spinning');
+            this.spinnerCircle.style.removeProperty('--spin-degrees');
+        }
+        if (this.spinBtn) {
+            this.spinBtn.disabled = false;
+        }
     }
 }
 
-// Initialize the game
+// Initialize the game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new AttuneGame();
 });
