@@ -2,28 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>attune - conversation card game</title>
     
     <!-- Open Graph Meta Tags for Social Sharing -->
-    <meta property="og:title" content="Attune - Conversation Card Game">
+    <meta property="og:title" content="attune - Conversation Card Game">
     <meta property="og:description" content="A thoughtful conversation card game designed to deepen connection through presence and curiosity.">
     <meta property="og:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
-    <meta property="og:image:alt" content="Attune conversation card game preview showing a beautifully designed card">
+    <meta property="og:image:alt" content="attune conversation card game preview showing a beautifully designed card">
     <meta property="og:url" content="https://butterflyresonance.github.io/attune/">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Attune">
+    <meta property="og:site_name" content="attune">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Attune - Conversation Card Game">
+    <meta name="twitter:title" content="attune - Conversation Card Game">
     <meta name="twitter:description" content="A thoughtful conversation card game designed to deepen connection through presence and curiosity.">
     <meta name="twitter:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
     
     <!-- Additional Meta Tags -->
-    <meta name="description" content="Attune is a conversation card game that helps people deepen connection through presence and curiosity.">
+    <meta name="description" content="attune is a conversation card game that helps people deepen connection through presence and curiosity.">
     <meta name="keywords" content="conversation cards, relationship building, mindfulness, connection, dialogue, presence, curiosity">
-    <meta name="author" content="Attune">
+    <meta name="author" content="attune">
     
     <!-- Google Fonts - Enhanced Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,60 +35,92 @@
     <meta name="theme-color" content="#7dd3c7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Attune">
+    <meta name="apple-mobile-web-app-title" content="attune">
     <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
-            <h1 class="game-title">attune</h1>
-            <p class="game-subtitle">deeper connections through presence and curiosity</p>
-            <button id="begin-btn" class="primary-btn">begin</button>
+            <div class="start-content">
+                <h1 class="game-title">attune</h1>
+                <p class="game-subtitle">deeper connections through presence and curiosity</p>
+                <button id="begin-btn" class="primary-btn">begin</button>
+            </div>
         </div>
 
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
-            <!-- Card Display -->
-            <div id="card-display" class="card-display">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="cards-remaining">
+                    <span id="cards-count">0</span> cards remaining
+                </div>
+            </div>
+
+            <!-- Card Area -->
+            <div class="card-area">
+                <!-- Tap Zones for accessibility -->
+                <div class="tap-zone tap-left" aria-label="Add back to deck"></div>
+                <div class="tap-zone tap-right" aria-label="Next card"></div>
+                
+                <!-- Card Container -->
                 <div class="card-container">
                     <div id="current-card" class="card">
+                        <div class="card-type-badge">
+                            <span class="card-type"></span>
+                        </div>
+                        
                         <div class="card-content">
-                            <div class="card-header">
-                                <span class="card-type"></span>
+                            <div class="you-section">
+                                <p class="you-text"></p>
                             </div>
-                            <div class="card-body">
-                                <div class="you-section">
-                                    <p class="you-text"></p>
-                                </div>
-                                <div class="partner-section" style="display: none;">
-                                    <p class="partner-text"></p>
-                                </div>
-                                <div class="everyone-section" style="display: none;">
-                                    <p class="everyone-text"></p>
-                                </div>
+                            
+                            <div class="divider-section" style="display: none;">
+                                <hr class="content-divider">
+                            </div>
+                            
+                            <div class="partner-section" style="display: none;">
+                                <p class="partner-text"></p>
+                            </div>
+                            
+                            <div class="everyone-section" style="display: none;">
+                                <p class="everyone-text"></p>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="game-controls">
-                    <button id="next-card-btn" class="secondary-btn">next card</button>
-                    <button id="add-back-btn" class="quaternary-btn">add back to deck</button>
-                    <button id="start-again-btn" class="tertiary-btn">start again</button>
-                    <button id="show-spinner-btn" class="spinner-btn" title="show spinner">🎯</button>
+
+                <!-- Swipe Indicators -->
+                <div class="swipe-hint left-hint">
+                    <div class="hint-icon">↶</div>
+                    <div class="hint-text">add back</div>
                 </div>
-                
-                <div class="deck-counter">
-                    <span id="cards-remaining">0</span> cards remaining
+                <div class="swipe-hint right-hint">
+                    <div class="hint-icon">→</div>
+                    <div class="hint-text">next card</div>
+                </div>
+            </div>
+
+            <!-- Bottom Action Area -->
+            <div class="bottom-actions">
+                <div class="gesture-hints">
+                    <div class="hint-item">
+                        <span class="hint-gesture">swipe ↑</span>
+                        <span class="hint-action">restart</span>
+                    </div>
+                    <div class="hint-item">
+                        <span class="hint-gesture">swipe ↓</span>
+                        <span class="hint-action">spinner</span>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Spinner Modal -->
         <div id="spinner-modal" class="spinner-modal">
-            <div class="spinner-modal-content">
-                <div class="spinner-modal-header">
+            <div class="spinner-content">
+                <div class="spinner-header">
                     <h3 class="spinner-title">find a partner</h3>
                     <button id="close-spinner-btn" class="close-btn">×</button>
                 </div>
@@ -97,29 +129,20 @@
                         <div class="spinner-bottle"></div>
                     </div>
                 </div>
-                <div class="spinner-controls">
-                    <button id="spin-btn" class="primary-btn">spin!</button>
-                </div>
+                <button id="spin-btn" class="spin-button">spin!</button>
+            </div>
+        </div>
+
+        <!-- Game Complete Modal -->
+        <div id="complete-modal" class="complete-modal">
+            <div class="complete-content">
+                <div class="complete-icon">🎉</div>
+                <h2 class="complete-title">All cards completed!</h2>
+                <p class="complete-message">Swipe up to start a new round</p>
             </div>
         </div>
     </div>
 
     <script src="app.js"></script>
-    <script>
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('SW registered: ', registration);
-                        // Check for updates
-                        registration.update();
-                    })
-                    .catch(registrationError => {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
