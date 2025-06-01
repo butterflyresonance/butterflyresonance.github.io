@@ -47,7 +47,6 @@ body::before {
 .app-container {
     width: 100vw;
     height: 100vh;
-    height: 100dvh;
     position: relative;
     overflow: hidden;
 }
@@ -125,7 +124,7 @@ body::before {
 }
 
 .status-bar {
-    padding: env(safe-area-inset-top, 1rem) 1.5rem 0 1.5rem;
+    padding: 1rem 1.5rem 0 1.5rem;
     display: flex;
     justify-content: center;
     z-index: 10;
@@ -305,7 +304,7 @@ body::before {
 
 /* Bottom Actions */
 .bottom-actions {
-    padding: 1rem 1.5rem env(safe-area-inset-bottom, 1.5rem) 1.5rem;
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
 }
 
 .gesture-hints {
@@ -580,6 +579,23 @@ body::before {
         transform: rotateY(0deg);
         opacity: 1;
     }
+}
+
+/* Debug styles */
+.debug-info {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    z-index: 1000;
+    display: none;
+    max-width: 200px;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 /* Responsive adjustments */
