@@ -271,6 +271,8 @@ class AttuneGame {
         this.showSpinnerBtn = document.getElementById('show-spinner-btn');
         
         this.cardElement = document.getElementById('current-card');
+        this.cardHeader = document.querySelector('.card-header');
+        this.cardBody = document.querySelector('.card-body');
         this.cardType = document.querySelector('.card-type');
         this.youText = document.querySelector('.you-text');
         this.partnerText = document.querySelector('.partner-text');
@@ -397,14 +399,14 @@ class AttuneGame {
         // Determine card type and display content
         if (question.everyone) {
             // Everyone card
-            this.cardType.textContent = 'Everyone';
+            this.cardType.textContent = 'everyone';
             this.everyoneText.textContent = question.everyone;
             this.everyoneSection.style.display = 'block';
             this.youSection.style.display = 'none';
             this.partnerSection.style.display = 'none';
         } else if (question.partner) {
             // Both players card
-            this.cardType.textContent = 'Both Players';
+            this.cardType.textContent = 'both players';
             this.youText.textContent = question.you;
             this.partnerText.textContent = question.partner;
             this.youSection.style.display = 'block';
@@ -412,7 +414,7 @@ class AttuneGame {
             this.everyoneSection.style.display = 'none';
         } else {
             // Solo card
-            this.cardType.textContent = 'Solo';
+            this.cardType.textContent = 'solo';
             this.youText.textContent = question.you;
             this.youSection.style.display = 'block';
             this.partnerSection.style.display = 'none';
@@ -447,8 +449,8 @@ class AttuneGame {
     }
     
     showGameComplete() {
-        this.cardType.textContent = 'Complete!';
-        this.youText.textContent = "🎉 All cards completed! Click 'Start Again' to shuffle and play another round.";
+        this.cardType.textContent = 'complete!';
+        this.youText.textContent = "🎉 All cards completed! Click 'start again' to shuffle and play another round.";
         this.youSection.style.display = 'block';
         this.partnerSection.style.display = 'none';
         this.everyoneSection.style.display = 'none';

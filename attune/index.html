@@ -3,7 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attune - Conversation Card Game</title>
+    <title>attune - conversation card game</title>
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="Attune - Conversation Card Game">
+    <meta property="og:description" content="A thoughtful conversation card game designed to deepen connection through presence and curiosity.">
+    <meta property="og:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
+    <meta property="og:image:alt" content="Attune conversation card game preview showing a beautifully designed card">
+    <meta property="og:url" content="https://butterflyresonance.github.io/attune/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Attune">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Attune - Conversation Card Game">
+    <meta name="twitter:description" content="A thoughtful conversation card game designed to deepen connection through presence and curiosity.">
+    <meta name="twitter:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
+    
+    <!-- Additional Meta Tags -->
+    <meta name="description" content="Attune is a conversation card game that helps people deepen connection through presence and curiosity.">
+    <meta name="keywords" content="conversation cards, relationship building, mindfulness, connection, dialogue, presence, curiosity">
+    <meta name="author" content="Attune">
+    
+    <!-- Google Fonts - Enhanced Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#7dd3c7">
@@ -16,9 +42,9 @@
     <div class="container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
-            <h1 class="game-title">Attune</h1>
-            <p class="game-subtitle">A conversation card game</p>
-            <button id="begin-btn" class="primary-btn">Begin</button>
+            <h1 class="game-title">attune</h1>
+            <p class="game-subtitle">deeper connections through presence and curiosity</p>
+            <button id="begin-btn" class="primary-btn">begin</button>
         </div>
 
         <!-- Game Screen -->
@@ -33,11 +59,9 @@
                             </div>
                             <div class="card-body">
                                 <div class="you-section">
-                                    <div class="role-label">You:</div>
                                     <p class="you-text"></p>
                                 </div>
                                 <div class="partner-section" style="display: none;">
-                                    <div class="role-label">Partner:</div>
                                     <p class="partner-text"></p>
                                 </div>
                                 <div class="everyone-section" style="display: none;">
@@ -49,10 +73,10 @@
                 </div>
                 
                 <div class="game-controls">
-                    <button id="next-card-btn" class="secondary-btn">Next Card</button>
-                    <button id="add-back-btn" class="quaternary-btn">Add Back to Deck</button>
-                    <button id="start-again-btn" class="tertiary-btn">Start Again</button>
-                    <button id="show-spinner-btn" class="spinner-btn" title="Show Spinner">🎯</button>
+                    <button id="next-card-btn" class="secondary-btn">next card</button>
+                    <button id="add-back-btn" class="quaternary-btn">add back to deck</button>
+                    <button id="start-again-btn" class="tertiary-btn">start again</button>
+                    <button id="show-spinner-btn" class="spinner-btn" title="show spinner">🎯</button>
                 </div>
                 
                 <div class="deck-counter">
@@ -65,7 +89,7 @@
         <div id="spinner-modal" class="spinner-modal">
             <div class="spinner-modal-content">
                 <div class="spinner-modal-header">
-                    <h3 class="spinner-title">Find a Partner</h3>
+                    <h3 class="spinner-title">find a partner</h3>
                     <button id="close-spinner-btn" class="close-btn">×</button>
                 </div>
                 <div class="spinner-wheel">
@@ -74,7 +98,7 @@
                     </div>
                 </div>
                 <div class="spinner-controls">
-                    <button id="spin-btn" class="primary-btn">Spin!</button>
+                    <button id="spin-btn" class="primary-btn">spin!</button>
                 </div>
             </div>
         </div>
