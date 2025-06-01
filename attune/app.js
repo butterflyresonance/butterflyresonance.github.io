@@ -267,13 +267,12 @@ class AttuneGame {
         this.touchCurrentY = 0;
         this.hasMoved = false;
         
-        this.initializeElements();
-        this.bindEvents();
-        this.loadQuestions();
-        
         // Debug mode - set to true to see debug info
         this.debug = false;
-        this.log('Game initialized');
+        
+        this.initializeElements();
+        this.bindEvents();
+        this.log('Game initialized - waiting for user to begin');
     }
     
     log(message) {
@@ -282,7 +281,6 @@ class AttuneGame {
             if (debugEl) {
                 debugEl.style.display = 'block';
                 debugEl.innerHTML += message + '<br>';
-                // Keep only last 10 messages
                 const lines = debugEl.innerHTML.split('<br>');
                 if (lines.length > 10) {
                     debugEl.innerHTML = lines.slice(-10).join('<br>');
@@ -325,19 +323,26 @@ class AttuneGame {
         this.beginBtn.addEventListener('click', () => this.startGame());
         
         // Touch events for swiping
-        this.cardContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        this.cardContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        this.cardContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        if (this.cardContainer) {
+            this.cardContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+            this.cardContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+            this.cardContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+            this.cardContainer.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
         
         // Tap zones
-        this.tapLeft.addEventListener('click', () => {
-            this.log('Tap left clicked');
-            this.addBackToDeck();
-        });
-        this.tapRight.addEventListener('click', () => {
-            this.log('Tap right clicked');
-            this.nextCard();
-        });
+        if (this.tapLeft) {
+            this.tapLeft.addEventListener('click', () => {
+                this.log('Tap left clicked');
+                this.addBackToDeck();
+            });
+        }
+        if (this.tapRight) {
+            this.tapRight.addEventListener('click', () => {
+                this.log('Tap right clicked');
+                this.nextCard();
+            });
+        }
         
         // Spinner events
         if (this.spinBtn) {
@@ -357,13 +362,33 @@ class AttuneGame {
             this.completeModal.addEventListener('click', () => this.restartGame());
         }
         
-        // Prevent context menu on long press
-        this.cardContainer.addEventListener('contextmenu', (e) => e.preventDefault());
-        
         // Keyboard support for accessibility
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
         
         this.log('Events bound');
+    }
+    
+    bindActionButtons() {
+        // Bind action buttons after game screen is shown
+        const restartBtn = document.getElementById('restart-btn');
+        const spinnerBtn = document.getElementById('spinner-btn');
+        
+        this.log(`Restart button: ${restartBtn ? 'found' : 'missing'}`);
+        this.log(`Spinner button: ${spinnerBtn ? 'found' : 'missing'}`);
+        
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                this.log('Restart button clicked');
+                this.restartGame();
+            });
+        }
+        
+        if (spinnerBtn) {
+            spinnerBtn.addEventListener('click', () => {
+                this.log('Spinner button clicked');
+                this.showSpinner();
+            });
+        }
     }
     
     handleTouchStart(e) {
@@ -396,7 +421,6 @@ class AttuneGame {
         const deltaX = this.touchCurrentX - this.touchStartX;
         const deltaY = this.touchCurrentY - this.touchStartY;
         
-        // Check if we've moved enough to be considered a drag
         if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
             this.hasMoved = true;
         }
@@ -459,22 +483,20 @@ class AttuneGame {
         const swipeThreshold = 80;
         
         if (absDeltaX > absDeltaY && absDeltaX > swipeThreshold) {
-            // Horizontal swipe
             if (deltaX > 0) {
                 this.log('Swipe right detected');
-                this.swipeRight(); // Next card
+                this.swipeRight();
             } else {
                 this.log('Swipe left detected');
-                this.swipeLeft(); // Add back
+                this.swipeLeft();
             }
         } else if (absDeltaY > swipeThreshold) {
-            // Vertical swipe
             if (deltaY < 0) {
                 this.log('Swipe up detected');
-                this.swipeUp(); // Restart
+                this.swipeUp();
             } else {
                 this.log('Swipe down detected');
-                this.swipeDown(); // Spinner or restart
+                this.swipeDown();
             }
         }
         
@@ -530,8 +552,14 @@ class AttuneGame {
         this.log('Starting game');
         this.startScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
+        
         this.loadQuestions();
         this.displayCurrentCard();
+        
+        // Bind action buttons after game screen is visible
+        setTimeout(() => {
+            this.bindActionButtons();
+        }, 100);
     }
     
     displayCurrentCard() {
@@ -587,7 +615,7 @@ class AttuneGame {
     addBackToDeck() {
         if (this.isAnimating || this.activeDeck.length === 0) return;
         this.log('Add back to deck');
-        this.activeDeck.push(this.activeDeck[0]); // Move current to end
+        this.activeDeck.push(this.activeDeck[0]);
         this.swipeLeft();
     }
     
@@ -599,7 +627,7 @@ class AttuneGame {
         }
         
         setTimeout(() => {
-            this.activeDeck.shift(); // Remove first card
+            this.activeDeck.shift();
             if (cardElement) {
                 cardElement.classList.remove('swipe-left');
             }
@@ -617,7 +645,7 @@ class AttuneGame {
         }
         
         setTimeout(() => {
-            this.activeDeck.shift(); // Remove first card
+            this.activeDeck.shift();
             if (cardElement) {
                 cardElement.classList.remove('swipe-right');
             }
@@ -654,7 +682,6 @@ class AttuneGame {
             if (cardElement) {
                 cardElement.classList.remove('swipe-down');
             }
-            // For now, just restart the game - can add spinner later
             this.restartGame();
             this.isAnimating = false;
         }, 300);
@@ -678,7 +705,6 @@ class AttuneGame {
         if (this.completeModal) {
             this.completeModal.classList.add('active');
         } else {
-            // Fallback if modal doesn't exist
             alert('🎉 All cards completed! Tap to restart.');
             this.restartGame();
         }
@@ -691,6 +717,7 @@ class AttuneGame {
     }
     
     showSpinner() {
+        this.log('Showing spinner');
         if (this.spinnerModal) {
             this.spinnerModal.classList.add('active');
             document.body.style.overflow = 'hidden';
