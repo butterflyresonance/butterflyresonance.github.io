@@ -28,6 +28,8 @@ body {
     width: 100%;
     height: 100%;
     touch-action: pan-x pan-y;
+    margin: 0;
+    padding: 0;
 }
 
 body::before {
@@ -49,6 +51,7 @@ body::before {
     height: 100vh;
     position: relative;
     overflow: hidden;
+    background: transparent; /* Let body gradient show through */
 }
 
 .screen {
@@ -58,6 +61,7 @@ body::before {
     position: absolute;
     top: 0;
     left: 0;
+    background: transparent; /* Let gradient show through */
 }
 
 .screen.active {
