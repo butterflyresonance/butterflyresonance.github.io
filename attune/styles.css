@@ -263,8 +263,17 @@ body::before {
     color: var(--text-dark);
     font-weight: 400;
     margin: 0;
+    text-align: center;
+    
+    /* Better text wrapping */
     word-wrap: break-word;
-    hyphens: auto;
+    overflow-wrap: break-word;
+    hyphens: none;
+    word-break: keep-all;
+    
+    /* Prevent orphans and widows */
+    orphans: 2;
+    widows: 2;
 }
 
 .divider-section {
