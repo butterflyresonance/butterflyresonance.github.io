@@ -21,7 +21,7 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, var(--background) 0%, var(--opal-light) 100%);
+    background: linear-gradient(135deg, var(--background) 0%, var(--opal-light) 100%) !important;
     color: var(--text-dark);
     overflow: hidden;
     position: fixed;
@@ -37,7 +37,7 @@ body {
     height: 100vh;
     position: relative;
     overflow: hidden;
-    background: transparent; /* Let body gradient show through */
+    background: linear-gradient(135deg, var(--background) 0%, var(--opal-light) 100%);
 }
 
 .screen {
@@ -47,7 +47,6 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    background: transparent; /* Let gradient show through */
 }
 
 .screen.active {
@@ -275,42 +274,6 @@ body {
     border: none;
     border-top: 1px solid rgba(255, 255, 255, 0.4);
     margin: 0;
-}
-
-/* Swipe Hints */
-.swipe-hint {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: 3;
-}
-
-.left-hint {
-    left: 1rem;
-}
-
-.right-hint {
-    right: 1rem;
-}
-
-.hint-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.hint-text {
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.7rem;
 }
 
 .card.show-left-hint .left-hint,
@@ -600,22 +563,6 @@ body {
     }
 }
 
-/* Debug styles */
-.debug-info {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    z-index: 1000;
-    display: none;
-    max-width: 200px;
-    max-height: 200px;
-    overflow-y: auto;
-}
 
 /* Responsive adjustments */
 @media (max-height: 600px) {

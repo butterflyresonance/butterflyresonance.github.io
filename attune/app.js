@@ -272,7 +272,6 @@ class AttuneGame {
         
         this.initializeElements();
         this.bindEvents();
-        this.log('Game initialized - waiting for user to begin');
     }
     
     log(message) {
@@ -315,8 +314,6 @@ class AttuneGame {
         this.spinBtn = document.getElementById('spin-btn');
         this.closeSpinnerBtn = document.getElementById('close-spinner-btn');
         this.spinnerCircle = document.querySelector('.spinner-circle');
-        
-        this.log('Elements initialized');
     }
     
     bindEvents() {
@@ -333,13 +330,11 @@ class AttuneGame {
         // Tap zones
         if (this.tapLeft) {
             this.tapLeft.addEventListener('click', () => {
-                this.log('Tap left clicked');
                 this.addBackToDeck();
             });
         }
         if (this.tapRight) {
             this.tapRight.addEventListener('click', () => {
-                this.log('Tap right clicked');
                 this.nextCard();
             });
         }
@@ -364,8 +359,6 @@ class AttuneGame {
         
         // Keyboard support for accessibility
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-        
-        this.log('Events bound');
     }
     
     bindActionButtons() {
@@ -373,19 +366,15 @@ class AttuneGame {
         const restartBtn = document.getElementById('restart-btn');
         const spinnerBtn = document.getElementById('spinner-btn');
         
-        this.log(`Restart button: ${restartBtn ? 'found' : 'missing'}`);
-        this.log(`Spinner button: ${spinnerBtn ? 'found' : 'missing'}`);
-        
         if (restartBtn) {
             restartBtn.addEventListener('click', () => {
-                this.log('Restart button clicked');
+
                 this.restartGame();
             });
         }
         
         if (spinnerBtn) {
             spinnerBtn.addEventListener('click', () => {
-                this.log('Spinner button clicked');
                 this.showSpinner();
             });
         }
@@ -406,7 +395,6 @@ class AttuneGame {
             currentCardElement.classList.add('swiping');
         }
         
-        this.log(`Touch start: ${this.touchStartX}, ${this.touchStartY}`);
     }
     
     handleTouchMove(e) {
@@ -461,7 +449,6 @@ class AttuneGame {
         const absDeltaX = Math.abs(deltaX);
         const absDeltaY = Math.abs(deltaY);
         
-        this.log(`Touch end: deltaX=${deltaX}, deltaY=${deltaY}, hasMoved=${this.hasMoved}`);
         
         // If no significant movement, treat as a tap
         if (!this.hasMoved) {
@@ -469,10 +456,8 @@ class AttuneGame {
             const screenWidth = window.innerWidth;
             
             if (tapX < screenWidth / 2) {
-                this.log('Tap left detected');
                 this.addBackToDeck();
             } else {
-                this.log('Tap right detected');
                 this.nextCard();
             }
             this.vibrate(50);
@@ -484,18 +469,14 @@ class AttuneGame {
         
         if (absDeltaX > absDeltaY && absDeltaX > swipeThreshold) {
             if (deltaX > 0) {
-                this.log('Swipe right detected');
                 this.swipeRight();
             } else {
-                this.log('Swipe left detected');
                 this.swipeLeft();
             }
         } else if (absDeltaY > swipeThreshold) {
             if (deltaY < 0) {
-                this.log('Swipe up detected');
                 this.swipeUp();
             } else {
-                this.log('Swipe down detected');
                 this.swipeDown();
             }
         }
@@ -536,7 +517,6 @@ class AttuneGame {
     loadQuestions() {
         this.activeDeck = this.shuffleArray([...this.questions]);
         this.updateCardsCount();
-        this.log(`Loaded ${this.activeDeck.length} questions`);
     }
     
     shuffleArray(array) {
@@ -549,7 +529,6 @@ class AttuneGame {
     }
     
     startGame() {
-        this.log('Starting game');
         this.startScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
         
@@ -570,9 +549,7 @@ class AttuneGame {
         
         this.currentCard = this.activeDeck[0];
         const question = this.currentCard;
-        
-        this.log(`Displaying card: ${question.you || question.everyone || 'partner card'}`);
-        
+                
         // Reset visibility
         this.youSection.style.display = 'none';
         this.partnerSection.style.display = 'none';
@@ -608,13 +585,11 @@ class AttuneGame {
     
     nextCard() {
         if (this.isAnimating || this.activeDeck.length === 0) return;
-        this.log('Next card');
         this.swipeRight();
     }
     
     addBackToDeck() {
         if (this.isAnimating || this.activeDeck.length === 0) return;
-        this.log('Add back to deck');
         this.activeDeck.push(this.activeDeck[0]);
         this.swipeLeft();
     }
@@ -688,7 +663,6 @@ class AttuneGame {
     }
     
     restartGame() {
-        this.log('Restarting game');
         this.loadQuestions();
         this.displayCurrentCard();
         this.hideCompleteModal();
@@ -701,7 +675,6 @@ class AttuneGame {
     }
     
     showGameComplete() {
-        this.log('Game complete');
         if (this.completeModal) {
             this.completeModal.classList.add('active');
         } else {
@@ -717,7 +690,6 @@ class AttuneGame {
     }
     
     showSpinner() {
-        this.log('Showing spinner');
         if (this.spinnerModal) {
             this.spinnerModal.classList.add('active');
             document.body.style.overflow = 'hidden';
