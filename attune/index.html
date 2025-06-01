@@ -39,6 +39,8 @@
     <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
+    <div class="debug-info" id="debug"></div>
+    
     <div class="app-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
@@ -60,20 +62,20 @@
 
             <!-- Card Area -->
             <div class="card-area">
-                <!-- Tap Zones for accessibility -->
+                <!-- Tap Zones -->
                 <div class="tap-zone tap-left" aria-label="Add back to deck"></div>
                 <div class="tap-zone tap-right" aria-label="Next card"></div>
                 
                 <!-- Card Container -->
-                <div class="card-container">
+                <div class="card-container" id="card-container">
                     <div id="current-card" class="card">
                         <div class="card-type-badge">
-                            <span class="card-type"></span>
+                            <span class="card-type">solo</span>
                         </div>
                         
                         <div class="card-content">
                             <div class="you-section">
-                                <p class="you-text"></p>
+                                <p class="you-text">Test question text</p>
                             </div>
                             
                             <div class="divider-section" style="display: none;">
@@ -81,11 +83,11 @@
                             </div>
                             
                             <div class="partner-section" style="display: none;">
-                                <p class="partner-text"></p>
+                                <p class="partner-text">Partner text</p>
                             </div>
                             
                             <div class="everyone-section" style="display: none;">
-                                <p class="everyone-text"></p>
+                                <p class="everyone-text">Everyone text</p>
                             </div>
                         </div>
                     </div>
@@ -110,8 +112,8 @@
                         <span class="hint-action">restart</span>
                     </div>
                     <div class="hint-item">
-                        <span class="hint-gesture">swipe ↓</span>
-                        <span class="hint-action">spinner</span>
+                        <span class="hint-gesture">tap sides</span>
+                        <span class="hint-action">navigate</span>
                     </div>
                 </div>
             </div>
@@ -144,5 +146,21 @@
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                        // Check for updates
+                        registration.update();
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
