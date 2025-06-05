@@ -28,7 +28,7 @@ const QUESTIONS = [
         you: "What's something you imagine everyone here understands about you, without having to explain it?"
     },
     {
-        you: "Is there something you do or feel which alternates bewteen two extremes? Does each extreme protect you from anything?"
+        you: "Is there something you do or feel which alternates between two extremes? Does each extreme protect you from anything?"
     },
     {
         you: "Describe a recent moment when you caught yourself acting automatically. What was driving that automaticity?"
@@ -263,7 +263,10 @@ const QUESTIONS = [
         you: "If everyone were to treat you the way you treat yourself, how would you want that to be? Do you treat yourself this way now?"
     },
     {
-        you: "When have you been a 'good person' (mature, disciplined etc) beyond what felt true for you? What happened as a result? Did this cost you anything?"
+        you: "When have you acted or presented yourself as 'more ideal' (mature, disciplined etc) beyond what felt true for you? What happened as a result? Did this cost you anything?"
+    },
+    {
+        you: "When have you acted or presented yourself as 'less ideal' (unintelligent, immature, immoral etc) beyond what felt true for you? What happened as a result? Did this cost you anything?"
     },
     {
         you: "What do you want for your future, that you are sacrificing something now for? What do you want and what are you sacrificing?"
@@ -404,9 +407,21 @@ const QUESTIONS = [
         you: "Speak about a time you related to someone as you imagined them, rather than as they actually were."
     },
     {
-        you: "Tell your partner what you think is different about who they are as a person, between when you first met them, and now.",
-        partner: "Tell your partner something which is actually different."
+        you: "What truth about yourself are you still learning to accept?"
     },
+    {
+        you: "What do you wish someone would ask you about?"
+    },
+    {
+        you: "What part of your past self do you miss most?"
+    },
+    {
+        you: "What part of yourself do you hide from the people closest to you?"
+    },
+    {
+        you: "What do you pretend to understand but actually find confusing?"
+    },
+    
 
     
 
@@ -419,7 +434,7 @@ const QUESTIONS = [
 
 
     {
-        you: "Speak about a spitiual experience which changed your life."
+        you: "Speak about a spiritual experience which changed your life."
     },
     {
         you: "What would you say to your younger self?"
