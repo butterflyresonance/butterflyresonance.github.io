@@ -284,7 +284,7 @@ const QUESTIONS = [
         you: "What would change in how you relate to people, if everyone had a different temperament every day?"
     },
     {
-        you: "How do you balance expectations and growth in relationships?"
+        you: "How do you balance expectations/consistency and growth/change in relationships and friendships?"
     },
     {
         you: "Speak about someone you love in this moment, not for your shared history or imagined future, but for who they are to you in this moment"
@@ -420,6 +420,9 @@ const QUESTIONS = [
     },
     {
         you: "What do you pretend to understand but actually find confusing?"
+    },
+    {
+        you: "Loyalty is a promise to be a certain way, even if it no longer is true for you. Do you agree or disagree? Is it better to be loyal, promise and break loyalty, or to never promise?"
     },
     
 
