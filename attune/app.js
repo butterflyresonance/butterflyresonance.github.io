@@ -1,22 +1,22 @@
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
-        everyone: "What do you sense about who I am, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about who I am, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
-        everyone: "What do you sense about what I am most afraid of, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about what I am most afraid of, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
-        everyone: "What do you sense about what I am most proud of, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about what I am most proud of, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
-        everyone: "What do you sense about who I want to be seen as, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about who I want to be seen as, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
-        everyone: "What do you sense about what I need, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about what I need, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
-        everyone: "What do you sense about who I am afraid to be seen as, beyond what I've told you? Could this sense reflect something about you?"
+        everyone: "What do you sense about who I am afraid to be seen as, beyond what I've told you? Do you think this sense reflects something about me, or about you?"
     },
     {
         you: "What's one way you see yourself reflected in someone else here?"
@@ -28,45 +28,42 @@ const QUESTIONS = [
         you: "What's something you imagine everyone here understands about you, without having to explain it?"
     },
     {
-        you: "What do you alternate between having too much of and not enough of? Does each extreme protect you from anything?"
+        you: "Is there something you do or feel which alternates bewteen two extremes? Does each extreme protect you from anything?"
     },
     {
         you: "Describe a recent moment when you caught yourself acting automatically. What was driving that automaticity?"
     },
     {
-        you: "What are you seeking in other people?"
+        you: "What are you seeking from other people?"
     },
     {
         you: "Describe the part of you that feels like it's seeking something. What is it looking for?"
     },
     {
-        you: "What makes you feel most seen, and what makes you want to hide when you feel seen?"
+        you: "What makes you feel most seen? Is there anything scary about this?"
     },
     {
-        you: "Do you ever do things to feel special that end up making you feel more isolated? What does that look like?"
+        you: "What do you do to feel special? Does it ever end up making you feel more isolated?"
     },
     {
-        you: "Are there ways you try to feel safe or connected that backfire? What are they?"
+        you: "What do you do to feel more safe or connected? Do any of these attempts backfire?"
     },
     {
-        you: "Do you ever push away or reject the thing you want most? What is driving you to do this?"
+        you: "Do you ever push away or reject the thing you believe you want most? What can you say about what is driving you to do this?"
     },
     {
-        you: "What do you desperately want to be understood about, and do you do anything that makes it difficult to understand?"
-    },
-    {
-        you: "Is there anything you reveal about yourself in order to hide something else?"
+        you: "What would you like people to understand about you? Is there anything you do to make this difficult for people?"
     },
     {
         you: "Get into a comfortable position, close your eyes, and let your mind wander.",
-        partner: "Get into a comfortable position, watch your partners face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
+        partner: "Get into a comfortable position, watch your partner's face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
     },
     {
-        everyone: "For everyone: Describe how you see my inner child."
+        everyone: "Describe my inner child."
     },
     {
         you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
-        partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice with your partner."
+        partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice."
     },
     {
         you: "Find somewhere comfortable to stand, away from others.",
@@ -74,7 +71,7 @@ const QUESTIONS = [
     },
     {
         you: "Share an emotionally important memory.",
-        partner: "Clarify the emotions that you believe your partner is communicating, as well as the emotions beyond what they are communicating."
+        partner: "Reflect back your understanding of the emotional significance of what your partner is sharing. Reflect back anything you are picking up beyond what they are sharing."
     },
     {
         you: "Take a few moments to drop into your body. What sensations are you noticing inside?"
@@ -90,25 +87,25 @@ const QUESTIONS = [
     },
     {
         you: "Talk about one of the most mundane things that have happened to you this week.",
-        partner: "Attempt to make this story meaningful or noteworthy by using clarifying questions."
+        partner: "Attempt to make this story meaningful or noteworthy by asking clarifying questions. Was the end result surprising in any way?"
     },
     {
-        you: "What is something most people misunderstand about you? What do they get wrong?"
+        you: "What is something most people misunderstand about you?"
     },
     {
         you: "What validation or reassurance are you secretly hoping for?"
     },
     {
-        you: "What emotion in yourself feels most difficult to feel or express? What narratives do you have around this emotion? What do you do to avoid it? What would you need to feel safe to feel or express it?"
+        you: "What emotion in yourself feels most difficult to feel or express? What experiences do you have around this emotion? What do you do to avoid it? What would you need to feel safe to feel or express it?"
     },
     {
-        you: "What emotion in others feels most difficult for you to sit with, without trying to change it? What narratives do you have around this emotion? What do you do to change this emotion in others? How does this emotion feel threatening?"
+        you: "What emotion in others feels most difficult for you to sit with, without trying to change it? What experiences do you have around this emotion? What do you do to change this emotion in others? How does this emotion feel threatening?"
     },
     {
-        you: "What emotion in yourself feels most welcome to be felt or expressed? What narratives do you have around this emotion? What do you do to chase this emotion? What feels safe about this emotion?"
+        you: "What emotion in yourself feels most welcome to be felt or expressed? What experiences do you have around this emotion? What do you do to chase this emotion? What feels safe or enjoyable about this emotion?"
     },
     {
-        you: "What emotion in others feels most welcome to be in the presence of? What narratives do you have around this emotion? What do you do to influence others to feel this emotion? What don't you need to worry about in the presence of this emotion?"
+        you: "What emotion in others feels most welcome to be in the presence of? What experiences do you have around this emotion? What do you do to influence others to feel this emotion? What feels safe or enjoyable about being in the presence of this emotion?"
     },
     {
         you: "Speak about a time that someone who you trusted let you down. Did this change how you relate to people? What are the tradeoffs of this change?"
@@ -133,14 +130,14 @@ const QUESTIONS = [
     },
     {
         you: "Describe a recent experience, but don't say anything about how you felt.",
-        partner: "Watch your partner's face. Pause them every time you notice a feeling arise, and check whether you are accurate."
+        partner: "Watch your partner's face. Pause them every time you sense a feeling arise, and check whether you are accurate."
     },
     {
-        you: "Describe an experience using only the emotions it made you feel.",
+        you: "Describe an experience using only the emotions it made you feel. Don't mention anything about what happened externally.",
         partner: "See whether you can figure out the details of what happened."
     },
     {
-        you: "Describe an experience using only the sensory details.",
+        you: "Describe an experience using only the sensory details. Don't mention anything about what happened externally.",
         partner: "See whether you can figure out the details of what happened."
     },
     {
@@ -148,17 +145,17 @@ const QUESTIONS = [
         partner: "Let your partner know whether there would be anything challenging about that situation for yourself, and what you imagine would have been challenging for them."
     },
     {
-        you: "Describe a shared experience from the point of view of someone you know, without saying who it is.",
-        partner: "Guess who this person is to your partner."
+        you: "Describe an experience you shared with someone, from the point of view of the other person, without saying who it is.",
+        partner: "Talk about what you sense about the relationship your partner has with this person."
     },
     {
         you: "Find the part of yourself which feels uncomfortable receiving compliments. What would it say if you gave it a voice?"
     },
     {
-        you: "Find the part of yourself which feels comfortable receiving criticism. What would it say if you gave it a voice?"
+        you: "Find the part of yourself which feels uncomfortable receiving criticism. What would it say if you gave it a voice?"
     },
     {
-        you: "Find the part of yourself which feels most shameful or unlovable. What is it afraid of?"
+        you: "Find the part of yourself which tells you to move away from connection or success. What is it afraid of?"
     },
     {
         you: "Talk about something emotional which has happened to you.",
@@ -166,82 +163,252 @@ const QUESTIONS = [
     },
     {
         you: "Talk about a common, everyday experience you've had recently.",
-        partner: "Attempt to make this story unique by asking clarifying questions."
+        partner: "Attempt to make this story unique by asking clarifying questions. Was the end result surprising in any way?"
     },
     {
-        you: "Think of something you feel so confident explaining, that you could explain it to a 5 year old. Explain it to your partner as if they were a 5 year old.",
-        partner: "Suggest something to your partner about what they have explained that you don't think they have thought about. Tell your partner to sit with the suggestion without dismissing it."
+        you: "Explain something you are an expert on, using simple language.",
+        partner: "Make a suggestion, or ask a question, that will cause your partner to question where the edge of their knowledge is."
     },
     {
-        you: "What behaviour in others makes you want to open up?"
+        you: "What behaviour in others makes you want to open up and connect?"
     },
     {
-        you: "What behaviour in others makes you want to close down?"
+        you: "What behaviour in others makes you want to close off and withdraw?"
     },
     {
-        you: "When have you chosen a certain misery over the misery of uncertainty?"
+        you: "When have you either believed a situation was worse than it is, or acted to make a situation worse than it may have been, to avoid the uncertainty of now knowing?"
     },
     {
         you: "Tell your partner about a problem you would really like a solution to.",
-        partner: "Respond in the most loving way possible, but don't mention a single possible solution."
+        partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
     },
     {
-        you: "Tell your partner something you would enjoy doing if you woke up tomorrow in their body.",
-        partner: "Tell your partner something you would enjoy doing if you woke up tomorrow in their body."
-    },
-    {
-        you: "What would you change about how you interact with people if you were completely safe, physically and emotionally?"
+        you: "Would you change anything about how you interact with people if you were completely safe, physically and emotionally?"
     },
     {
         you: "Speak about a time you went against your values out of fear.",
-        partner: "Listen to your partner as if they were an innocent baby. Let them know your honest thoughts and feelings about what they have said."
+        partner: "Listen to your partner as if they were an innocent child. Let them know your honest thoughts and feelings about what they have said."
     },
     {
-        you: "When have you regretted being vulnerable?"
+        you: "When has being vulnerable led to being hurt?"
     },
     {
-        you: "When has being vulnerable paid off?"
+        you: "When has being vulnerable led to feeling connected or seen?"
     },
     {
-        you: "When have you regretted not being vulnerable?"
+        you: "When have you regretted protecting yourself?"
     },
     {
-        you: "When has not being vulnerable paid off?"
+        you: "When have you been glad you protected yourself?"
     },
     {
         you: "Face your partner and look into their eyes. Invite an emotion to arise, without speaking about it.",
-        partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you feel something from them."
+        partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you sense something."
     },
     {
         you: "Face your partner and look into their eyes. Pay attention to their face and to where your mind wanders.",
-        partner: "Do the same as your partner. Stop either when the eye contact becomes uncomfortable, or when it is clear that it won't become uncomfortable. Take turns sharing where your mind wandered, and notice any similarities."
+        partner: "Do the same as your partner. Stop either when the eye contact becomes uncomfortable, or when it is clear that it won't become uncomfortable. Take turns sharing where your mind wandered. Were there any similarities in detail, theme, or meaning?"
     },
     {
-        you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had to the experience.",
-        partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion was the deceptive one, and what they really felt instead."
+        you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had in the experience.",
+        partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion they are being deceptive about, and what they really felt instead."
     },
     {
-        you: "Speak about something you judge others for. Now, dig deeper and speak about how that thing is a threat to you."
+        you: "Speak about something you judge others for. Pause for a moment. Is there any way this thing could hurt you?"
     },
     {
         you: "Describe the persona you are currently presenting, and what would happen if you dropped it."
     },
     {
-        you: "Share something you are afraid of being judged for. Now, dig deeper and explain why this thing is beautiful."
+        you: "Share something you are afraid of being judged for. Pause for a moment. Is there any way this thing could be loved?"
     },
     {
         you: "Would anything in your relationships change if you no longer needed anything practical or emotional from anyone else?"
     },
     {
-        you: "What feels scary about being with yourself? What do you do to avoid being with yourself?"
+        you: "What happens when you are alone with yourself, without any distractions. How do you feel about this?"
     },
+
+    {
+        you: "Have you attained anything that you once idealised? How do you feel about it now?"
+    },
+    {
+        you: "Imagine that your senses point inside rather than outside. What can you tell us about what you are noticing?"
+    },
+    {
+        you: "Have you ever had two different people tell you contradictory things about yourself? What did they tell you and who were they?"
+    },
+    {
+        you: "What is something that your persona could never do?"
+    },
+    {
+        you: "Do you have an ideal that you aspire to? How does that ideal differ from who you really are?"
+    },
+    {
+        you: "How much trust do you have in yourself? Explain."
+    },
+    {
+        you: "What is something you strongly believe about yourself? How does this influence your actions or choices?"
+    },
+    {
+        you: "What is something you strongly believe about others? How does this influence your actions or choices?"
+    },
+    {
+        you: "Are you running from yourself?"
+    },
+    {
+        you: "When someone expresses love, care, or appreciation for you, is there any part of you which rejects it? What does this part want to say?"
+    },
+    {
+        you: "If everyone were to treat you the way you treat yourself, how would you want that to be? Do you treat yourself this way now?"
+    },
+    {
+        you: "When have you been a 'good person' (mature, disciplined etc) beyond what felt true for you? What happened as a result? Did this cost you anything?"
+    },
+    {
+        you: "What do you want for your future, that you are sacrificing something now for? What do you want and what are you sacrificing?"
+    },
+    {
+        you: "Is there something you imagine happening in the future that is making you suffer in the present?"
+    },
+    {
+        you: "Imagine that constructive criticism and boundaries extinguish your resentment, creating a vacuum which draws people closer. Is there anyone you would like to draw closer in this way?"
+    },
+    {
+        you: "Talk about how much you idealise people or other external things."
+    },
+    {
+        you: "What would change in how you relate to people, if everyone had a different temperament every day?"
+    },
+    {
+        you: "How do you balance expectations and growth in relationships?"
+    },
+    {
+        you: "Speak about someone you love in this moment, not for your shared history or imagined future, but for who they are to you in this moment"
+    },
+    {
+        you: "Speak about a protection that separated you from something good"
+    },
+    {
+        you: "Speak about a time that an emotion wanted to speak through you, but you couldn't find the words. What happened? What would have happened if you'd had the words?"
+    },
+    {
+        you: "Have you ever encountered a familiar situation and realised that both the situation, and yourself, are different from every other time you've encountered it? How did you come to realise this?"
+    },
+    {
+        you: "Speak to a young version of yourself who is scared of the future."
+    },
+    {
+        you: "Speak to an older version of yourself who regrets the past."
+    },
+    {
+        you: "Close your eyes before a partner is chosen. Try to figure out who was chosen.",
+        partner: "silently place your partner's hands on your face."
+    },
+    {
+        you: "Close your eyes before a partner is chosen. Try to figure out who was chosen.",
+        partner: "make the 'om/aum' sound ('ummm')"
+    },
+    {
+        you: "imagine you are the personification of shame. Now imagine a child in front of you, and tell them what they need to know about themselves.",
+        partner: "Imagine you are the personification of love. Speak to this same child."
+    },
+    {
+        you: "sit in silence with your partner. Pay attention to them and try to communicate without speaking or gesturing.",
+        partner: "sit in silence and pay attention to receiving what your partner is trying to communicate. What do you sense? Does what you imagined or pick up reveal anything about you?"
+    },
+    {
+        you: "tell your partner something you believe is different about who they are as a person, between when you first met them, and now",
+        partner: "tell your partner something which is actually different."
+    },
+    {
+        you: "What do you believe about yourself based only on what other people have told you?"
+    },
+    {
+        you: "Who would you be if no one had told you who you are or who you should be?"
+    },
+    {
+        you: "When have you listened to someone else over your own instincts?"
+    },
+    {
+        you: "When have you listened to your instincts over what someone told you?"
+    },
+    {
+        you: "What do you think should make you happy, but doesn't?"
+    },
+    {
+        you: "When did you last hide how you felt or what you thought? What did you hide and why?"
+    },
+    {
+        you: "What happened in your past, that you are still guarding yourself from? What are you doing to protect yourself?"
+    },
+    {
+        you: "What assumption about yourself are you most invested in being true? What if it weren't true?"
+    },
+    {
+        you: "Is there something you imagine happening in the future that is making you suffer in the present?"
+    },
+    {
+        you: "Have you ever felt lonely while surrounded by people? Do you know what was missing?"
+    },
+    {
+        you: "Have you ever felt connected while alone? What did you feel connected to?"
+    },
+    {
+        you: "How do you know when you're connecting with someone from a place of wholeness versus a place of emptiness?"
+    },
+    {
+        you: "How do you treat people you don't need anything from?"
+    },
+    {
+        you: "Has sadness ever led to nourishment?"
+    },
+    {
+        you: "Has grief ever been cathartic?"
+    },
+    {
+        you: "Has anger ever led to empowerment?"
+    },
+    {
+        you: "Has boredom ever led to creation?"
+    },
+    {
+        you: "Has loneliness ever led to self-discovery?"
+    },
+    {
+        you: "Has confusion ever led to invention?"
+    },
+    {
+        you: "Has excitement ever led to regret?"
+    },
+    {
+        you: "When have you tried to change someone? What happened?"
+    },
+    {
+        you: "Use a word to describe a part of your personality you feel is consistent. When have you acted in contradiction to this?"
+    },
+    {
+        you: "Tell your partner something you dislike about yourself.",
+        partner: "Reflect back any beauty or humanity in the part of themselves that your partner shared."
+    },
+    {
+        you: "Talk about something that you were unable to change until you stopped trying to, and something that wouldn't change unless you tried to. What made these two different?"
+    },
+    {
+        you: "Has conflict ever strengthened one of your relationships? How did this happen?"
+    },
+    
+
+
+
+    
 
 
 
 
 
     {
-        you: "Speak about a spitirual experience which changed your life."
+        you: "Speak about a spitiual experience which changed your life."
     },
     {
         you: "What would you say to your younger self?"
@@ -266,12 +433,6 @@ const QUESTIONS = [
     },
     {
         you: "Speak about something you want but struggle to ask for."
-    },
-    {
-        you: "What do people misunderstand about you?"
-    },
-    {
-        you: "What would you say to your younger self?"
     },
     {
         you: "Speak about a time you have cheated on someone, been cheated on by someone, or someone cheated with you."
@@ -334,13 +495,13 @@ const QUESTIONS = [
         you: "Do you unconditionally love yourself? If no, why? If yes, how?"
     },
     {
-        you: "Someone who loves you takes over you body for a week. What would they do?"
+        you: "Someone who loves you takes over your body for a week. What would they do?"
     },
     {
         everyone: "What is something you don't understand about me?"
     },
     {
-        everyone: "What is something that intruiges you about me?"
+        everyone: "What is something that intrigues you about me?"
     },
     {
         everyone: "If you were to buy me a present, what would it be?"
