@@ -346,9 +346,6 @@ const QUESTIONS = [
         you: "What assumption about yourself are you most invested in being true? What if it weren't true?"
     },
     {
-        you: "Is there something you imagine happening in the future that is making you suffer in the present?"
-    },
-    {
         you: "Have you ever felt lonely while surrounded by people? Do you know what was missing?"
     },
     {
@@ -397,6 +394,20 @@ const QUESTIONS = [
     {
         you: "Has conflict ever strengthened one of your relationships? How did this happen?"
     },
+    {
+        you: "Describe a time you have tried to control an emotion, and what happened inside."
+    },
+    {
+        you: "Describe a time you allowed an emotion to fully run its course, and what happened inside."
+    },
+    {
+        you: "Speak about a time you related to someone as you imagined them, rather than as they actually were."
+    },
+    {
+        you: "Tell your partner what you think is different about who they are as a person, between when you first met them, and now.",
+        partner: "Tell your partner something which is actually different."
+    },
+
     
 
 
