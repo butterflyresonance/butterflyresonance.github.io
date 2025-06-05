@@ -422,7 +422,7 @@ const QUESTIONS = [
         you: "What do you pretend to understand but actually find confusing?"
     },
     {
-        you: "Loyalty is a promise to be a certain way, even if it no longer is true for you. Do you agree or disagree? Is it better to be loyal, promise and break loyalty, or to never promise?"
+        you: "Loyalty is a promise to be a certain way, even if it no longer is true for you. Do you agree or disagree? Is it better to be loyal, to promise and then break loyalty, or to never promise?"
     },
     
 
