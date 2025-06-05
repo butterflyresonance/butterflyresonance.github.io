@@ -310,16 +310,16 @@ const QUESTIONS = [
         partner: "make the 'om/aum' sound ('ummm')"
     },
     {
-        you: "imagine you are the personification of shame. Now imagine a child in front of you, and tell them what they need to know about themselves.",
+        you: "Imagine you are the personification of shame. Now imagine a child in front of you, and tell them what they need to know about themselves.",
         partner: "Imagine you are the personification of love. Speak to this same child."
     },
     {
-        you: "sit in silence with your partner. Pay attention to them and try to communicate without speaking or gesturing.",
-        partner: "sit in silence and pay attention to receiving what your partner is trying to communicate. What do you sense? Does what you imagined or pick up reveal anything about you?"
+        you: "Sit in silence with your partner. Pay attention to them and try to communicate without speaking or gesturing.",
+        partner: "Sit in silence and pay attention to receiving what your partner is trying to communicate. What do you sense? Does what you imagined or pick up reveal anything about you?"
     },
     {
-        you: "tell your partner something you believe is different about who they are as a person, between when you first met them, and now",
-        partner: "tell your partner something which is actually different."
+        you: "Tell your partner something you believe is different about who they are as a person, between when you first met them, and now",
+        partner: "Tell your partner something which is actually different."
     },
     {
         you: "What do you believe about yourself based only on what other people have told you?"
