@@ -234,7 +234,243 @@ const QUESTIONS = [
     },
     {
         you: "What feels scary about being with yourself? What do you do to avoid being with yourself?"
-    }
+    },
+
+
+
+
+
+    {
+        you: "Speak about a spitirual experience which changed your life."
+    },
+    {
+        you: "What would you say to your younger self?"
+    },
+    {
+        you: "What would your younger self think about you?"
+    },
+    {
+        you: "What is your closest encounter with death?"
+    },
+    {
+        you: "When have you refused to admit you were wrong, despite knowing that you were?"
+    },
+    {
+        you: "How do you experience conflict?"
+    },
+    {
+        you: "How do you experience loneliness?"
+    },
+    {
+        you: "Speak about a time you have hurt someone."
+    },
+    {
+        you: "Speak about something you want but struggle to ask for."
+    },
+    {
+        you: "What do people misunderstand about you?"
+    },
+    {
+        you: "What would you say to your younger self?"
+    },
+    {
+        you: "Speak about a time you have cheated on someone, been cheated on by someone, or someone cheated with you."
+    },
+    {
+        you: "Speak about a time someone broke your trust."
+    },
+    {
+        you: "Speak about a difficult conversation you've had with someone."
+    },
+    {
+        you: "Speak about a time you've felt lost in life."
+    },
+    {
+        you: "What is calling out to you that you are ignoring?"
+    },
+    {
+        you: "What dream have you given up on?"
+    },
+    {
+        you: "What is a dealbreaker in relationships or friendships?"
+    },
+    {
+        you: "What is your dream job?"
+    },
+    {
+        you: "Speak about a promise you regret breaking."
+    },
+    {
+        you: "Is there someone you haven't forgiven, or someone you wish would forgive you?"
+    },
+    {
+        you: "What do you need right now?"
+    },
+    {
+        you: "Speak about a loss you never thought you would get over."
+    },
+    {
+        you: "How do you feel about affirmations?"
+    },
+    {
+        you: "What is the best way to help someone? Is it possible?"
+    },
+    {
+        you: "What are you grieving at the moment?"
+    },
+    {
+        you: "What is the one thing right now that you tell yourself would make you happy?"
+    },
+    {
+        you: "What does emotional healing look like for you?"
+    },
+    {
+        you: "What attachment wound has stayed with you?"
+    },
+    {
+        you: "What have you been avoiding? Why?"
+    },
+    {
+        you: "Do you unconditionally love yourself? If no, why? If yes, how?"
+    },
+    {
+        you: "Someone who loves you takes over you body for a week. What would they do?"
+    },
+    {
+        everyone: "What is something you don't understand about me?"
+    },
+    {
+        everyone: "What is something that intruiges you about me?"
+    },
+    {
+        everyone: "If you were to buy me a present, what would it be?"
+    },
+    {
+        everyone: "Which actor would play me in a movie?"
+    },
+    {
+        everyone: "Make a deduction about me based on details you can observe right now, Sherlock style."
+    },
+    {
+        everyone: "What compliment do you think I get the most?"
+    },
+    {
+        everyone: "What compliment do you think I need to hear more?"
+    },
+    {
+        everyone: "Do I remind you of anyone?"
+    },
+    {
+        everyone: "Close your eyes. What colour are my eyes?"
+    },
+    {
+        everyone: "What is my body language telling you right now?"
+    },
+    {
+        everyone: "What do you think is the hardest part of my job?"
+    },
+    {
+        everyone: "Why do you think I am doing my job?"
+    },
+    {
+        you: "Are you missing anyone right now? Do you think they are missing you?"
+    },
+    {
+        you: "When you're asked how you are, how often do you answer truthfully?"
+    },
+    {
+        you: "What do you want more of?"
+    },
+    {
+        you: "Today is your last day alive. What are you thinking, feeling, and what will you do?"
+    },
+    {
+        you: "What about your life would surprise your younger self?"
+    },
+    {
+        you: "What does the word 'love' mean to you?"
+    },
+    {
+        you: "What question are you trying to answer most in your life right now?"
+    },
+    {
+        you: "Pick someone and ask them any question you'd like to."
+    },
+    {
+        you: "How are you, really?"
+    },
+    {
+        you: "Is there a feeling you miss?"
+    },
+    {
+        you: "What is the most unexplainable thing that has ever happened to you?"
+    },
+    {
+        you: "What in your life has hurt you the most?"
+    },
+    {
+        you: "What in your life has made you feel loved or accepted the most?"
+    },
+    {
+        you: "Is there anything you are trying to prove to yourself or someone else?"
+    },
+    {
+        you: "How have your parents shaped who you are?"
+    },
+    {
+        you: "What do you admire about a parent?"
+    },
+    {
+        you: "What part of your life works? What part of your life hurts?"
+    },
+    {
+        you: "How do people see you? How do you see yourself? If there is a difference, why?"
+    },
+    {
+        everyone: "What parts of yourself do you see in me?"
+    },
+    {
+        everyone: "What do you think my superpower would be?"
+    },
+    {
+        everyone: "What do I need?"
+    },
+    {
+        everyone: "What would make you feel closer to me?"
+    },
+    {
+        everyone: "Do you think we met for a reason?"
+    },
+    {
+        everyone: "How would you describe me to a stranger?"
+    },
+    {
+        everyone: "What would allow you to feel safe enough to be vulnerable with me?"
+    },
+    {
+        everyone: "What can I help you with?"
+    },
+    {
+        everyone: "What about me most surprised you?"
+    },
+    {
+        everyone: "Is there any way that our personalities complement each other?"
+    },
+    {
+        everyone: "What do you think I fear the most?"
+    },
+    {
+        everyone: "What do you think I should know about myself that I'm unaware of?"
+    },
+    {
+        everyone: "When have you felt most connected to me?"
+    },
+    {
+        everyone: "What do you admire most about me?"
+    },
+    {
+        everyone: "What have you learnt from me?"
+    },
 ];
 
 class AttuneGame {
