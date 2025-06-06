@@ -424,6 +424,9 @@ const QUESTIONS = [
     {
         you: "Loyalty is a promise to be a certain way, even if it no longer is true for you. Do you agree or disagree? Is it better to be loyal, to promise and then break loyalty, or to never promise?"
     },
+    {
+        you: "When has honesty cost you a relationship or friendship?"
+    },
     
 
     
