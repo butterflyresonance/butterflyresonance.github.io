@@ -214,13 +214,13 @@ const QUESTIONS = [
         partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion they are being deceptive about, and what they really felt instead."
     },
     {
-        you: "Speak about something you judge others for. Pause for a moment. Is there any way this thing could hurt you?"
+        you: "Speak about something you judge others for. Does this intersect with fear in any way? Is this thing driven by fear? Are you afraid of it in others? Are you afraid of it in yourself?"
     },
     {
         you: "Describe the persona you are currently presenting, and what would happen if you dropped it."
     },
     {
-        you: "Share something you are afraid of being judged for. Pause for a moment. Is there any way this thing could be loved?"
+        you: "Share something you are afraid of being judged for. Is there any way this thing could be loved?"
     },
     {
         you: "Would anything in your relationships change if you no longer needed anything practical or emotional from anyone else?"
@@ -228,7 +228,6 @@ const QUESTIONS = [
     {
         you: "What happens when you are alone with yourself, without any distractions. How do you feel about this?"
     },
-
     {
         you: "Have you attained anything that you once idealised? How do you feel about it now?"
     },
@@ -422,10 +421,13 @@ const QUESTIONS = [
         you: "What do you pretend to understand but actually find confusing?"
     },
     {
-        you: "Loyalty is a promise to be a certain way, even if it no longer is true for you. Do you agree or disagree? Is it better to be loyal, to promise and then break loyalty, or to never promise?"
+        you: "How do you balance loyalty with honesty?"
     },
     {
         you: "When has honesty cost you a relationship or friendship?"
+    },
+    {
+        you: "Have you ever given or received unconditional trust or love?"
     },
     
 
@@ -459,6 +461,9 @@ const QUESTIONS = [
     },
     {
         you: "How do you experience loneliness?"
+    },
+    {
+        you: "How do you experience shame?"
     },
     {
         you: "Speak about a time you have hurt someone."
