@@ -247,7 +247,7 @@ body {
 
 .you-text, .partner-text, .everyone-text {
     font-family: 'Crimson Text', serif;
-    font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+    font-size: clamp(1.1rem, 3vh, 1.6rem);
     line-height: 1.4;
     color: var(--text-dark);
     font-weight: 400;
@@ -572,7 +572,7 @@ body {
     }
     
     .you-text, .partner-text, .everyone-text {
-        font-size: clamp(1rem, 4vw, 1.3rem);
+        font-size: clamp(1rem, 2.5vh, 1.3rem);
     }
 }
 

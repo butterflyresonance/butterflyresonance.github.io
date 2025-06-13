@@ -1,3 +1,8 @@
+const PRIORITY_QUESTIONS = [
+    // Add your must-have questions here
+
+];
+
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
     {
@@ -196,6 +201,12 @@ const QUESTIONS = [
     {
         you: "When has being vulnerable led to feeling connected or seen?"
     },
+        {
+        you: "When has someone else's vulnerability made you feel closer to them?"
+    },
+    {
+        you: "When has someone else's vulnerability made you feel uncomfortable?"
+    },
     {
         you: "Face your partner and look into their eyes. Invite an emotion to arise. Without speaking about it, imagine sending it to your partner.",
         partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you sense something."
@@ -240,6 +251,9 @@ const QUESTIONS = [
     },
     {
         you: "How much trust do you have in yourself?"
+    },
+        {
+        you: "How much trust do you have in others?"
     },
     {
         you: "What is something you strongly believe about yourself? Does this influence your actions or choices?"
@@ -382,6 +396,9 @@ const QUESTIONS = [
         you: "When has someone tried to change you? What happened?"
     },
     {
+        you: "When have you tried to change yourself? What happened?"
+    },
+    {
         you: "Describe a part of your personality you feel is consistent. Have you acted in contradiction to this? What happened, or what would happen if you did?"
     },
     {
@@ -447,6 +464,18 @@ const QUESTIONS = [
     {
         you: "Is there something that wants to happen through you, rather than something you're trying to make happen?"
     },
+    {
+        you: "Sit facing each other and watch each other's faces. Your job is to gently bring your partner back when their mind wanders and they drift away, and their job is to do the same for you.",
+        partner: "Same as above."
+    },
+    {
+        you: "Have a wordless conversation with your partner using only facial expressions, gestures, and body language for 2 minutes.",
+        partner: "Same as above. Afterwards, discuss what you each understood and tried to express."
+    },
+    {
+        you: "Make contact with an emotion which is unwelcome. Talk to your partner about it.",
+        partner: "Allow yourself to feel what your partner is feeling. When you respond to you partner, respond without trying to remove or change the emotion in yourself or in them."
+    },
     
     
 
@@ -482,9 +511,9 @@ const QUESTIONS = [
     {
         you: "Speak about something you want but struggle to ask for."
     },
-    {
-        you: "Speak about a time you have cheated on someone, been cheated on by someone, or someone cheated with you."
-    },
+    // {
+    //     you: "Speak about a time you have cheated on someone, been cheated on by someone, or someone cheated with you."
+    // },
     {
         you: "Speak about a time someone broke your trust."
     },
@@ -943,10 +972,20 @@ class AttuneGame {
         }
     }
     
+    // loadQuestions() {
+    //     this.activeDeck = this.shuffleArray([...this.questions]);
+    //     this.updateCardsCount();
+    // }
+
     loadQuestions() {
-        this.activeDeck = this.shuffleArray([...this.questions]);
-        this.updateCardsCount();
-    }
+    // Shuffle priority questions and regular questions separately
+    const shuffledPriority = this.shuffleArray([...PRIORITY_QUESTIONS]);
+    const shuffledRegular = this.shuffleArray([...this.questions]);
+    
+    // Combine with priority questions first
+    this.activeDeck = [...shuffledPriority, ...shuffledRegular];
+    this.updateCardsCount();
+}
     
     shuffleArray(array) {
         const shuffled = [...array];
