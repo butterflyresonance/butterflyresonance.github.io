@@ -235,6 +235,7 @@ body {
     padding: clamp(2rem, 8vw, 3rem);
     padding-top: clamp(3.5rem, 12vw, 4.5rem);
     gap: clamp(1.5rem, 5vh, 2.5rem);
+    overflow-y: auto;
 }
 
 .you-section, .partner-section, .everyone-section {

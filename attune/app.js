@@ -786,6 +786,23 @@ const QUESTIONS = [
     {
         everyone: "What have you learnt from me?"
     },
+
+    {
+        you: "How do you create safety or comfort for others?"
+    },
+    {
+        you: "Do you ever intentionally annoy people?"
+    },
+    {
+        you: "What pattern of behaviour do you like in yourself?"
+    },
+    {
+        you: "What pattern of behaviour don't you like in yourself?"
+    },
+    {
+        you: "Is there a reason you don't do something important, that has been described as an excuse?",
+        partner: "Can you find a real and valid fear underneath the 'excuse'?"
+    },
 ];
 
 class WakeLockManager {
@@ -827,7 +844,8 @@ class WakeLockManager {
 class AttuneGame {
     constructor() {
         this.questions = [...QUESTIONS];
-        this.activeDeck = [];
+        this.allQuestions = [];
+        this.currentIndex = 0;
         this.currentCard = null;
         this.isAnimating = false;
         
@@ -911,7 +929,7 @@ class AttuneGame {
         // Tap zones
         if (this.tapLeft) {
             this.tapLeft.addEventListener('click', () => {
-                this.addBackToDeck();
+                this.previousCard();
             });
         }
         if (this.tapRight) {
@@ -1037,7 +1055,7 @@ class AttuneGame {
             const screenWidth = window.innerWidth;
             
             if (tapX < screenWidth / 2) {
-                this.addBackToDeck();
+                this.previousCard();
             } else {
                 this.nextCard();
             }
@@ -1073,7 +1091,7 @@ class AttuneGame {
                 this.nextCard();
                 break;
             case 'ArrowLeft':
-                this.addBackToDeck();
+                this.previousCard();
                 break;
             case 'ArrowUp':
                 this.restartGame();
@@ -1106,7 +1124,8 @@ class AttuneGame {
     const shuffledRegular = this.shuffleArray([...this.questions]);
     
     // Combine with priority questions first
-    this.activeDeck = [...shuffledPriority, ...shuffledRegular];
+    this.allQuestions = [...shuffledPriority, ...shuffledRegular];
+    this.currentIndex = 0;
     this.updateCardsCount();
     }
     
@@ -1139,12 +1158,12 @@ class AttuneGame {
     }
     
     displayCurrentCard() {
-        if (this.activeDeck.length === 0) {
+        if (this.currentIndex >= this.allQuestions.length) {
             this.showGameComplete();
             return;
         }
         
-        this.currentCard = this.activeDeck[0];
+        this.currentCard = this.allQuestions[this.currentIndex];
         const question = this.currentCard;
                 
         // Reset visibility
@@ -1181,17 +1200,22 @@ class AttuneGame {
     }
     
     nextCard() {
-        if (this.isAnimating || this.activeDeck.length === 0) return;
+        if (this.isAnimating || this.currentIndex >= this.allQuestions.length) return;
         this.swipeRight();
     }
     
-    addBackToDeck() {
-        if (this.isAnimating || this.activeDeck.length === 0) return;
-        this.activeDeck.push(this.activeDeck[0]);
+    previousCard() {
+        if (this.isAnimating) return;
+        // Go back to previous question instead of adding current to end
         this.swipeLeft();
     }
     
     swipeLeft() {
+        // Go back to previous question if possible, otherwise do nothing
+        if (this.currentIndex === 0) {
+            return; // Do nothing if already at first question
+        }
+        
         this.isAnimating = true;
         const cardElement = document.getElementById('current-card');
         if (cardElement) {
@@ -1199,7 +1223,8 @@ class AttuneGame {
         }
         
         setTimeout(() => {
-            this.activeDeck.shift();
+            this.currentIndex--;
+            
             if (cardElement) {
                 cardElement.classList.remove('swipe-left');
             }
@@ -1217,7 +1242,8 @@ class AttuneGame {
         }
         
         setTimeout(() => {
-            this.activeDeck.shift();
+            this.currentIndex++;
+            
             if (cardElement) {
                 cardElement.classList.remove('swipe-right');
             }
@@ -1260,6 +1286,7 @@ class AttuneGame {
     }
     
     restartGame() {
+        this.currentIndex = 0;
         this.loadQuestions();
         this.displayCurrentCard();
         this.hideCompleteModal();
@@ -1267,7 +1294,8 @@ class AttuneGame {
     
     updateCardsCount() {
         if (this.cardsCount) {
-            this.cardsCount.textContent = this.activeDeck.length;
+            const remaining = this.allQuestions.length - this.currentIndex;
+            this.cardsCount.textContent = remaining;
         }
     }
     
