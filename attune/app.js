@@ -45,6 +45,45 @@ const QUESTIONS = [
     {
         you: "What gives you comfort?"
     },
+    {
+        you: "What is your most cherished memory?"
+    },
+    {
+        you: "What is something beautiful you witnessed recently that stayed with you?"
+    },
+    {
+        you: "Describe a moment when you felt deeply grateful to be exactly where you were."
+    },
+    {
+        you: "What quality do you love most about yourself?"
+    },
+    {
+        you: "Describe a time that someone's kindness surprised you."
+    },
+    {
+        you: "Is there a tradition or ritual which makes you feel connected to something larger?"
+    },
+    {
+        you: "When have you felt most proud of who you're becoming?"
+    },
+    {
+        you: "What is something you've created that brings you joy?"
+    },
+    {
+        you: "Is there a place where you feel completely yourself?"
+    },
+    {
+        you: "Is there any aspect of your life which feels like a gift you didn't expect?"
+    },
+    {
+        you: "Describe a moment of connection that took your breath away."
+    },
+    {
+        you: "What hope are you carrying for your future?"
+    },
+    {
+        you: "When did you last feel wonder or awe?"
+    },
 
 
 
@@ -365,7 +404,40 @@ const QUESTIONS = [
         you: "When have you listened to your instincts?"
     },
     {
+        you: "Do your instincts and your mind disagree about anything in your life, past, or future?"
+    },
+    {
+        you: "What would happen if you moved through your day following energy instead of schedule?"
+    },
+    {
+        you: "When you're with different people, how does your posture change? What is this telling you?"
+    },
+    {
+        you: "When you walk into a room, what do you sense that others might miss?"
+    },
+    {
+        you: "Describe a time you knew something without knowing how you knew it."
+    },
+    {
+        you: "Is there anything which wants to be expressed through you that you're holding back?"
+    },
+    {
+        you: "If you listened only to what felt expansive versus contractive, what would change in your life?"
+    },
+    {
+        you: "What would you do if you were never expected to explain or justify your choices to anyone?"
+    },
+    {
+        you: "Notice your breathing right now. What is it telling you about this moment?"
+    },
+    {
+        you: "What would you try if you knew you couldn't do it 'wrong'?"
+    },
+    {
         you: "What do you think should make you happy, but doesn't?"
+    },
+    {
+        you: "What do you think should make you sad, but doesn't?"
     },
     {
         you: "When did you last hide how you felt or what you thought? What did you hide and why?"
@@ -716,6 +788,42 @@ const QUESTIONS = [
     },
 ];
 
+class WakeLockManager {
+    constructor() {
+        this.wakeLock = null;
+        this.isSupported = 'wakeLock' in navigator;
+    }
+
+    async requestWakeLock() {
+        if (!this.isSupported) {
+            console.log('Wake Lock API not supported');
+            return false;
+        }
+
+        try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+            return true;
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+            return false;
+        }
+    }
+
+    async releaseWakeLock() {
+        if (this.wakeLock) {
+            await this.wakeLock.release();
+            this.wakeLock = null;
+        }
+    }
+
+    // Handle page visibility changes
+    handleVisibilityChange() {
+        if (this.wakeLock !== null && document.visibilityState === 'visible') {
+            this.requestWakeLock();
+        }
+    }
+}
+
 class AttuneGame {
     constructor() {
         this.questions = [...QUESTIONS];
@@ -732,9 +840,19 @@ class AttuneGame {
         
         // Debug mode - set to true to see debug info
         this.debug = false;
+
+        this.wakeLockManager = new WakeLockManager();
+        this.setupWakeLock();
         
         this.initializeElements();
         this.bindEvents();
+    }
+
+    setupWakeLock() {
+        // Request wake lock when game starts
+        document.addEventListener('visibilitychange', () => {
+            this.wakeLockManager.handleVisibilityChange();
+        });
     }
     
     log(message) {
@@ -990,7 +1108,7 @@ class AttuneGame {
     // Combine with priority questions first
     this.activeDeck = [...shuffledPriority, ...shuffledRegular];
     this.updateCardsCount();
-}
+    }
     
     shuffleArray(array) {
         const shuffled = [...array];
@@ -1012,6 +1130,12 @@ class AttuneGame {
         setTimeout(() => {
             this.bindActionButtons();
         }, 100);
+        this.wakeLockManager.requestWakeLock();
+    }
+
+    // Clean up when game ends or page unloads
+    cleanup() {
+        this.wakeLockManager.releaseWakeLock();
     }
     
     displayCurrentCard() {
