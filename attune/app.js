@@ -84,6 +84,12 @@ const QUESTIONS = [
     {
         you: "When did you last feel wonder or awe?"
     },
+    {
+        you: "Describe what is it like to perform, what it is like to express, and any similarities or differences."
+    },
+    {
+        you: "Describe what it is like to be moved to action by fear, what it is like to be moved to action by love, and any similarities or differences."
+    },
 
 
 
