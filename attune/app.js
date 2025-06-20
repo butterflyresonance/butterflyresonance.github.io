@@ -135,6 +135,12 @@ const QUESTIONS = [
     {
         you: "What are you seeking at the moment in your life?"
     },
+    {
+        you: "What is it like to hurt someone?"
+    },
+    {
+        you: "What is it that makes something emotionally painful?"
+    },
 
     {
         you: "What do you do to feel special? Does it ever end up making you feel more isolated?"
