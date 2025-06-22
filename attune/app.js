@@ -139,7 +139,13 @@ const QUESTIONS = [
         you: "What is it like to hurt someone?"
     },
     {
-        you: "What is it that makes something emotionally painful?"
+        you: "What is it about an emotionally painful experience which makes it emotionally painful?"
+    },
+    {
+        you: "Is shame ever beneficial?"
+    },
+    {
+        you: "Have you ever acted in a way which is similar to the way someone who hurt you acted?"
     },
 
     {
