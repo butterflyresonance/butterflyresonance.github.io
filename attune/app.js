@@ -88,6 +88,9 @@ const PRIORITY_QUESTIONS = [
         you: "Is there a reason you don't do something important, that has been described as an excuse?",
         partner: "Can you find a real and valid fear underneath the 'excuse'?"
     },
+            {
+        you: "What is your experience of what is projection and what is perception?",
+    },
 
 
 ];
