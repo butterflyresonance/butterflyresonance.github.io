@@ -1,6 +1,13 @@
 const PRIORITY_QUESTIONS = [
     // Add your must-have questions here
-        {
+
+
+
+];
+
+// Question Database - Easy to edit and expand!
+const QUESTIONS = [
+            {
         you: "Describe what is it like to perform, what it is like to express, and any similarities or differences."
     },
         {
@@ -91,12 +98,6 @@ const PRIORITY_QUESTIONS = [
             {
         you: "What is your experience of what is projection and what is perception?",
     },
-
-
-];
-
-// Question Database - Easy to edit and expand!
-const QUESTIONS = [
     {
         you: "Would you change anything about how you interact with people if you were completely safe, physically and emotionally?"
     },
