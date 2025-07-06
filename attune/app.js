@@ -1,12 +1,84 @@
 const PRIORITY_QUESTIONS = [
     // Add your must-have questions here
+        {
+        you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
+        partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice."
+    },
+            {
+        you: "Describe a recent experience, but don't say anything about how you felt.",
+        partner: "Watch your partner's face. Pause them every time you sense a feeling arise, and check whether you are accurate."
+    },
 
+            {
+        you: "Tell your partner about a problem you would really like a solution to.",
+        partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
+    },
+            {
+        you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had in the experience.",
+        partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion they are being deceptive about, and what they really felt instead."
+    },
+        {
+        you: "Face your partner and look into their eyes. Invite an emotion to arise. Without speaking about it, imagine sending it to your partner.",
+        partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you sense something."
+    },
+            {
+        you: "Speak about a time that an emotion wanted to speak through you, but you couldn't find the words. What happened? What would have happened if you'd had the words?"
+    },
 
+        {
+        you: "Get into a comfortable position, close your eyes, and let your mind wander.",
+        partner: "Get into a comfortable position, watch your partner's face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
+    },
+
+        {
+        you: "Share an emotionally important memory.",
+        partner: "Reflect back your understanding of the emotional significance of what your partner is sharing. Reflect back any emotion or meaning that you are picking up beyond what they are sharing."
+    },
+
+        {
+        you: "Talk about something emotional which has happened to you.",
+        partner: "Ignore your partner's words. Pay attention to their face, their body, and your own internal sensations. Share with your partner what you noticed."
+    },
+
+        {
+        you: "Make contact with an emotion which is unwelcome. Talk to your partner about it.",
+        partner: "Allow yourself to feel what your partner is feeling. When you respond to you partner, respond without trying to remove or change the emotion in yourself or in them."
+    },
+
+            {
+you: "What adult responsibility still feels like you're just pretending to know what you're doing?"
+    },
+        {
+you: "What's a strong opinion you hold about something completely unimportant?"
+    },
+
+        {
+    you: "Share an embarrassing moment that you can laugh about now. What made it so mortifying then?"
+    },
+
+            {
+you: "Tell us about a time you completely misunderstood a social situation. What did you think was happening?"
+    },
 
 ];
 
 // Question Database - Easy to edit and expand!
 const QUESTIONS = [
+
+
+        {
+you: "Describe a moment when you tried to be impressive but it backfired spectacularly."
+    },
+        {
+you: "What social convention do you find secretly ridiculous but still participate in?"
+    },
+
+        {
+you: "What's a weird habit or quirk you've inherited from your family that you didn't notice until someone pointed it out?"
+    },
+        
+
+
             {
         you: "Describe what is it like to perform, what it is like to express, and any similarities or differences."
     },
@@ -16,10 +88,7 @@ const QUESTIONS = [
         {
         you: "Do you ever push away or reject the thing you believe you want most? What can you say about what is driving you to do this?"
     },
-        {
-        you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
-        partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice."
-    },
+
         {
         you: "Talk about one of the most mundane things that have happened to you this week.",
         partner: "Attempt to make this story meaningful or noteworthy by asking clarifying questions."
@@ -28,10 +97,7 @@ const QUESTIONS = [
         you: "Talk about something familiar - a hobby, belief, long term friendship or relationship, etc.",
         partner: "Watch your partner's face and body language and interrupt them when you sense they have shifted into a more rehearsed, distant, or mechanical way of speaking. Explore with them where they went, and what it was like to be brought back."
     },
-        {
-        you: "Describe a recent experience, but don't say anything about how you felt.",
-        partner: "Watch your partner's face. Pause them every time you sense a feeling arise, and check whether you are accurate."
-    },
+
     {
         you: "Describe an experience using only the emotions or sensations you experienced. Don't mention anything about what happened externally.",
         partner: "See whether you can figure out the details of what happened."
@@ -40,24 +106,12 @@ const QUESTIONS = [
         you: "Describe a situation which you found challenging, but do not share why you found it challenging.",
         partner: "Let your partner know whether there would be anything challenging about that situation for yourself, and what you imagine would have been challenging for them."
     },
-        {
-        you: "Tell your partner about a problem you would really like a solution to.",
-        partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
-    },
-        {
-        you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had in the experience.",
-        partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion they are being deceptive about, and what they really felt instead."
-    },
-        {
-        you: "Face your partner and look into their eyes. Invite an emotion to arise. Without speaking about it, imagine sending it to your partner.",
-        partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you sense something."
-    },
+
+
         {
         you: "When have you acted or presented yourself as 'more ideal' (mature, disciplined etc) beyond what felt true for you? What happened as a result? Did this cost you anything?"
     },
-        {
-        you: "Speak about a time that an emotion wanted to speak through you, but you couldn't find the words. What happened? What would have happened if you'd had the words?"
-    },
+
         {
         you: "What would happen if you moved through your day following energy instead of schedule?"
     },
@@ -250,10 +304,7 @@ const QUESTIONS = [
     },
 
 
-    {
-        you: "Get into a comfortable position, close your eyes, and let your mind wander.",
-        partner: "Get into a comfortable position, watch your partner's face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
-    },
+
     {
         everyone: "Imagine and describe my inner child."
     },
@@ -262,10 +313,7 @@ const QUESTIONS = [
         you: "Find somewhere comfortable to stand, away from others.",
         partner: "Stand up and face your partner. Walk towards them slowly, and stop when you sense a personal boundary. Speak about what you noticed change within you or your partner when you reached the boundary. Figure out whose boundary it was."
     },
-    {
-        you: "Share an emotionally important memory.",
-        partner: "Reflect back your understanding of the emotional significance of what your partner is sharing. Reflect back any emotion or meaning that you are picking up beyond what they are sharing."
-    },
+
     {
         you: "Take a few moments to drop into your body. What sensations are you noticing inside?"
     },
@@ -314,10 +362,7 @@ const QUESTIONS = [
     {
         you: "Is there a part of yourself which tells you to move away from connection or success? What is it afraid of?"
     },
-    {
-        you: "Talk about something emotional which has happened to you.",
-        partner: "Ignore your partner's words. Pay attention to their face, their body, and your own internal sensations. Share with your partner what you noticed."
-    },
+
     {
         you: "Talk about a common, everyday experience you've had recently.",
         partner: "Attempt to make this story unique by asking clarifying questions."
@@ -611,10 +656,7 @@ const QUESTIONS = [
         you: "Have a wordless conversation with your partner using only facial expressions, gestures, and body language for 2 minutes.",
         partner: "Same as above. Afterwards, discuss what you each understood and tried to express."
     },
-    {
-        you: "Make contact with an emotion which is unwelcome. Talk to your partner about it.",
-        partner: "Allow yourself to feel what your partner is feeling. When you respond to you partner, respond without trying to remove or change the emotion in yourself or in them."
-    },
+
     
     
 
@@ -647,9 +689,7 @@ const QUESTIONS = [
     {
         you: "Speak about something you want but struggle to ask for."
     },
-    // {
-    //     you: "Speak about a time you have cheated on someone, been cheated on by someone, or someone cheated with you."
-    // },
+
 
     {
         you: "Speak about a difficult conversation you've had with someone."
