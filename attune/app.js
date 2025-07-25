@@ -1,5 +1,47 @@
 const PRIORITY_QUESTIONS = [
     // Add your must-have questions here
+    { you: "What areas of your life feel most secure or fulfilling right now?" },
+{ you: "Who in your life helps you feel valued, seen, or supported?" },
+{ you: "When you're emotionally distressed, how do you typically cope?" },
+{ you: "Do you ever feel like you have to hide parts of yourself to be accepted?" },
+{ you: "Are there any persistent fears, worries, or 'stuck' feelings that don't seem to go away?" },
+{ you: "Do you ever feel you work very hard to avoid being vulnerable, weak, or 'too needy'?" },
+{ you: "Have you ever felt responsible for others' emotions or overly guilty when things go wrong?" },
+{ you: "In my family, it wasn't okay to..." },
+{ you: "I learned that being lovable meant..." },
+{ you: "I was often made to feel..." },
+{ you: "When I was upset as a child, the response I usually got was..." },
+{ you: "In close relationships (friends, partners, family), what themes or challenges tend to repeat?" },
+{ you: "Are you more likely to trust too easily, not at all, or somewhere in between?" },
+{ you: "Are there any ways you're currently not living in line with your values?" },
+{ you: "What emotional needs do you wish were more fully met — even now as an adult?" },
+{ you: "What do you care deeply about, even if you're not living it out right now?" },
+{ you: "When have you felt most like yourself?" },
+{ you: "Are there causes or communities you feel drawn to, even if you're not involved yet?" },
+{ you: "What do you admire in other people?" },
+{ you: "Can you remember a time when you felt fulfilled or proud of yourself? What were you doing?" },
+{ you: "What used to excite you as a child or teen?" },
+{ you: "When did you last feel like your life had meaning, even briefly?" },
+{ you: "How would you describe yourself to someone who doesn't know you?" },
+{ you: "What roles do you play in life (e.g., friend, worker, sibling)? Which feel most meaningful?" },
+{ you: "Do you feel like you're living your life for yourself or for someone/something else?" },
+{ you: "What do you feel is missing in your life?" },
+{ you: "Are there things you wish you could do but feel you can't? Why?" },
+{ you: "What fears or beliefs might be keeping you stuck?" },
+{ you: "If nothing was holding you back, what would you try or do?" },
+{ you: "What kind of life would feel meaningful to you in 5 or 10 years?" },
+{ you: "What would a good day look like for you?" },
+{ you: "Is there anyone in your life you feel you truly matter to?" },
+{ you: "In what ways do you want to contribute to the world, if any?" },
+{ you: "Do you think purpose has to come from achievement, or could it come from connection or being present?" },
+{ you: "What does 'having a purpose' mean to you?" },
+{ you: "Do you believe meaning is something we find, create, or both?" },
+{ you: "If life never felt purposeful, what would that mean to you?" },
+{ you: "What did you learn about you in your last relationships?" },
+{ you: "When you reflect on it, did your childhood wounds show up in your last relationship?" },
+{ you: "What do you want to create in your next relationship?" },
+{ you: "How do you need to be loved - what does love look like for you?" },
+
         {
         you: "Get into a comfortable position, close your eyes, and think of a strong memory without sharing it.",
         partner: "Copy your partner's posture and breathing rhythm. Pay attention to any sensations, images, memories, impulses, or meanings that come up for you. Share what you notice."
@@ -21,9 +63,7 @@ const PRIORITY_QUESTIONS = [
         you: "Face your partner and look into their eyes. Invite an emotion to arise. Without speaking about it, imagine sending it to your partner.",
         partner: "Face your partner and look into their eyes. Pay attention to your body. Let your partner know when you sense something."
     },
-            {
-        you: "Speak about a time that an emotion wanted to speak through you, but you couldn't find the words. What happened? What would have happened if you'd had the words?"
-    },
+
 
         {
         you: "Get into a comfortable position, close your eyes, and let your mind wander.",
@@ -45,6 +85,12 @@ const PRIORITY_QUESTIONS = [
         partner: "Allow yourself to feel what your partner is feeling. When you respond to you partner, respond without trying to remove or change the emotion in yourself or in them."
     },
 
+
+];
+
+// Question Database - Easy to edit and expand!
+const QUESTIONS = [
+
             {
 you: "What adult responsibility still feels like you're just pretending to know what you're doing?"
     },
@@ -59,13 +105,9 @@ you: "What's a strong opinion you hold about something completely unimportant?"
             {
 you: "Tell us about a time you completely misunderstood a social situation. What did you think was happening?"
     },
-
-];
-
-// Question Database - Easy to edit and expand!
-const QUESTIONS = [
-
-
+            {
+        you: "Speak about a time that an emotion wanted to speak through you, but you couldn't find the words. What happened? What would have happened if you'd had the words?"
+    },
         {
 you: "Describe a moment when you tried to be impressive but it backfired spectacularly."
     },
