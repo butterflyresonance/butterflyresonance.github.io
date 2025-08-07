@@ -1,6 +1,30 @@
 const PRIORITY_QUESTIONS = [
     // Add your must-have questions here
-    { you: "What areas of your life feel most secure or fulfilling right now?" },
+    { you: "Imagine you walk into a room with everyone you've ever met. Who do you look for first?" },
+    { you: "What aspects of yourself do you hide from others, and how would your life change if you stopped hiding?" },
+{ you: "If you were going to die tomorrow, is there anything you would regret not saying or doing? If so, when will you?" },
+{ you: "Is your routine building your future or maintaining your past?" },
+{ you: "If someone gave you a box of everything you've ever lost, what is the first thing you would look for?" },
+{ you: "If you had the chance to relive one day of your life, which day would it be, and why? Would you change anything?" },
+{ you: "If you could receive a letter from your future self, what advice or insight would you hope to find in it?" },
+{ you: "If you had the opportunity to have a deep conversation with any person, alive, dead, or fictional, who would it be? What would you talk about?" },
+{ you: "If you had to define your purpose in one sentence, what would it be, and how does it influence the choices you make day to day?" },
+{ you: "Are you the voice inside your head, the one who listens, or something else?" },
+{ you: "What areas of your life feel most secure or fulfilling right now?" },
+        {
+        you: "Share an emotionally important memory.",
+        partner: "Reflect back your understanding of the emotional significance of what your partner is sharing. Reflect back any emotion or meaning that you are picking up beyond what they are sharing."
+    },
+                {
+        you: "Tell your partner about a problem you would really like a solution to.",
+        partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
+    },
+];
+
+// Question Database - Easy to edit and expand!
+const QUESTIONS = [
+
+        { you: "What areas of your life feel most secure or fulfilling right now?" },
 { you: "Who in your life helps you feel valued, seen, or supported?" },
 { you: "When you're emotionally distressed, how do you typically cope?" },
 { you: "Do you ever feel like you have to hide parts of yourself to be accepted?" },
@@ -51,10 +75,7 @@ const PRIORITY_QUESTIONS = [
         partner: "Watch your partner's face. Pause them every time you sense a feeling arise, and check whether you are accurate."
     },
 
-            {
-        you: "Tell your partner about a problem you would really like a solution to.",
-        partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
-    },
+
             {
         you: "Speak about an experience with the intent to be deceptive about one particular emotional response you had in the experience.",
         partner: "Pay attention to your partner's face, words, and body. Let your partner know which emotion they are being deceptive about, and what they really felt instead."
@@ -70,10 +91,7 @@ const PRIORITY_QUESTIONS = [
         partner: "Get into a comfortable position, watch your partner's face, and let your mind wander with theirs. Let them know when to come back. Discuss what caused you to bring them back, and where your minds wandered."
     },
 
-        {
-        you: "Share an emotionally important memory.",
-        partner: "Reflect back your understanding of the emotional significance of what your partner is sharing. Reflect back any emotion or meaning that you are picking up beyond what they are sharing."
-    },
+
 
         {
         you: "Talk about something emotional which has happened to you.",
@@ -84,12 +102,6 @@ const PRIORITY_QUESTIONS = [
         you: "Make contact with an emotion which is unwelcome. Talk to your partner about it.",
         partner: "Allow yourself to feel what your partner is feeling. When you respond to you partner, respond without trying to remove or change the emotion in yourself or in them."
     },
-
-
-];
-
-// Question Database - Easy to edit and expand!
-const QUESTIONS = [
 
             {
 you: "What adult responsibility still feels like you're just pretending to know what you're doing?"
