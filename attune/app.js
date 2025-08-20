@@ -1,6 +1,11 @@
 const PRIORITY_QUESTIONS = [
     // Add your must-have questions here
-    { you: "Imagine you walk into a room with everyone you've ever met. Who do you look for first?" },
+
+];
+
+// Question Database - Easy to edit and expand!
+const QUESTIONS = [
+        { you: "Imagine you walk into a room with everyone you've ever met. Who do you look for first?" },
     { you: "What aspects of yourself do you hide from others, and how would your life change if you stopped hiding?" },
 { you: "If you were going to die tomorrow, is there anything you would regret not saying or doing? If so, when will you?" },
 { you: "Is your routine building your future or maintaining your past?" },
@@ -19,10 +24,6 @@ const PRIORITY_QUESTIONS = [
         you: "Tell your partner about a problem you would really like a solution to.",
         partner: "Respond in the most loving, curious, and reflective way you can, without suggesting a single solution."
     },
-];
-
-// Question Database - Easy to edit and expand!
-const QUESTIONS = [
 
         { you: "What areas of your life feel most secure or fulfilling right now?" },
 { you: "Who in your life helps you feel valued, seen, or supported?" },
