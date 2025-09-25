@@ -2,138 +2,674 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Workout Tracker</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <!-- Favicon and PWA -->
-    <link rel="apple-touch-icon" sizes="180x180" href="https://butterflyresonance.github.io/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="https://butterflyresonance.github.io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="https://butterflyresonance.github.io/favicon-16x16.png">
-    <link rel="manifest" href="https://butterflyresonance.github.io/workout-tracker/manifest.json">
-    <meta name="theme-color" content="#614385">
-    <meta name="msapplication-TileColor" content="#614385">
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
 
-    <!-- Mobile viewport optimization -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0">
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            min-height: calc(100vh - 40px);
+            position: relative;
+        }
 
-    <!-- Basic meta -->
-    <meta name="description" content="Track your workouts and progress with Butterfly Resonance's workout tracking tool">
-    <meta name="author" content="David O'Donohue">
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #764ba2;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .movement-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .movement-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .movement-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .movement-name {
+            flex: 1;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #ff3838;
+            transform: scale(1.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sets-container {
+            margin: 20px 0;
+        }
+
+        .set-group {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .set-group-title {
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .set-item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .set-info {
+            font-size: 15px;
+            color: #333;
+        }
+
+        .set-number {
+            color: #667eea;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .previous-workout {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .previous-workout-title {
+            color: #856404;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .modal-message {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .modal-buttons.single {
+            grid-template-columns: 1fr;
+        }
+
+        .modal-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-btn-danger {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body>
-    <!-- Exercise List View -->
-    <div id="exercise-list-view" class="view active">
-        <div class="header">
-            <h1>Exercises</h1>
-            <button class="nav-button" onclick="showView('exercise-form-view')">Add Exercise</button>
+    <div class="container">
+        <!-- Main Screen -->
+        <div id="mainScreen" class="screen active">
+            <h1>💪 Workout Tracker</h1>
+            <div id="movementList"></div>
+            <button class="btn" onclick="showAddMovementScreen()">Add New Movement</button>
         </div>
-        <div id="exercise-list" class="exercise-list">
-            <!-- Exercise list items will be added here -->
-        </div>
-    </div>
 
-    <!-- Exercise Form View -->
-    <div id="exercise-form-view" class="view">
-        <div class="header">
-            <h1>Add Exercise</h1>
-            <button class="nav-button" onclick="showView('exercise-list-view')">Back</button>
+        <!-- Add Movement Screen -->
+        <div id="addMovementScreen" class="screen">
+            <h1>Add Movement</h1>
+            <label for="movementName">Movement Name:</label>
+            <input type="text" id="movementName" placeholder="e.g., Pull-up, Bench Press" autocomplete="off">
+            <button class="btn" onclick="addMovement()">Add Movement</button>
+            <button class="btn btn-secondary" onclick="showMainScreen()">Cancel</button>
         </div>
-        <div class="card">
-            <div class="input-group">
-                <label for="exercise-name">Exercise Name</label>
-                <input type="text" id="exercise-name" placeholder="e.g., Bench Press">
-            </div>
-            <div class="input-group">
-                <label for="measurement-type">Measurement Type</label>
-                <select id="measurement-type">
-                    <option value="reps">Reps</option>
-                    <option value="seconds">Static Hold (seconds)</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>
-                    <input type="checkbox" id="requires-weight"> 
-                    Track weight for this exercise
-                </label>
-            </div>
-            <div class="input-group bodyweight-input" style="display: none;">
-                <label for="bodyweight">Your bodyweight (kg)</label>
-                <input type="number" 
-                       id="bodyweight" 
-                       inputmode="decimal" 
-                       step="0.1" 
-                       min="20" 
-                       max="300"
-                       placeholder="Enter your bodyweight">
-            </div>
-            <button onclick="saveExercise()">Save Exercise</button>
-        </div>
-    </div>
 
-    <!-- Exercise Detail View -->
-    <div id="exercise-detail-view" class="view">
-        <div class="header">
-            <button class="nav-button" onclick="showView('exercise-list-view')">Back</button>
-        </div>
-        
-        <!-- Current Workout Entry -->
-        <div class="card">
-            <h2 id="current-exercise-name" style="margin-bottom: 15px;"></h2>
-            <div class="sets-container">
-                <div id="sets">
-                    <!-- Set inputs will be added here -->
+        <!-- Exercise Screen -->
+        <div id="exerciseScreen" class="screen">
+            <h1 id="exerciseName"></h1>
+            
+            <div id="previousWorkout"></div>
+            
+            <div class="input-row">
+                <div>
+                    <label for="weight">Weight (kgs)</label>
+                    <input type="number" id="weight" placeholder="0 for bodyweight" value="0" min="0">
                 </div>
-                <button onclick="addSet()">Add Another Set</button>
+                <div>
+                    <label for="reps">Reps</label>
+                    <input type="number" id="reps" placeholder="Number of reps" min="1">
+                </div>
             </div>
-            <button onclick="saveWorkout()">Save Workout</button>
-        </div>
-
-        <!-- Workout History -->
-        <div id="workout-history" class="history-list">
-            <!-- Workout history items will be added here -->
+            
+            <button class="btn" onclick="addSet()">Add Set</button>
+            
+            <div id="todaySets" class="sets-container"></div>
+            
+            <button class="btn btn-secondary" onclick="showMainScreen()">Back to Home</button>
         </div>
     </div>
 
-    <!-- Templates -->
-    <template id="set-input-template">
-        <div class="set-input">
-            <div class="weight-input-group">
-                <input type="text" 
-                       inputmode="decimal" 
-                       pattern="[0-9]*[.,]?[0-9]*"
-                       class="weight-amount" 
-                       placeholder="Weight">
-                <button class="bodyweight-toggle" 
-                        onclick="toggleBodyweight(this)">
-                    BW
-                </button>
-            </div>
-            <input type="number" 
-                   inputmode="numeric" 
-                   pattern="[0-9]*"
-                   placeholder="Amount" 
-                   min="0">
-            <button class="remove-set" onclick="removeSet(this)">×</button>
+    <!-- Modal -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal">
+            <div id="modalTitle" class="modal-title"></div>
+            <div id="modalMessage" class="modal-message"></div>
+            <div id="modalButtons" class="modal-buttons"></div>
         </div>
-    </template>
+    </div>
 
-    <!-- Analysis Container -->
-    <template id="strength-analysis-template">
-        <div class="strength-analysis">
-            <h3>Strength Analysis</h3>
-            <p class="best-set"></p>
-            
-            <h4>Weight Analysis</h4>
-            <div class="weight-analysis"></div>
-            
-            <div class="recommendations-section">
-                <h4>Recommendations</h4>
-                <div class="recommendations"></div>
-            </div>
-        </div>
-    </template>
+    <script>
+        // Initialize data from localStorage or create empty structure
+        let workoutData = JSON.parse(localStorage.getItem('workoutData')) || {
+            movements: [],
+            history: {}
+        };
 
-    <script src="app.js"></script>
+        let currentExercise = '';
+        let todaysSets = {};
+
+        // Modal functions
+        function showModal(title, message, buttons) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            
+            const buttonsContainer = document.getElementById('modalButtons');
+            buttonsContainer.innerHTML = '';
+            buttonsContainer.className = buttons.length === 1 ? 'modal-buttons single' : 'modal-buttons';
+            
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.textContent = button.text;
+                btn.className = `modal-btn ${button.class}`;
+                btn.onclick = () => {
+                    hideModal();
+                    if (button.action) button.action();
+                };
+                buttonsContainer.appendChild(btn);
+            });
+            
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function showAlert(title, message) {
+            showModal(title, message, [
+                { text: 'OK', class: 'modal-btn-primary' }
+            ]);
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            showModal(title, message, [
+                { text: 'Cancel', class: 'modal-btn-secondary' },
+                { text: 'Delete', class: 'modal-btn-danger', action: onConfirm }
+            ]);
+        }
+
+        // Utility function to get today's date string
+        function getTodayDate() {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        }
+
+        // Screen navigation functions
+        function showMainScreen() {
+            hideAllScreens();
+            document.getElementById('mainScreen').classList.add('active');
+            renderMovementList();
+            // Reset input fields
+            document.getElementById('weight').value = '0';
+            document.getElementById('reps').value = '';
+        }
+
+        function showAddMovementScreen() {
+            hideAllScreens();
+            document.getElementById('addMovementScreen').classList.add('active');
+            document.getElementById('movementName').value = '';
+            document.getElementById('movementName').focus();
+        }
+
+        function showExerciseScreen(movementName) {
+            hideAllScreens();
+            currentExercise = movementName;
+            document.getElementById('exerciseScreen').classList.add('active');
+            document.getElementById('exerciseName').textContent = movementName;
+            
+            // Reset input fields when entering exercise screen
+            document.getElementById('weight').value = '0';
+            document.getElementById('reps').value = '';
+            
+            // Initialize today's sets for this exercise if not exists
+            const today = getTodayDate();
+            if (!todaysSets[today]) {
+                todaysSets[today] = {};
+            }
+            if (!todaysSets[today][movementName]) {
+                todaysSets[today][movementName] = [];
+            }
+            
+            loadPreviousWorkout(movementName);
+            renderTodaysSets();
+            
+            // Focus on reps input for convenience
+            document.getElementById('reps').focus();
+        }
+
+        function hideAllScreens() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+        }
+
+        // Movement management functions
+        function renderMovementList() {
+            const listContainer = document.getElementById('movementList');
+            
+            if (workoutData.movements.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state">No movements added yet.<br>Tap "Add New Movement" to get started!</div>';
+            } else {
+                listContainer.innerHTML = '<ul class="movement-list">' +
+                    workoutData.movements.map(movement => 
+                        `<li class="movement-item" onclick="showExerciseScreen('${movement}')">
+                            <span class="movement-name">${movement}</span>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteMovement('${movement}')">Delete</button>
+                        </li>`
+                    ).join('') +
+                    '</ul>';
+            }
+        }
+
+        function addMovement() {
+            const movementName = document.getElementById('movementName').value.trim();
+            
+            if (!movementName) {
+                showAlert('Missing Name', 'Please enter a movement name');
+                return;
+            }
+            
+            if (workoutData.movements.includes(movementName)) {
+                showAlert('Already Exists', 'This movement already exists in your list');
+                return;
+            }
+            
+            workoutData.movements.push(movementName);
+            workoutData.movements.sort();
+            saveData();
+            showMainScreen();
+        }
+
+        function deleteMovement(movementName) {
+            showConfirm(
+                'Delete Movement?',
+                `Are you sure you want to delete "${movementName}"? This will also delete all workout history for this movement.`,
+                () => {
+                    // Remove from movements array
+                    const index = workoutData.movements.indexOf(movementName);
+                    if (index > -1) {
+                        workoutData.movements.splice(index, 1);
+                    }
+                    
+                    // Remove all history for this movement
+                    if (workoutData.history[movementName]) {
+                        delete workoutData.history[movementName];
+                    }
+                    
+                    // Remove from today's sets if present
+                    const today = getTodayDate();
+                    if (todaysSets[today] && todaysSets[today][movementName]) {
+                        delete todaysSets[today][movementName];
+                    }
+                    
+                    saveData();
+                    renderMovementList();
+                }
+            );
+        }
+
+        // Exercise tracking functions
+        function addSet() {
+            const weight = parseFloat(document.getElementById('weight').value) || 0;
+            const reps = parseInt(document.getElementById('reps').value);
+            
+            if (!reps || reps < 1) {
+                showAlert('Missing Reps', 'Please enter the number of reps');
+                return;
+            }
+            
+            const today = getTodayDate();
+            const setData = {
+                weight: weight,
+                reps: reps,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Add to today's sets
+            todaysSets[today][currentExercise].push(setData);
+            
+            // Also save to permanent history
+            if (!workoutData.history[currentExercise]) {
+                workoutData.history[currentExercise] = {};
+            }
+            if (!workoutData.history[currentExercise][today]) {
+                workoutData.history[currentExercise][today] = [];
+            }
+            workoutData.history[currentExercise][today].push(setData);
+            
+            saveData();
+            renderTodaysSets();
+            
+            // Clear reps input for next set
+            document.getElementById('reps').value = '';
+            document.getElementById('reps').focus();
+        }
+
+        function renderTodaysSets() {
+            const today = getTodayDate();
+            const sets = todaysSets[today]?.[currentExercise] || [];
+            const container = document.getElementById('todaySets');
+            
+            if (sets.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = '<div class="set-group">' +
+                '<div class="set-group-title">TODAY\'S SETS</div>' +
+                sets.map((set, index) => {
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
+                    return `<div class="set-item">
+                        <div class="set-info">
+                            <span class="set-number">Set ${index + 1}:</span>
+                            ${set.reps} reps @ ${weightText}
+                        </div>
+                    </div>`;
+                }).join('') +
+                '</div>';
+        }
+
+        function loadPreviousWorkout(movementName) {
+            const container = document.getElementById('previousWorkout');
+            const history = workoutData.history[movementName];
+            
+            if (!history) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            // Get the most recent workout date (excluding today)
+            const today = getTodayDate();
+            const dates = Object.keys(history).filter(date => date !== today).sort().reverse();
+            
+            if (dates.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            const lastDate = dates[0];
+            const lastWorkout = history[lastDate];
+            
+            const formattedDate = new Date(lastDate + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            container.innerHTML = '<div class="previous-workout">' +
+                `<div class="previous-workout-title">LAST WORKOUT: ${formattedDate}</div>` +
+                lastWorkout.map((set, index) => {
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
+                    return `<div class="set-item">
+                        <div class="set-info">
+                            <span class="set-number">Set ${index + 1}:</span>
+                            ${set.reps} reps @ ${weightText}
+                        </div>
+                    </div>`;
+                }).join('') +
+                '</div>';
+        }
+
+        // Data persistence
+        function saveData() {
+            localStorage.setItem('workoutData', JSON.stringify(workoutData));
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMovementList();
+        });
+
+        // Handle enter key in add movement screen
+        document.getElementById('movementName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addMovement();
+            }
+        });
+
+        // Handle enter key in exercise screen
+        document.getElementById('reps').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addSet();
+            }
+        });
+    </script>
 </body>
 </html>
