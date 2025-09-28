@@ -409,7 +409,7 @@
             
             <div class="input-row">
                 <div>
-                    <label for="weight">Weight (lbs)</label>
+                    <label for="weight">Weight (kgs)</label>
                     <input type="number" id="weight" placeholder="0 for bodyweight" value="0" min="0">
                 </div>
                 <div>
@@ -702,7 +702,7 @@
             container.innerHTML = '<div class="set-group">' +
                 '<div class="set-group-title">TODAY\'S SETS (Total: ' + totalReps + ' reps)</div>' +
                 sets.map((set, index) => {
-                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} lbs`;
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
                     return `<div class="set-item">
                         <div class="set-info">
                             <span class="set-number">Set ${index + 1}:</span>
@@ -747,7 +747,7 @@
             container.innerHTML = '<div class="previous-workout">' +
                 `<div class="previous-workout-title">LAST WORKOUT: ${formattedDate} (Total: ${totalReps} reps)</div>` +
                 lastWorkout.map((set, index) => {
-                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} lbs`;
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
                     return `<div class="set-item">
                         <div class="set-info">
                             <span class="set-number">Set ${index + 1}:</span>
@@ -786,7 +786,7 @@
             }
             
             weightSelect.innerHTML = sortedWeights.map(weight => {
-                const label = weight === 0 ? 'Bodyweight' : `${weight} lbs`;
+                const label = weight === 0 ? 'Bodyweight' : `${weight} kgs`;
                 const selected = weight === mostRecentWeight ? 'selected' : '';
                 return `<option value="${weight}" ${selected}>${label}</option>`;
             }).join('');
