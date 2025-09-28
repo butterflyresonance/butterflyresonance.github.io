@@ -348,7 +348,7 @@
             
             <div class="input-row">
                 <div>
-                    <label for="weight">Weight (kgs)</label>
+                    <label for="weight">Weight (lbs)</label>
                     <input type="number" id="weight" placeholder="0 for bodyweight" value="0" min="0">
                 </div>
                 <div>
@@ -591,10 +591,13 @@
                 return;
             }
             
+            // Calculate total reps
+            const totalReps = sets.reduce((sum, set) => sum + set.reps, 0);
+            
             container.innerHTML = '<div class="set-group">' +
-                '<div class="set-group-title">TODAY\'S SETS</div>' +
+                '<div class="set-group-title">TODAY\'S SETS (Total: ' + totalReps + ' reps)</div>' +
                 sets.map((set, index) => {
-                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} lbs`;
                     return `<div class="set-item">
                         <div class="set-info">
                             <span class="set-number">Set ${index + 1}:</span>
@@ -626,6 +629,9 @@
             const lastDate = dates[0];
             const lastWorkout = history[lastDate];
             
+            // Calculate total reps for last workout
+            const totalReps = lastWorkout.reduce((sum, set) => sum + set.reps, 0);
+            
             const formattedDate = new Date(lastDate + 'T00:00:00').toLocaleDateString('en-US', {
                 weekday: 'short',
                 year: 'numeric',
@@ -634,9 +640,9 @@
             });
             
             container.innerHTML = '<div class="previous-workout">' +
-                `<div class="previous-workout-title">LAST WORKOUT: ${formattedDate}</div>` +
+                `<div class="previous-workout-title">LAST WORKOUT: ${formattedDate} (Total: ${totalReps} reps)</div>` +
                 lastWorkout.map((set, index) => {
-                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} kgs`;
+                    const weightText = set.weight === 0 ? 'Bodyweight' : `${set.weight} lbs`;
                     return `<div class="set-item">
                         <div class="set-info">
                             <span class="set-number">Set ${index + 1}:</span>
