@@ -87,16 +87,33 @@
             flex: 1;
         }
 
-        .delete-btn {
-            background: #ff4757;
-            color: white;
+        .movement-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .data-btn, .delete-btn {
             border: none;
             padding: 8px 15px;
             border-radius: 20px;
             font-size: 14px;
             cursor: pointer;
-            margin-left: 10px;
             transition: all 0.3s ease;
+        }
+
+        .data-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .data-btn:hover {
+            background: #5a67d8;
+            transform: scale(1.05);
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
         }
 
         .delete-btn:hover {
@@ -142,7 +159,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e0e0e0;
@@ -152,7 +169,7 @@
             transition: border-color 0.3s ease;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -231,6 +248,50 @@
             color: #999;
             padding: 20px;
             font-style: italic;
+        }
+
+        /* Chart styles */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+        }
+
+        canvas {
+            max-height: 250px;
+        }
+
+        .metric-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .metric-tab {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .metric-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .metric-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         /* Modal styles */
@@ -363,6 +424,25 @@
             
             <button class="btn btn-secondary" onclick="showMainScreen()">Back to Home</button>
         </div>
+
+        <!-- Data Screen -->
+        <div id="dataScreen" class="screen">
+            <h1 id="dataExerciseName"></h1>
+            
+            <label for="weightFilter">Weight Filter:</label>
+            <select id="weightFilter" onchange="updateChart()"></select>
+            
+            <div class="metric-tabs">
+                <div class="metric-tab active" onclick="switchMetric('max')">Max Reps</div>
+                <div class="metric-tab" onclick="switchMetric('total')">Total Reps</div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="dataChart"></canvas>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="showMainScreen()">Back to Home</button>
+        </div>
     </div>
 
     <!-- Modal -->
@@ -374,6 +454,9 @@
         </div>
     </div>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         // Initialize data from localStorage or create empty structure
         let workoutData = JSON.parse(localStorage.getItem('workoutData')) || {
@@ -383,6 +466,8 @@
 
         let currentExercise = '';
         let todaysSets = {};
+        let currentChart = null;
+        let currentMetric = 'max';
 
         // Modal functions
         function showModal(title, message, buttons) {
@@ -473,6 +558,23 @@
             document.getElementById('reps').focus();
         }
 
+        function showDataScreen(movementName) {
+            hideAllScreens();
+            currentExercise = movementName;
+            document.getElementById('dataScreen').classList.add('active');
+            document.getElementById('dataExerciseName').textContent = movementName + ' - Data';
+            
+            // Reset metric selection
+            currentMetric = 'max';
+            document.querySelectorAll('.metric-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector('.metric-tab').classList.add('active');
+            
+            loadWeightOptions(movementName);
+            updateChart();
+        }
+
         function hideAllScreens() {
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
@@ -490,7 +592,10 @@
                     workoutData.movements.map(movement => 
                         `<li class="movement-item" onclick="showExerciseScreen('${movement}')">
                             <span class="movement-name">${movement}</span>
-                            <button class="delete-btn" onclick="event.stopPropagation(); deleteMovement('${movement}')">Delete</button>
+                            <div class="movement-actions">
+                                <button class="data-btn" onclick="event.stopPropagation(); showDataScreen('${movement}')">Data</button>
+                                <button class="delete-btn" onclick="event.stopPropagation(); deleteMovement('${movement}')">Delete</button>
+                            </div>
                         </li>`
                     ).join('') +
                     '</ul>';
@@ -651,6 +756,132 @@
                     </div>`;
                 }).join('') +
                 '</div>';
+        }
+
+        // Data visualization functions
+        function loadWeightOptions(movementName) {
+            const history = workoutData.history[movementName];
+            const weightSelect = document.getElementById('weightFilter');
+            
+            if (!history) {
+                weightSelect.innerHTML = '<option value="">No data available</option>';
+                return;
+            }
+            
+            // Get all unique weights
+            const weights = new Set();
+            Object.values(history).forEach(dayData => {
+                dayData.forEach(set => {
+                    weights.add(set.weight);
+                });
+            });
+            
+            const sortedWeights = Array.from(weights).sort((a, b) => a - b);
+            
+            // Find the most recent weight
+            const recentDates = Object.keys(history).sort().reverse();
+            let mostRecentWeight = 0;
+            if (recentDates.length > 0) {
+                mostRecentWeight = history[recentDates[0]][0].weight;
+            }
+            
+            weightSelect.innerHTML = sortedWeights.map(weight => {
+                const label = weight === 0 ? 'Bodyweight' : `${weight} lbs`;
+                const selected = weight === mostRecentWeight ? 'selected' : '';
+                return `<option value="${weight}" ${selected}>${label}</option>`;
+            }).join('');
+        }
+
+        function switchMetric(metric) {
+            currentMetric = metric;
+            
+            // Update tab styling
+            document.querySelectorAll('.metric-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateChart();
+        }
+
+        function updateChart() {
+            const selectedWeight = parseFloat(document.getElementById('weightFilter').value);
+            const history = workoutData.history[currentExercise];
+            
+            if (!history || isNaN(selectedWeight)) {
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+            
+            // Prepare data for the selected weight
+            const chartData = [];
+            const labels = [];
+            
+            Object.keys(history).sort().forEach(date => {
+                const dayData = history[date].filter(set => set.weight === selectedWeight);
+                if (dayData.length > 0) {
+                    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    labels.push(formattedDate);
+                    
+                    if (currentMetric === 'max') {
+                        const maxReps = Math.max(...dayData.map(set => set.reps));
+                        chartData.push(maxReps);
+                    } else {
+                        const totalReps = dayData.reduce((sum, set) => sum + set.reps, 0);
+                        chartData.push(totalReps);
+                    }
+                }
+            });
+            
+            // Destroy existing chart if it exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // Create new chart
+            const ctx = document.getElementById('dataChart').getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: currentMetric === 'max' ? 'Max Reps' : 'Total Reps',
+                        data: chartData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        pointBackgroundColor: '#764ba2',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Data persistence
