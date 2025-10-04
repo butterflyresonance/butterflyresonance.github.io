@@ -548,7 +548,13 @@
                 todaysSets[today] = {};
             }
             if (!todaysSets[today][movementName]) {
-                todaysSets[today][movementName] = [];
+                // Check if we already have sets saved for today
+                if (workoutData.history[movementName] && workoutData.history[movementName][today]) {
+                    // Load existing sets from history
+                    todaysSets[today][movementName] = [...workoutData.history[movementName][today]];
+                } else {
+                    todaysSets[today][movementName] = [];
+                }
             }
             
             loadPreviousWorkout(movementName);
