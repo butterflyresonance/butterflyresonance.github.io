@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joanne Barron - Counselling & Somatic Therapy | Canberra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #1a202c;
+            background-color: #f7fafc;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem 4rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .header-text h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .header-text p {
+            font-size: 1.5rem;
+            color: #cbd5e0;
+            margin-bottom: 2rem;
+        }
+
+        .accent-bar {
+            width: 100px;
+            height: 6px;
+            background: linear-gradient(90deg, #f6ad55 0%, #ed8936 100%);
+            margin-bottom: 2rem;
+        }
+
+        .header-cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+            color: #1a202c;
+            padding: 1rem 2.5rem;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(246, 173, 85, 0.4);
+        }
+
+        .header-visual {
+            position: relative;
+        }
+
+        .visual-element {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .visual-element::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 45deg, transparent, #f6ad55, transparent 80%);
+            animation: rotate 8s linear infinite;
+        }
+
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .visual-element::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border-radius: 6px;
+        }
+
+        nav {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        nav a {
+            color: #2d3748;
+            text-decoration: none;
+            margin: 0 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #ed8936;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+        }
+
+        section {
+            margin-bottom: 6rem;
+        }
+
+        h2 {
+            font-size: 3rem;
+            color: #1a202c;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 80px;
+            height: 5px;
+            background: linear-gradient(90deg, #f6ad55 0%, #ed8936 100%);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin: 2rem 0 1rem 0;
+            font-weight: 700;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            font-size: 1.1rem;
+            color: #4a5568;
+            line-height: 1.8;
+        }
+
+        .split-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #fed7aa 0%, #fbd38d 100%);
+            padding: 2.5rem;
+            border-radius: 4px;
+            border-left: 6px solid #ed8936;
+            font-size: 1.3rem;
+            color: #7c2d12;
+            font-weight: 500;
+            line-height: 1.7;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .value-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 4px;
+            border-top: 4px solid #ed8936;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .value-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(237, 137, 54, 0.15);
+        }
+
+        .value-card h4 {
+            font-size: 1.2rem;
+            color: #1a202c;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .value-card p {
+            font-size: 1rem;
+            color: #4a5568;
+            margin: 0;
+        }
+
+        .specialty-showcase {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .specialty-item {
+            background: white;
+            padding: 3rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .specialty-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(180deg, #f6ad55 0%, #ed8936 100%);
+        }
+
+        .specialty-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #f7fafc;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            line-height: 1;
+        }
+
+        .specialty-item h3 {
+            margin-top: 0;
+            color: #1a202c;
+        }
+
+        .info-section {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 5rem 3rem;
+            border-radius: 4px;
+            margin: 4rem 0;
+        }
+
+        .info-section h2 {
+            color: white;
+        }
+
+        .info-section h2::after {
+            background: linear-gradient(90deg, #f6ad55 0%, #ed8936 100%);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .info-card {
+            text-align: center;
+            padding: 2rem;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .info-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #cbd5e0;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #f6ad55;
+        }
+
+        .waitlist-banner {
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+            color: #1a202c;
+            padding: 3rem;
+            border-radius: 4px;
+            text-align: center;
+            margin: 3rem 0;
+            box-shadow: 0 8px 30px rgba(237, 137, 54, 0.3);
+        }
+
+        .waitlist-banner h3 {
+            font-size: 2rem;
+            margin: 0 0 1rem 0;
+            color: #1a202c;
+        }
+
+        .waitlist-banner p {
+            font-size: 1.2rem;
+            color: #7c2d12;
+            margin: 0;
+        }
+
+        .contact-section {
+            background: white;
+            padding: 5rem 3rem;
+            border-radius: 4px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .contact-details {
+            margin: 3rem 0;
+        }
+
+        .contact-item {
+            display: inline-block;
+            margin: 1rem 2rem;
+        }
+
+        .contact-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #718096;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-link {
+            font-size: 1.4rem;
+            color: #2d3748;
+            text-decoration: none;
+            font-weight: 700;
+            border-bottom: 3px solid #ed8936;
+            transition: all 0.3s;
+        }
+
+        .contact-link:hover {
+            color: #ed8936;
+            border-bottom-color: #2d3748;
+        }
+
+        footer {
+            background-color: #1a202c;
+            color: #cbd5e0;
+            text-align: center;
+            padding: 3rem;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 968px) {
+            .header-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .header-text h1 {
+                font-size: 3rem;
+            }
+
+            .header-visual {
+                display: none;
+            }
+
+            .split-section {
+                grid-template-columns: 1fr;
+            }
+
+            .values-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .specialty-showcase {
+                grid-template-columns: 1fr;
+            }
+
+            .info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            nav {
+                position: static;
+            }
+
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-text">
+                <div class="accent-bar"></div>
+                <h1>Joanne Barron</h1>
+                <p>Counselling & Somatic Therapy</p>
+                <p style="font-size: 1.1rem; color: #a0aec0; margin-bottom: 2rem;">
+                    Transform your relationships. Reconnect with your body. Heal from within.
+                </p>
+                <a href="#contact" class="header-cta">Get Started</a>
+            </div>
+            <div class="header-visual">
+                <div class="visual-element"></div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="nav-container">
+            <div>
+                <a href="#approach">Approach</a>
+                <a href="#specialties">Specialties</a>
+                <a href="#info">Information</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <section id="approach">
+            <div class="split-section">
+                <div>
+                    <h2>A Different Kind of Therapy</h2>
+                    <p>
+                        I don't believe in one-size-fits-all solutions. Every person's path to healing is unique, and my role is to create the conditions where your own wisdom can emerge.
+                    </p>
+                    <p>
+                        This work is about more than talking—it's about reconnecting with the intelligence of your body, understanding your patterns, and building the capacity to navigate life with greater ease and authenticity.
+                    </p>
+                </div>
+                <div>
+                    <div class="highlight-box">
+                        "Healing happens when we can finally be present with ourselves—not as we think we should be, but as we truly are."
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>What I Bring</h2>
+            <div class="values-grid">
+                <div class="value-card">
+                    <h4>Curiosity</h4>
+                    <p>A genuine interest in understanding your unique experience without assumptions or judgment</p>
+                </div>
+                <div class="value-card">
+                    <h4>Attunement</h4>
+                    <p>Deep presence and responsiveness to both what you say and what remains unspoken</p>
+                </div>
+                <div class="value-card">
+                    <h4>Non-Judgment</h4>
+                    <p>A safe space where all parts of you—even the ones you've learned to hide—are welcome</p>
+                </div>
+                <div class="value-card">
+                    <h4>Insight</h4>
+                    <p>Reflections that help illuminate patterns and possibilities you might not see on your own</p>
+                </div>
+                <div class="value-card">
+                    <h4>Somatic Awareness</h4>
+                    <p>Recognition that your body holds wisdom that words alone cannot access</p>
+                </div>
+                <div class="value-card">
+                    <h4>Collaboration</h4>
+                    <p>A partnership approach where you're the expert on your life and we work together</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="specialties">
+            <h2>How I Work</h2>
+            <p style="font-size: 1.2rem; max-width: 800px;">
+                My practice integrates cutting-edge understanding of the nervous system with time-tested relational wisdom. The result is therapy that works with your whole self—mind, body, and relationships.
+            </p>
+            
+            <div class="specialty-showcase">
+                <div class="specialty-item">
+                    <span class="specialty-number">01</span>
+                    <h3>Couples Counselling</h3>
+                    <p>Moving beyond reactive patterns to create genuine intimacy. I help couples understand the dynamics between them and build new ways of connecting that honor both individuals and the relationship.</p>
+                </div>
+
+                <div class="specialty-item">
+                    <span class="specialty-number">02</span>
+                    <h3>Somatic Work</h3>
+                    <p>Your body remembers what your mind tries to forget. Through somatic awareness, we access and integrate experiences that live in your physical self, creating healing at a deeper level.</p>
+                </div>
+
+                <div class="specialty-item">
+                    <span class="specialty-number">03</span>
+                    <h3>Breathwork</h3>
+                    <p>Conscious breathing is a powerful tool for transformation. It can shift your state, release stored tension, and create access to parts of yourself that talk therapy alone cannot reach.</p>
+                </div>
+
+                <div class="specialty-item">
+                    <span class="specialty-number">04</span>
+                    <h3>Nervous System Regulation</h3>
+                    <p>Understanding your nervous system is foundational to lasting change. I teach you to work with—not against—your body's responses, building capacity for resilience and presence.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="info-section" id="info">
+            <h2>The Essentials</h2>
+            
+            <div class="waitlist-banner">
+                <h3>Currently Waitlist Only</h3>
+                <p>Accepting new clients via waitlist. Reach out to join or inquire about availability.</p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-icon">📍</div>
+                    <div class="info-label">Location</div>
+                    <div class="info-value">Canberra</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">💰</div>
+                    <div class="info-label">Investment</div>
+                    <div class="info-value">$160</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">⏱</div>
+                    <div class="info-label">Duration</div>
+                    <div class="info-value">50-60 min</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">👥</div>
+                    <div class="info-label">Format</div>
+                    <div class="info-value">1:1 & Couples</div>
+                </div>
+            </div>
+
+            <p style="text-align: center; margin-top: 3rem; font-size: 1.1rem; color: #cbd5e0;">
+                Sessions available in person or via secure telehealth platform
+            </p>
+        </div>
+
+        <div class="contact-section" id="contact">
+            <h2>Ready to Begin?</h2>
+            <p style="font-size: 1.2rem; color: #4a5568; max-width: 700px; margin: 2rem auto;">
+                If you're curious about working together, let's have a conversation. I offer initial consultations to explore whether my approach is right for what you're seeking.
+            </p>
+            
+            <div class="contact-details">
+                <div class="contact-item">
+                    <div class="contact-label">Email</div>
+                    <a href="mailto:joanne@example.com" class="contact-link">joanne@example.com</a>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-label">Phone</div>
+                    <a href="tel:+61400000000" class="contact-link">(04) 0000 0000</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>Joanne Barron Counselling</strong> &copy; 2025</p>
+        <p style="margin-top: 0.5rem;">Canberra, Australian Capital Territory</p>
+    </footer>
+</body>
+</html>

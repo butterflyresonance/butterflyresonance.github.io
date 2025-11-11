@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joanne Barron - Counselling & Somatic Therapy | Canberra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.7;
+            color: #333;
+            background-color: #fdfdfb;
+        }
+
+        header {
+            background: linear-gradient(135deg, #8b9d9b 0%, #a8b9b7 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-style: italic;
+        }
+
+        nav {
+            background-color: #f5f5f0;
+            padding: 1rem 0;
+            text-align: center;
+            border-bottom: 1px solid #e0e0d8;
+        }
+
+        nav a {
+            color: #5a6967;
+            text-decoration: none;
+            margin: 0 1.5rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #8b9d9b;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        section {
+            margin-bottom: 4rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #5a6967;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+            border-bottom: 2px solid #d4dcd9;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: #6b7b78;
+            margin: 1.5rem 0 0.8rem 0;
+            font-weight: 400;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            font-size: 1.05rem;
+        }
+
+        .intro {
+            font-size: 1.15rem;
+            color: #5a6967;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .specialty-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .specialty-card {
+            background-color: #f9f9f6;
+            padding: 1.8rem;
+            border-radius: 8px;
+            border-left: 4px solid #a8b9b7;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .specialty-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .specialty-card h3 {
+            margin-top: 0;
+            color: #5a6967;
+        }
+
+        .qualities {
+            background-color: #f0f3f2;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .qualities ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .qualities li {
+            padding: 0.6rem 0;
+            padding-left: 1.8rem;
+            position: relative;
+            font-size: 1.05rem;
+        }
+
+        .qualities li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #8b9d9b;
+            font-weight: bold;
+        }
+
+        .practical-info {
+            background-color: #e8ebe9;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid #d4dcd9;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #5a6967;
+        }
+
+        .info-value {
+            color: #6b7b78;
+        }
+
+        .waitlist-notice {
+            background-color: #d4dcd9;
+            color: #4a5654;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.05rem;
+            margin: 2rem 0;
+            border-left: 5px solid #8b9d9b;
+        }
+
+        .contact-section {
+            background: linear-gradient(135deg, #a8b9b7 0%, #8b9d9b 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .contact-section h2 {
+            color: white;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .contact-section p {
+            font-size: 1.1rem;
+            margin: 1rem 0;
+        }
+
+        .contact-section a {
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            transition: border-color 0.3s;
+        }
+
+        .contact-section a:hover {
+            border-bottom-color: white;
+        }
+
+        footer {
+            background-color: #5a6967;
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            nav a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+
+            .specialty-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-value {
+                margin-top: 0.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Joanne Barron</h1>
+        <p>Counselling & Somatic Therapy</p>
+    </header>
+
+    <nav>
+        <a href="#about">About</a>
+        <a href="#approach">Approach</a>
+        <a href="#specialties">Specialties</a>
+        <a href="#practical">Practical Information</a>
+        <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="container">
+        <section id="about">
+            <h2>Welcome</h2>
+            <p class="intro">
+                I believe that healing happens in relationship—with ourselves, with others, and with the wisdom of our own bodies. My work is grounded in deep curiosity, attunement, and a non-judgmental presence that creates space for authentic exploration and transformation.
+            </p>
+            <p>
+                Whether you're navigating relationship challenges, seeking to understand patterns that no longer serve you, or looking to reconnect with your body's innate wisdom, I'm here to walk alongside you in that journey.
+            </p>
+        </section>
+
+        <section id="approach">
+            <h2>My Approach</h2>
+            <p>
+                I work from a place of genuine curiosity about your unique experience. Rather than offering prescriptive solutions, I create a safe, attuned space where you can explore what's present for you—emotionally, somatically, and relationally.
+            </p>
+            
+            <div class="qualities">
+                <h3>What You Can Expect</h3>
+                <ul>
+                    <li>A deeply curious and attuned presence</li>
+                    <li>Non-judgmental exploration of your experience</li>
+                    <li>Integration of somatic and relational awareness</li>
+                    <li>Insightful reflections that honor your wisdom</li>
+                    <li>A collaborative therapeutic relationship</li>
+                    <li>Respect for your unique pace and process</li>
+                </ul>
+            </div>
+
+            <p>
+                My work integrates somatic practices, breathwork, and nervous system regulation with traditional talk therapy. I believe our bodies hold profound wisdom, and learning to listen to and work with our nervous system can be deeply transformative.
+            </p>
+        </section>
+
+        <section id="specialties">
+            <h2>Areas of Focus</h2>
+            
+            <div class="specialty-grid">
+                <div class="specialty-card">
+                    <h3>Couples Counselling</h3>
+                    <p>Supporting partners to deepen connection, navigate conflict with greater ease, and understand the patterns that emerge between them. I help couples move beyond reactive cycles toward genuine understanding and intimacy.</p>
+                </div>
+
+                <div class="specialty-card">
+                    <h3>Somatic Work</h3>
+                    <p>Exploring the wisdom of the body and learning to recognize and respond to bodily sensations, tensions, and stored experiences. This work helps integrate mind and body for deeper healing.</p>
+                </div>
+
+                <div class="specialty-card">
+                    <h3>Breathwork</h3>
+                    <p>Using conscious breathing practices to access deeper states of awareness, release held tension, and regulate the nervous system. Breathwork can be a powerful gateway to transformation.</p>
+                </div>
+
+                <div class="specialty-card">
+                    <h3>Nervous System Regulation</h3>
+                    <p>Learning to understand and work with your nervous system's responses. This approach helps build capacity for emotional regulation, resilience, and a greater sense of safety in your body.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="practical">
+            <h2>Practical Information</h2>
+            
+            <div class="waitlist-notice">
+                <strong>Current Status:</strong> I am currently operating on a waitlist basis. Please reach out to join the waitlist or inquire about availability.
+            </div>
+
+            <div class="practical-info">
+                <div class="info-row">
+                    <span class="info-label">Location:</span>
+                    <span class="info-value">Canberra, ACT</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Session Fee:</span>
+                    <span class="info-value">$160 per session</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Session Format:</span>
+                    <span class="info-value">Individual & Couples Counselling</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Approach:</span>
+                    <span class="info-value">Somatic, Relational, Integrative</span>
+                </div>
+            </div>
+
+            <p style="margin-top: 2rem;">
+                Sessions are typically 50-60 minutes and can be held in person or via telehealth, depending on your needs and preferences. I welcome initial inquiries to discuss whether my approach might be a good fit for what you're seeking.
+            </p>
+        </section>
+
+        <div class="contact-section" id="contact">
+            <h2>Get In Touch</h2>
+            <p>
+                I welcome inquiries about joining the waitlist or questions about my approach.
+            </p>
+            <p>
+                <strong>Email:</strong> <a href="mailto:joanne@example.com">joanne@example.com</a><br>
+                <strong>Phone:</strong> <a href="tel:+61400000000">(04) 0000 0000</a>
+            </p>
+            <p style="margin-top: 1.5rem; font-size: 0.95rem; opacity: 0.9;">
+                Please note: I am currently accepting clients via waitlist only.<br>
+                Initial consultations are available to discuss fit and answer any questions.
+            </p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Joanne Barron Counselling. All rights reserved.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Canberra, Australian Capital Territory</p>
+    </footer>
+</body>
+</html>
