@@ -272,6 +272,50 @@ const QUESTIONS = [
 { 
     english: "What patterns do you expect to see in relationships? How might those expectations shape what you notice and what you ignore?",
     russian: "Какие паттерны ты ожидаешь увидеть в отношениях? Как эти ожидания могут формировать то, что ты замечаешь и что игнорируешь?"
+},
+{ 
+    english: "In moments of closeness, do you prefer to lead, to follow, or to flow back and forth? What does that feel like in your body?",
+    russian: "В моменты близости ты предпочитаешь вести, следовать или переходить туда-сюда? Как это ощущается в твоём теле?"
+},
+{ 
+    english: "When do you feel most alive - when you're directing the energy between us, or when you're surrendering to it?",
+    russian: "Когда ты чувствуешь себя наиболее живым/живой - когда ты направляешь энергию между нами или когда ты сдаёшься ей?"
+},
+{ 
+    english: "Do you prefer to pursue what you want, or to be pursued? What draws you to that?",
+    russian: "Ты предпочитаешь преследовать то, что хочешь, или чтобы тебя преследовали? Что тебя привлекает в этом?"
+},
+{ 
+    english: "When you think about connection, are you more drawn to initiating or to receiving initiative?",
+    russian: "Когда ты думаешь о связи, тебя больше привлекает инициировать или принимать инициативу?"
+},
+{ 
+    english: "Do you feel more yourself when you're holding space for someone, or when someone is holding space for you?",
+    russian: "Ты больше чувствуешь себя собой, когда ты держишь пространство для кого-то, или когда кто-то держит пространство для тебя?"
+},
+{ 
+    english: "What kind of presence do you want from a partner - more grounding and steady, or more open and receptive?",
+    russian: "Какое присутствие ты хочешь от партнёра - более заземлённое и устойчивое, или более открытое и принимающее?"
+},
+{ 
+    english: "Do you feel more energised by giving direction or by receiving it? Does that change depending on the context?",
+    russian: "Тебе больше энергии даёт направлять или получать направление? Меняется ли это в зависимости от контекста?"
+},
+{ 
+    english: "What kind of energy do you want to bring to connection - more structure or more flow, more initiation or more reception?",
+    russian: "Какую энергию ты хочешь привнести в связь - больше структуры или больше потока, больше инициации или больше принятия?"
+},
+{ 
+    english: "In a dance between two people, would you rather be the one creating the rhythm or moving with it?",
+    russian: "В танце между двумя людьми ты бы предпочёл(ла) создавать ритм или двигаться с ним?"
+},
+{ 
+    english: "What feels more natural to you - to penetrate into depth or to invite someone into your depth?",
+    russian: "Что для тебя ощущается более естественным - проникать в глубину или приглашать кого-то в свою глубину?"
+},
+{ 
+    english: "When it comes to decisions and direction in a relationship, do you energise by choosing the path or by trusting someone else's choice?",
+    russian: "Когда дело доходит до решений и направления в отношениях, ты получаешь энергию от выбора пути или от доверия к чьему-то выбору?"
 }
     // Add the rest of your questions here in the same format
     // Each question should have both 'english' and 'russian' properties
