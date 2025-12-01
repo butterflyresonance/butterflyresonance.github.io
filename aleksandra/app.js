@@ -132,6 +132,50 @@ const QUESTIONS = [
 { 
     english: "If someone who didn't know me saw me, what would they guess was my occupation?",
     russian: "Если бы кто-то, кто меня не знает, увидел меня, какую профессию, по-твоему, он бы мне приписал?"
+},
+{ 
+    english: "What does home feel like to you?",
+    russian: "Каким для тебя ощущается дом?"
+},
+{ 
+    english: "What makes you feel seen and understood?",
+    russian: "Что заставляет тебя чувствовать себя увиденным/увиденной и понятым/понятой?"
+},
+{ 
+    english: "If we could spend a whole day together doing anything, what would you want to do?",
+    russian: "Если бы мы могли провести целый день вместе, занимаясь чем угодно, чем бы ты хотел(а) заниматься?"
+},
+{ 
+    english: "What's something about your culture or upbringing that's important for me to understand?",
+    russian: "Что-то из твоей культуры или воспитания, что важно для меня понять?"
+},
+{ 
+    english: "What boundary of yours do you want me to know about?",
+    russian: "О какой твоей границе ты хочешь, чтобы я знал(а)?"
+},
+{ 
+    english: "What do you need when you're feeling vulnerable or overwhelmed?",
+    russian: "Что тебе нужно, когда ты чувствуешь себя уязвимым/уязвимой или перегруженным/перегруженной?"
+},
+{ 
+    english: "When you're asked how you are, how often do you answer truthfully?",
+    russian: "Когда тебя спрашивают, как дела, как часто ты отвечаешь правдиво?"
+},
+{ 
+    english: "What gives you comfort?",
+    russian: "Что дает тебе утешение?"
+},
+{ 
+    english: "What is your most cherished memory?",
+    russian: "Какое твое самое дорогое воспоминание?"
+},
+{ 
+    english: "What question are you trying to answer in your life right now?",
+    russian: "На какой вопрос ты пытаешься ответить в своей жизни прямо сейчас?"
+},
+{ 
+    english: "What does intimacy mean to you, beyond the physical? How does it develop?",
+    russian: "Что означает для тебя близость, помимо физического? Как она развивается?"
 }
     // Add the rest of your questions here in the same format
     // Each question should have both 'english' and 'russian' properties
