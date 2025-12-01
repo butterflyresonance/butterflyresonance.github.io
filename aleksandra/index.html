@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>attune - conversation card game</title>
+    
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="attune - Conversation Card Game">
+    <meta property="og:description" content="A thoughtful conversation card game designed to deepen connection through presence and authenticity.">
+    <meta property="og:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
+    <meta property="og:image:alt" content="attune conversation card game preview showing a beautifully designed card">
+    <meta property="og:url" content="https://butterflyresonance.github.io/attune/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="attune">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="attune - Conversation Card Game">
+    <meta name="twitter:description" content="A thoughtful conversation card game designed to deepen connection through presence and authenticity.">
+    <meta name="twitter:image" content="https://butterflyresonance.github.io/attune/social-preview.png">
+    
+    <!-- Additional Meta Tags -->
+    <meta name="description" content="attune is a conversation card game that helps people deepen connection through presence and authenticity.">
+    <meta name="keywords" content="conversation cards, relationship building, mindfulness, connection, dialogue, presence, authenticity">
+    <meta name="author" content="attune">
+    
+    <!-- Google Fonts - Enhanced Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7dd3c7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="attune">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <div class="debug-info" id="debug"></div>
+    
+    <div class="app-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <div class="start-content">
+                <h1 class="game-title">attune</h1>
+                <p class="game-subtitle">deeper connections through presence and authenticity</p>
+                <button id="begin-btn" class="primary-btn">begin</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="cards-remaining">
+                    <span id="cards-count">0</span> cards remaining
+                </div>
+            </div>
+
+            <!-- Card Area -->
+            <div class="card-area">
+                <!-- Tap Zones -->
+                <div class="tap-zone tap-left" aria-label="Add back to deck"></div>
+                <div class="tap-zone tap-right" aria-label="Next card"></div>
+                
+                <!-- Card Container -->
+                <div class="card-container" id="card-container">
+                    <div id="current-card" class="card">
+                        <div class="card-type-badge">
+                            <span class="card-type"></span>
+                        </div>
+                        
+                        <div class="card-content">
+                            <div class="you-section">
+                                <p class="you-text"></p>
+                            </div>
+                            
+                            <div class="divider-section" style="display: none;">
+                                <hr class="content-divider">
+                            </div>
+                            
+                            <div class="partner-section" style="display: none;">
+                                <p class="partner-text"></p>
+                            </div>
+                            
+                            <div class="everyone-section" style="display: none;">
+                                <p class="everyone-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Action Area -->
+            <div class="bottom-actions">
+                <div class="action-buttons">
+                    <button id="restart-btn" class="action-btn">restart game</button>
+                    <button id="share-btn" class="action-btn">share question</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Complete Modal -->
+        <div id="complete-modal" class="complete-modal">
+            <div class="complete-content">
+                <div class="complete-icon">🎉</div>
+                <h2 class="complete-title">all cards completed!</h2>
+                <p class="complete-message">Swipe up to start a new round</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                        // Check for updates
+                        registration.update();
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
