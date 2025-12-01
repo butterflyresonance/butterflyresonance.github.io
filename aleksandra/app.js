@@ -9,14 +9,130 @@ const PRIORITY_QUESTIONS = [
 
 // Question Database - Replace with your bilingual questions
 const QUESTIONS = [
-    { 
-        english: "Imagine you walk into a room with everyone you've ever met. Who do you look for first?",
-        russian: "Представь, что ты заходишь в комнату со всеми, кого когда-либо встречал. Кого ты ищешь первым?"
-    },
-    { 
-        english: "What aspects of yourself do you hide from others, and how would your life change if you stopped hiding?",
-        russian: "Какие аспекты себя ты скрываешь от других, и как изменилась бы твоя жизнь, если бы ты перестал скрывать?"
-    },
+{ 
+    english: "How emotionally available do I seem, and why?",
+    russian: "Насколько я кажусь эмоционально доступным/доступной, и почему?"
+},
+{ 
+    english: "How would you describe our time together, using one word?",
+    russian: "Как бы ты описал(а) наше время вместе одним словом?"
+},
+{ 
+    english: "Is there a part of my personality you have noticed that you think others might not?",
+    russian: "Есть ли какая-то часть моей личности, которую ты заметил(а), но которую другие могут не замечать?"
+},
+{ 
+    english: "Which songs, movies, tv shows, books, poems, or pieces of art are meaningful to you and you would like to share?",
+    russian: "Какие песни, фильмы, сериалы, книги, стихи или произведения искусства значимы для тебя и которыми ты хотел(а) бы поделиться?"
+},
+{ 
+    english: "Based on what you know about me, what do you think I am attracted to?",
+    russian: "Основываясь на том, что ты знаешь обо мне, что, по-твоему, меня привлекает?"
+},
+{ 
+    english: "Can you describe my energy or vibe? How do you feel when you are around me?",
+    russian: "Можешь описать мою энергию или атмосферу? Что ты чувствуешь, когда находишься рядом со мной?"
+},
+{ 
+    english: "If you were to write a review of me, what would it be?",
+    russian: "Если бы ты писал(а) отзыв обо мне, каким бы он был?"
+},
+{ 
+    english: "What do you find most attractive about me physically, and what do you find most attractive beyond the physical?",
+    russian: "Что тебе кажется самым привлекательным во мне физически, и что самым привлекательным за пределами физического?"
+},
+{ 
+    english: "What is something you absolutely need in your life?",
+    russian: "Что тебе абсолютно необходимо в твоей жизни?"
+},
+{ 
+    english: "What have you learnt about love from the relationships you grew up around?",
+    russian: "Что ты узнал(а) о любви из отношений, которые видел(а) в детстве?"
+},
+{ 
+    english: "Is there any relationship advice you would give your younger self?",
+    russian: "Есть ли какой-то совет об отношениях, который ты бы дал(а) своему младшему себе?"
+},
+{ 
+    english: "What do you feel that others misunderstand most about you?",
+    russian: "Что, по-твоему, другие больше всего неправильно понимают в тебе?"
+},
+{ 
+    english: "What has being single taught you about yourself?",
+    russian: "Чему тебя научило то, что ты был(а) один/одна?"
+},
+{ 
+    english: "How emotionally available do you feel in this moment, and in your life generally?",
+    russian: "Насколько эмоционально доступным/доступной ты чувствуешь себя сейчас и в своей жизни в целом?"
+},
+{ 
+    english: "What have you tolerated from others in the past that you no longer have space for?",
+    russian: "Что ты терпел(а) от других в прошлом, но больше не готов(а) терпеть?"
+},
+{ 
+    english: "What is something you've learnt about yourself recently?",
+    russian: "Что ты недавно узнал(а) о себе?"
+},
+{ 
+    english: "Who in your life do you feel most like yourself around? Why?",
+    russian: "Рядом с кем в твоей жизни ты чувствуешь себя наиболее собой? Почему?"
+},
+{ 
+    english: "Stare into each other's eyes for 60 seconds, and notice which feelings come up, and whether they change.",
+    russian: "Смотрите друг другу в глаза 60 секунд, и замечайте, какие чувства возникают и меняются ли они."
+},
+{ 
+    english: "What does the word love mean to you?",
+    russian: "Что означает для тебя слово любовь?"
+},
+{ 
+    english: "What's the most difficult thing about dating you?",
+    russian: "Что самое сложное в отношениях с тобой?"
+},
+{ 
+    english: "What kind of person do you aspire to be in a relationship, and does it differ from the kind of person your feelings push you to be?",
+    russian: "Каким человеком ты стремишься быть в отношениях, и отличается ли это от того, каким человеком тебя заставляют быть твои чувства?"
+},
+{ 
+    english: "Which part of your life is most meaningful or energising to you? Why?",
+    russian: "Какая часть твоей жизни наиболее значима или придает тебе энергию? Почему?"
+},
+{ 
+    english: "Which part of your life is most draining to you? Why?",
+    russian: "Какая часть твоей жизни больше всего истощает тебя? Почему?"
+},
+{ 
+    english: "How would your friends describe me?",
+    russian: "Как бы твои друзья описали меня?"
+},
+{ 
+    english: "How much physical contact and passion do you want, or not want? Why?",
+    russian: "Сколько физического контакта и страсти ты хочешь или не хочешь? Почему?"
+},
+{ 
+    english: "If someone felt affectionate and caring towards you, what is the best way they could demonstrate this to you?",
+    russian: "Если бы кто-то чувствовал нежность и заботу к тебе, каким был бы лучший способ показать это тебе?"
+},
+{ 
+    english: "How do you know when you are wanting a connection out of loneliness or fear, and when you are wanting a specific connection because of the other person?",
+    russian: "Как ты понимаешь, когда ты хочешь связи из-за одиночества или страха, и когда ты хочешь конкретной связи из-за другого человека?"
+},
+{ 
+    english: "What is something I have done that annoyed or hurt you? Can you understand why I did it? Can you explain why it annoyed or hurt you?",
+    russian: "Что я сделал(а), что раздражало или ранило тебя? Можешь понять, почему я это сделал(а)? Можешь объяснить, почему это тебя раздражало или ранило?"
+},
+{ 
+    english: "What is my ideal partner? What kind of person would I need to be, to be their ideal partner?",
+    russian: "Кто мой идеальный партнер? Каким человеком мне нужно быть, чтобы стать их идеальным партнером?"
+},
+{ 
+    english: "Is there a part of your first impression of me which you have since found to be incorrect? What was it based on?",
+    russian: "Была ли какая-то часть твоего первого впечатления обо мне, которая оказалась неправильной? На чем она была основана?"
+},
+{ 
+    english: "If someone who didn't know me saw me, what would they guess was my occupation?",
+    russian: "Если бы кто-то, кто меня не знает, увидел меня, какую профессию, по-твоему, он бы мне приписал?"
+}
     // Add the rest of your questions here in the same format
     // Each question should have both 'english' and 'russian' properties
 ];
