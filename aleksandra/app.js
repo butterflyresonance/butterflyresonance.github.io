@@ -176,6 +176,102 @@ const QUESTIONS = [
 { 
     english: "What does intimacy mean to you, beyond the physical? How does it develop?",
     russian: "Что означает для тебя близость, помимо физического? Как она развивается?"
+},
+{ 
+    english: "What parts of yourself do you hide in order to be loved, and what would it feel like to be loved without hiding?",
+    russian: "Какие части себя ты скрываешь, чтобы быть любимым/любимой, и каково было бы быть любимым/любимой, не скрываясь?"
+},
+{ 
+    english: "When do you feel most free with me, and when do you feel most constrained?",
+    russian: "Когда ты чувствуешь себя наиболее свободным/свободной со мной, а когда наиболее скованным/скованной?"
+},
+{ 
+    english: "What would change between us if neither of us was trying to become anything other than what we are?",
+    russian: "Что изменилось бы между нами, если бы никто из нас не пытался стать кем-то другим, кроме того, кто мы есть?"
+},
+{ 
+    english: "Can you want me without needing me? What's the difference?",
+    russian: "Можешь ли ты хотеть меня, не нуждаясь во мне? В чём разница?"
+},
+{ 
+    english: "What do you think would happen if we cared for each other deeply and still allowed each other complete freedom?",
+    russian: "Что, по-твоему, произошло бы, если бы мы глубоко заботились друг о друге и при этом давали друг другу полную свободу?"
+},
+{ 
+    english: "What are you afraid would happen if you stopped trying to hold onto this connection and just let it unfold?",
+    russian: "Чего ты боишься, что произойдёт, если ты перестанешь пытаться удержать эту связь и просто позволишь ей раскрыться?"
+},
+{ 
+    english: "Close your eyes and feel into your body. What is it telling you about us right now?",
+    russian: "Закрой глаза и почувствуй своё тело. Что оно говорит тебе о нас прямо сейчас?"
+},
+{ 
+    english: "What does your intuition know about me that your mind hasn't caught up to yet?",
+    russian: "Что твоя интуиция знает обо мне, до чего твой разум ещё не дошёл?"
+},
+{ 
+    english: "If you could only trust your body's wisdom and not your thoughts, what would you do differently in this connection?",
+    russian: "Если бы ты мог(ла) доверять только мудрости своего тела, а не своим мыслям, что бы ты делал(а) по-другому в этой связи?"
+},
+{ 
+    english: "How do you stay connected to yourself when you're with me?",
+    russian: "Как ты остаёшься в связи с собой, когда ты со мной?"
+},
+{ 
+    english: "What do you need from solitude that you can't get from being together?",
+    russian: "Что тебе нужно от одиночества, чего ты не можешь получить от того, чтобы быть вместе?"
+},
+{ 
+    english: "Can you be alone while being with me? What does that feel like?",
+    russian: "Можешь ли ты быть одиноким/одинокой, находясь со мной? Каково это?"
+},
+{ 
+    english: "What are you feeling right now, in this exact moment, without referencing the past or future?",
+    russian: "Что ты чувствуешь прямо сейчас, в этот точный момент, без ссылок на прошлое или будущее?"
+},
+{ 
+    english: "If this moment between us was the last, what would you need from it?",
+    russian: "Если бы этот момент между нами был последним, что тебе было бы нужно от него?"
+},
+{ 
+    english: "What pulls you out of the present moment when we're together?",
+    russian: "Что вытаскивает тебя из настоящего момента, когда мы вместе?"
+},
+{ 
+    english: "What is the scariest thing you could tell me right now?",
+    russian: "Что самое страшное ты мог(ла) бы мне сейчас сказать?"
+},
+{ 
+    english: "What risk do you want to take with me but haven't yet?",
+    russian: "Какой риск ты хочешь предпринять со мной, но ещё не предпринял(а)?"
+},
+{ 
+    english: "Show me, without words, how you're feeling right now.",
+    russian: "Покажи мне без слов, что ты сейчас чувствуешь."
+},
+{ 
+    english: "What part of you are you most afraid I'll discover?",
+    russian: "Какую часть себя ты больше всего боишься, что я открою?"
+},
+{ 
+    english: "What would unconditional acceptance from me feel like in your body?",
+    russian: "Каким было бы безусловное принятие от меня в твоём теле?"
+},
+{ 
+    english: "Is there something about me that triggers you? Can you stay with that feeling instead of fixing it?",
+    russian: "Есть ли что-то во мне, что тебя триггерит? Можешь ли ты остаться с этим чувством, вместо того чтобы исправлять его?"
+},
+{ 
+    english: "What do you believe about yourself that might not be true? How does that belief shape what you notice and what you miss?",
+    russian: "Во что ты веришь о себе, что может быть неправдой? Как эта вера формирует то, что ты замечаешь и что упускаешь?"
+},
+{ 
+    english: "What story are you telling yourself about me? What might you be overlooking because of that story?",
+    russian: "Какую историю ты рассказываешь себе обо мне? Что ты можешь упускать из-за этой истории?"
+},
+{ 
+    english: "What patterns do you expect to see in relationships? How might those expectations shape what you notice and what you ignore?",
+    russian: "Какие паттерны ты ожидаешь увидеть в отношениях? Как эти ожидания могут формировать то, что ты замечаешь и что игнорируешь?"
 }
     // Add the rest of your questions here in the same format
     // Each question should have both 'english' and 'russian' properties
