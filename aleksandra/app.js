@@ -78,8 +78,8 @@ const QUESTIONS = [
     russian: "Рядом с кем в твоей жизни ты чувствуешь себя наиболее собой? Почему?"
 },
 { 
-    english: "Stare into each other's eyes for 60 seconds, and notice which feelings come up, and whether they change.",
-    russian: "Смотрите друг другу в глаза 60 секунд, и замечайте, какие чувства возникают и меняются ли они."
+    english: "Stare into each other's eyes for 60 seconds. Notice which feelings come up, and whether they change.",
+    russian: "Смотрите друг другу в глаза 60 секунд. Замечайте, какие чувства возникают и меняются ли они."
 },
 { 
     english: "What does the word love mean to you?",
