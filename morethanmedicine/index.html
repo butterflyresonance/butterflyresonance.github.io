@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>More Than Medicine — Specialist Medical Care, Canberra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1f2e;
+      --ink-light: #4a5168;
+      --ink-faint: #8892a4;
+      --cream: #f7f4ef;
+      --white: #ffffff;
+      --teal: #2d6b6b;
+      --teal-light: #3d8a8a;
+      --teal-pale: #e8f2f2;
+      --gold: #b89a5a;
+      --border: #e2ddd6;
+      --nav-h: 80px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      background: rgba(247,244,239,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--teal); }
+
+    .nav-links {
+      display: flex; gap: 2rem; list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--teal); }
+
+    .nav-cta {
+      background: var(--teal);
+      color: var(--white) !important;
+      padding: 0.55rem 1.2rem;
+      border-radius: 2px;
+      transition: background 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--teal-light) !important; color: var(--white) !important; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      padding-top: var(--nav-h);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 8% 6% 8% 8%;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.8rem, 5vw, 4.5rem);
+      font-weight: 300;
+      line-height: 1.1;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--ink-light);
+      max-width: 440px;
+      margin-bottom: 2.5rem;
+      line-height: 1.8;
+    }
+
+    .hero-actions {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: var(--white);
+      padding: 0.9rem 2rem;
+      border-radius: 2px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .btn-primary:hover { background: var(--teal-light); transform: translateY(-1px); }
+
+    .btn-secondary {
+      border: 1.5px solid var(--teal);
+      color: var(--teal);
+      padding: 0.9rem 2rem;
+      border-radius: 2px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--teal); color: var(--white); transform: translateY(-1px); }
+
+    .hero-right {
+      background: var(--teal);
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 1s 0.4s ease both;
+    }
+
+    .hero-right::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: 
+        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.06) 0%, transparent 60%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 50%);
+    }
+
+    .hero-pattern {
+      position: absolute; inset: 0;
+      opacity: 0.07;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 20px,
+        rgba(255,255,255,1) 20px,
+        rgba(255,255,255,1) 21px
+      );
+    }
+
+    .hero-info-card {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 1.8rem 2.2rem;
+      min-width: 280px;
+      color: white;
+    }
+
+    .hero-info-card h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      font-weight: 400;
+      margin-bottom: 0.8rem;
+      opacity: 0.9;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-info-card p {
+      font-size: 0.85rem;
+      opacity: 0.75;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .hero-info-card a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+    }
+
+    .hero-large-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(5rem, 12vw, 11rem);
+      font-weight: 300;
+      color: rgba(255,255,255,0.05);
+      white-space: nowrap;
+      pointer-events: none;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── SPECIALTIES STRIP ── */
+    .specialties-strip {
+      background: var(--ink);
+      padding: 3rem 8%;
+      display: flex;
+      gap: 3rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .specialty-item {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .specialty-item::before {
+      content: '';
+      width: 20px;
+      height: 1px;
+      background: var(--gold);
+      display: block;
+    }
+    .specialty-item.highlight { color: rgba(255,255,255,0.85); }
+
+    /* ── ABOUT ── */
+    .about-section {
+      padding: 7rem 8%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .section-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.2rem;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 300;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+    }
+    .section-title em { font-style: italic; color: var(--teal); }
+
+    .section-body {
+      font-size: 0.98rem;
+      color: var(--ink-light);
+      line-height: 1.9;
+      font-weight: 300;
+    }
+    .section-body p + p { margin-top: 1rem; }
+
+    .about-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5px;
+      background: var(--border);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .stat-block {
+      background: var(--white);
+      padding: 2rem 1.8rem;
+    }
+
+    .stat-number {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3rem;
+      font-weight: 300;
+      color: var(--teal);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--ink-faint);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── SERVICES ── */
+    .services-section {
+      background: var(--white);
+      padding: 7rem 8%;
+    }
+
+    .services-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4rem;
+    }
+
+    .service-card {
+      background: var(--cream);
+      padding: 2.5rem 2rem;
+      transition: background 0.3s;
+      position: relative;
+    }
+    .service-card:hover { background: var(--teal-pale); }
+
+    .service-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--teal-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.2rem;
+    }
+
+    .service-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.6rem;
+    }
+
+    .service-desc {
+      font-size: 0.87rem;
+      color: var(--ink-light);
+      line-height: 1.8;
+      font-weight: 300;
+    }
+
+    .tests-row {
+      background: var(--teal);
+      border-radius: 4px;
+      padding: 2.5rem 3rem;
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .tests-row h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+    }
+
+    .tests-list {
+      display: flex; gap: 1.2rem; flex-wrap: wrap; flex: 1;
+    }
+
+    .test-tag {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
+      font-size: 0.78rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 2px;
+      letter-spacing: 0.04em;
+      font-weight: 300;
+    }
+
+    /* ── TEAM ── */
+    .team-section {
+      padding: 7rem 8%;
+      background: var(--cream);
+    }
+
+    .team-header {
+      margin-bottom: 4rem;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5px;
+      background: var(--border);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    .doctor-card {
+      background: var(--white);
+      padding: 2rem 2rem 1.8rem;
+      transition: background 0.25s;
+    }
+    .doctor-card:hover { background: var(--teal-pale); }
+
+    .doctor-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: white;
+      margin-bottom: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .doctor-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 0.2rem;
+    }
+
+    .doctor-role {
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.4rem;
+    }
+
+    .doctor-quals {
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      margin-bottom: 0.9rem;
+      font-style: italic;
+    }
+
+    .doctor-bio {
+      font-size: 0.85rem;
+      color: var(--ink-light);
+      line-height: 1.8;
+      font-weight: 300;
+    }
+
+    .visiting-header {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+      padding-top: 2rem;
+    }
+    .visiting-header::before {
+      content: '— ';
+      color: var(--gold);
+    }
+
+    /* ── APPOINTMENTS ── */
+    .appointments-section {
+      background: var(--ink);
+      padding: 7rem 8%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .appointments-section .section-title { color: var(--white); }
+    .appointments-section .section-title em { color: var(--gold); }
+    .appointments-section .section-eyebrow { color: var(--gold); }
+
+    .appointments-section .section-body {
+      color: rgba(255,255,255,0.55);
+    }
+
+    .appointments-section .section-body p + p { margin-top: 1rem; }
+
+    .appt-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 4px;
+      padding: 2.5rem;
+    }
+
+    .appt-method {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2rem;
+      padding: 1.2rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .appt-method:last-child { border-bottom: none; }
+
+    .appt-method-icon {
+      font-size: 1.4rem;
+      margin-top: 0.1rem;
+    }
+
+    .appt-method-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.3rem;
+    }
+
+    .appt-method-detail {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.85);
+    }
+    .appt-method-detail a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .appt-method-note {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 0.2rem;
+      font-weight: 300;
+    }
+
+    /* ── LOCATION ── */
+    .location-section {
+      padding: 7rem 8%;
+      background: var(--cream);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: start;
+    }
+
+    .map-placeholder {
+      background: var(--teal-pale);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      height: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: var(--teal);
+      font-size: 0.85rem;
+      font-weight: 300;
+      text-align: center;
+    }
+    .map-placeholder span { font-size: 2.5rem; }
+    .map-address {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.5;
+      margin-bottom: 0.3rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      padding: 3.5rem 8%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .footer-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.02em;
+    }
+    .footer-logo span { color: var(--gold); }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.3);
+      font-weight: 300;
+    }
+
+    .footer-links {
+      display: flex; gap: 2rem; list-style: none;
+    }
+    .footer-links a {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .about-section, .appointments-section, .location-section { grid-template-columns: 1fr; gap: 3rem; }
+      .services-grid { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .services-grid { grid-template-columns: 1fr; }
+      .about-stats { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 40px;
+      height: 2px;
+      background: var(--gold);
+      margin: 1.5rem 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">More <span>Than</span> Medicine</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#specialties">Specialties</a></li>
+    <li><a href="#team">Our Team</a></li>
+    <li><a href="#appointments">Appointments</a></li>
+    <li><a href="#location">Location</a></li>
+    <li><a href="#appointments" class="nav-cta">Refer a Patient</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <p class="hero-eyebrow">Specialist Medical Care · Canberra ACT</p>
+    <h1 class="hero-title">
+      Medicine that sees<br/>
+      the <em>whole</em> person
+    </h1>
+    <p class="hero-sub">
+      A collaborative practice bringing together specialists in Cardiology, Geriatric Medicine, Respiratory Medicine, Nephrology and General Medicine — coordinated under one roof in Braddon.
+    </p>
+    <div class="hero-actions">
+      <a href="#appointments" class="btn-primary">Referral Information</a>
+      <a href="#team" class="btn-secondary">Meet Our Specialists</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-pattern"></div>
+    <div class="hero-large-text">MTM</div>
+    <div class="hero-info-card">
+      <h3>Braddon Medical Centre</h3>
+      <p>
+        53 Mort Street, Braddon ACT<br/>
+        <a href="tel:+61261621639">+61 2 6162 1639</a><br/>
+        <a href="mailto:info@morethanmedicine.com.au">info@morethanmedicine.com.au</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- SPECIALTIES STRIP -->
+<div class="specialties-strip">
+  <div class="specialty-item highlight">Cardiology</div>
+  <div class="specialty-item highlight">Geriatric Medicine</div>
+  <div class="specialty-item highlight">Respiratory Medicine</div>
+  <div class="specialty-item highlight">Nephrology</div>
+  <div class="specialty-item highlight">General Medicine</div>
+  <div class="specialty-item">On-site Diagnostics</div>
+  <div class="specialty-item">Patient-Centred Care</div>
+</div>
+
+<!-- ABOUT -->
+<section class="about-section" id="about">
+  <div>
+    <p class="section-eyebrow">About the Practice</p>
+    <h2 class="section-title">
+      Coordinated care across <em>multiple</em> specialties
+    </h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p>More Than Medicine is a specialist medical consulting space in the heart of Canberra, formed by clinicians with a shared commitment to quality, patient-centred care across a range of medical disciplines.</p>
+      <p>Our model brings specialists together in a coordinated environment — reducing the burden on patients and their families while ensuring continuity across complex or multi-system conditions. All investigations are available at the request of your General Practitioner or another specialist.</p>
+    </div>
+  </div>
+  <div class="about-stats">
+    <div class="stat-block">
+      <div class="stat-number">6+</div>
+      <div class="stat-label">Specialist Physicians</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-number">5</div>
+      <div class="stat-label">Medical Specialties</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-number">8+</div>
+      <div class="stat-label">On-site Investigations</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-number">10+</div>
+      <div class="stat-label">Years Serving the ACT</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services-section" id="specialties">
+  <div class="services-header">
+    <p class="section-eyebrow">Our Specialties</p>
+    <h2 class="section-title">Expert care across <em>five disciplines</em></h2>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="service-icon">🫀</div>
+      <div class="service-name">Cardiology</div>
+      <div class="service-desc">Adult Congenital Heart Disease, Pulmonary Hypertension, cardiac imaging, arrhythmia, heart failure, and maternal cardiology with access to visiting consultants from RPA Sydney.</div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🧠</div>
+      <div class="service-name">Geriatric Medicine</div>
+      <div class="service-desc">Comprehensive geriatric assessment, cognitive impairment, falls, osteoporosis, polypharmacy, capacity assessments, and complex aged care navigation. Home and nursing home visits available.</div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🫁</div>
+      <div class="service-name">Respiratory Medicine</div>
+      <div class="service-desc">Complex lung disease, lung transplantation assessment, and full respiratory function testing. Dr Pearson also works part-time with the Lung Transplantation Unit at St Vincent's, Sydney.</div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">💧</div>
+      <div class="service-name">Nephrology</div>
+      <div class="service-desc">Renal transplantation, obstetric nephrology, pre-eclampsia, blood pressure disorders of pregnancy, and general nephrology including dialysis management.</div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">🩺</div>
+      <div class="service-name">General Medicine</div>
+      <div class="service-desc">Broad physician care across complex or multi-system presentations, with coordinated support from across the practice.</div>
+    </div>
+    <div class="service-card">
+      <div class="service-icon">👩‍⚕️</div>
+      <div class="service-name">Nurse Practitioner</div>
+      <div class="service-desc">Specialist nursing care in aged care, cognitive and capacity assessments, stomal therapy, continence advice, and aged care portal navigation for families and healthcare professionals.</div>
+    </div>
+  </div>
+
+  <div class="tests-row">
+    <h3>On-site Investigations</h3>
+    <div class="tests-list">
+      <span class="test-tag">ECG</span>
+      <span class="test-tag">Echocardiography</span>
+      <span class="test-tag">Stress Echo</span>
+      <span class="test-tag">Holter Monitoring</span>
+      <span class="test-tag">Lung Function Testing</span>
+      <span class="test-tag">Cognitive Assessment</span>
+      <span class="test-tag">Capacity Assessment</span>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section" id="team">
+  <div class="team-header">
+    <p class="section-eyebrow">Our Team</p>
+    <h2 class="section-title">Meet the <em>specialists</em></h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="team-grid">
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">MK</div>
+      <div class="doctor-name">Dr Mary Ann Kulh</div>
+      <div class="doctor-role">Geriatrician & Physician</div>
+      <div class="doctor-quals">MBBS (Syd) MPH FRACP</div>
+      <div class="doctor-bio">Specialist in adult and geriatric medicine, Director of MAPU at Calvary Hospital. Senior Clinical Lecturer at ANU Medical School. Admits patients at Calvary, Calvary Private, and National Capital Hospital. Monthly regional visits to Braidwood.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">AH</div>
+      <div class="doctor-name">Dr Arnagretta Hunter</div>
+      <div class="doctor-role">Cardiologist & Physician</div>
+      <div class="doctor-quals">BA (Hons) MBBS MPH FRACP</div>
+      <div class="doctor-bio">Cardiologist with a commitment to patient-centred medicine. Trained at St Vincent's and Royal Melbourne. Senior Clinical Lecturer at ANU Medical School. Former Specialist Medical Advisor, TGA. Admits at The Canberra Hospital, National Capital Private, and Calvary Private.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">SC</div>
+      <div class="doctor-name">Stella Creighton</div>
+      <div class="doctor-role">Nurse Practitioner</div>
+      <div class="doctor-quals">Aged Care Specialist</div>
+      <div class="doctor-bio">Over 15 years experience in aged care. Expertise in comprehensive cognitive and capacity assessments, medico-legal capacity work, stomal therapy, continence advice, and aged care placement support. Previously at the Royal Women's and Children's Hospital, Melbourne.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">RP</div>
+      <div class="doctor-name">Dr Rebecca Pearson</div>
+      <div class="doctor-role">Respiratory Physician</div>
+      <div class="doctor-quals">MBBS FRACP</div>
+      <div class="doctor-bio">Specialist in complex lung disease and lung transplantation. Part-time Staff Specialist, Lung Transplantation Unit, St Vincent's Hospital Sydney. Trained at St Vincent's Darlinghurst and Royal North Shore. Relocated to Canberra in 2016.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">TK</div>
+      <div class="doctor-name">Dr Tony Kwan</div>
+      <div class="doctor-role">Nephrologist & General Physician</div>
+      <div class="doctor-quals">Staff Specialist, Calvary Hospital</div>
+      <div class="doctor-bio">Specialist in nephrology and general medicine with an interest in renal transplantation. Staff Specialist at Calvary Hospital since 2015. Admits at Calvary Bruce Private and National Capital Private Hospital.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">SC</div>
+      <div class="doctor-name">Dr Shyamalee Crocker</div>
+      <div class="doctor-role">Consultant Nephrologist</div>
+      <div class="doctor-quals">MBBS FRACP</div>
+      <div class="doctor-bio">Staff Specialist Nephrologist at Calvary Public Hospital. Special expertise in obstetric nephrology, pre-eclampsia, and blood pressure disorders of pregnancy. Trained at Royal North Shore, Prince of Wales, St George, and John Hunter hospitals.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">MK</div>
+      <div class="doctor-name">Dr Michael Yoon Kang</div>
+      <div class="doctor-role">Geriatrician</div>
+      <div class="doctor-quals">FRACP</div>
+      <div class="doctor-bio">Dual specialisation in Geriatric Medicine and General Medicine. Trained in Auckland before relocating to Canberra. Clinical interests include comprehensive geriatric assessment, cognitive impairment, osteoporosis, and falls. Conducts home and nursing home visits. Fluent in English and Korean.</div>
+    </div>
+
+    <div class="doctor-card">
+      <div class="doctor-avatar">ZH</div>
+      <div class="doctor-name">Dr Zita Hilvert-Bruce</div>
+      <div class="doctor-role">Geriatrician</div>
+      <div class="doctor-quals">MBS, MD (UNSW)</div>
+      <div class="doctor-bio">Geriatrician with a special interest in cognitive impairment. Completed specialist training at Prince of Wales, Royal Prince Alfred, and Concord hospitals. Part-time Geriatric Staff Specialist at Canberra Hospital. Relocated to Canberra in 2021.</div>
+    </div>
+
+  </div>
+
+  <p class="visiting-header">Visiting Cardiologists</p>
+
+  <div class="team-grid">
+    <div class="doctor-card">
+      <div class="doctor-avatar">RC</div>
+      <div class="doctor-name">A/Prof Rachael Cordina</div>
+      <div class="doctor-role">Visiting Cardiologist</div>
+      <div class="doctor-quals">MBBS FRACP PhD</div>
+      <div class="doctor-bio">Clinical academic cardiologist with expertise in Adult Congenital Heart Disease, Pulmonary Hypertension, Exercise Physiology, and Maternal Cardiology. Staff Specialist, Royal Prince Alfred Hospital. Chair of the ANZ Fontan Registry. Associate Professor, University of Sydney.</div>
+    </div>
+    <div class="doctor-card">
+      <div class="doctor-avatar">DB</div>
+      <div class="doctor-name">Dr David Baker</div>
+      <div class="doctor-role">Visiting Cardiologist</div>
+      <div class="doctor-quals">FRACP</div>
+      <div class="doctor-bio">Clinical academic cardiologist with expertise in Adult Congenital Heart Disease and advanced cardiac MRI. Staff Specialist, Royal Prince Alfred Hospital. Clinical Lecturer, University of Sydney. Subspecialty fellowships in ACHD and cardiac MRI.</div>
+    </div>
+  </div>
+</section>
+
+<!-- APPOINTMENTS -->
+<section class="appointments-section" id="appointments">
+  <div>
+    <p class="section-eyebrow">Referrals & Appointments</p>
+    <h2 class="section-title">
+      Making a<br/><em>referral</em>
+    </h2>
+    <div class="divider" style="background: var(--gold);"></div>
+    <div class="section-body">
+      <p>All appointments at More Than Medicine require a valid referral from a General Practitioner or another specialist. Referrals can be sent directly to the practice by fax, email, or post.</p>
+      <p>Our team will contact the patient to confirm the appointment time. For urgent queries, please call the practice directly.</p>
+    </div>
+  </div>
+  <div class="appt-card">
+    <div class="appt-method">
+      <div class="appt-method-icon">📞</div>
+      <div>
+        <div class="appt-method-label">Phone</div>
+        <div class="appt-method-detail"><a href="tel:+61261621639">+61 2 6162 1639</a></div>
+        <div class="appt-method-note">Monday – Friday, 9 am – 5 pm</div>
+      </div>
+    </div>
+    <div class="appt-method">
+      <div class="appt-method-icon">📠</div>
+      <div>
+        <div class="appt-method-label">Fax</div>
+        <div class="appt-method-detail">+61 2 6162 3202</div>
+        <div class="appt-method-note">For referral documents</div>
+      </div>
+    </div>
+    <div class="appt-method">
+      <div class="appt-method-icon">✉️</div>
+      <div>
+        <div class="appt-method-label">Email</div>
+        <div class="appt-method-detail"><a href="mailto:info@morethanmedicine.com.au">info@morethanmedicine.com.au</a></div>
+        <div class="appt-method-note">For general enquiries and referrals</div>
+      </div>
+    </div>
+    <div class="appt-method">
+      <div class="appt-method-icon">📍</div>
+      <div>
+        <div class="appt-method-label">Address</div>
+        <div class="appt-method-detail">53 Mort Street, Braddon ACT 2612</div>
+        <div class="appt-method-note">Street parking and public transport nearby</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section class="location-section" id="location">
+  <div>
+    <p class="section-eyebrow">Location</p>
+    <h2 class="section-title">
+      Central <em>Canberra</em>
+    </h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p class="map-address">53 Mort Street<br/>Braddon ACT 2612</p>
+      <br/>
+      <p>Our practice is conveniently located in Braddon, central Canberra — easily accessible by car or public transport from across the ACT and surrounding regions.</p>
+      <br/>
+      <p>We provide visiting services to Braidwood and Young for patients who cannot readily travel to Canberra.</p>
+    </div>
+  </div>
+  <div class="map-placeholder">
+    <span>🗺️</span>
+    <strong>53 Mort Street, Braddon ACT</strong>
+    <p style="font-size:0.8rem; color: var(--ink-faint);">Embed Google Maps here</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">More <span>Than</span> Medicine</div>
+  <ul class="footer-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#specialties">Specialties</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#appointments">Appointments</a></li>
+  </ul>
+  <p class="footer-copy">© 2026 More Than Medicine · 53 Mort Street Braddon ACT</p>
+</footer>
+
+</body>
+</html>
