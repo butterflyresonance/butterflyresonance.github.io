@@ -3,176 +3,155 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tideline — weight &amp; waist trend tracker</title>
-<meta name="description" content="Track weight and waist, see the trend through the noise, and know whether to eat a little more or a little less today.">
+<title>Tideline — is what you're adding muscle or not?</title>
+<meta name="description" content="Track weight and waist together. The ratio between them tells you whether the weight you're adding is muscle or fat, and whether to eat a little more or a little less.">
 <meta name="theme-color" content="#0E1720">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#0E1720;
-  --panel:#152230;
-  --panel-2:#1B2B3A;
-  --rule:#25384A;
-  --paper:#E9F0F3;
-  --dim:#7E97A8;
-  --dimmer:#54697A;
-  --more:#E5A25E;
-  --less:#6FC3C9;
-  --hold:#A6C79E;
-  --mark:#F2F6F7;
-  --raw:#43596B;
-  --band:#1F3244;
+  --ink:#0E1720; --panel:#152230; --panel-2:#1B2B3A; --rule:#25384A;
+  --paper:#E9F0F3; --dim:#7E97A8; --dimmer:#54697A;
+  --lean:#6FC3C9; --fat:#E5A25E; --bad:#D97070; --good:#A6C79E;
+  --mark:#F2F6F7; --raw:#43596B; --band:#1F3244;
   --r:14px;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --cond:"IBM Plex Sans Condensed",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{
-  background:var(--ink);
-  color:var(--paper);
-  font-family:var(--cond);
-  font-size:16px;
-  line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-  padding:0 0 64px;
-}
+body{background:var(--ink);color:var(--paper);font-family:var(--cond);font-size:16px;
+  line-height:1.5;-webkit-font-smoothing:antialiased;padding:0 0 64px}
 .wrap{max-width:760px;margin:0 auto;padding:0 18px}
 h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
 
-/* ---------- masthead ---------- */
 .masthead{padding:30px 0 18px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.logo{font-family:var(--cond);font-size:26px;font-weight:700;letter-spacing:-.02em}
-.logo span{color:var(--less)}
+.logo{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.logo span{color:var(--lean)}
 .tagline{color:var(--dim);font-size:13.5px}
 
-.eyebrow{
-  font-family:var(--mono);font-size:10.5px;font-weight:500;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
-}
-.card{
-  background:var(--panel);border:1px solid var(--rule);border-radius:var(--r);
-  padding:20px;margin-bottom:16px;
-}
+.eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim)}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:var(--r);
+  padding:20px;margin-bottom:16px}
 .card.flush{padding:20px 16px}
+.hint{font-size:12.5px;color:var(--dimmer);margin-top:6px;line-height:1.5;
+  text-transform:none;letter-spacing:0;font-family:var(--cond)}
 
-/* ---------- verdict ---------- */
 .verdict{position:relative;overflow:hidden}
-.verdict::before{
-  content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--vc,var(--dim));
-}
-.verdict-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.phase-tag{
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--dim);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;white-space:nowrap;
-}
-.verdict-line{
-  font-family:var(--cond);font-weight:700;font-size:clamp(30px,7.6vw,46px);
-  line-height:1.02;letter-spacing:-.03em;margin:14px 0 6px;color:var(--vc,var(--paper));
-}
-.verdict-sub{font-family:var(--mono);font-size:15px;color:var(--paper);letter-spacing:-.01em}
-.verdict-why{color:var(--dim);font-size:14.5px;margin-top:12px;max-width:56ch}
-.readouts{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
-  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;
-  overflow:hidden;margin-top:18px;
-}
+.verdict::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--vc,var(--dim))}
+.vhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.phase-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.vline{font-weight:700;font-size:clamp(30px,7.6vw,46px);line-height:1.02;letter-spacing:-.03em;
+  margin:14px 0 6px;color:var(--vc,var(--paper))}
+.vsub{font-family:var(--mono);font-size:15px;letter-spacing:-.01em}
+.vwhy{color:var(--dim);font-size:14.5px;margin-top:12px;max-width:56ch}
+
+.split{margin-top:20px;border-top:1px solid var(--rule);padding-top:18px}
+.split-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.split-big{font-family:var(--mono);font-size:clamp(26px,6vw,34px);font-weight:500;
+  letter-spacing:-.03em;margin:8px 0 2px}
+.split-big small{font-size:13px;color:var(--dim);letter-spacing:0;margin-left:8px}
+.bars{display:grid;gap:9px;margin-top:15px}
+.bar-row{display:grid;grid-template-columns:52px 1fr 92px;gap:11px;align-items:center}
+.bar-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.bar-track{position:relative;height:11px;background:var(--panel-2);border-radius:6px;overflow:hidden}
+.bar-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--rule)}
+.bar-fill{position:absolute;top:0;bottom:0;border-radius:6px}
+.bar-num{font-family:var(--mono);font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-top:18px}
 .ro{background:var(--panel-2);padding:11px 12px}
 .ro dt{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
 .ro dd{margin:4px 0 0;font-family:var(--mono);font-size:17px;font-weight:500;letter-spacing:-.02em}
 .ro dd small{font-size:11.5px;color:var(--dim);font-weight:400;letter-spacing:0}
 
-/* ---------- forms ---------- */
 label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;
   text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-input,select,textarea{
-  width:100%;background:var(--ink);color:var(--paper);border:1px solid var(--rule);
-  border-radius:9px;padding:11px 12px;font-family:var(--mono);font-size:16px;
-}
+input,select{width:100%;background:var(--ink);color:var(--paper);border:1px solid var(--rule);
+  border-radius:9px;padding:11px 12px;font-family:var(--mono);font-size:16px}
+input:disabled{opacity:.45}
 input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{
-  outline:2px solid var(--less);outline-offset:2px
-}
+  outline:2px solid var(--lean);outline-offset:2px}
 input::placeholder{color:var(--dimmer)}
 .grid{display:grid;gap:13px}
 .g2{grid-template-columns:1fr 1fr}
 .g3{grid-template-columns:repeat(3,1fr)}
-@media(max-width:520px){.g3{grid-template-columns:1fr 1fr}.g3 .span{grid-column:1/-1}}
-.hint{font-size:12.5px;color:var(--dimmer);margin-top:6px;line-height:1.45;text-transform:none;letter-spacing:0;font-family:var(--cond)}
-
-button{
-  font-family:var(--cond);font-size:15px;font-weight:600;cursor:pointer;
-  background:var(--paper);color:var(--ink);border:none;border-radius:9px;padding:12px 18px;
-}
+@media(max-width:520px){.g3{grid-template-columns:1fr 1fr}}
+button{font-family:var(--cond);font-size:15px;font-weight:600;cursor:pointer;background:var(--paper);
+  color:var(--ink);border:none;border-radius:9px;padding:12px 18px}
 button:hover{background:#fff}
 button.ghost{background:transparent;color:var(--paper);border:1px solid var(--rule)}
 button.ghost:hover{background:var(--panel-2)}
-button.tiny{font-size:12.5px;padding:6px 11px;font-family:var(--mono);letter-spacing:.02em}
+button.tiny{font-size:12.5px;padding:6px 11px;font-family:var(--mono)}
 .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
 
-/* segmented food control */
 .seg{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .seg input{position:absolute;opacity:0;pointer-events:none}
-.seg label{
-  margin:0;display:block;text-align:center;border:1px solid var(--rule);border-radius:8px;
-  padding:9px 2px;font-family:var(--mono);font-size:13px;color:var(--dim);cursor:pointer;
-  letter-spacing:0;text-transform:none;user-select:none;
-}
-.seg input:checked + label{background:var(--panel-2);color:var(--paper);border-color:var(--less)}
-.seg input:focus-visible + label{outline:2px solid var(--less);outline-offset:2px}
+.seg label{margin:0;text-align:center;border:1px solid var(--rule);border-radius:8px;padding:9px 2px;
+  font-family:var(--mono);font-size:13px;color:var(--dim);cursor:pointer;letter-spacing:0;
+  text-transform:none;user-select:none}
+.seg input:checked + label{background:var(--panel-2);color:var(--paper);border-color:var(--lean)}
+.seg input:focus-visible + label{outline:2px solid var(--lean);outline-offset:2px}
 
-/* ---------- charts ---------- */
-.chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.presets{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.presets input{position:absolute;opacity:0;pointer-events:none}
+.presets label{margin:0;border:1px solid var(--rule);border-radius:10px;padding:11px 12px;
+  cursor:pointer;letter-spacing:0;text-transform:none;color:var(--paper);font-family:var(--cond);
+  font-size:14.5px;font-weight:600;line-height:1.25}
+.presets label em{display:block;font-style:normal;font-family:var(--mono);font-size:12px;
+  color:var(--dim);font-weight:400;margin-top:3px}
+.presets input:checked + label{border-color:var(--lean);background:var(--panel-2)}
+.presets input:focus-visible + label{outline:2px solid var(--lean);outline-offset:2px}
+.rec-flag{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--good)}
+
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  margin-bottom:6px;flex-wrap:wrap;padding:0 4px}
 .chart-note{font-size:12.5px;color:var(--dimmer)}
 svg{display:block;width:100%;height:auto;overflow:visible}
-.empty{
-  border:1px dashed var(--rule);border-radius:10px;padding:26px 20px;text-align:center;
-  color:var(--dim);font-size:14.5px;
-}
+.empty{border:1px dashed var(--rule);border-radius:10px;padding:26px 20px;text-align:center;
+  color:var(--dim);font-size:14.5px}
 .empty strong{display:block;color:var(--paper);font-size:16px;font-weight:600;margin-bottom:5px}
-
-/* ---------- gauges ---------- */
-.gauges{display:grid;gap:22px}
 .gauge-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .gauge-val{font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:-.02em}
 .gauge-val small{font-size:12px;color:var(--dim);letter-spacing:0}
 
-/* ---------- history ---------- */
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13.5px}
-th{
-  text-align:left;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--dim);font-weight:500;padding:0 8px 8px 0;border-bottom:1px solid var(--rule);
-}
-td{padding:9px 8px 9px 0;border-bottom:1px solid var(--rule);color:var(--paper)}
+th{text-align:left;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);
+  font-weight:500;padding:0 8px 8px 0;border-bottom:1px solid var(--rule)}
+td{padding:9px 8px 9px 0;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
 tr:last-child td{border-bottom:none}
-td.num{font-variant-numeric:tabular-nums}
 td.act{text-align:right;width:1%}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .link{background:none;border:none;color:var(--dim);font-family:var(--mono);font-size:12px;
-  cursor:pointer;padding:4px 6px;border-radius:6px}
-.link:hover{color:var(--more);background:transparent}
+  cursor:pointer;padding:4px 6px}
+.link:hover{color:var(--fat)}
 
 details{border:1px solid var(--rule);border-radius:var(--r);background:var(--panel);margin-bottom:16px}
-summary{
-  cursor:pointer;padding:16px 20px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--dim);list-style:none;
-}
+summary{cursor:pointer;padding:16px 20px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);list-style:none}
 summary::-webkit-details-marker{display:none}
 summary::after{content:" +";color:var(--dimmer)}
 details[open] summary::after{content:" −"}
 details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
 .details-body{padding:20px}
+.subhead{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--rule)}
+.subhead.first{margin-top:0;padding-top:0;border-top:none}
+.derived{background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;padding:13px 15px;
+  font-family:var(--mono);font-size:13.5px;color:var(--paper);margin-top:12px;line-height:1.6}
+.derived span{color:var(--dim)}
 
 .foot{color:var(--dimmer);font-size:12.5px;line-height:1.6;margin-top:26px;max-width:62ch}
-.toast{
-  position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);
-  background:var(--paper);color:var(--ink);padding:11px 18px;border-radius:999px;
-  font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.22s ease;z-index:50;
-  box-shadow:0 8px 30px rgba(0,0,0,.45);
-}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);background:var(--paper);
+  color:var(--ink);padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;
+  pointer-events:none;transition:.22s ease;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.45)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
@@ -180,30 +159,19 @@ details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
 
   <header class="masthead">
     <div class="logo">Tide<span>line</span></div>
-    <div class="tagline">Weight drifts. Waist drifts. This finds the tide underneath.</div>
+    <div class="tagline">Weight tells you how much. Waist tells you what kind.</div>
   </header>
 
-  <!-- VERDICT -->
   <section class="card verdict" id="verdict" aria-live="polite"></section>
 
-  <!-- LOG -->
   <section class="card">
     <div class="eyebrow">Log a measurement</div>
     <div class="grid g3" style="margin-top:14px">
-      <div>
-        <label for="f-date">Date measured</label>
-        <input type="date" id="f-date">
-      </div>
-      <div>
-        <label for="f-weight">Weight (kg)</label>
-        <input type="number" id="f-weight" step="0.1" inputmode="decimal" placeholder="—">
-      </div>
-      <div>
-        <label for="f-waist">Waist (cm)</label>
-        <input type="number" id="f-waist" step="0.1" inputmode="decimal" placeholder="—">
-      </div>
+      <div><label for="f-date">Date measured</label><input type="date" id="f-date"></div>
+      <div><label for="f-weight">Weight (kg)</label><input type="number" id="f-weight" step="0.1" inputmode="decimal" placeholder="—"></div>
+      <div><label for="f-waist">Waist (cm)</label><input type="number" id="f-waist" step="0.1" inputmode="decimal" placeholder="—"></div>
     </div>
-    <div class="hint">Measure first thing in the morning, after the toilet, before eating or drinking. Waist at the navel, tape snug, breathe out normally.</div>
+    <div class="hint">Morning, after the toilet, before eating or drinking. Waist at the navel, tape snug, breathe out normally. Log both together — one without the other tells you half the story.</div>
 
     <div style="margin-top:18px">
       <label for="food-3">Food in the last 24 hours <span style="text-transform:none;letter-spacing:0;color:var(--dimmer)">— optional</span></label>
@@ -215,7 +183,7 @@ details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
         <input type="radio" name="food" id="food-4" value="4"><label for="food-4">4</label>
         <input type="radio" name="food" id="food-5" value="5"><label for="food-5">5</label>
       </div>
-      <div class="hint">1 = much less than usual · 3 = a normal day · 5 = much more than usual, or unusually salty / carb-heavy. A full gut and a big glycogen refill both push the tape out by a centimetre or so without adding any fat, so telling it this lets it subtract that.</div>
+      <div class="hint">1 = much less than usual · 3 = a normal day · 5 = much more, or unusually salty or carb-heavy. A full gut and a glycogen refill push the tape out by a centimetre without adding a gram of fat, so telling it this lets it subtract that before reading the trend.</div>
     </div>
 
     <div class="actions">
@@ -224,96 +192,64 @@ details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
     </div>
   </section>
 
-  <!-- WEIGHT CHART -->
   <section class="card flush">
-    <div class="chart-head" style="padding:0 4px">
-      <div class="eyebrow">Weight &amp; the band</div>
-      <div class="chart-note" id="wt-note"></div>
-    </div>
+    <div class="chart-head"><div class="eyebrow">Weight &amp; your range</div><div class="chart-note" id="wt-note"></div></div>
     <div id="wt-chart"></div>
   </section>
 
-  <!-- WAIST CHART -->
   <section class="card flush">
-    <div class="chart-head" style="padding:0 4px">
-      <div class="eyebrow">Waist, food effect removed</div>
-      <div class="chart-note" id="wa-note"></div>
-    </div>
+    <div class="chart-head"><div class="eyebrow">Waist, food effect removed</div><div class="chart-note" id="wa-note"></div></div>
     <div id="wa-chart"></div>
   </section>
 
-  <!-- COMPOSITION -->
   <section class="card">
     <div class="eyebrow">Where that puts you</div>
-    <div class="gauges" id="gauges" style="margin-top:18px"></div>
+    <div id="gauges" style="margin-top:18px;display:grid;gap:22px"></div>
     <div class="hint" id="comp-note" style="margin-top:18px"></div>
   </section>
 
-  <!-- SETTINGS -->
   <details id="settings-panel">
     <summary>Your details &amp; targets</summary>
     <div class="details-body">
+
+      <div class="subhead first">About you</div>
+      <div class="grid g2">
+        <div><label for="s-height">Height (cm)</label><input type="number" id="s-height" step="0.5" inputmode="decimal" placeholder="192"></div>
+        <div><label for="s-sex">Reference norms</label><select id="s-sex"><option value="m">Male</option><option value="f">Female</option></select></div>
+      </div>
+
+      <div class="subhead">Body fat range to live between</div>
+      <div class="presets" id="presets"></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div><label for="s-bflow">Leanest (%)</label><input type="number" id="s-bflow" step="0.5" inputmode="decimal"></div>
+        <div><label for="s-bfhigh">Fullest (%)</label><input type="number" id="s-bfhigh" step="0.5" inputmode="decimal"></div>
+      </div>
+      <div class="hint">This is the only range you set. The weights come out of it — the app takes your current lean mass and works out what you'd weigh at each end. As you add tissue, the weights move up on their own.</div>
+      <div class="derived" id="derived-band"></div>
+
+      <div class="subhead">Plan</div>
       <div class="grid g3">
-        <div>
-          <label for="s-height">Height (cm)</label>
-          <input type="number" id="s-height" step="0.5" inputmode="decimal" placeholder="192">
-        </div>
-        <div>
-          <label for="s-sex">Reference norms</label>
-          <select id="s-sex">
-            <option value="m">Male</option>
-            <option value="f">Female</option>
-          </select>
-        </div>
-        <div>
-          <label for="s-mode">Plan</label>
-          <select id="s-mode">
-            <option value="auto">Oscillate in a band</option>
-            <option value="gain">Gain only</option>
-            <option value="cut">Trim only</option>
-            <option value="hold">Hold steady</option>
-          </select>
-        </div>
+        <div><label for="s-mode">Approach</label><select id="s-mode">
+          <option value="auto">Oscillate in the range</option>
+          <option value="gain">Gain only</option>
+          <option value="cut">Trim only</option>
+          <option value="hold">Hold steady</option></select></div>
+        <div><label for="s-gain">Gain rate (%bw/wk)</label><input type="number" id="s-gain" step="0.05" inputmode="decimal"></div>
+        <div><label for="s-cut">Trim rate (%bw/wk)</label><input type="number" id="s-cut" step="0.05" inputmode="decimal"></div>
       </div>
 
-      <div class="grid g2" style="margin-top:14px" id="band-fields">
-        <div>
-          <label for="s-low">Turn back up at (kg)</label>
-          <input type="number" id="s-low" step="0.1" inputmode="decimal" placeholder="101">
-        </div>
-        <div>
-          <label for="s-high">Turn back down at (kg)</label>
-          <input type="number" id="s-high" step="0.1" inputmode="decimal" placeholder="108">
-        </div>
+      <div class="subhead">Fine tuning</div>
+      <div class="grid g2">
+        <div><label for="s-bfsrc">Body fat figure</label><select id="s-bfsrc">
+          <option value="rfm">Estimate from waist &amp; height</option>
+          <option value="manual">I'll enter it myself</option></select></div>
+        <div><label for="s-bf">Body fat (%)</label><input type="number" id="s-bf" step="0.5" inputmode="decimal" placeholder="—"></div>
       </div>
-      <div class="hint">Drift up to the top of the band, then trim back to the bottom, then repeat. Every year or two, move the whole band up by a couple of kilos as you actually add tissue.</div>
-
-      <div class="grid g2" style="margin-top:14px">
-        <div>
-          <label for="s-gain">Gain rate (% body weight / week)</label>
-          <input type="number" id="s-gain" step="0.05" inputmode="decimal" placeholder="0.25">
-        </div>
-        <div>
-          <label for="s-cut">Trim rate (% body weight / week)</label>
-          <input type="number" id="s-cut" step="0.05" inputmode="decimal" placeholder="0.5">
-        </div>
+      <div class="grid g2" style="margin-top:13px">
+        <div><label for="s-k">Fat per cm of waist (kg)</label><input type="number" id="s-k" step="0.05" inputmode="decimal"></div>
+        <div><label for="s-ffmi">FFMI you're aiming at</label><input type="number" id="s-ffmi" step="0.5" inputmode="decimal" placeholder="optional"></div>
       </div>
-      <div class="hint">Slower gaining puts on a better ratio of muscle to fat. Faster trimming costs you muscle. The defaults are conservative on both counts.</div>
-
-      <div class="grid g2" style="margin-top:14px">
-        <div>
-          <label for="s-bfsrc">Body fat figure</label>
-          <select id="s-bfsrc">
-            <option value="rfm">Estimate from waist &amp; height</option>
-            <option value="manual">I'll enter it myself</option>
-          </select>
-        </div>
-        <div>
-          <label for="s-bf">Body fat (%)</label>
-          <input type="number" id="s-bf" step="0.5" inputmode="decimal" placeholder="—">
-        </div>
-      </div>
-      <div class="hint">The waist estimate reads a few points high on muscular builds, because it can't tell a thick torso from a fat one. If you ever get a DEXA or callipers done, switch to entering it yourself.</div>
+      <div class="hint">The fat-per-cm figure converts waist movement into kilos of fat, so it drives the muscle-or-fat split. Around 1.0 kg/cm is typical for men and 0.8 for women. Two DEXA scans a few months apart would let you work out your own.</div>
 
       <div class="actions">
         <button id="save-settings">Save details</button>
@@ -321,25 +257,24 @@ details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
         <button class="ghost tiny" id="import-btn">Import data</button>
         <input type="file" id="import" accept="application/json,.json" style="display:none">
       </div>
-      <div class="hint">Everything lives in this browser only — nothing is uploaded anywhere. Clearing site data wipes it, so export a backup now and then.</div>
+      <div class="hint">Everything stays in this browser. Clearing site data wipes it, so export a backup now and then.</div>
     </div>
   </details>
 
-  <!-- HISTORY -->
   <details id="history-panel">
     <summary>History</summary>
-    <div class="details-body">
-      <div class="scroll" id="history"></div>
-    </div>
+    <div class="details-body"><div class="scroll" id="history"></div></div>
   </details>
 
   <p class="foot">
-    Trend maths: weight is smoothed with a 7-day half-life and the rate of change comes from a
-    recency-weighted fit over the last 28 days. Waist uses a 10-day half-life, with your food
-    rating subtracted first — the app starts with an assumption of about 0.4&nbsp;cm per point and
-    then learns your own figure once you've logged enough rated days. Energy adjustments assume
-    roughly 7,700&nbsp;kcal per kilo, which is a rule of thumb, not a law. This is a bookkeeping
-    tool, not medical advice.
+    Two different models are at work here, deliberately. The body fat percentage comes from Relative
+    Fat Mass, a static formula using waist and height — it sets your weight range and reads a few
+    points high on muscular builds. The muscle-or-fat split uses a separate figure, kilograms of fat
+    per centimetre of waist, because a static formula makes a poor model of change. They can disagree;
+    the split is the one to trust for day-to-day decisions. Weight is smoothed with a 7-day half-life,
+    waist with 10 days, and rates come from a recency-weighted fit over the last 28 days. Energy
+    adjustments assume roughly 7,700&nbsp;kcal per kilo, a rule of thumb rather than a law. This is a
+    bookkeeping tool, not medical advice.
   </p>
 </div>
 
@@ -349,21 +284,29 @@ details[open] summary{border-bottom:1px solid var(--rule);color:var(--paper)}
 (() => {
 "use strict";
 
-/* ============================ storage ============================ */
-const KEY = "tideline.v1";
+/* ===================== presets & defaults ===================== */
+const PRESETS = {
+  m:[{id:"athletic",name:"Athletic",lo:8,hi:12,note:"visibly lean year round"},
+     {id:"balanced",name:"Lean and sustainable",lo:11,hi:16,note:"the default for most people",rec:true},
+     {id:"relaxed", name:"Relaxed",lo:15,hi:20,note:"healthy, less defined"}],
+  f:[{id:"athletic",name:"Athletic",lo:17,hi:22,note:"visibly lean year round"},
+     {id:"balanced",name:"Lean and sustainable",lo:21,hi:26,note:"the default for most people",rec:true},
+     {id:"relaxed", name:"Relaxed",lo:25,hi:31,note:"healthy, less defined"}]
+};
+const KEY = "tideline.v2";
 const DEFAULTS = {
   heightCm:null, sex:"m", mode:"auto",
-  bandLowKg:null, bandHighKg:null,
+  bfLow:11, bfHigh:16, preset:"balanced",
   gainPct:0.25, cutPct:0.5,
   bfSource:"rfm", manualBf:null,
-  phase:null
+  kgPerCm:1.0, ffmiGoal:null,
+  phase:null, lockedBand:null
 };
 let state = { settings:{...DEFAULTS}, entries:[] };
 
 function load(){
   try{
-    const raw = localStorage.getItem(KEY);
-    if(!raw) return;
+    const raw = localStorage.getItem(KEY); if(!raw) return;
     const p = JSON.parse(raw);
     state.settings = {...DEFAULTS, ...(p.settings||{})};
     state.entries = Array.isArray(p.entries) ? p.entries : [];
@@ -374,119 +317,92 @@ function save(){
   catch(e){ toast("Couldn't save — storage may be full or blocked"); }
 }
 
-/* ============================ dates (all local) ============================ */
+/* ===================== dates, all local ===================== */
 const pad = n => String(n).padStart(2,"0");
-function localDateStr(d = new Date()){
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const localDateStr = (d=new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function localStamp(d=new Date()){
+  const off=-d.getTimezoneOffset(), s=off>=0?"+":"-";
+  return `${localDateStr(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}${s}${pad(Math.floor(Math.abs(off)/60))}:${pad(Math.abs(off)%60)}`;
 }
-function localStamp(d = new Date()){
-  const off = -d.getTimezoneOffset();
-  const sign = off >= 0 ? "+" : "-";
-  const oh = pad(Math.floor(Math.abs(off)/60)), om = pad(Math.abs(off)%60);
-  return `${localDateStr(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}${sign}${oh}:${om}`;
-}
-// Parse a YYYY-MM-DD as local noon: immune to DST and to UTC rollover.
-function parseDate(s){
-  const [y,m,d] = s.split("-").map(Number);
-  return new Date(y, m-1, d, 12, 0, 0, 0);
-}
+const parseDate = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d,12,0,0,0); };
 const DAY = 86400000;
 const dayNum = s => Math.round(parseDate(s).getTime()/DAY);
-function prettyDate(s){
-  return parseDate(s).toLocaleDateString(undefined,{day:"numeric",month:"short"});
-}
+const prettyDate = s => parseDate(s).toLocaleDateString(undefined,{day:"numeric",month:"short"});
 function daysAgoLabel(s){
   const d = dayNum(localDateStr()) - dayNum(s);
-  if(d === 0) return "today";
-  if(d === 1) return "yesterday";
-  return `${d} days ago`;
+  return d===0 ? "today" : d===1 ? "yesterday" : `${d} days ago`;
 }
 
-/* ============================ number helpers ============================ */
-const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
-const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+/* ===================== helpers ===================== */
+const $ = s => document.querySelector(s);
+const num = v => { const n=parseFloat(v); return Number.isFinite(n)?n:null; };
+const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const fx = (v,d=1) => v==null ? "—" : v.toFixed(d);
 const signed = (v,d=2) => (v>0?"+":"") + v.toFixed(d);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-/* ============================ smoothing & trend ============================ */
-// Time-aware exponential smoothing: gaps in logging are handled correctly.
+/* ===================== smoothing & trend ===================== */
 function ewma(points, halfLife){
   if(!points.length) return [];
-  const out = [{t:points[0].t, v:points[0].v}];
-  let s = points[0].v;
+  const out=[{t:points[0].t, v:points[0].v}]; let s=points[0].v;
   for(let i=1;i<points.length;i++){
-    const dt = Math.max(points[i].t - points[i-1].t, 0.5);
-    const a = 1 - Math.pow(0.5, dt/halfLife);
-    s = s + a*(points[i].v - s);
+    const dt = Math.max(points[i].t-points[i-1].t, 0.5);
+    s = s + (1-Math.pow(0.5, dt/halfLife))*(points[i].v - s);
     out.push({t:points[i].t, v:s});
   }
   return out;
 }
-
-// Recency-weighted least squares on the RAW points → slope per day.
-function trend(points, {windowDays=28, halfLife=10, minN=3, minSpan=6} = {}){
-  if(points.length < minN) return null;
+function trend(points,{windowDays=28,halfLife=10,minN=3,minSpan=6}={}){
+  if(points.length<minN) return null;
   const tMax = points[points.length-1].t;
-  const sel = points.filter(p => tMax - p.t <= windowDays);
-  if(sel.length < minN) return null;
+  const sel = points.filter(p => tMax-p.t <= windowDays);
+  if(sel.length<minN) return null;
   const span = tMax - sel[0].t;
-  if(span < minSpan) return null;
+  if(span<minSpan) return null;
   let sw=0,sx=0,sy=0,sxx=0,sxy=0;
   for(const p of sel){
-    const w = Math.pow(0.5, (tMax-p.t)/halfLife);
+    const w = Math.pow(0.5,(tMax-p.t)/halfLife);
     sw+=w; sx+=w*p.t; sy+=w*p.v; sxx+=w*p.t*p.t; sxy+=w*p.t*p.v;
   }
-  const det = sw*sxx - sx*sx;
-  if(Math.abs(det) < 1e-9) return null;
-  return { perDay:(sw*sxy - sx*sy)/det, n:sel.length, span };
+  const det = sw*sxx-sx*sx;
+  if(Math.abs(det)<1e-9) return null;
+  return { perDay:(sw*sxy-sx*sy)/det, n:sel.length, span };
 }
 
-/* Waist: strip the food/glycogen effect, then smooth.
-   Two passes — smooth to get one-step-ahead residuals, regress those on the food
-   rating, shrink the slope toward a 0.4 cm/point prior, re-smooth. */
 const FOOD_PRIOR = 0.4;
 function waistModel(raw, halfLife=10){
   if(!raw.length) return {beta:0, learned:false, adjusted:[], smooth:[]};
-  const rated = raw.filter(p => p.food != null);
+  const rated = raw.filter(p=>p.food!=null);
   let beta = rated.length ? FOOD_PRIOR : 0;
-
-  if(rated.length >= 4){
-    for(let pass=0; pass<2; pass++){
-      const adj = raw.map(p => p.v - beta*((p.food ?? 3) - 3));
-      let s = adj[0], sxy=0, sxx=0, n=0;
+  if(rated.length>=4){
+    for(let pass=0;pass<2;pass++){
+      const adj = raw.map(p => p.v - beta*((p.food ?? 3)-3));
+      let s=adj[0], sxy=0, sxx=0, n=0;
       for(let i=1;i<raw.length;i++){
-        if(raw[i].food != null){
-          const f = raw[i].food - 3;
-          if(f !== 0){ sxy += f*(raw[i].v - s); sxx += f*f; n++; }
+        if(raw[i].food!=null){
+          const f = raw[i].food-3;
+          if(f!==0){ sxy += f*(raw[i].v-s); sxx += f*f; n++; }
         }
-        const dt = Math.max(raw[i].t - raw[i-1].t, 0.5);
-        s = s + (1 - Math.pow(0.5, dt/halfLife))*(adj[i] - s);
+        const dt = Math.max(raw[i].t-raw[i-1].t,0.5);
+        s = s + (1-Math.pow(0.5,dt/halfLife))*(adj[i]-s);
       }
-      if(n >= 4 && sxx >= 2){
-        const w = n/(n+8);                       // shrink toward the prior
-        beta = clamp(w*(sxy/sxx) + (1-w)*FOOD_PRIOR, 0, 1.5);
-      } else { beta = FOOD_PRIOR; break; }
+      if(n>=4 && sxx>=2){ const w=n/(n+8); beta = clamp(w*(sxy/sxx)+(1-w)*FOOD_PRIOR, 0, 1.5); }
+      else { beta = FOOD_PRIOR; break; }
     }
   }
-  const learned = rated.length >= 8 && Math.abs(beta - FOOD_PRIOR) > 0.02;
-  const adjusted = raw.map(p => ({t:p.t, v:p.v - beta*((p.food ?? 3) - 3)}));
-  return { beta, learned, adjusted, smooth: ewma(adjusted, halfLife) };
+  const adjusted = raw.map(p => ({t:p.t, v:p.v - beta*((p.food ?? 3)-3)}));
+  return { beta, learned: rated.length>=8 && Math.abs(beta-FOOD_PRIOR)>0.02,
+           adjusted, smooth: ewma(adjusted, halfLife) };
 }
 
-/* ============================ composition ============================ */
-// Relative Fat Mass — needs only waist and height, which is exactly what we have.
-function rfm(waistCm, heightCm, sex){
-  if(!waistCm || !heightCm) return null;
-  return clamp((sex==="f" ? 76 : 64) - 20*(heightCm/waistCm), 2, 60);
-}
+/* ===================== composition ===================== */
+const rfm = (waistCm, heightCm, sex) => (!waistCm||!heightCm) ? null
+  : clamp((sex==="f"?76:64) - 20*(heightCm/waistCm), 2, 60);
 function ffmi(weightKg, bfPct, heightCm){
   if(!weightKg || bfPct==null || !heightCm) return null;
-  const h = heightCm/100;
-  const lean = weightKg*(1 - bfPct/100);
-  const raw = lean/(h*h);
-  return { lean, raw, norm: raw + 6.1*(1.8 - h) };
+  const h = heightCm/100, lean = weightKg*(1-bfPct/100), raw = lean/(h*h);
+  return { lean, raw, norm: raw + 6.1*(1.8-h) };
 }
-
 const FFMI_ZONES = {
   m:[[16,18,"Below average"],[18,20,"Average"],[20,22,"Above average"],[22,23.5,"Advanced"],
      [23.5,25,"Very advanced"],[25,26.5,"At the natural ceiling"],[26.5,28,"Beyond it"]],
@@ -499,312 +415,379 @@ const BF_ZONES = {
 };
 const ZONE_COLOR = ["#3E5566","#6FC3C9","#A6C79E","#C7B27A","#E5A25E","#D98A6A","#C46B6B"];
 
-/* ============================ the recommendation ============================ */
+/* ===================== the engine ===================== */
 function analyse(){
   const S = state.settings;
   const entries = [...state.entries].sort((a,b)=>a.date.localeCompare(b.date));
 
   const wPts = entries.filter(e=>e.weightKg!=null).map(e=>({t:dayNum(e.date), v:e.weightKg}));
-  const aPts = entries.filter(e=>e.waistCm!=null).map(e=>({t:dayNum(e.date), v:e.waistCm, food:e.food ?? null}));
+  const aRaw = entries.filter(e=>e.waistCm!=null).map(e=>({t:dayNum(e.date), v:e.waistCm, food:e.food??null}));
 
-  const wSmooth = ewma(wPts, 7);
-  const wTrend  = trend(wPts, {halfLife:10, windowDays:28, minN:3, minSpan:6});
-  const wm      = waistModel(aPts, 10);
-  const aTrend  = trend(wm.adjusted, {halfLife:14, windowDays:42, minN:4, minSpan:10});
+  const wSmooth = ewma(wPts,7);
+  const wTrend  = trend(wPts,{halfLife:10,windowDays:28,minN:3,minSpan:6});
+  const wm      = waistModel(aRaw,10);
+  const aTrend  = trend(wm.adjusted,{halfLife:14,windowDays:42,minN:4,minSpan:10});
 
-  const curW  = wSmooth.length ? wSmooth[wSmooth.length-1].v : null;
-  const lastW = wPts.length ? wPts[wPts.length-1].v : null;
-  const curA  = wm.smooth.length ? wm.smooth[wm.smooth.length-1].v : null;
+  const curW = wSmooth.length ? wSmooth[wSmooth.length-1].v : null;
+  const curA = wm.smooth.length ? wm.smooth[wm.smooth.length-1].v : null;
 
-  // body composition
-  let bf = null, bfFrom = null;
-  if(S.bfSource === "manual" && S.manualBf != null){ bf = S.manualBf; bfFrom = "your figure"; }
-  else if(curA && S.heightCm){ bf = rfm(curA, S.heightCm, S.sex); bfFrom = "waist estimate"; }
+  let bf=null, bfFrom=null;
+  if(S.bfSource==="manual" && S.manualBf!=null){ bf=S.manualBf; bfFrom="your figure"; }
+  else if(curA && S.heightCm){ bf=rfm(curA,S.heightCm,S.sex); bfFrom="waist estimate"; }
   const fm = ffmi(curW, bf, S.heightCm);
+  const leanNow = (curW!=null && bf!=null) ? curW*(1-bf/100) : null;
   const whtr = (curA && S.heightCm) ? curA/S.heightCm : null;
 
-  // ---- phase, with hysteresis so it doesn't flap at the edges ----
-  let phase = "hold", phaseWhy = "";
-  if(S.mode === "gain"){ phase = "gain"; }
-  else if(S.mode === "cut"){ phase = "cut"; }
-  else if(S.mode === "hold"){ phase = "hold"; }
-  else if(S.bandLowKg != null && S.bandHighKg != null && curW != null){
-    phase = S.phase || (curW >= (S.bandLowKg + S.bandHighKg)/2 ? "cut" : "gain");
-    if(curW >= S.bandHighKg){ phase = "cut"; phaseWhy = "you've reached the top of the band"; }
-    else if(curW <= S.bandLowKg){ phase = "gain"; phaseWhy = "you've reached the bottom of the band"; }
-    if(phase !== S.phase){ state.settings.phase = phase; save(); }
-  } else if(S.mode === "auto"){
-    phase = "hold"; phaseWhy = "no band set yet";
+  const deriveBand = lean => ({ lo: lean/(1-S.bfLow/100), hi: lean/(1-S.bfHigh/100), lean });
+
+  let band = S.lockedBand;
+  if(leanNow!=null && (!band || band.lean==null)){
+    band = deriveBand(leanNow);
+    state.settings.lockedBand = band; save();
   }
 
-  const rate = curW ? curW*( phase==="gain" ? S.gainPct : phase==="cut" ? -S.cutPct : 0 )/100 : 0;
+  let phase="hold", phaseWhy="", turned=false;
+  if(S.mode==="gain") phase="gain";
+  else if(S.mode==="cut") phase="cut";
+  else if(S.mode==="hold") phase="hold";
+  else if(band && curW!=null){
+    phase = S.phase || (curW >= (band.lo+band.hi)/2 ? "cut" : "gain");
+    if(curW >= band.hi){ phase="cut"; phaseWhy="you've reached the top of your range"; }
+    else if(curW <= band.lo){ phase="gain"; phaseWhy="you've reached the bottom of your range"; }
+    if(phase !== S.phase){
+      turned = S.phase != null;
+      state.settings.phase = phase;
+      if(turned && leanNow!=null){ band = deriveBand(leanNow); state.settings.lockedBand = band; }
+      save();
+    }
+  } else if(S.mode==="auto"){ phase="hold"; phaseWhy="there isn't enough data to set your range yet"; }
 
-  // ---- confidence ----
+  const targetRate = curW ? curW*(phase==="gain"?S.gainPct : phase==="cut"?-S.cutPct : 0)/100 : 0;
+
   let conf = "none";
-  if(wTrend && wTrend.n >= 5 && wTrend.span >= 13) conf = "good";
-  else if(wTrend) conf = "thin";
+  if(wTrend && wTrend.n>=5 && wTrend.span>=13) conf="good";
+  else if(wTrend) conf="thin";
 
-  const actual = wTrend ? wTrend.perDay*7 : null;      // kg/week
-  const waistWk = aTrend ? aTrend.perDay*7 : null;     // cm/week
+  const wRate = wTrend ? wTrend.perDay*7 : null;
+  const aRate = aTrend ? aTrend.perDay*7 : null;
 
-  // ---- verdict ----
-  let dir = "wait", kcal = 0, why = [];
-  if(conf !== "none"){
-    const diff = actual - rate;                        // + means gaining faster than wanted
-    kcal = clamp(Math.round(-diff*7700/7/25)*25, -400, 400);
-
-    if(Math.abs(diff) < 0.09) dir = "hold";
-    else dir = diff > 0 ? "less" : "more";
-
-    // Waist guard: in a gaining phase, a waist that's running ahead of plan is the
-    // real signal that the surplus is landing as fat rather than tissue.
-    if(phase === "gain" && waistWk != null && waistWk > 0.18){
-      if(dir === "more"){ dir = "hold"; kcal = 0;
-        why.push("your waist is widening faster than a clean gain should — worth holding intake where it is until it settles, even though the scale looks slow"); }
-      else if(dir === "hold"){ dir = "less"; kcal = -150;
-        why.push("the scale is on plan but your waist is running ahead of it, which usually means the surplus is landing as fat"); }
-      else why.push("your waist is widening quickly, which backs this up");
-    }
-    if(phase === "cut" && waistWk != null && waistWk < -0.05 && dir === "less" && actual > -0.05){
-      why.push("your waist is still coming in even though the scale has stalled, so you may be doing better than it looks");
-    }
+  let P = null;
+  if(wRate!=null && aRate!=null){
+    const days = Math.min(28, Math.max(wTrend.span, aTrend.span));
+    const dW = wRate*days/7, dA = aRate*days/7;
+    const dFat = S.kgPerCm*dA, dLean = dW - dFat;
+    P = { days, dW, dA, dFat, dLean,
+          moved: Math.abs(dW)>=0.6 || Math.abs(dA)>=0.6,
+          leanShare: Math.abs(dW)>0.15 ? dLean/dW : null,
+          recomp: Math.abs(dW)<0.5 && dLean>0.4 };
   }
 
-  return { entries, wPts, wSmooth, wTrend, actual, wm, aTrend, waistWk,
-           curW, lastW, curA, bf, bfFrom, fm, whtr, phase, phaseWhy, rate, conf, dir, kcal, why };
+  return { entries, wPts, wSmooth, wTrend, wRate, wm, aTrend, aRate,
+           curW, curA, bf, bfFrom, fm, leanNow, whtr, band, phase, phaseWhy, turned,
+           targetRate, conf, P, ...decide({phase,conf,wRate,targetRate,P,aRate}) };
 }
 
-/* ============================ rendering ============================ */
-const $ = s => document.querySelector(s);
+function decide(args){
+  const r = decideInner(args);
+  if(r.dir === "hold" || r.dir === "wait") r.kcal = 0;   // a hold is a hold, not a nudge
+  return r;
+}
+function decideInner({phase, conf, wRate, targetRate, P, aRate}){
+  if(conf==="none") return { dir:"wait", kcal:0, why:[] };
 
+  const diff = wRate - targetRate;
+  let kcal = clamp(Math.round(-diff*7700/7/25)*25, -400, 400);
+  let dir = Math.abs(diff) < 0.09 ? "hold" : (diff>0 ? "less" : "more");
+  const why = [];
+
+  if(!P || aRate==null){
+    why.push(`you're moving at ${signed(wRate)} kg/week and the plan wants ${signed(targetRate)}`);
+    why.push("there's no waist trend yet, so this is going on the scale alone");
+    return { dir, kcal, why };
+  }
+
+  if(P.recomp && phase!=="cut"){
+    return { dir:"hold", kcal:0, why:[
+      `your weight is flat but your waist is coming in, which means you're swapping fat for muscle — around ${fx(P.dLean,1)} kg of it over ${P.days} days`,
+      "that's the best outcome available, so change nothing"] };
+  }
+
+  if(!P.moved){
+    why.push("nothing has moved far enough yet to split into muscle and fat — give it another week or two");
+    why.push(`on the scale alone you're at ${signed(wRate)} kg/week against a target of ${signed(targetRate)}`);
+    return { dir, kcal, why };
+  }
+
+  if(phase==="gain" && P.dW > 0){
+    const share = P.leanShare;
+    why.push(`over the last ${P.days} days you've added ${fx(P.dW,1)} kg, and the waist change puts about ${fx(Math.max(P.dLean,0),1)} kg of that as lean`);
+    if(share!=null && share < 0){
+      dir="less"; kcal=Math.min(kcal,-250);
+      why.push("your waist is growing faster than your weight, which means you're losing lean mass while gaining fat — pull the surplus back hard and check protein and training load");
+    } else if(share!=null && share < 0.3){
+      dir="less"; kcal=Math.min(kcal,-150);
+      why.push(`only ${Math.round(share*100)}% of it is lean, which is too fat a gain — the surplus is bigger than you can use`);
+    } else if(share!=null && share < 0.5){
+      if(dir==="more"){ dir="hold"; kcal=0; }
+      why.push(`${Math.round(share*100)}% of it is lean, which is workable but not great — hold here rather than pushing the surplus up`);
+    } else if(share!=null){
+      why.push(`${Math.round(share*100)}% of it is lean, which is a good split`);
+      if(dir==="more") why.push("and you're gaining more slowly than planned, so there's room to eat a bit more");
+      else if(dir==="less") why.push("but you're gaining faster than planned, so ease off slightly to keep the split this clean");
+    }
+    return { dir, kcal, why };
+  }
+
+  if(phase==="cut" && P.dW < 0){
+    const fatShare = P.dFat/P.dW;
+    why.push(`over the last ${P.days} days you've dropped ${fx(-P.dW,1)} kg, and the waist change puts about ${fx(-Math.min(P.dFat,0),1)} kg of that as fat`);
+    if(fatShare < 0.6){
+      dir="more"; kcal=Math.max(kcal,150);
+      why.push(`only ${Math.round(clamp(fatShare,0,1)*100)}% of the loss is fat, so the deficit is costing you muscle — slow it down`);
+    } else if(fatShare < 0.8){
+      if(dir==="less"){ dir="hold"; kcal=0; }
+      why.push(`${Math.round(fatShare*100)}% of the loss is fat, which is acceptable but not clean — don't push the deficit deeper`);
+    } else {
+      why.push(`${Math.round(clamp(fatShare,0,1)*100)}% of the loss is fat, which is about as clean as a cut gets`);
+      if(dir==="less") why.push("and you're losing more slowly than planned");
+      else if(dir==="more") why.push("but you're losing faster than planned, which will start costing muscle if it continues");
+    }
+    return { dir, kcal, why };
+  }
+
+  if(aRate > 0.15){
+    dir="less"; kcal=Math.min(kcal,-150);
+    why.push(`your waist is widening at ${signed(aRate)} cm/week even though the scale says you're roughly steady`);
+  } else {
+    why.push(`you're at ${signed(wRate)} kg/week against a target of ${signed(targetRate)}`);
+  }
+  return { dir, kcal, why };
+}
+
+/* ===================== rendering ===================== */
 function renderVerdict(A){
   const S = state.settings, el = $("#verdict");
-  const nEntries = A.entries.length;
 
-  // --- empty & near-empty states ---
   if(!S.heightCm){
-    el.style.setProperty("--vc","var(--less)");
+    el.style.setProperty("--vc","var(--lean)");
     el.innerHTML = `<div class="eyebrow">Start here</div>
-      <div class="verdict-line">Add your height</div>
-      <div class="verdict-sub" style="color:var(--dim)">Open “Your details &amp; targets” below.</div>
-      <div class="verdict-why">Height sets the whole frame — body fat estimate, FFMI, and the waist ratio all hang off it. Takes ten seconds and you never touch it again.</div>`;
+      <div class="vline">Add your height</div>
+      <div class="vsub" style="color:var(--dim)">Open “Your details &amp; targets” below.</div>
+      <div class="vwhy">Height sets everything else — the body fat estimate, your weight range, and the FFMI figure all hang off it. Ten seconds, and you never touch it again.</div>`;
     return;
   }
-  if(nEntries === 0){
-    el.style.setProperty("--vc","var(--less)");
+  if(!A.entries.length){
+    el.style.setProperty("--vc","var(--lean)");
     el.innerHTML = `<div class="eyebrow">No measurements yet</div>
-      <div class="verdict-line">Log your first morning</div>
-      <div class="verdict-sub" style="color:var(--dim)">Weight and waist, both from the same morning.</div>
-      <div class="verdict-why">One reading tells you almost nothing — day-to-day swings of a kilo or two are just water and gut contents. It takes about a week before the trend underneath becomes visible, and about two before it's worth acting on.</div>`;
+      <div class="vline">Log your first morning</div>
+      <div class="vsub" style="color:var(--dim)">Weight and waist, from the same morning.</div>
+      <div class="vwhy">One reading tells you nothing — day-to-day swings of a kilo or two are water and gut contents. It takes about a week before a trend appears, and two before the muscle-or-fat split means anything.</div>`;
     return;
   }
-  if(A.conf === "none"){
-    const need = A.wTrend ? 0 : Math.max(0, 3 - A.wPts.length);
-    el.style.setProperty("--vc","var(--less)");
-    el.innerHTML = `<div class="verdict-head"><div class="eyebrow">Still gathering</div>
-        <div class="phase-tag">${nEntries} ${nEntries===1?"reading":"readings"}</div></div>
-      <div class="verdict-line">Eat as you have been</div>
-      <div class="verdict-sub" style="color:var(--dim)">${
-        need > 0 ? `${need} more ${need===1?"reading":"readings"} to go` : "a few more days spread out and the trend will show"
-      }</div>
-      <div class="verdict-why">There's no trend to read yet, so changing anything now would be reacting to noise. Keep logging — it needs at least three readings spread across a week before it will call a direction.</div>
+  if(A.dir==="wait"){
+    const need = Math.max(0, 3 - A.wPts.length);
+    el.style.setProperty("--vc","var(--lean)");
+    el.innerHTML = `<div class="vhead"><div class="eyebrow">Still gathering</div>
+        <div class="phase-tag">${A.entries.length} ${A.entries.length===1?"reading":"readings"}</div></div>
+      <div class="vline">Eat as you have been</div>
+      <div class="vsub" style="color:var(--dim)">${need>0
+        ? `${need} more ${need===1?"reading":"readings"} to go`
+        : "a few more days spread out and the trend will show"}</div>
+      <div class="vwhy">There's no trend to read yet, so changing anything now would be reacting to noise. It needs at least three readings across a week before it will call a direction.</div>
       ${readouts(A)}`;
     return;
   }
 
-  // --- the real verdict ---
   const map = {
-    more:{ text:"Eat a little more", c:"var(--more)" },
-    less:{ text:"Eat a little less", c:"var(--less)" },
-    hold:{ text:"Hold intake steady", c:"var(--hold)" }
+    more:{text:"Eat a little more", c:"var(--fat)"},
+    less:{text:"Eat a little less", c:"var(--lean)"},
+    hold:{text:"Hold intake steady", c:"var(--good)"}
   }[A.dir];
   el.style.setProperty("--vc", map.c);
+  const phaseLabel = {gain:"Gaining phase", cut:"Trimming phase", hold:"Holding"}[A.phase];
+  const sub = A.dir==="hold" ? "You're tracking where you should be."
+                             : `About ${A.kcal>0?"+":""}${A.kcal} kcal a day`;
+  const why = [...A.why];
+  if(A.phaseWhy) why.push(`the phase ${A.turned?"just turned":"is set"} because ${A.phaseWhy}`);
+  if(A.conf==="thin") why.push("this is built on thin data, so treat it as a nudge rather than an instruction");
 
-  const phaseLabel = { gain:"Gaining phase", cut:"Trimming phase", hold:"Holding" }[A.phase];
-  const sub = A.dir === "hold"
-    ? "You're tracking where you should be."
-    : `About ${A.kcal>0?"+":""}${A.kcal} kcal a day`;
-
-  let why = [...A.why];
-  if(!why.length){
-    if(A.dir === "hold") why.push(`you're moving at ${signed(A.actual)} kg/week against a target of ${signed(A.rate)}`);
-    else if(A.dir === "more") why.push(`you're moving at ${signed(A.actual)} kg/week and the plan wants ${signed(A.rate)}`);
-    else why.push(`you're moving at ${signed(A.actual)} kg/week and the plan wants ${signed(A.rate)}`);
-  }
-  if(A.phaseWhy) why.push(`the phase flipped because ${A.phaseWhy}`);
-  if(A.conf === "thin") why.push("this is built on thin data, so treat it as a nudge rather than an instruction");
-
-  el.innerHTML = `<div class="verdict-head">
-      <div class="eyebrow">Today</div>
-      <div class="phase-tag">${phaseLabel}</div>
-    </div>
-    <div class="verdict-line">${map.text}</div>
-    <div class="verdict-sub">${sub}</div>
-    <div class="verdict-why">Because ${why.join("; and ")}.</div>
+  el.innerHTML = `<div class="vhead"><div class="eyebrow">Today</div>
+      <div class="phase-tag">${phaseLabel}</div></div>
+    <div class="vline">${map.text}</div>
+    <div class="vsub">${sub}</div>
+    <div class="vwhy">Because ${why.join("; and ")}.</div>
+    ${splitBlock(A)}
     ${readouts(A)}`;
 }
 
-function readouts(A){
-  const S = state.settings;
-  const cells = [];
-  cells.push(["Trend weight", A.curW!=null ? `${fx(A.curW,1)}<small> kg</small>` : "—"]);
-  cells.push(["Rate", A.actual!=null ? `${signed(A.actual)}<small> kg/wk</small>` : "—"]);
-  cells.push(["Trend waist", A.curA!=null ? `${fx(A.curA,1)}<small> cm</small>` : "—"]);
-  cells.push(["Waist rate", A.waistWk!=null ? `${signed(A.waistWk)}<small> cm/wk</small>` : "—"]);
-  if(A.fm) cells.push(["FFMI", `${fx(A.fm.norm,1)}<small> adj</small>`]);
-  if(A.bf!=null) cells.push(["Body fat", `${fx(A.bf,0)}<small> %</small>`]);
-  return `<dl class="readouts">${cells.map(([k,v])=>
-    `<div class="ro"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
+function splitBlock(A){
+  const P = A.P;
+  if(!P || !P.moved) return "";
+  const scale = Math.max(Math.abs(P.dLean), Math.abs(P.dFat), 0.1);
+  const row = (label, val, goodWhenPositive) => {
+    const w = Math.abs(val)/scale*50;
+    const good = goodWhenPositive ? val>0 : val<0;
+    const col = good ? (goodWhenPositive?"var(--lean)":"var(--good)") : "var(--bad)";
+    const left = val>=0 ? 50 : 50-w;
+    return `<div class="bar-row">
+      <div class="bar-lab">${label}</div>
+      <div class="bar-track"><div class="bar-mid"></div>
+        <div class="bar-fill" style="left:${left}%;width:${w}%;background:${col}"></div></div>
+      <div class="bar-num" style="color:${col}">${signed(val,1)} kg</div></div>`;
+  };
+  const headline = P.leanShare!=null
+    ? (P.dW>0 ? `${Math.round(clamp(P.leanShare,-1,1)*100)}% lean`
+              : `${Math.round(clamp(P.dFat/P.dW,0,1)*100)}% fat`)
+    : "Recomposition";
+  const caption = P.dW>0.15 ? "of what you're adding"
+                : P.dW<-0.15 ? "of what you're losing"
+                : "weight flat, waist moving";
+
+  return `<div class="split">
+    <div class="split-head"><div class="eyebrow">Muscle or fat</div>
+      <div class="chart-note">last ${P.days} days</div></div>
+    <div class="split-big">${headline}<small>${caption}</small></div>
+    <div class="bars">${row("Lean", P.dLean, true)}${row("Fat", P.dFat, false)}</div>
+    <div class="hint">Total change ${signed(P.dW,1)} kg with the waist ${P.dA>=0?"out":"in"} ${fx(Math.abs(P.dA),1)} cm, split at ${state.settings.kgPerCm} kg of fat per cm.</div>
+  </div>`;
 }
 
-/* ---------- SVG charts (hand-drawn, sized to the container) ---------- */
+function readouts(A){
+  const c = [];
+  c.push(["Trend weight", A.curW!=null ? `${fx(A.curW,1)}<small> kg</small>` : "—"]);
+  c.push(["Rate", A.wRate!=null ? `${signed(A.wRate)}<small> kg/wk</small>` : "—"]);
+  c.push(["Trend waist", A.curA!=null ? `${fx(A.curA,1)}<small> cm</small>` : "—"]);
+  c.push(["Waist rate", A.aRate!=null ? `${signed(A.aRate)}<small> cm/wk</small>` : "—"]);
+  if(A.leanNow!=null) c.push(["Lean mass", `${fx(A.leanNow,1)}<small> kg</small>`]);
+  if(A.band) c.push(["Your range", `${fx(A.band.lo,0)}–${fx(A.band.hi,0)}<small> kg</small>`]);
+  return `<dl class="readouts">${c.map(([k,v])=>`<div class="ro"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
+}
+
 function chart(host, opts){
-  const W = Math.max(300, host.clientWidth || 660), H = 240;
-  const P = {t:16, r:52, b:26, l:12};
-  const {raw=[], line=[], bands=[], unit="", color="var(--paper)"} = opts;
+  const W = Math.max(300, host.clientWidth || 660), H = 240, P = {t:16,r:56,b:26,l:12};
+  const {raw=[], line=[], bands=[], color="var(--paper)", label=""} = opts;
+  if(!raw.length && !line.length){ host.innerHTML=""; return; }
 
-  if(!raw.length && !line.length){ host.innerHTML = ""; return; }
-
-  const all = [...raw.map(p=>p.v), ...line.map(p=>p.v), ...bands.flatMap(b=>[b.v])];
+  const all = [...raw.map(p=>p.v), ...line.map(p=>p.v), ...bands.map(b=>b.v)];
   let lo = Math.min(...all), hi = Math.max(...all);
-  const padV = Math.max((hi-lo)*0.18, unit==="kg" ? 0.7 : 0.5);
-  lo -= padV; hi += padV;
+  const padV = Math.max((hi-lo)*0.18, 0.6); lo-=padV; hi+=padV;
   const ts = [...raw.map(p=>p.t), ...line.map(p=>p.t)];
   let t0 = Math.min(...ts), t1 = Math.max(...ts);
-  if(t1 === t0){ t0 -= 3; t1 += 3; }
+  if(t1===t0){ t0-=3; t1+=3; }
+  const X = t => P.l + (t-t0)/(t1-t0)*(W-P.l-P.r);
+  const Y = v => P.t + (hi-v)/(hi-lo)*(H-P.t-P.b);
 
-  const X = t => P.l + (t - t0)/(t1 - t0)*(W - P.l - P.r);
-  const Y = v => P.t + (hi - v)/(hi - lo)*(H - P.t - P.b);
-  const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label||"chart")}">`;
-
-  // shaded band between two horizontal marks (the oscillation range)
-  if(bands.length === 2){
-    const y1 = Y(Math.max(bands[0].v, bands[1].v)), y2 = Y(Math.min(bands[0].v, bands[1].v));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">`;
+  if(bands.length===2){
+    const y1=Y(Math.max(bands[0].v,bands[1].v)), y2=Y(Math.min(bands[0].v,bands[1].v));
     s += `<rect x="${P.l}" y="${y1}" width="${W-P.l-P.r}" height="${Math.max(0,y2-y1)}" fill="var(--band)"/>`;
   }
   for(const b of bands){
     const y = Y(b.v);
-    s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 4"/>
-          <text x="${W-P.r+8}" y="${y+4}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${esc(b.label)}</text>`;
+    s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--rule)" stroke-dasharray="3 4"/>
+      <text x="${W-P.r+8}" y="${y+4}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${esc(b.label)}</text>`;
   }
-
-  // gridlines
-  for(let i=0;i<=2;i++){
-    const v = lo + (hi-lo)*(i/2), y = Y(v);
-    if(!bands.length) s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--rule)" stroke-width="1" opacity=".55"/>`;
-    if(bands.length && i===1) {}
-    s += `<text x="${W-P.r+8}" y="${y+4}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5" opacity="${bands.length?0:1}">${v.toFixed(1)}</text>`;
+  if(!bands.length){
+    for(let i=0;i<=2;i++){
+      const v = lo+(hi-lo)*(i/2), y = Y(v);
+      s += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--rule)" opacity=".55"/>
+        <text x="${W-P.r+8}" y="${y+4}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${v.toFixed(1)}</text>`;
+    }
   }
-
-  // raw readings as small ticks
-  for(const p of raw){
-    s += `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.4" fill="var(--raw)"/>`;
-  }
-
-  // smoothed line
-  if(line.length > 1){
-    const d = line.map((p,i)=>`${i?"L":"M"}${X(p.t).toFixed(1)} ${Y(p.v).toFixed(1)}`).join(" ");
-    s += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  for(const p of raw) s += `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.4" fill="var(--raw)"/>`;
+  if(line.length>1){
+    s += `<path d="${line.map((p,i)=>`${i?"L":"M"}${X(p.t).toFixed(1)} ${Y(p.v).toFixed(1)}`).join(" ")}"
+      fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
   if(line.length){
-    const last = line[line.length-1];
-    s += `<circle cx="${X(last.t).toFixed(1)}" cy="${Y(last.v).toFixed(1)}" r="4.5" fill="${color}"/>
-          <text x="${X(last.t).toFixed(1)}" y="${(Y(last.v)-13).toFixed(1)}" text-anchor="end"
-            fill="var(--paper)" font-family="var(--mono)" font-size="12.5">${last.v.toFixed(1)}</text>`;
+    const L = line[line.length-1];
+    s += `<circle cx="${X(L.t).toFixed(1)}" cy="${Y(L.v).toFixed(1)}" r="4.5" fill="${color}"/>
+      <text x="${X(L.t).toFixed(1)}" y="${(Y(L.v)-13).toFixed(1)}" text-anchor="end" fill="var(--paper)"
+        font-family="var(--mono)" font-size="12.5">${L.v.toFixed(1)}</text>`;
   }
-
-  // x labels
   const fmt = t => new Date(t*DAY).toLocaleDateString(undefined,{day:"numeric",month:"short"});
-  s += `<text x="${P.l}" y="${H-6}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${fmt(t0)}</text>`;
-  s += `<text x="${W-P.r}" y="${H-6}" text-anchor="end" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${fmt(t1)}</text>`;
-  s += `</svg>`;
+  s += `<text x="${P.l}" y="${H-6}" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${fmt(t0)}</text>
+    <text x="${W-P.r}" y="${H-6}" text-anchor="end" fill="var(--dimmer)" font-family="var(--mono)" font-size="10.5">${fmt(t1)}</text></svg>`;
   host.innerHTML = s;
 }
 
-function gauge(label, value, zones, unit, extra){
-  const lo = zones[0][0], hi = zones[zones.length-1][1];
-  const inRange = value!=null ? clamp(value, lo, hi) : null;
-  const pct = inRange!=null ? (inRange-lo)/(hi-lo)*100 : null;
-  let zoneName = "—";
-  if(value!=null) for(const [a,b,n] of zones) if(value >= a && value < b) zoneName = n;
-  if(value!=null && value >= hi) zoneName = zones[zones.length-1][2];
-
-  const segs = zones.map(([a,b],i)=>
-    `<div style="flex:${b-a};background:${ZONE_COLOR[i]};opacity:.72"></div>`).join("");
-
-  return `<div>
-    <div class="gauge-top">
-      <div class="eyebrow">${label}</div>
-      <div style="color:var(--dim);font-size:13px">${zoneName}</div>
-    </div>
-    <div class="gauge-val" style="margin:4px 0 9px">${value==null?"—":value.toFixed(1)}<small> ${unit}</small>${
-      extra ? `<small style="margin-left:10px">${extra}</small>` : ""}</div>
-    <div style="position:relative;height:9px;border-radius:5px;overflow:hidden;display:flex">${segs}</div>
-    ${pct!=null ? `<div style="position:relative;height:15px">
-      <div style="position:absolute;left:${pct.toFixed(2)}%;transform:translateX(-50%);
-        width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
-        border-bottom:7px solid var(--mark);margin-top:2px"></div></div>` : `<div style="height:15px"></div>`}
-    <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dimmer)">
-      <span>${lo}</span><span>${hi}</span></div>
-  </div>`;
-}
-
 function renderCharts(A){
-  const S = state.settings;
-  const bands = [];
-  if(S.mode === "auto" && S.bandLowKg != null && S.bandHighKg != null){
-    bands.push({v:S.bandHighKg, label:"turn down"}, {v:S.bandLowKg, label:"turn up"});
-  }
+  const S = state.settings, bands = [];
+  if(S.mode==="auto" && A.band)
+    bands.push({v:A.band.hi, label:`${S.bfHigh}% bf`}, {v:A.band.lo, label:`${S.bfLow}% bf`});
+
   const wHost = $("#wt-chart");
   if(!A.wPts.length){
-    wHost.innerHTML = `<div class="empty"><strong>No weight logged yet</strong>Your first entry starts the line. It'll take about a week before the smoothed trend means much.</div>`;
+    wHost.innerHTML = `<div class="empty"><strong>No weight logged yet</strong>Your first entry starts the line.</div>`;
     $("#wt-note").textContent = "";
   } else {
-    chart(wHost, {raw:A.wPts, line:A.wSmooth, bands, unit:"kg",
-      color:"var(--paper)", label:"Weight over time with smoothed trend"});
-    $("#wt-note").textContent = A.wPts.length === 1
-      ? "one reading — dots are raw, the line appears as you add more"
-      : `${A.wPts.length} readings · dots raw, line smoothed`;
+    chart(wHost, {raw:A.wPts, line:A.wSmooth, bands, color:"var(--paper)",
+      label:"Weight over time with smoothed trend and target range"});
+    $("#wt-note").textContent = A.band
+      ? `range ${fx(A.band.lo,1)}–${fx(A.band.hi,1)} kg, from ${fx(A.band.lean,1)} kg lean`
+      : `${A.wPts.length} readings`;
   }
 
   const aHost = $("#wa-chart");
   if(!A.wm.adjusted.length){
-    aHost.innerHTML = `<div class="empty"><strong>No waist logged yet</strong>This is the measurement that tells you whether the weight you're adding is muscle or not.</div>`;
+    aHost.innerHTML = `<div class="empty"><strong>No waist logged yet</strong>Without it there's no way to tell muscle from fat — the scale alone can't.</div>`;
     $("#wa-note").textContent = "";
   } else {
-    chart(aHost, {raw:A.wm.adjusted, line:A.wm.smooth, unit:"cm",
-      color:"var(--less)", label:"Waist over time, adjusted for food, with smoothed trend"});
-    $("#wa-note").textContent = A.wm.beta > 0
-      ? (A.wm.learned
-          ? `learned your food effect: ${A.wm.beta.toFixed(2)} cm per point`
-          : `assuming ${A.wm.beta.toFixed(2)} cm per food point until it learns yours`)
+    chart(aHost, {raw:A.wm.adjusted, line:A.wm.smooth, color:"var(--lean)",
+      label:"Waist over time, adjusted for food, with smoothed trend"});
+    $("#wa-note").textContent = A.wm.beta>0
+      ? (A.wm.learned ? `learned your food effect: ${A.wm.beta.toFixed(2)} cm per point`
+                      : `assuming ${A.wm.beta.toFixed(2)} cm per food point until it learns yours`)
       : "rate more days to strip out the food effect";
   }
 }
 
+function gauge(label, value, zones, unit, extra){
+  const lo = zones[0][0], hi = zones[zones.length-1][1];
+  const pct = value!=null ? (clamp(value,lo,hi)-lo)/(hi-lo)*100 : null;
+  let zoneName = "—";
+  if(value!=null){
+    for(const [a,b,n] of zones) if(value>=a && value<b) zoneName=n;
+    if(value>=hi) zoneName = zones[zones.length-1][2];
+    if(value<lo)  zoneName = zones[0][2];
+  }
+  const segs = zones.map(([a,b],i)=>`<div style="flex:${b-a};background:${ZONE_COLOR[i]};opacity:.72"></div>`).join("");
+  return `<div>
+    <div class="gauge-top"><div class="eyebrow">${label}</div>
+      <div style="color:var(--dim);font-size:13px">${zoneName}</div></div>
+    <div class="gauge-val" style="margin:4px 0 9px">${value==null?"—":value.toFixed(1)}<small> ${unit}</small>${
+      extra?`<small style="margin-left:10px">${extra}</small>`:""}</div>
+    <div style="height:9px;border-radius:5px;overflow:hidden;display:flex">${segs}</div>
+    ${pct!=null?`<div style="position:relative;height:15px"><div style="position:absolute;left:${pct.toFixed(2)}%;
+      transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+      border-bottom:7px solid var(--mark);margin-top:2px"></div></div>`:`<div style="height:15px"></div>`}
+    <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dimmer)">
+      <span>${lo}</span><span>${hi}</span></div></div>`;
+}
+
 function renderGauges(A){
   const S = state.settings, host = $("#gauges");
-  if(A.fm == null && A.bf == null){
-    host.innerHTML = `<div class="empty"><strong>Nothing to place yet</strong>Log a weight and a waist, and add your height, and this fills in.</div>`;
-    $("#comp-note").textContent = "";
-    return;
+  if(A.fm==null && A.bf==null){
+    host.innerHTML = `<div class="empty"><strong>Nothing to place yet</strong>Log a weight and a waist and this fills in.</div>`;
+    $("#comp-note").textContent = ""; return;
   }
-  const bfExtra = A.bfFrom ? `from ${A.bfFrom}` : "";
-  const ffmiExtra = A.fm ? `${fx(A.fm.lean,1)} kg lean · raw ${fx(A.fm.raw,1)}` : "";
-  host.innerHTML =
-    gauge("Body fat", A.bf, BF_ZONES[S.sex], "%", bfExtra) +
-    gauge("FFMI, height-adjusted", A.fm ? A.fm.norm : null, FFMI_ZONES[S.sex], "", ffmiExtra) +
-    (A.whtr != null ? `<div>
-        <div class="gauge-top"><div class="eyebrow">Waist to height</div>
-          <div style="color:var(--dim);font-size:13px">${A.whtr < 0.5 ? "under the 0.50 line" : "over the 0.50 line"}</div></div>
-        <div class="gauge-val" style="margin-top:4px">${A.whtr.toFixed(3)}<small style="margin-left:10px">keep waist under ${fx(S.heightCm/2,0)} cm</small></div>
-      </div>` : "");
+  let ffmiExtra = "";
+  if(A.fm && S.ffmiGoal && S.heightCm){
+    const h = S.heightCm/100;
+    const goalLean = (S.ffmiGoal - 6.1*(1.8-h))*h*h;
+    const togo = goalLean - A.fm.lean;
+    ffmiExtra = togo>0.3 ? `${fx(togo,1)} kg lean to reach ${S.ffmiGoal}` : `at or past your ${S.ffmiGoal} target`;
+  } else if(A.fm) ffmiExtra = `${fx(A.fm.lean,1)} kg lean · raw ${fx(A.fm.raw,1)}`;
 
-  $("#comp-note").innerHTML = A.bfFrom === "waist estimate"
-    ? `The body fat figure comes from your waist and height, which is the most reliable thing you can do with a tape measure — but it can't tell a thick, muscular torso from a fat one, so on a heavily trained build it tends to read a few points high. Everything downstream of it, FFMI included, inherits that. Treat the direction of travel as solid and the absolute number as approximate.`
-    : `FFMI here is height-adjusted, so it's comparable across heights. Around 25 is the commonly cited natural ceiling, from a fairly small study with well-documented exceptions above it — a landmark, not a wall.`;
+  host.innerHTML =
+    gauge("Body fat", A.bf, BF_ZONES[S.sex], "%", A.bfFrom?`from ${A.bfFrom}`:"") +
+    gauge("FFMI, height-adjusted", A.fm?A.fm.norm:null, FFMI_ZONES[S.sex], "", ffmiExtra) +
+    (A.whtr!=null?`<div><div class="gauge-top"><div class="eyebrow">Waist to height</div>
+      <div style="color:var(--dim);font-size:13px">${A.whtr<0.5?"under the 0.50 line":"over the 0.50 line"}</div></div>
+      <div class="gauge-val" style="margin-top:4px">${A.whtr.toFixed(3)}<small style="margin-left:10px">keep waist under ${fx(S.heightCm/2,0)} cm</small></div></div>`:"");
+
+  $("#comp-note").innerHTML = `FFMI is here because it's interesting, not because it drives anything — it's a snapshot of how much muscle you carry for your height, and around 25 is the commonly cited natural ceiling for men, from a small study with well-documented exceptions above it. Day-to-day decisions come from the muscle-or-fat split instead.${
+    A.bfFrom==="waist estimate" ? ` The body fat figure feeding it is estimated from waist and height, which can't tell a thick muscular torso from a fat one and so reads a few points high on trained builds.` : ""}`;
 }
 
 function renderHistory(A){
@@ -813,23 +796,19 @@ function renderHistory(A){
     host.innerHTML = `<div class="empty"><strong>Nothing logged yet</strong>Saved measurements appear here, newest first.</div>`;
     return;
   }
-  const rows = [...A.entries].reverse().map(e => {
-    const late = e.recordedAt && e.recordedAt.slice(0,10) !== e.date;
-    return `<tr>
-      <td>${prettyDate(e.date)}${late?`<span style="color:var(--dimmer)"> ·logged later</span>`:""}</td>
-      <td class="num">${e.weightKg!=null ? e.weightKg.toFixed(1) : "—"}</td>
-      <td class="num">${e.waistCm!=null ? e.waistCm.toFixed(1) : "—"}</td>
-      <td class="num">${e.food ?? "—"}</td>
-      <td class="act"><button class="link" data-del="${e.date}">delete</button></td>
-    </tr>`;
-  }).join("");
-  host.innerHTML = `<table><thead><tr>
-      <th>Date</th><th>Weight</th><th>Waist</th><th>Food</th><th></th>
-    </tr></thead><tbody>${rows}</tbody></table>`;
-  host.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+  host.innerHTML = `<table><thead><tr><th>Date</th><th>Weight</th><th>Waist</th><th>Food</th><th></th></tr></thead><tbody>${
+    [...A.entries].reverse().map(e=>{
+      const late = e.recordedAt && e.recordedAt.slice(0,10)!==e.date;
+      return `<tr><td>${prettyDate(e.date)}${late?`<span style="color:var(--dimmer)"> ·logged later</span>`:""}</td>
+        <td>${e.weightKg!=null?e.weightKg.toFixed(1):"—"}</td>
+        <td>${e.waistCm!=null?e.waistCm.toFixed(1):"—"}</td>
+        <td>${e.food??"—"}</td>
+        <td class="act"><button class="link" data-del="${e.date}">delete</button></td></tr>`;
+    }).join("")}</tbody></table>`;
+  host.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
     const d = b.dataset.del;
     if(confirm(`Delete the entry for ${prettyDate(d)}?`)){
-      state.entries = state.entries.filter(e => e.date !== d);
+      state.entries = state.entries.filter(e=>e.date!==d);
       save(); render(); toast("Entry deleted");
     }
   }));
@@ -838,114 +817,115 @@ function renderHistory(A){
 let lastA = null;
 function render(){
   const A = analyse(); lastA = A;
-  renderVerdict(A);
-  renderCharts(A);
-  renderGauges(A);
-  renderHistory(A);
-  syncSettingsForm();
+  renderVerdict(A); renderCharts(A); renderGauges(A); renderHistory(A);
+  syncSettingsForm(A);
 }
 
-/* ============================ settings form ============================ */
-function syncSettingsForm(){
-  const S = state.settings;
-  $("#s-height").value = S.heightCm ?? "";
-  $("#s-sex").value    = S.sex;
-  $("#s-mode").value   = S.mode;
-  $("#s-low").value    = S.bandLowKg ?? "";
-  $("#s-high").value   = S.bandHighKg ?? "";
-  $("#s-gain").value   = S.gainPct;
-  $("#s-cut").value    = S.cutPct;
-  $("#s-bfsrc").value  = S.bfSource;
-  $("#s-bf").value     = S.manualBf ?? "";
-  $("#band-fields").style.display = S.mode === "auto" ? "" : "none";
-  $("#s-bf").disabled = S.bfSource !== "manual";
+/* ===================== settings ===================== */
+function renderPresets(){
+  const S = state.settings, sex = $("#s-sex").value || S.sex;
+  $("#presets").innerHTML = PRESETS[sex].map(p=>`
+    <input type="radio" name="preset" id="pre-${p.id}" value="${p.id}" ${S.preset===p.id?"checked":""}>
+    <label for="pre-${p.id}">${p.name}${p.rec?` <span class="rec-flag">rec</span>`:""}
+      <em>${p.lo}–${p.hi}% · ${p.note}</em></label>`).join("") + `
+    <input type="radio" name="preset" id="pre-custom" value="custom" ${S.preset==="custom"?"checked":""}>
+    <label for="pre-custom">Custom<em>set your own below</em></label>`;
+  $("#presets").querySelectorAll('input[name="preset"]').forEach(r=>r.addEventListener("change",()=>{
+    const p = PRESETS[$("#s-sex").value].find(x=>x.id===r.value);
+    if(p){ $("#s-bflow").value=p.lo; $("#s-bfhigh").value=p.hi; }
+  }));
 }
-$("#s-mode").addEventListener("change", e => {
-  $("#band-fields").style.display = e.target.value === "auto" ? "" : "none";
-});
-$("#s-bfsrc").addEventListener("change", e => { $("#s-bf").disabled = e.target.value !== "manual"; });
+function syncSettingsForm(A){
+  const S = state.settings;
+  $("#s-height").value=S.heightCm ?? "";
+  $("#s-sex").value=S.sex;
+  $("#s-mode").value=S.mode;
+  $("#s-bflow").value=S.bfLow; $("#s-bfhigh").value=S.bfHigh;
+  $("#s-gain").value=S.gainPct; $("#s-cut").value=S.cutPct;
+  $("#s-bfsrc").value=S.bfSource; $("#s-bf").value=S.manualBf ?? "";
+  $("#s-k").value=S.kgPerCm; $("#s-ffmi").value=S.ffmiGoal ?? "";
+  $("#s-bf").disabled = S.bfSource!=="manual";
+  renderPresets();
+  const d = $("#derived-band");
+  if(A && A.band && A.leanNow!=null){
+    d.innerHTML = `Lean mass right now <span>≈</span> ${fx(A.leanNow,1)} kg<br>
+      At ${S.bfLow}% that's <span>≈</span> ${fx(A.band.lo,1)} kg · at ${S.bfHigh}% <span>≈</span> ${fx(A.band.hi,1)} kg
+      <br><span>Recalculated each time the phase turns, so it rises as you do.</span>`;
+  } else {
+    d.innerHTML = `<span>Log a weight and a waist and your weight range appears here automatically.</span>`;
+  }
+}
+$("#s-sex").addEventListener("change", renderPresets);
+$("#s-bfsrc").addEventListener("change", e => { $("#s-bf").disabled = e.target.value!=="manual"; });
 
 $("#save-settings").addEventListener("click", () => {
   const S = state.settings;
   const h = num($("#s-height").value);
-  if(h != null && (h < 100 || h > 250)) return toast("Height should be in centimetres");
-  S.heightCm  = h;
-  S.sex       = $("#s-sex").value;
+  if(h!=null && (h<100||h>250)) return toast("Height should be in centimetres");
+  const lo = num($("#s-bflow").value), hi = num($("#s-bfhigh").value);
+  if(lo==null || hi==null) return toast("Set both ends of your body fat range");
+  if(lo >= hi) return toast("The leanest figure has to be below the fullest one");
+  if(lo < 3 || hi > 45) return toast("That body fat range looks out of bounds");
+
+  S.heightCm=h; S.sex=$("#s-sex").value;
+  const sel = document.querySelector('input[name="preset"]:checked');
+  S.preset = sel ? sel.value : "custom";
+  S.bfLow=lo; S.bfHigh=hi;
   const newMode = $("#s-mode").value;
-  if(newMode !== S.mode) S.phase = null;
-  S.mode      = newMode;
-  S.bandLowKg = num($("#s-low").value);
-  S.bandHighKg= num($("#s-high").value);
-  if(S.bandLowKg != null && S.bandHighKg != null && S.bandLowKg >= S.bandHighKg)
-    return toast("The turn-up weight has to be below the turn-down weight");
-  S.gainPct   = num($("#s-gain").value) ?? 0.25;
-  S.cutPct    = num($("#s-cut").value) ?? 0.5;
-  S.bfSource  = $("#s-bfsrc").value;
-  S.manualBf  = num($("#s-bf").value);
+  if(newMode!==S.mode){ S.mode=newMode; S.phase=null; }
+  S.gainPct = num($("#s-gain").value) ?? 0.25;
+  S.cutPct  = num($("#s-cut").value) ?? 0.5;
+  S.bfSource= $("#s-bfsrc").value;
+  S.manualBf= num($("#s-bf").value);
+  S.kgPerCm = clamp(num($("#s-k").value) ?? 1.0, 0.2, 3);
+  S.ffmiGoal= num($("#s-ffmi").value);
+  S.lockedBand = null;
   save(); render(); toast("Details saved");
 });
 
-/* ============================ logging ============================ */
-function foodValue(){
+/* ===================== logging ===================== */
+const foodValue = () => {
   const c = document.querySelector('input[name="food"]:checked');
-  const v = c ? c.value : "";
-  return v === "" ? null : parseInt(v, 10);
-}
-function resetFood(){ $("#food-none").checked = true; }
-
+  return (!c || c.value==="") ? null : parseInt(c.value,10);
+};
 $("#f-date").value = localDateStr();
 $("#f-date").max = localDateStr();
-
-// If you pick a date you've already logged, load it so you're editing, not duplicating.
 $("#f-date").addEventListener("change", () => {
-  const e = state.entries.find(x => x.date === $("#f-date").value);
+  const e = state.entries.find(x=>x.date===$("#f-date").value);
   if(e){
     $("#f-weight").value = e.weightKg ?? "";
     $("#f-waist").value  = e.waistCm ?? "";
-    const r = document.getElementById(e.food != null ? `food-${e.food}` : "food-none");
+    const r = document.getElementById(e.food!=null?`food-${e.food}`:"food-none");
     if(r) r.checked = true;
     $("#save-note").textContent = "Editing the entry already saved for this date.";
-  } else {
-    $("#save-note").textContent = "";
-  }
+  } else $("#save-note").textContent = "";
 });
-
 $("#save").addEventListener("click", () => {
   const date = $("#f-date").value || localDateStr();
-  const w = num($("#f-weight").value);
-  const a = num($("#f-waist").value);
-  if(w == null && a == null) return toast("Enter a weight or a waist measurement");
-  if(w != null && (w < 20 || w > 400)) return toast("That weight doesn't look right — kilograms?");
-  if(a != null && (a < 40 || a > 250)) return toast("That waist doesn't look right — centimetres?");
+  const w = num($("#f-weight").value), a = num($("#f-waist").value);
+  if(w==null && a==null) return toast("Enter a weight or a waist measurement");
+  if(w!=null && (w<20||w>400)) return toast("That weight doesn't look right — kilograms?");
+  if(a!=null && (a<40||a>250)) return toast("That waist doesn't look right — centimetres?");
 
-  const entry = {
-    date,
-    weightKg: w,
-    waistCm: a,
-    food: foodValue(),
-    recordedAt: localStamp()        // when it was typed in; `date` is when it happened
-  };
-  const i = state.entries.findIndex(e => e.date === date);
-  const replaced = i >= 0;
-  if(replaced) state.entries[i] = entry; else state.entries.push(entry);
-  state.entries.sort((x,y) => x.date.localeCompare(y.date));
+  const entry = { date, weightKg:w, waistCm:a, food:foodValue(), recordedAt:localStamp() };
+  const i = state.entries.findIndex(e=>e.date===date);
+  const replaced = i>=0;
+  if(replaced) state.entries[i]=entry; else state.entries.push(entry);
+  state.entries.sort((x,y)=>x.date.localeCompare(y.date));
   save();
-
-  $("#f-weight").value = ""; $("#f-waist").value = ""; resetFood();
-  $("#f-date").value = localDateStr();
-  $("#save-note").textContent = "";
+  $("#f-weight").value=""; $("#f-waist").value=""; $("#food-none").checked=true;
+  $("#f-date").value = localDateStr(); $("#save-note").textContent="";
   render();
   toast(replaced ? `Updated ${prettyDate(date)}` : `Saved for ${daysAgoLabel(date)}`);
 });
 
-/* ============================ export / import ============================ */
+/* ===================== export / import ===================== */
 $("#export").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `tideline-${localDateStr()}.json`;
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href=url; a.download=`tideline-${localDateStr()}.json`;
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast("Data exported");
 });
 $("#import-btn").addEventListener("click", () => $("#import").click());
@@ -958,28 +938,27 @@ $("#import").addEventListener("change", ev => {
       if(!p || !Array.isArray(p.entries)) throw new Error("no entries");
       if(!confirm(`Replace what's here with ${p.entries.length} imported entries?`)) return;
       state.settings = {...DEFAULTS, ...(p.settings||{})};
-      state.entries = p.entries.filter(e => e && typeof e.date === "string");
-      state.entries.sort((x,y) => x.date.localeCompare(y.date));
+      state.entries = p.entries.filter(e=>e && typeof e.date==="string").sort((x,y)=>x.date.localeCompare(y.date));
       save(); render(); toast(`Imported ${state.entries.length} entries`);
     }catch(e){ toast("That file isn't a Tideline export"); }
-    ev.target.value = "";
+    ev.target.value="";
   };
   r.readAsText(f);
 });
 
-/* ============================ misc ============================ */
+/* ===================== misc ===================== */
 let toastTimer;
 function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("on");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("on"), 2600);
 }
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if(lastA) renderCharts(lastA); }, 140);
+  resizeTimer = setTimeout(()=>{ if(lastA) renderCharts(lastA); }, 140);
 });
 document.addEventListener("keydown", e => {
-  if(e.key === "Enter" && ["f-weight","f-waist","f-date"].includes(e.target.id)) $("#save").click();
+  if(e.key==="Enter" && ["f-weight","f-waist","f-date"].includes(e.target.id)) $("#save").click();
 });
 
 load();
