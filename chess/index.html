@@ -781,6 +781,27 @@ const MQTT_BROKERS = [
   'wss://public:public@public.cloud.shiftr.io'
 ];
 
+// Trystero only supplies STUN by default (Google + Cloudflare), which tells each
+// side its own public address but can't help when both ends sit behind a NAT that
+// refuses unsolicited inbound packets — symmetric NAT, most corporate networks,
+// a lot of mobile carriers. Then the two sides find each other through the relays
+// and still can't open a connection. TURN fixes that by relaying the traffic.
+//
+// These are Open Relay's free public servers: no signup, best-effort, and shared
+// with the whole internet. Port 443 over TCP is listed because some networks drop
+// UDP entirely. For something dependable, put your own credentials here — see the
+// README.
+const TURN_SERVERS = [
+  { urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:staticauth.openrelay.metered.ca:80',
+    username: 'openrelayproject', credential: 'openrelayproject' }
+];
+
 const el = id => document.getElementById(id);
 const boardEl = el('board');
 
@@ -796,6 +817,7 @@ let peers = new Set();
 /* engine / hints */
 let hintsOn = false;
 let peerHints = false;
+let handshakeFailed = false;   // found each other, but no direct connection
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
@@ -873,7 +895,7 @@ function makeCode() {
 
 /* ---------- networking ---------- */
 function connect() {
-  const base = { appId: APP_ID, password: code };
+  const base = { appId: APP_ID, password: code, turnConfig: TURN_SERVERS };
 
   const strategies = [
     { join: joinNostr, urls: NOSTR_RELAYS },
@@ -893,7 +915,17 @@ function connect() {
           }
         },
         code,
-        { onJoinError: err => console.warn('relay join failed', err) }
+        {
+          onJoinError: err => {
+            console.warn('join failed', err);
+            // "could not connect to peer" means signalling worked and the direct
+            // connection is what failed — a different problem, and worth saying so.
+            if (String(err && err.error).includes('could not connect to peer')) {
+              handshakeFailed = true;
+              drawStatus();
+            }
+          }
+        }
       );
     } catch (e) {
       console.warn('strategy unavailable', e);
@@ -906,6 +938,7 @@ function connect() {
 
     room.onPeerJoin = id => {
       peers.add(id);
+      handshakeFailed = false;
       setLink();
       sendState();
       broadcast({ t: 'hint', on: hintsOn });
@@ -1216,10 +1249,17 @@ function drawStatus() {
     note.removeAttribute('title');
   } else {
     const { open, total } = relayHealth();
-    note.textContent = total && !open
-      ? 'Can’t reach the network at the moment. A firewall, VPN or browser extension may be blocking the connection.'
-      : 'Waiting for them to open the link. You both need the page open for a move to cross.';
-    // counts kept out of the copy but available on hover / in the console
+    if (handshakeFailed) {
+      // The relays did their job; the direct link is what failed.
+      note.textContent = 'Found them, but couldn’t open a direct connection. ' +
+        'One of you switching between wifi and mobile data usually fixes it.';
+    } else if (total && !open) {
+      note.textContent = 'Can’t reach the network at the moment. ' +
+        'A firewall, VPN or browser extension may be blocking the connection.';
+    } else {
+      note.textContent = 'Waiting for them to open the link. ' +
+        'You both need the page open for a move to cross.';
+    }
     note.title = `${open} of ${total} relays reachable`;
   }
 }
