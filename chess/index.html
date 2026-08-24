@@ -9,15 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ground: #171a1d;
-    --panel: #1f2429;
-    --edge: #2c333a;
-    --bone: #c9c0b1;
-    --slate: #5c6570;
+    --ground: #15181b;
+    --panel: #1d2226;
+    --edge: #2b3238;
+    --sq-light: #ada497;   /* both squares sit mid-tone so near-white and */
+    --sq-dark:  #535d61;   /* near-black pieces both read on either one   */
     --brass: #c8a35b;
     --brass-dim: #6d5a33;
     --text: #e8e6e1;
     --muted: #8b9198;
+    --danger: #c05a4a;
     --display: "Bodoni Moda", Georgia, serif;
     --mono: "IBM Plex Mono", ui-monospace, monospace;
   }
@@ -43,7 +44,7 @@
 
   .wrap { width: 100%; max-width: 460px; }
 
-  /* ---- connection thread: the signature element ---- */
+  /* ---- connection thread ---- */
   .thread {
     height: 2px;
     width: 100%;
@@ -69,10 +70,6 @@
   @keyframes seek {
     0%   { transform: translateX(-100%) scaleX(.35); }
     100% { transform: translateX(300%) scaleX(.35); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
-    * { transition: none !important; }
   }
 
   header {
@@ -104,11 +101,10 @@
     font-family: var(--display);
     font-size: 19px;
     line-height: 1.5;
-    color: var(--text);
     margin: 0 0 26px;
   }
   fieldset { border: 0; padding: 0; margin: 0 0 22px; }
-  legend {
+  legend, .label {
     font-size: 11px;
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -142,10 +138,10 @@
     cursor: pointer;
     transition: border-color .15s, color .15s;
   }
-  button:hover { border-color: var(--brass-dim); }
+  button:hover:not(:disabled) { border-color: var(--brass-dim); }
   button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
   button.primary { border-color: var(--brass); color: var(--brass); width: 100%; }
-  button:disabled { opacity: .4; cursor: default; }
+  button:disabled { opacity: .35; cursor: default; }
 
   /* ---- invite ---- */
   .invite { margin-top: 30px; }
@@ -162,26 +158,44 @@
     font-size: 12px;
     line-height: 1.6;
     color: var(--muted);
-    margin: 18px 0 0;
+    margin: 16px 0 0;
   }
 
-  /* ---- board ---- */
+  /* ---- game layout ---- */
   .status {
     font-family: var(--display);
     font-size: 22px;
     line-height: 1.3;
-    margin: 26px 0 14px;
+    margin: 24px 0 12px;
     min-height: 29px;
   }
   .status.urgent { color: var(--brass); }
 
+  /* ---- captured strips ---- */
+  .taken {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    height: 26px;
+    margin: 6px 0;
+  }
+  .taken svg { width: 19px; height: 19px; display: block; opacity: .75; }
+  .taken .adv {
+    font-size: 12px;
+    color: var(--brass);
+    margin-left: 8px;
+    letter-spacing: .02em;
+  }
+
+  /* ---- board ---- */
   .board {
     width: 100%;
     aspect-ratio: 1;
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
-    border: 1px solid var(--edge);
+    outline: 1px solid var(--brass-dim);
+    outline-offset: 3px;
     user-select: none;
     touch-action: manipulation;
   }
@@ -191,64 +205,71 @@
     align-items: center;
     justify-content: center;
     cursor: default;
-    font-size: min(9vw, 42px);
-    line-height: 1;
   }
-  .sq.light { background: var(--bone); }
-  .sq.dark  { background: var(--slate); }
+  .sq.light { background: var(--sq-light); }
+  .sq.dark  { background: var(--sq-dark); }
+
+  /* last move: a quiet wash, under the piece */
   .sq.last::before {
     content: "";
     position: absolute;
     inset: 0;
     background: var(--brass);
-    opacity: .28;
+    opacity: .22;
   }
-  .sq.sel::before {
+  /* selection and check: rings, so the piece itself stays fully readable */
+  .sq.sel::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: var(--brass);
-    opacity: .45;
+    border: 3px solid var(--brass);
   }
-  .sq.check::before {
+  .sq.check::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: #b4453a;
-    opacity: .5;
+    border: 3px solid var(--danger);
   }
   .sq.playable { cursor: pointer; }
+
+  .sq svg.pc {
+    position: relative;
+    width: 92%;
+    height: 92%;
+    display: block;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+  }
+  .sq svg.pc.moved { animation: settle .22s ease-out; }
+  @keyframes settle {
+    from { transform: scale(1.14); }
+    to   { transform: scale(1); }
+  }
+
   .sq .dot {
     position: absolute;
-    width: 26%;
-    height: 26%;
+    width: 24%;
+    height: 24%;
     border-radius: 50%;
-    background: rgba(23,26,29,.4);
+    background: rgba(18,21,24,.42);
     pointer-events: none;
   }
   .sq.occupied .dot {
-    width: 84%; height: 84%;
+    width: 88%; height: 88%;
     background: transparent;
-    border: 3px solid rgba(23,26,29,.4);
+    border: 3px solid rgba(18,21,24,.42);
   }
-  .pc {
-    position: relative;
-    pointer-events: none;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
-  }
-  .pc.w { color: #f2ede3; -webkit-text-stroke: 1.2px #1b1e22; }
-  .pc.b { color: #1b1e22; -webkit-text-stroke: 1.2px rgba(240,236,228,.35); }
   .coord {
     position: absolute;
     font-size: 9px;
     letter-spacing: .04em;
-    opacity: .55;
+    opacity: .6;
     pointer-events: none;
   }
   .coord.f { right: 3px; bottom: 1px; }
   .coord.r { left: 3px; top: 1px; }
-  .light .coord { color: #4a4238; }
-  .dark  .coord { color: #cdd3d9; }
+  .light .coord { color: #3d3830; }
+  .dark  .coord { color: #d6dbdd; }
 
   /* ---- ledger ---- */
   .ledger { margin-top: 22px; }
@@ -272,16 +293,43 @@
   .moves .n { color: var(--muted); }
   .moves .m { color: var(--text); }
   .moves .m.latest { color: var(--brass); }
-  .empty-ledger { color: var(--muted); font-size: 13px; }
+  .empty-ledger { color: var(--muted); font-size: 13px; margin: 0; }
 
-  .controls { display: flex; gap: 8px; margin-top: 24px; }
+  .controls { display: flex; gap: 8px; margin-top: 22px; }
   .controls button { flex: 1; }
+
+  .setrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .setrow button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
+
+  /* ---- desktop: board beside the rail ---- */
+  @media (min-width: 820px) {
+    .wrap { max-width: 900px; }
+    .game-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 40px;
+      align-items: start;
+    }
+    .status { margin-top: 0; font-size: 26px; }
+    .rail { padding-top: 4px; }
+    .ledger { margin-top: 26px; }
+    .moves { max-height: 300px; }
+  }
 
   /* ---- promotion ---- */
   .promo {
     position: fixed;
     inset: 0;
-    background: rgba(12,14,16,.86);
+    background: rgba(10,12,14,.88);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,15 +349,16 @@
     margin: 0 0 16px;
   }
   .promo-row { display: flex; gap: 6px; }
-  .promo-row button {
-    font-size: 34px;
-    line-height: 1;
-    padding: 10px 14px;
-  }
+  .promo-row button { padding: 8px; }
+  .promo-row svg { width: 46px; height: 46px; display: block; }
 
   .hidden { display: none !important; }
 
-  a { color: var(--brass); }
+  @media (prefers-reduced-motion: reduce) {
+    body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
+    .sq svg.pc.moved { animation: none; }
+    * { transition: none !important; }
+  }
 </style>
 </head>
 <body data-link="idle">
@@ -337,7 +386,7 @@
 
   <!-- INVITE -->
   <section class="invite hidden" id="invite">
-    <legend style="display:block">Table</legend>
+    <div class="label">Table</div>
     <div class="code" id="codeText">— — —</div>
     <div class="invite-actions">
       <button id="waBtn">Send on WhatsApp</button>
@@ -348,17 +397,29 @@
 
   <!-- GAME -->
   <section class="game hidden" id="game">
-    <div class="status" id="status">Setting up…</div>
-    <div class="board" id="board"></div>
-    <div class="ledger">
-      <h2>Moves</h2>
-      <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+    <div class="game-grid">
+      <div class="boardcol">
+        <div class="taken" id="takenTop"></div>
+        <div class="board" id="board"></div>
+        <div class="taken" id="takenBottom"></div>
+      </div>
+      <div class="rail">
+        <div class="status" id="status">Setting up…</div>
+        <div class="ledger">
+          <h2>Moves</h2>
+          <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+        </div>
+        <div class="controls">
+          <button id="resignBtn">Resign</button>
+          <button id="rematchBtn">Rematch</button>
+        </div>
+        <div class="setrow">
+          <span>Pieces</span>
+          <button id="setBtn">Bauhaus</button>
+        </div>
+        <p class="note" id="gameNote"></p>
+      </div>
     </div>
-    <div class="controls">
-      <button id="resignBtn">Resign</button>
-      <button id="rematchBtn">Rematch</button>
-    </div>
-    <p class="note" id="gameNote"></p>
   </section>
 </div>
 
@@ -396,17 +457,63 @@ const boardEl = el('board');
 let game = new Chess();
 let myColor = 'w';
 let code = null;
-let result = null;          // {type:'checkmate'|'stalemate'|'draw'|'resign', winner:'w'|'b'|null}
+let result = null;
 let selected = null;
 let lastMove = null;
 let senders = [];
 let peers = new Set();
 
-/* ---------- tiny guarded storage (works on Pages, no-ops if blocked) ---------- */
+/* ---------- tiny guarded storage ---------- */
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+
+let pieceSet = store.get('table:set') === 'classic' ? 'classic' : 'bauhaus';
+
+/* ---------- pieces ----------
+   Drawn as SVG rather than Unicode glyphs. Glyph text can only be outlined with
+   -webkit-text-stroke, which paints half its width *inside* the letterform and
+   chews through thin details, and the shapes vary by whatever symbol font the
+   machine happens to have. Paths give one silhouette everywhere.
+
+   The default set is after Josef Hartwig's 1924 Bauhaus set: each piece's form
+   states how it moves. Square for the pawn's single step, crenellated block for
+   the rook's ranks and files, an L for the knight, a diamond whose edges are the
+   bishop's diagonals, a circle for the queen's freedom in every direction, and
+   the king as diamond over square — every direction, but only one step.        */
+const SHAPES = {
+  p: '<rect x="36" y="54" width="28" height="30"/>',
+  r: '<path d="M28,84 V44 H38 V54 H46 V44 H54 V54 H62 V44 H72 V84 Z"/>',
+  n: '<path d="M32,84 V32 H54 V62 H72 V84 Z"/>',
+  b: '<path d="M50,42 L70,63 L50,84 L30,63 Z"/>',
+  q: '<circle cx="50" cy="62" r="22"/>',
+  k: '<path d="M50,27 L67,44 L50,61 L33,44 Z"/><rect x="35" y="64" width="30" height="20"/>'
+};
+
+const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const SYMBOL_FONTS = "'Segoe UI Symbol','Apple Symbols','Noto Sans Symbols 2','DejaVu Sans',sans-serif";
+
+function pieceSVG(type, color, cls = '') {
+  const fill   = color === 'w' ? '#f2ede2' : '#22262b';
+  const stroke = color === 'w' ? '#191c20' : '#e6e0d3';
+
+  if (pieceSet === 'classic') {
+    // paint-order="stroke" lays the outline down first, so the fill covers it
+    // from the inside out and the glyph keeps its detail.
+    return `<svg class="pc ${cls}" viewBox="0 0 100 100" aria-hidden="true"
+      ><text x="50" y="56" text-anchor="middle" dominant-baseline="middle"
+             font-size="82" font-family="${SYMBOL_FONTS}"
+             fill="${fill}" stroke="${stroke}" stroke-width="3"
+             paint-order="stroke">${GLYPH[type]}</text></svg>`;
+  }
+
+  // viewBox cropped to the shapes' own bounding box so the pieces sit with
+  // presence in the square rather than floating in dead space.
+  return `<svg class="pc ${cls}" viewBox="19 24 62 62" aria-hidden="true"
+    ><g fill="${fill}" stroke="${stroke}" stroke-width="3.5"
+        stroke-linejoin="round">${SHAPES[type]}</g></svg>`;
+}
 
 /* ---------- routing ---------- */
 function parseHash() {
@@ -438,7 +545,7 @@ function connect() {
           relayConfig: {
             urls,
             redundancy: urls.length,
-            warnOnRelayFailure: false   // a dead relay is normal; don't shout
+            warnOnRelayFailure: false
           }
         },
         code,
@@ -449,27 +556,18 @@ function connect() {
       continue;
     }
 
-    // 0.25: makeAction returns an object; handlers are assigned, not passed.
     const action = room.makeAction('msg');
     action.onMessage = data => handleMessage(data);
     senders.push(data => action.send(data));
 
-    room.onPeerJoin = id => {
-      peers.add(id);
-      setLink();
-      sendState();
-    };
-    room.onPeerLeave = id => {
-      peers.delete(id);
-      setLink();
-    };
+    room.onPeerJoin = id => { peers.add(id); setLink(); sendState(); };
+    room.onPeerLeave = id => { peers.delete(id); setLink(); };
   }
 
   setLink();
   setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
 }
 
-/* how many signalling relays are actually up right now */
 function relayHealth() {
   let open = 0, total = 0;
   for (const getSockets of [nostrSockets, mqttSockets]) {
@@ -487,8 +585,6 @@ function relayHealth() {
 function broadcast(msg) {
   for (const send of senders) {
     try {
-      // send() is async now — swallow per-relay failures so one dead
-      // network can't take the other one down with it.
       Promise.resolve(send(msg)).catch(e => console.warn('send failed', e));
     } catch (e) {
       console.warn('send failed', e);
@@ -516,7 +612,7 @@ function handleMessage(msg) {
         if (m) { lastMove = { from: m.from, to: m.to }; checkEnd(); persist(); draw(); }
       } catch { sendState(); }
     } else if (msg.ply > ply) {
-      broadcast({ t: 'sync' });      // we're behind, ask for the full picture
+      broadcast({ t: 'sync' });
     }
     return;
   }
@@ -529,13 +625,9 @@ function handleMessage(msg) {
     return;
   }
 
-  if (msg.t === 'rematch') {
-    startFresh(msg.yourColor);
-    return;
-  }
+  if (msg.t === 'rematch') { startFresh(msg.yourColor); return; }
 }
 
-/* adopt a longer history from the peer (handles refreshes and reconnects) */
 function adopt(history, remoteResult) {
   if (history.length < game.history().length) { sendState(); return; }
   if (history.length === game.history().length && !remoteResult) return;
@@ -601,15 +693,18 @@ function restore() {
 }
 
 /* ---------- rendering ---------- */
-const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const FILES = 'abcdefgh';
+const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
 function draw() {
   drawBoard();
   drawStatus();
+  drawTaken();
   drawLedger();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('rematchBtn').classList.toggle('hidden', !result);
+  el('setBtn').textContent = pieceSet === 'classic' ? 'Classic' : 'Bauhaus';
 }
 
 function drawBoard() {
@@ -621,58 +716,75 @@ function drawBoard() {
   const ranks = myColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
   const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
 
-  const frag = document.createDocumentFragment();
+  let html = '';
 
   for (const rank of ranks) {
     for (const file of files) {
       const sq = file + rank;
       const piece = game.get(sq);
-      const div = document.createElement('div');
       const isLight = (FILES.indexOf(file) + rank) % 2 === 1;
-      div.className = 'sq ' + (isLight ? 'light' : 'dark');
-      div.dataset.sq = sq;
 
-      if (lastMove && (lastMove.from === sq || lastMove.to === sq)) div.classList.add('last');
-      if (selected === sq) div.classList.add('sel');
+      const classes = ['sq', isLight ? 'light' : 'dark'];
+      if (lastMove && (lastMove.from === sq || lastMove.to === sq)) classes.push('last');
+      if (selected === sq) classes.push('sel');
       if (piece && piece.type === 'k' && piece.color === game.turn() && game.isCheck() && !result) {
-        div.classList.add('check');
+        classes.push('check');
       }
 
+      const isTarget = !!targets[sq];
+      const canPick = myTurn && piece && piece.color === myColor;
+      if (isTarget || canPick) classes.push('playable');
+      if (isTarget && piece) classes.push('occupied');
+
+      let inner = '';
       if (piece) {
-        const span = document.createElement('span');
-        span.className = 'pc ' + piece.color;
-        span.textContent = GLYPH[piece.type];
-        div.appendChild(span);
+        const moved = lastMove && lastMove.to === sq ? 'moved' : '';
+        inner += pieceSVG(piece.type, piece.color, moved);
       }
+      if (isTarget) inner += '<span class="dot"></span>';
+      if (rank === (myColor === 'w' ? 1 : 8)) inner += `<span class="coord f">${file}</span>`;
+      if (file === (myColor === 'w' ? 'a' : 'h')) inner += `<span class="coord r">${rank}</span>`;
 
-      if (targets[sq]) {
-        const dot = document.createElement('span');
-        dot.className = 'dot';
-        div.appendChild(dot);
-        if (piece) div.classList.add('occupied');
-        div.classList.add('playable');
-      } else if (myTurn && piece && piece.color === myColor) {
-        div.classList.add('playable');
-      }
-
-      if (rank === (myColor === 'w' ? 1 : 8)) {
-        const c = document.createElement('span');
-        c.className = 'coord f';
-        c.textContent = file;
-        div.appendChild(c);
-      }
-      if (file === (myColor === 'w' ? 'a' : 'h')) {
-        const c = document.createElement('span');
-        c.className = 'coord r';
-        c.textContent = rank;
-        div.appendChild(c);
-      }
-
-      frag.appendChild(div);
+      const tab = (isTarget || canPick) ? ' tabindex="0"' : '';
+      html += `<div class="${classes.join(' ')}" data-sq="${sq}"${tab}>${inner}</div>`;
     }
   }
 
-  boardEl.replaceChildren(frag);
+  boardEl.innerHTML = html;
+}
+
+/* which pieces of `color` have been taken off the board */
+function takenPieces(color) {
+  const onBoard = {};
+  for (const row of game.board()) {
+    for (const cell of row) {
+      if (cell && cell.color === color) onBoard[cell.type] = (onBoard[cell.type] || 0) + 1;
+    }
+  }
+  const out = [];
+  for (const type of ['q','r','b','n','p']) {
+    const gone = (START_COUNT[type] || 0) - (onBoard[type] || 0);
+    for (let i = 0; i < gone; i++) out.push(type);
+  }
+  return out;
+}
+
+function material(list) {
+  return list.reduce((sum, t) => sum + (VALUE[t] || 0), 0);
+}
+
+function drawTaken() {
+  const them = myColor === 'w' ? 'b' : 'w';
+  const iTook = takenPieces(them);      // their pieces, sitting on my side
+  const theyTook = takenPieces(myColor);
+  const edge = material(iTook) - material(theyTook);
+
+  const strip = (list, colour, lead) =>
+    list.map(t => pieceSVG(t, colour)).join('') +
+    (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
+
+  el('takenTop').innerHTML = strip(theyTook, myColor, -edge);
+  el('takenBottom').innerHTML = strip(iTook, them, edge);
 }
 
 function drawStatus() {
@@ -713,26 +825,20 @@ function drawLedger() {
   const hist = game.history();
   const body = el('ledgerBody');
   if (!hist.length) {
-    body.replaceChildren(Object.assign(document.createElement('p'), {
-      className: 'empty-ledger', textContent: 'Nothing played yet.'
-    }));
+    body.innerHTML = '<p class="empty-ledger">Nothing played yet.</p>';
     return;
   }
-  const grid = document.createElement('div');
-  grid.className = 'moves';
+  let html = '<div class="moves">';
   for (let i = 0; i < hist.length; i += 2) {
-    const n = document.createElement('span');
-    n.className = 'n';
-    n.textContent = (i / 2 + 1) + '.';
-    grid.appendChild(n);
+    html += `<span class="n">${i / 2 + 1}.</span>`;
     for (const j of [i, i + 1]) {
-      const m = document.createElement('span');
-      m.className = 'm' + (j === hist.length - 1 ? ' latest' : '');
-      m.textContent = hist[j] || '';
-      grid.appendChild(m);
+      const latest = j === hist.length - 1 ? ' latest' : '';
+      html += `<span class="m${latest}">${hist[j] || ''}</span>`;
     }
   }
-  body.replaceChildren(grid);
+  html += '</div>';
+  body.innerHTML = html;
+  const grid = body.firstChild;
   grid.scrollTop = grid.scrollHeight;
 }
 
@@ -742,21 +848,20 @@ function setLink() {
   el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
-  if (el('game').classList.contains('hidden') === false) drawStatus();
+  if (!el('game').classList.contains('hidden')) drawStatus();
 }
 
 /* ---------- interaction ---------- */
-boardEl.addEventListener('click', e => {
-  const cell = e.target.closest('.sq');
-  if (!cell || result) return;
-  const sq = cell.dataset.sq;
+function pick(sq) {
+  if (result) return;
 
   if (selected) {
     const moves = game.moves({ square: selected, verbose: true }).filter(m => m.to === sq);
     if (moves.length) {
       if (moves.some(m => m.promotion)) { askPromotion(selected, sq); return; }
-      localMove(selected, sq);
+      const from = selected;
       selected = null;
+      localMove(from, sq);
       return;
     }
   }
@@ -764,32 +869,45 @@ boardEl.addEventListener('click', e => {
   const piece = game.get(sq);
   selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
   drawBoard();
+}
+
+boardEl.addEventListener('click', e => {
+  const cell = e.target.closest('.sq');
+  if (cell) pick(cell.dataset.sq);
+});
+
+boardEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const cell = e.target.closest('.sq');
+  if (!cell) return;
+  e.preventDefault();
+  pick(cell.dataset.sq);
 });
 
 function askPromotion(from, to) {
   const overlay = document.createElement('div');
   overlay.className = 'promo';
-  const box = document.createElement('div');
-  box.className = 'promo-box';
-  box.innerHTML = '<p>Promote to</p>';
-  const row = document.createElement('div');
-  row.className = 'promo-row';
-  for (const t of ['q', 'r', 'b', 'n']) {
-    const b = document.createElement('button');
-    b.innerHTML = `<span class="pc ${myColor}">${GLYPH[t]}</span>`;
-    b.onclick = () => { overlay.remove(); localMove(from, to, t); selected = null; };
-    row.appendChild(b);
-  }
-  box.appendChild(row);
-  overlay.appendChild(box);
+  overlay.innerHTML =
+    '<div class="promo-box"><p>Promote to</p><div class="promo-row">' +
+    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, myColor)}</button>`).join('') +
+    '</div></div>';
+  overlay.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    overlay.remove();
+    selected = null;
+    localMove(from, to, b.dataset.t);
+  });
   document.body.appendChild(overlay);
-  row.firstChild.focus();
+  overlay.querySelector('button').focus();
 }
 
 /* ---------- buttons ---------- */
 el('startBtn').onclick = () => {
-  const pick = document.querySelector('input[name=side]:checked').value;
-  const mine = pick === 'r' ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b') : pick;
+  const choice = document.querySelector('input[name=side]:checked').value;
+  const mine = choice === 'r'
+    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
+    : choice;
   code = makeCode();
   myColor = mine;
   location.hash = `r=${code}&c=${mine === 'w' ? 'b' : 'w'}`;
@@ -827,6 +945,12 @@ el('rematchBtn').onclick = () => {
   const next = myColor === 'w' ? 'b' : 'w';
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
+};
+
+el('setBtn').onclick = () => {
+  pieceSet = pieceSet === 'classic' ? 'bauhaus' : 'classic';
+  store.set('table:set', pieceSet);
+  draw();
 };
 
 /* ---------- boot ---------- */
