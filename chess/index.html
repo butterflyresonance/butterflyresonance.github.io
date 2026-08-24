@@ -384,6 +384,21 @@
   .setrow { flex-wrap: wrap; }
   .setrow button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
 
+  /* ---- phone: the status line belongs above the board, not under it.
+         display:contents lifts the rail's children into the same flex flow so
+         they can be ordered independently. ---- */
+  @media (max-width: 819px) {
+    .game-grid { display: flex; flex-direction: column; }
+    .rail { display: contents; }
+    .status    { order: -1; margin: 20px 0 12px; }
+    .boardcol  { order: 0; }
+    .hintpanel { order: 1; }
+    .ledger    { order: 2; }
+    .controls  { order: 3; }
+    .setrow    { order: 4; }
+    #peerHint, #gameNote { order: 5; }
+  }
+
   /* ---- desktop: board beside the rail ---- */
   @media (min-width: 820px) {
     .wrap { max-width: 900px; }
@@ -488,12 +503,13 @@
         <div class="taken" id="takenBottom"></div>
       </div>
       <div class="rail">
-        <div class="status" id="status">Setting up…</div>
+        <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
         <div class="ledger">
           <h2>Moves</h2>
           <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
         </div>
         <div class="controls">
+          <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
         </div>
@@ -509,6 +525,8 @@
           <button id="setBtn">Staunton</button>
           <span>Hints</span>
           <button id="hintBtn">Off</button>
+          <span>Sound</span>
+          <button id="soundBtn">On</button>
           <button id="pgnBtn">PGN</button>
         </div>
         <p class="note hidden" id="peerHint">They have hints switched on.</p>
@@ -819,6 +837,14 @@ let hintsOn = false;
 let peerHints = false;
 let handshakeFailed = false;   // found each other, but no direct connection
 let navigating = false;        // true while we write our own hash
+let seatClash = false;         // both ended up on the same side
+let takebackAsked = false;     // we have a request outstanding
+let soundOn = store.get('table:sound') !== false;
+let audioCtx = null;
+let faviconState = null;
+let rooms = [];                // held so we can tear down and rejoin
+let healthTimer = null;
+let lastRejoin = 0;
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
@@ -888,6 +914,14 @@ function parseHash() {
   return { r: p.get('r'), c: p.get('c') };
 }
 
+/* The hash states *your own* colour, so each player holds a self-describing
+   link and the share button hands out the complement. Nothing about which side
+   you're on depends on storage. */
+function setHash(colour) {
+  navigating = true;          // our own write, not a jump to another game
+  location.hash = `r=${code}&c=${colour}`;
+}
+
 function makeCode() {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
   const bytes = crypto.getRandomValues(new Uint8Array(9));
@@ -937,6 +971,8 @@ function connect() {
     action.onMessage = data => handleMessage(data);
     senders.push(data => action.send(data));
 
+    rooms.push(room);
+
     room.onPeerJoin = id => {
       peers.add(id);
       handshakeFailed = false;
@@ -948,8 +984,44 @@ function connect() {
   }
 
   setLink();
-  setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
+  clearInterval(healthTimer);
+  healthTimer = setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
 }
+
+/* ---------- coming back from the background ----------
+   A backgrounded tab can be frozen (tasks suspended) or discarded outright, and
+   either way the connection may be gone with nothing on screen to say so. When
+   the page comes back and nobody is connected, drop the old rooms and rejoin
+   rather than waiting for a stale connection to notice it's dead. */
+function teardown() {
+  clearInterval(healthTimer);
+  healthTimer = null;
+  for (const room of rooms) {
+    try { Promise.resolve(room.leave()).catch(() => {}); } catch {}
+  }
+  rooms = [];
+  senders = [];
+  peers.clear();
+}
+
+function rejoinIfDropped() {
+  if (!code) return;
+  if (peers.size) return;                       // still connected, leave it alone
+  if (Date.now() - lastRejoin < 5000) return;   // don't thrash on rapid switching
+  lastRejoin = Date.now();
+  teardown();
+  connect();
+  draw();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) rejoinIfDropped();
+});
+// Page Lifecycle: fired when a frozen tab is brought back.
+document.addEventListener('resume', rejoinIfDropped);
+// bfcache restores don't fire visibilitychange.
+window.addEventListener('pageshow', e => { if (e.persisted) rejoinIfDropped(); });
+window.addEventListener('online', rejoinIfDropped);
 
 function relayHealth() {
   let open = 0, total = 0;
@@ -976,14 +1048,19 @@ function broadcast(msg) {
 }
 
 function sendState() {
-  broadcast({ t: 'state', history: game.history(), result });
+  broadcast({ t: 'state', history: game.history(), result, color: myColor });
 }
 
 function handleMessage(msg) {
   if (!msg || typeof msg !== 'object') return;
 
   if (msg.t === 'state') {
-    if (Array.isArray(msg.history)) adopt(msg.history, msg.result);
+    // Shouldn't happen — the share button hands out the opposite seat — but if
+    // someone passes on their own link instead, neither side can move and the
+    // reason isn't visible. Say it plainly rather than trying to fix it.
+    seatClash = msg.color === myColor;
+    if (Array.isArray(msg.history)) adopt(msg.history, msg.result, !!msg.force);
+    if (msg.force) takebackAsked = false;
     return;
   }
 
@@ -992,7 +1069,13 @@ function handleMessage(msg) {
     if (msg.ply === ply) {
       try {
         const m = game.move(msg.san);
-        if (m) { lastMove = { from: m.from, to: m.to }; checkEnd(); persist(); draw(); }
+        if (m) {
+          lastMove = { from: m.from, to: m.to };
+          checkEnd();
+          persist();
+          draw();
+          blip();                  // their move, not ours
+        }
       } catch { sendState(); }
     } else if (msg.ply > ply) {
       broadcast({ t: 'sync' });
@@ -1012,11 +1095,38 @@ function handleMessage(msg) {
 
   // Hints are announced rather than silent — see the note in the README.
   if (msg.t === 'hint') { peerHints = !!msg.on; setLink(); return; }
+
+  if (msg.t === 'tb') {
+    if (result || !game.history().length) return;
+    const asker = msg.color === 'w' ? 'White' : 'Black';
+    if (!confirm(`${asker} asks to take back their move. Allow it?`)) {
+      broadcast({ t: 'tbno' });
+      return;
+    }
+    // Wind back to the asker's turn, removing at least one of their own moves.
+    const hist = game.history();
+    const drop = Math.min(game.turn() === msg.color ? 2 : 1, hist.length);
+    const rewound = hist.slice(0, hist.length - drop);
+    broadcast({ t: 'state', history: rewound, result: null, color: myColor, force: true });
+    adopt(rewound, null, true);
+    return;
+  }
+
+  if (msg.t === 'tbno') {
+    takebackAsked = false;
+    el('gameNote').textContent = 'They’d rather keep the move.';
+    setTimeout(() => drawStatus(), 3000);
+    return;
+  }
 }
 
-function adopt(history, remoteResult) {
-  if (history.length < game.history().length) { sendState(); return; }
-  if (history.length === game.history().length && !remoteResult) return;
+function adopt(history, remoteResult, force = false) {
+  // Normally a shorter history means we're ahead and they need catching up.
+  // A takeback is the one case where going backwards is the correct answer.
+  if (!force) {
+    if (history.length < game.history().length) { sendState(); return; }
+    if (history.length === game.history().length && !remoteResult) return;
+  }
 
   const fresh = new Chess();
   for (const san of history) {
@@ -1055,6 +1165,9 @@ function checkEnd() {
 function startFresh(colorForMe) {
   game = new Chess();
   myColor = colorForMe;
+  seatClash = false;
+  takebackAsked = false;
+  setHash(colorForMe);   // sides swap on a rematch; keep the link truthful
   result = null;
   selected = null;
   lastMove = null;
@@ -1070,9 +1183,6 @@ function persist() {
 function restore() {
   const saved = store.get('table:' + code);
   if (!saved || !Array.isArray(saved.history)) return;
-  // The hash carries the *invitee's* colour so the address bar is shareable
-  // as-is; our own side is whatever we saved, which survives a refresh.
-  if (saved.myColor === 'w' || saved.myColor === 'b') myColor = saved.myColor;
   const fresh = new Chess();
   for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
   game = fresh;
@@ -1080,6 +1190,54 @@ function restore() {
   const verbose = game.history({ verbose: true });
   lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
 }
+
+/* ---------- presence ----------
+   Moves only cross while both pages are open, so the app asks you to leave the
+   tab sitting there. These close the loop: something has to say a move landed
+   while you were looking elsewhere. */
+function blip() {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 620;
+    const t = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.14, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.22);
+  } catch { /* no audio available; the title and favicon still do their job */ }
+}
+
+function setFavicon(active) {
+  if (faviconState === active) return;          // don't churn the DOM every draw
+  faviconState = active;
+  const dot = active ? 'var(--brass)' : '#535d61';
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<rect width="32" height="32" rx="6" fill="#15181b"/>` +
+    `<circle cx="16" cy="16" r="7" fill="${active ? '#c8a35b' : '#4a545a'}"/></svg>`;
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.appendChild(link);
+  }
+  link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+function setPresence() {
+  const yours = !!code && !result && game.turn() === myColor;
+  document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Table';
+  setFavicon(yours);
+}
+
+document.addEventListener('visibilitychange', setPresence);
 
 /* ---------- engine ----------
    The search runs in a Worker so a 1.5s think never freezes the board. The
@@ -1136,7 +1294,11 @@ function draw() {
   requestHint();
   drawHint();
   drawArrow();
+  setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
+  el('takebackBtn').disabled = !!result || game.history().length === 0 || !peers.size;
+  el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
+  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
 }
@@ -1249,7 +1411,9 @@ function drawStatus() {
 
   const note = el('gameNote');
   if (peers.size) {
-    note.textContent = '';
+    note.textContent = seatClash
+      ? 'You’re both on the same side. One of you should open the link from the share button.'
+      : '';
     note.removeAttribute('title');
   } else {
     const { open, total } = relayHealth();
@@ -1427,9 +1591,7 @@ el('startBtn').onclick = () => {
     : choice;
   code = makeCode();
   myColor = mine;
-  persist();                 // record our side before touching the hash
-  navigating = true;         // our own write — not a jump to another game
-  location.hash = `r=${code}&c=${mine === 'w' ? 'b' : 'w'}`;
+  setHash(mine);
   begin();
 };
 
@@ -1464,6 +1626,20 @@ el('rematchBtn').onclick = () => {
   const next = myColor === 'w' ? 'b' : 'w';
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
+};
+
+el('takebackBtn').onclick = () => {
+  if (!game.history().length || result) return;
+  takebackAsked = true;
+  broadcast({ t: 'tb', color: myColor });
+  draw();
+};
+
+el('soundBtn').onclick = () => {
+  soundOn = !soundOn;
+  store.set('table:sound', soundOn);
+  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
+  if (soundOn) blip();          // confirm it actually works
 };
 
 el('hintBtn').onclick = () => {
