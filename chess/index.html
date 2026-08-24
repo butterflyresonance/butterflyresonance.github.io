@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Table — a private chess board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #171a1d;
+    --panel: #1f2429;
+    --edge: #2c333a;
+    --bone: #c9c0b1;
+    --slate: #5c6570;
+    --brass: #c8a35b;
+    --brass-dim: #6d5a33;
+    --text: #e8e6e1;
+    --muted: #8b9198;
+    --display: "Bodoni Moda", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: 0 16px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .wrap { width: 100%; max-width: 460px; }
+
+  /* ---- connection thread: the signature element ---- */
+  .thread {
+    height: 2px;
+    width: 100%;
+    margin: 0 0 22px;
+    background: var(--edge);
+    position: relative;
+    overflow: hidden;
+  }
+  .thread::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .5s ease;
+  }
+  body[data-link="searching"] .thread::after {
+    transform: scaleX(.35);
+    animation: seek 1.9s ease-in-out infinite;
+  }
+  body[data-link="live"] .thread::after { transform: scaleX(1); }
+  @keyframes seek {
+    0%   { transform: translateX(-100%) scaleX(.35); }
+    100% { transform: translateX(300%) scaleX(.35); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
+    * { transition: none !important; }
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 22px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: .01em;
+    margin: 0;
+  }
+  .link-state {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  body[data-link="live"] .link-state { color: var(--brass); }
+
+  /* ---- lobby ---- */
+  .lobby { margin-top: 34px; }
+  .lede {
+    font-family: var(--display);
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0 0 26px;
+  }
+  fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+  legend {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0 10px;
+  }
+  .choices { display: flex; gap: 8px; }
+  .choices label { flex: 1; }
+  .choices input { position: absolute; opacity: 0; pointer-events: none; }
+  .choices span {
+    display: block;
+    text-align: center;
+    padding: 11px 6px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .choices input:checked + span { border-color: var(--brass); color: var(--brass); }
+  .choices input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  button {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .04em;
+    padding: 12px 16px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--edge);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  button:hover { border-color: var(--brass-dim); }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button.primary { border-color: var(--brass); color: var(--brass); width: 100%; }
+  button:disabled { opacity: .4; cursor: default; }
+
+  /* ---- invite ---- */
+  .invite { margin-top: 30px; }
+  .code {
+    font-family: var(--display);
+    font-size: 34px;
+    letter-spacing: .1em;
+    color: var(--brass);
+    margin: 6px 0 18px;
+  }
+  .invite-actions { display: flex; gap: 8px; }
+  .invite-actions button { flex: 1; }
+  .note {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 18px 0 0;
+  }
+
+  /* ---- board ---- */
+  .status {
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 1.3;
+    margin: 26px 0 14px;
+    min-height: 29px;
+  }
+  .status.urgent { color: var(--brass); }
+
+  .board {
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 1px solid var(--edge);
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    font-size: min(9vw, 42px);
+    line-height: 1;
+  }
+  .sq.light { background: var(--bone); }
+  .sq.dark  { background: var(--slate); }
+  .sq.last::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    opacity: .28;
+  }
+  .sq.sel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    opacity: .45;
+  }
+  .sq.check::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #b4453a;
+    opacity: .5;
+  }
+  .sq.playable { cursor: pointer; }
+  .sq .dot {
+    position: absolute;
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    background: rgba(23,26,29,.4);
+    pointer-events: none;
+  }
+  .sq.occupied .dot {
+    width: 84%; height: 84%;
+    background: transparent;
+    border: 3px solid rgba(23,26,29,.4);
+  }
+  .pc {
+    position: relative;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
+  }
+  .pc.w { color: #f2ede3; -webkit-text-stroke: 1.2px #1b1e22; }
+  .pc.b { color: #1b1e22; -webkit-text-stroke: 1.2px rgba(240,236,228,.35); }
+  .coord {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: .04em;
+    opacity: .55;
+    pointer-events: none;
+  }
+  .coord.f { right: 3px; bottom: 1px; }
+  .coord.r { left: 3px; top: 1px; }
+  .light .coord { color: #4a4238; }
+  .dark  .coord { color: #cdd3d9; }
+
+  /* ---- ledger ---- */
+  .ledger { margin-top: 22px; }
+  .ledger h2 {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin: 0 0 10px;
+  }
+  .moves {
+    display: grid;
+    grid-template-columns: 30px 1fr 1fr;
+    gap: 2px 10px;
+    font-size: 13px;
+    max-height: 168px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .moves .n { color: var(--muted); }
+  .moves .m { color: var(--text); }
+  .moves .m.latest { color: var(--brass); }
+  .empty-ledger { color: var(--muted); font-size: 13px; }
+
+  .controls { display: flex; gap: 8px; margin-top: 24px; }
+  .controls button { flex: 1; }
+
+  /* ---- promotion ---- */
+  .promo {
+    position: fixed;
+    inset: 0;
+    background: rgba(12,14,16,.86);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .promo-box {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    padding: 22px;
+    text-align: center;
+  }
+  .promo-box p {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+  .promo-row { display: flex; gap: 6px; }
+  .promo-row button {
+    font-size: 34px;
+    line-height: 1;
+    padding: 10px 14px;
+  }
+
+  .hidden { display: none !important; }
+
+  a { color: var(--brass); }
+</style>
+</head>
+<body data-link="idle">
+<div class="wrap">
+  <div class="thread"></div>
+
+  <header>
+    <h1>Table</h1>
+    <div class="link-state" id="linkState">no game</div>
+  </header>
+
+  <!-- LOBBY -->
+  <section class="lobby" id="lobby">
+    <p class="lede">A chess board for two people and nobody else. No accounts, no server — the two browsers talk straight to each other.</p>
+    <fieldset>
+      <legend>You play</legend>
+      <div class="choices">
+        <label><input type="radio" name="side" value="w" checked><span>White</span></label>
+        <label><input type="radio" name="side" value="b"><span>Black</span></label>
+        <label><input type="radio" name="side" value="r"><span>Toss</span></label>
+      </div>
+    </fieldset>
+    <button class="primary" id="startBtn">Open a table</button>
+  </section>
+
+  <!-- INVITE -->
+  <section class="invite hidden" id="invite">
+    <legend style="display:block">Table</legend>
+    <div class="code" id="codeText">— — —</div>
+    <div class="invite-actions">
+      <button id="waBtn">Send on WhatsApp</button>
+      <button id="copyBtn">Copy link</button>
+    </div>
+    <p class="note">Send this once. After that the link is the table — either of you can reopen it any time.</p>
+  </section>
+
+  <!-- GAME -->
+  <section class="game hidden" id="game">
+    <div class="status" id="status">Setting up…</div>
+    <div class="board" id="board"></div>
+    <div class="ledger">
+      <h2>Moves</h2>
+      <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+    </div>
+    <div class="controls">
+      <button id="resignBtn">Resign</button>
+      <button id="rematchBtn">Rematch</button>
+    </div>
+    <p class="note" id="gameNote"></p>
+  </section>
+</div>
+
+<script type="module">
+import { Chess } from 'https://esm.sh/chess.js@1.4.0';
+import { joinRoom as joinNostr, getRelaySockets as nostrSockets } from 'https://esm.sh/@trystero-p2p/nostr@0.25.3';
+import { joinRoom as joinMqtt, getRelaySockets as mqttSockets } from 'https://esm.sh/@trystero-p2p/mqtt@0.25.3';
+
+const APP_ID = 'table-chess-v1';
+
+// Trystero picks nostr relays by shuffling its defaults with a seed derived from
+// APP_ID, so the app name silently decides which 5 you get — and some of the 47
+// defaults are dead. Pin the big, well-maintained ones instead. All of these are
+// from Trystero's own list, so they're known to accept the event kinds it needs.
+const NOSTR_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.mostr.pub',
+  'wss://purplerelay.com',
+  'wss://strfry.openhoofd.nl',
+  'wss://nostr.data.haus',
+  'wss://relay.froth.zone',
+  'wss://nostr-01.yakihonne.com'
+];
+
+const MQTT_BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://public:public@public.cloud.shiftr.io'
+];
+
+const el = id => document.getElementById(id);
+const boardEl = el('board');
+
+let game = new Chess();
+let myColor = 'w';
+let code = null;
+let result = null;          // {type:'checkmate'|'stalemate'|'draw'|'resign', winner:'w'|'b'|null}
+let selected = null;
+let lastMove = null;
+let senders = [];
+let peers = new Set();
+
+/* ---------- tiny guarded storage (works on Pages, no-ops if blocked) ---------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- routing ---------- */
+function parseHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  return { r: p.get('r'), c: p.get('c') };
+}
+
+function makeCode() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(9));
+  return [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+}
+
+/* ---------- networking ---------- */
+function connect() {
+  const base = { appId: APP_ID, password: code };
+
+  const strategies = [
+    { join: joinNostr, urls: NOSTR_RELAYS },
+    { join: joinMqtt,  urls: MQTT_BROKERS }
+  ];
+
+  for (const { join, urls } of strategies) {
+    let room;
+    try {
+      room = join(
+        {
+          ...base,
+          relayConfig: {
+            urls,
+            redundancy: urls.length,
+            warnOnRelayFailure: false   // a dead relay is normal; don't shout
+          }
+        },
+        code,
+        { onJoinError: err => console.warn('relay join failed', err) }
+      );
+    } catch (e) {
+      console.warn('strategy unavailable', e);
+      continue;
+    }
+
+    // 0.25: makeAction returns an object; handlers are assigned, not passed.
+    const action = room.makeAction('msg');
+    action.onMessage = data => handleMessage(data);
+    senders.push(data => action.send(data));
+
+    room.onPeerJoin = id => {
+      peers.add(id);
+      setLink();
+      sendState();
+    };
+    room.onPeerLeave = id => {
+      peers.delete(id);
+      setLink();
+    };
+  }
+
+  setLink();
+  setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
+}
+
+/* how many signalling relays are actually up right now */
+function relayHealth() {
+  let open = 0, total = 0;
+  for (const getSockets of [nostrSockets, mqttSockets]) {
+    try {
+      const sockets = getSockets() || {};
+      for (const url of Object.keys(sockets)) {
+        total++;
+        if (sockets[url] && sockets[url].readyState === 1) open++;
+      }
+    } catch {}
+  }
+  return { open, total };
+}
+
+function broadcast(msg) {
+  for (const send of senders) {
+    try {
+      // send() is async now — swallow per-relay failures so one dead
+      // network can't take the other one down with it.
+      Promise.resolve(send(msg)).catch(e => console.warn('send failed', e));
+    } catch (e) {
+      console.warn('send failed', e);
+    }
+  }
+}
+
+function sendState() {
+  broadcast({ t: 'state', history: game.history(), result });
+}
+
+function handleMessage(msg) {
+  if (!msg || typeof msg !== 'object') return;
+
+  if (msg.t === 'state') {
+    if (Array.isArray(msg.history)) adopt(msg.history, msg.result);
+    return;
+  }
+
+  if (msg.t === 'move') {
+    const ply = game.history().length;
+    if (msg.ply === ply) {
+      try {
+        const m = game.move(msg.san);
+        if (m) { lastMove = { from: m.from, to: m.to }; checkEnd(); persist(); draw(); }
+      } catch { sendState(); }
+    } else if (msg.ply > ply) {
+      broadcast({ t: 'sync' });      // we're behind, ask for the full picture
+    }
+    return;
+  }
+
+  if (msg.t === 'sync') { sendState(); return; }
+
+  if (msg.t === 'resign') {
+    result = { type: 'resign', winner: msg.by === 'w' ? 'b' : 'w' };
+    persist(); draw();
+    return;
+  }
+
+  if (msg.t === 'rematch') {
+    startFresh(msg.yourColor);
+    return;
+  }
+}
+
+/* adopt a longer history from the peer (handles refreshes and reconnects) */
+function adopt(history, remoteResult) {
+  if (history.length < game.history().length) { sendState(); return; }
+  if (history.length === game.history().length && !remoteResult) return;
+
+  const fresh = new Chess();
+  for (const san of history) {
+    try { fresh.move(san); } catch { return; }
+  }
+  game = fresh;
+  const verbose = game.history({ verbose: true });
+  lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
+  result = remoteResult || null;
+  checkEnd();
+  persist();
+  draw();
+}
+
+/* ---------- game flow ---------- */
+function localMove(from, to, promotion) {
+  let m;
+  try { m = game.move({ from, to, promotion }); } catch { return false; }
+  if (!m) return false;
+  lastMove = { from: m.from, to: m.to };
+  broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
+  checkEnd();
+  if (result) sendState();
+  persist();
+  draw();
+  return true;
+}
+
+function checkEnd() {
+  if (result) return;
+  if (game.isCheckmate()) result = { type: 'checkmate', winner: game.turn() === 'w' ? 'b' : 'w' };
+  else if (game.isStalemate()) result = { type: 'stalemate', winner: null };
+  else if (game.isDraw()) result = { type: 'draw', winner: null };
+}
+
+function startFresh(colorForMe) {
+  game = new Chess();
+  myColor = colorForMe;
+  result = null;
+  selected = null;
+  lastMove = null;
+  persist();
+  draw();
+}
+
+function persist() {
+  if (!code) return;
+  store.set('table:' + code, { history: game.history(), myColor, result });
+}
+
+function restore() {
+  const saved = store.get('table:' + code);
+  if (!saved || !Array.isArray(saved.history)) return;
+  const fresh = new Chess();
+  for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
+  game = fresh;
+  result = saved.result || null;
+  const verbose = game.history({ verbose: true });
+  lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
+}
+
+/* ---------- rendering ---------- */
+const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const FILES = 'abcdefgh';
+
+function draw() {
+  drawBoard();
+  drawStatus();
+  drawLedger();
+  el('resignBtn').disabled = !!result || game.history().length === 0;
+  el('rematchBtn').classList.toggle('hidden', !result);
+}
+
+function drawBoard() {
+  const myTurn = game.turn() === myColor && !result;
+  const targets = selected
+    ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
+    : {};
+
+  const ranks = myColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+  const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
+
+  const frag = document.createDocumentFragment();
+
+  for (const rank of ranks) {
+    for (const file of files) {
+      const sq = file + rank;
+      const piece = game.get(sq);
+      const div = document.createElement('div');
+      const isLight = (FILES.indexOf(file) + rank) % 2 === 1;
+      div.className = 'sq ' + (isLight ? 'light' : 'dark');
+      div.dataset.sq = sq;
+
+      if (lastMove && (lastMove.from === sq || lastMove.to === sq)) div.classList.add('last');
+      if (selected === sq) div.classList.add('sel');
+      if (piece && piece.type === 'k' && piece.color === game.turn() && game.isCheck() && !result) {
+        div.classList.add('check');
+      }
+
+      if (piece) {
+        const span = document.createElement('span');
+        span.className = 'pc ' + piece.color;
+        span.textContent = GLYPH[piece.type];
+        div.appendChild(span);
+      }
+
+      if (targets[sq]) {
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        div.appendChild(dot);
+        if (piece) div.classList.add('occupied');
+        div.classList.add('playable');
+      } else if (myTurn && piece && piece.color === myColor) {
+        div.classList.add('playable');
+      }
+
+      if (rank === (myColor === 'w' ? 1 : 8)) {
+        const c = document.createElement('span');
+        c.className = 'coord f';
+        c.textContent = file;
+        div.appendChild(c);
+      }
+      if (file === (myColor === 'w' ? 'a' : 'h')) {
+        const c = document.createElement('span');
+        c.className = 'coord r';
+        c.textContent = rank;
+        div.appendChild(c);
+      }
+
+      frag.appendChild(div);
+    }
+  }
+
+  boardEl.replaceChildren(frag);
+}
+
+function drawStatus() {
+  const s = el('status');
+  s.classList.remove('urgent');
+
+  if (result) {
+    if (result.type === 'resign') {
+      s.textContent = result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
+    } else if (result.type === 'checkmate') {
+      s.textContent = result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
+    } else {
+      s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
+    }
+    el('gameNote').textContent = '';
+    return;
+  }
+
+  const check = game.isCheck() ? ' You’re in check.' : '';
+  if (game.turn() === myColor) {
+    s.textContent = 'Your move.' + check;
+    s.classList.add('urgent');
+  } else {
+    s.textContent = game.isCheck() ? 'They’re in check.' : 'Their move.';
+  }
+
+  if (peers.size) {
+    el('gameNote').textContent = '';
+  } else {
+    const { open, total } = relayHealth();
+    el('gameNote').textContent = total && !open
+      ? 'No signalling relays reachable. A network or firewall may be blocking WebSocket traffic.'
+      : `Waiting for the other side to open the link. ${open}/${total} relays up. Moves only travel while both pages are open.`;
+  }
+}
+
+function drawLedger() {
+  const hist = game.history();
+  const body = el('ledgerBody');
+  if (!hist.length) {
+    body.replaceChildren(Object.assign(document.createElement('p'), {
+      className: 'empty-ledger', textContent: 'Nothing played yet.'
+    }));
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'moves';
+  for (let i = 0; i < hist.length; i += 2) {
+    const n = document.createElement('span');
+    n.className = 'n';
+    n.textContent = (i / 2 + 1) + '.';
+    grid.appendChild(n);
+    for (const j of [i, i + 1]) {
+      const m = document.createElement('span');
+      m.className = 'm' + (j === hist.length - 1 ? ' latest' : '');
+      m.textContent = hist[j] || '';
+      grid.appendChild(m);
+    }
+  }
+  body.replaceChildren(grid);
+  grid.scrollTop = grid.scrollHeight;
+}
+
+function setLink() {
+  const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
+  document.body.dataset.link = state;
+  el('linkState').textContent =
+    state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
+  el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
+  if (el('game').classList.contains('hidden') === false) drawStatus();
+}
+
+/* ---------- interaction ---------- */
+boardEl.addEventListener('click', e => {
+  const cell = e.target.closest('.sq');
+  if (!cell || result) return;
+  const sq = cell.dataset.sq;
+
+  if (selected) {
+    const moves = game.moves({ square: selected, verbose: true }).filter(m => m.to === sq);
+    if (moves.length) {
+      if (moves.some(m => m.promotion)) { askPromotion(selected, sq); return; }
+      localMove(selected, sq);
+      selected = null;
+      return;
+    }
+  }
+
+  const piece = game.get(sq);
+  selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
+  drawBoard();
+});
+
+function askPromotion(from, to) {
+  const overlay = document.createElement('div');
+  overlay.className = 'promo';
+  const box = document.createElement('div');
+  box.className = 'promo-box';
+  box.innerHTML = '<p>Promote to</p>';
+  const row = document.createElement('div');
+  row.className = 'promo-row';
+  for (const t of ['q', 'r', 'b', 'n']) {
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="pc ${myColor}">${GLYPH[t]}</span>`;
+    b.onclick = () => { overlay.remove(); localMove(from, to, t); selected = null; };
+    row.appendChild(b);
+  }
+  box.appendChild(row);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  row.firstChild.focus();
+}
+
+/* ---------- buttons ---------- */
+el('startBtn').onclick = () => {
+  const pick = document.querySelector('input[name=side]:checked').value;
+  const mine = pick === 'r' ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b') : pick;
+  code = makeCode();
+  myColor = mine;
+  location.hash = `r=${code}&c=${mine === 'w' ? 'b' : 'w'}`;
+  begin();
+};
+
+function inviteUrl() {
+  return `${location.origin}${location.pathname}#r=${code}&c=${myColor === 'w' ? 'b' : 'w'}`;
+}
+
+el('waBtn').onclick = () => {
+  const text = `Game of chess? Your board is here — you're ${myColor === 'w' ? 'black' : 'white'}: ${inviteUrl()}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+};
+
+el('copyBtn').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(inviteUrl());
+    el('copyBtn').textContent = 'Copied';
+    setTimeout(() => el('copyBtn').textContent = 'Copy link', 1600);
+  } catch {
+    prompt('Copy this link:', inviteUrl());
+  }
+};
+
+el('resignBtn').onclick = () => {
+  if (!confirm('Resign this game?')) return;
+  result = { type: 'resign', winner: myColor === 'w' ? 'b' : 'w' };
+  broadcast({ t: 'resign', by: myColor });
+  persist();
+  draw();
+};
+
+el('rematchBtn').onclick = () => {
+  const next = myColor === 'w' ? 'b' : 'w';
+  broadcast({ t: 'rematch', yourColor: myColor });
+  startFresh(next);
+};
+
+/* ---------- boot ---------- */
+function begin() {
+  el('lobby').classList.add('hidden');
+  el('game').classList.remove('hidden');
+  restore();
+  connect();
+  draw();
+  setLink();
+  el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
+}
+
+const { r, c } = parseHash();
+if (r) {
+  code = r;
+  myColor = c === 'b' ? 'b' : 'w';
+  begin();
+} else {
+  setLink();
+}
+
+window.addEventListener('hashchange', () => location.reload());
+</script>
+</body>
+</html>
