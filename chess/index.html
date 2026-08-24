@@ -1119,7 +1119,9 @@ function drawBoard() {
     for (const file of files) {
       const sq = file + rank;
       const piece = game.get(sq);
-      const isLight = (FILES.indexOf(file) + rank) % 2 === 1;
+      // a1 is dark, so a square is light when file index + rank is even.
+      // h1 light, d1 light, d8 dark — queen on her own colour.
+      const isLight = (FILES.indexOf(file) + rank) % 2 === 0;
 
       const classes = ['sq', isLight ? 'light' : 'dark'];
       if (lastMove && (lastMove.from === sq || lastMove.to === sq)) classes.push('last');
