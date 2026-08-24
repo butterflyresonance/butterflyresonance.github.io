@@ -226,6 +226,40 @@
 
   /* ---- board ---- */
   .boardcol { min-width: 0; }
+  .boardwrap { position: relative; }
+  .arrow {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  /* ---- hint panel ---- */
+  .hintpanel { margin-top: 18px; }
+  .evalbar {
+    height: 4px;
+    background: var(--edge);
+    position: relative;
+    overflow: hidden;
+  }
+  .evalbar span {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--brass);
+    width: 50%;
+    transition: width .35s ease;
+  }
+  .hintline {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hintline #hintMove { color: var(--brass); letter-spacing: .04em; }
   .board {
     width: 100%;
     aspect-ratio: 1;
@@ -347,6 +381,7 @@
     text-transform: uppercase;
     color: var(--muted);
   }
+  .setrow { flex-wrap: wrap; }
   .setrow button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
 
   /* ---- desktop: board beside the rail ---- */
@@ -446,7 +481,10 @@
     <div class="game-grid">
       <div class="boardcol">
         <div class="taken" id="takenTop"></div>
-        <div class="board" id="board"></div>
+        <div class="boardwrap">
+          <div class="board" id="board"></div>
+          <svg class="arrow" id="arrow" viewBox="0 0 100 100" aria-hidden="true"></svg>
+        </div>
         <div class="taken" id="takenBottom"></div>
       </div>
       <div class="rail">
@@ -459,15 +497,261 @@
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
         </div>
+        <div class="hintpanel hidden" id="hintPanel">
+          <div class="evalbar"><span id="evalFill"></span></div>
+          <div class="hintline">
+            <span id="hintMove">thinking…</span>
+            <span id="hintMeta"></span>
+          </div>
+        </div>
         <div class="setrow">
           <span>Pieces</span>
           <button id="setBtn">Staunton</button>
+          <span>Hints</span>
+          <button id="hintBtn">Off</button>
+          <button id="pgnBtn">PGN</button>
         </div>
+        <p class="note hidden" id="peerHint">They have hints switched on.</p>
         <p class="note" id="gameNote"></p>
       </div>
     </div>
   </section>
 </div>
+
+<!-- Engine source. Parked as text/plain so the page never runs it on the
+     main thread; it is handed to a Worker as a Blob when hints go on. -->
+<script id="engineSrc" type="text/plain">
+import { Chess } from 'https://esm.sh/chess.js@1.4.0';
+
+const VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+
+/* Piece-square tables, from White's point of view, a8 first (matching the
+   order chess.js's board() walks). Values are small nudges in centipawns —
+   they encode "knights like the middle, pawns like advancing, the king likes
+   the corner" without needing any real positional understanding. */
+const PST = {
+  p: [ 0,  0,  0,  0,  0,  0,  0,  0,
+      50, 50, 50, 50, 50, 50, 50, 50,
+      10, 10, 20, 30, 30, 20, 10, 10,
+       5,  5, 10, 25, 25, 10,  5,  5,
+       0,  0,  0, 20, 20,  0,  0,  0,
+       5, -5,-10,  0,  0,-10, -5,  5,
+       5, 10, 10,-20,-20, 10, 10,  5,
+       0,  0,  0,  0,  0,  0,  0,  0],
+  n: [-50,-40,-30,-30,-30,-30,-40,-50,
+      -40,-20,  0,  0,  0,  0,-20,-40,
+      -30,  0, 10, 15, 15, 10,  0,-30,
+      -30,  5, 15, 20, 20, 15,  5,-30,
+      -30,  0, 15, 20, 20, 15,  0,-30,
+      -30,  5, 10, 15, 15, 10,  5,-30,
+      -40,-20,  0,  5,  5,  0,-20,-40,
+      -50,-40,-30,-30,-30,-30,-40,-50],
+  b: [-20,-10,-10,-10,-10,-10,-10,-20,
+      -10,  0,  0,  0,  0,  0,  0,-10,
+      -10,  0,  5, 10, 10,  5,  0,-10,
+      -10,  5,  5, 10, 10,  5,  5,-10,
+      -10,  0, 10, 10, 10, 10,  0,-10,
+      -10, 10, 10, 10, 10, 10, 10,-10,
+      -10,  5,  0,  0,  0,  0,  5,-10,
+      -20,-10,-10,-10,-10,-10,-10,-20],
+  r: [  0,  0,  0,  0,  0,  0,  0,  0,
+        5, 10, 10, 10, 10, 10, 10,  5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+        0,  0,  0,  5,  5,  0,  0,  0],
+  q: [-20,-10,-10, -5, -5,-10,-10,-20,
+      -10,  0,  0,  0,  0,  0,  0,-10,
+      -10,  0,  5,  5,  5,  5,  0,-10,
+       -5,  0,  5,  5,  5,  5,  0, -5,
+        0,  0,  5,  5,  5,  5,  0, -5,
+      -10,  5,  5,  5,  5,  5,  0,-10,
+      -10,  0,  5,  0,  0,  0,  0,-10,
+      -20,-10,-10, -5, -5,-10,-10,-20],
+  k: [-30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -20,-30,-30,-40,-40,-30,-30,-20,
+      -10,-20,-20,-20,-20,-20,-20,-10,
+       20, 20,  0,  0,  0, 20, 20, 20,
+       20, 30, 10,  0,  0, 10, 30, 20]
+};
+
+const MATE = 100000;
+
+/* Evaluation, always from the side-to-move's point of view (negamax). */
+function evaluate(game) {
+  let score = 0;
+  let bishops = { w: 0, b: 0 };
+  const board = game.board();
+
+  for (let i = 0; i < 64; i++) {
+    const cell = board[i >> 3][i & 7];
+    if (!cell) continue;
+    const table = PST[cell.type];
+    // White reads the table straight; Black reads it vertically mirrored.
+    const idx = cell.color === 'w' ? i : (56 - (i & ~7)) + (i & 7);
+    const v = VAL[cell.type] + table[idx];
+    score += cell.color === 'w' ? v : -v;
+    if (cell.type === 'b') bishops[cell.color]++;
+  }
+
+  if (bishops.w >= 2) score += 30;
+  if (bishops.b >= 2) score -= 30;
+
+  return game.turn() === 'w' ? score : -score;
+}
+
+/* Ordering heuristics read the SAN string rather than asking chess.js for
+   verbose moves — verbose generation costs 1.1ms a call because it builds
+   disambiguated SAN for every move, against 66µs for the plain list. That one
+   swap is worth roughly 18x on search speed. */
+const FILE = { a:0,b:1,c:2,d:3,e:4,f:5,g:6,h:7 };
+
+function destOf(san) {
+  let t = san.replace(/[+#]$/, '');
+  const eq = t.indexOf('=');
+  if (eq > 0) t = t.slice(0, eq);
+  if (t === 'O-O' || t === 'O-O-O') return null;
+  return t.slice(-2);
+}
+
+/* Most Valuable Victim: look at what sits on the destination square, so the
+   search tries "pawn takes queen" long before "queen takes pawn". */
+function orderKey(san, board) {
+  let s = 0;
+  if (san.includes('x')) {
+    s = 500;
+    const d = destOf(san);
+    if (d && board) {
+      const cell = board[8 - Number(d[1])][FILE[d[0]]];
+      s += 10 * (cell ? VAL[cell.type] : VAL.p);   // empty means en passant
+    }
+    const mover = /^[NBRQK]/.test(san) ? san[0].toLowerCase() : 'p';
+    s -= VAL[mover];
+  }
+  if (san.includes('=')) s += 900;
+  if (san.endsWith('#')) s += 10000;
+  else if (san.endsWith('+')) s += 50;
+  return s;
+}
+
+function ordered(game) {
+  const moves = game.moves();
+  // board() is only needed to value capture victims; skip it in quiet positions
+  const board = moves.some(m => m.includes('x')) ? game.board() : null;
+  return moves
+    .map(san => [orderKey(san, board), san])
+    .sort((a, b) => b[0] - a[0])
+    .map(x => x[1]);
+}
+
+/* Search only captures and promotions at the leaves, so the engine never stops
+   counting halfway through a trade and reports a won piece it is about to lose
+   straight back. */
+function quiesce(game, alpha, beta, nodes) {
+  const stand = evaluate(game);
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
+
+  const board = game.board();
+  const caps = game.moves()
+    .filter(san => san.includes('x') || san.includes('='))
+    .map(san => [orderKey(san, board), san])
+    .sort((a, b) => b[0] - a[0]);
+
+  for (const [, san] of caps) {
+    game.move(san);
+    nodes.n++;
+    const score = -quiesce(game, -beta, -alpha, nodes);
+    game.undo();
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
+}
+
+function negamax(game, depth, alpha, beta, ply, nodes, deadline) {
+  if ((++nodes.checks & 511) === 0 && Date.now() > deadline) { nodes.stop = true; return 0; }
+
+  const moves = ordered(game);
+
+  // No legal moves is mate or stalemate — far cheaper than isCheckmate()
+  // plus isDraw() at every node, which together cost ~65µs.
+  if (!moves.length) return game.isCheck() ? -MATE + ply : 0;
+  if (depth === 0) return quiesce(game, alpha, beta, nodes);
+
+  for (const san of moves) {
+    game.move(san);
+    nodes.n++;
+    const score = -negamax(game, depth - 1, -beta, -alpha, ply + 1, nodes, deadline);
+    game.undo();
+    if (nodes.stop) return 0;
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
+}
+
+/* Iterative deepening: finish shallow searches first so there is always a
+   usable answer when the clock runs out, and use the result to order the next
+   pass. */
+function bestMove(fen, ms = 1500, maxDepth = 5) {
+  const game = new Chess(fen);
+  const deadline = Date.now() + ms;
+  const nodes = { n: 0, checks: 0, stop: false };
+
+  let root = ordered(game);
+  if (!root.length) return null;
+
+  let best = { san: root[0], score: 0, depth: 0 };
+
+  for (let depth = 1; depth <= maxDepth; depth++) {
+    let alpha = -Infinity, localBest = null;
+
+    for (const san of root) {
+      game.move(san);
+      nodes.n++;
+      const score = -negamax(game, depth - 1, -Infinity, -alpha, 1, nodes, deadline);
+      game.undo();
+      if (nodes.stop) break;
+      if (score > alpha || !localBest) { alpha = score; localBest = san; }
+    }
+
+    if (nodes.stop) break;
+    best = { san: localBest, score: alpha, depth };
+    root = [localBest, ...root.filter(s => s !== localBest)];
+    if (Math.abs(alpha) > MATE - 100) break;   // forced mate, stop looking
+  }
+
+  // Only now, once per search, pay for verbose generation to get the squares
+  // the arrow needs.
+  const full = new Chess(fen).moves({ verbose: true }).find(m => m.san === best.san);
+
+  return {
+    san: best.san,
+    from: full ? full.from : null,
+    to: full ? full.to : null,
+    score: best.score,
+    depth: best.depth,
+    nodes: nodes.n,
+    mate: Math.abs(best.score) > MATE - 100
+  };
+}
+
+self.onmessage = e => {
+  const { fen, ms } = e.data;
+  try {
+    const r = bestMove(fen, ms);
+    self.postMessage(r ? { ...r, fen } : { fen, san: null });
+  } catch (err) {
+    self.postMessage({ fen, san: null, error: String(err) });
+  }
+};
+</script>
 
 <script type="module">
 import { Chess } from 'https://esm.sh/chess.js@1.4.0';
@@ -508,6 +792,13 @@ let selected = null;
 let lastMove = null;
 let senders = [];
 let peers = new Set();
+
+/* engine / hints */
+let hintsOn = false;
+let peerHints = false;
+let engine = null;
+let hint = null;        // {san, from, to, score, depth, mate, fen}
+let hintFen = null;     // position the current request was for
 
 /* ---------- tiny guarded storage ---------- */
 const store = {
@@ -613,7 +904,12 @@ function connect() {
     action.onMessage = data => handleMessage(data);
     senders.push(data => action.send(data));
 
-    room.onPeerJoin = id => { peers.add(id); setLink(); sendState(); };
+    room.onPeerJoin = id => {
+      peers.add(id);
+      setLink();
+      sendState();
+      broadcast({ t: 'hint', on: hintsOn });
+    };
     room.onPeerLeave = id => { peers.delete(id); setLink(); };
   }
 
@@ -679,6 +975,9 @@ function handleMessage(msg) {
   }
 
   if (msg.t === 'rematch') { startFresh(msg.yourColor); return; }
+
+  // Hints are announced rather than silent — see the note in the README.
+  if (msg.t === 'hint') { peerHints = !!msg.on; setLink(); return; }
 }
 
 function adopt(history, remoteResult) {
@@ -745,6 +1044,48 @@ function restore() {
   lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
 }
 
+/* ---------- engine ----------
+   The search runs in a Worker so a 1.5s think never freezes the board. The
+   source sits in an inert text/plain block and is handed over as a
+   Blob, which keeps the page a single file with no build step. */
+function ensureEngine() {
+  if (engine) return engine;
+  try {
+    const src = document.getElementById('engineSrc').textContent;
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    engine = new Worker(url, { type: 'module' });
+    engine.onmessage = e => {
+      // A reply for a position we have already left is stale; drop it.
+      if (!hintsOn || e.data.fen !== game.fen()) return;
+      hint = e.data.san ? e.data : null;
+      drawHint();
+      drawArrow();
+    };
+    engine.onerror = () => {
+      engine = null;
+      hintsOn = false;
+      el('hintBtn').textContent = 'Off';
+      el('hintPanel').classList.add('hidden');
+      el('gameNote').textContent = 'The hint engine could not start in this browser.';
+    };
+  } catch {
+    engine = null;
+  }
+  return engine;
+}
+
+function requestHint() {
+  if (!hintsOn || result || game.turn() !== myColor) { hint = null; hintFen = null; return; }
+  const fen = game.fen();
+  if (hintFen === fen) return;          // already asked about this position
+  const worker = ensureEngine();
+  if (!worker) return;
+  hintFen = fen;
+  hint = null;
+  drawHint();
+  worker.postMessage({ fen, ms: 1500 });
+}
+
 /* ---------- rendering ---------- */
 const FILES = 'abcdefgh';
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
@@ -755,6 +1096,9 @@ function draw() {
   drawStatus();
   drawTaken();
   drawLedger();
+  requestHint();
+  drawHint();
+  drawArrow();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('rematchBtn').classList.toggle('hidden', !result);
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
@@ -899,12 +1243,82 @@ function drawLedger() {
   grid.scrollTop = grid.scrollHeight;
 }
 
+/* board coordinates in the arrow overlay's 0-100 space, orientation aware */
+function squareXY(sq) {
+  const file = FILES.indexOf(sq[0]);
+  const rank = Number(sq[1]);
+  const col = myColor === 'w' ? file : 7 - file;
+  const row = myColor === 'w' ? 8 - rank : rank - 1;
+  return { x: col * 12.5 + 6.25, y: row * 12.5 + 6.25 };
+}
+
+function drawArrow() {
+  const svg = el('arrow');
+  if (!hintsOn || !hint || !hint.from || !hint.to || result) { svg.innerHTML = ''; return; }
+
+  const a = squareXY(hint.from);
+  const b = squareXY(hint.to);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+
+  // start clear of the piece being moved, stop short of the target square's centre
+  const x1 = a.x + ux * 4.4, y1 = a.y + uy * 4.4;
+  const x2 = b.x - ux * 4.6, y2 = b.y - uy * 4.6;
+  const hx = b.x - ux * 1.2, hy = b.y - uy * 1.2;
+  const px = -uy, py = ux;
+  const head = `${hx},${hy} ${x2 + px * 3.1},${y2 + py * 3.1} ${x2 - px * 3.1},${y2 - py * 3.1}`;
+
+  svg.innerHTML =
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--brass)"
+           stroke-width="2.4" stroke-linecap="round" opacity=".9"/>` +
+    `<polygon points="${head}" fill="var(--brass)" opacity=".9"/>`;
+}
+
+function drawHint() {
+  const panel = el('hintPanel');
+  panel.classList.toggle('hidden', !hintsOn);
+  if (!hintsOn) return;
+
+  if (result) {
+    el('hintMove').textContent = '—';
+    el('hintMeta').textContent = '';
+    return;
+  }
+  if (game.turn() !== myColor) {
+    el('hintMove').textContent = 'their move';
+    el('hintMeta').textContent = '';
+    return;
+  }
+  if (!hint) {
+    el('hintMove').textContent = 'thinking…';
+    el('hintMeta').textContent = '';
+    return;
+  }
+
+  el('hintMove').textContent = hint.san;
+
+  if (hint.mate) {
+    const n = Math.ceil((100000 - Math.abs(hint.score)) / 2);
+    el('hintMeta').textContent = (hint.score > 0 ? 'mate in ' : 'mated in ') + n;
+    el('evalFill').style.width = (hint.score > 0 ? 100 : 0) + '%';
+    return;
+  }
+
+  const pawns = hint.score / 100;
+  el('hintMeta').textContent =
+    `${pawns >= 0 ? '+' : ''}${pawns.toFixed(1)} · depth ${hint.depth}`;
+  // squash the score into a bar; ±4 pawns is near the end of the scale
+  el('evalFill').style.width = (50 + 50 * Math.tanh(pawns / 4)).toFixed(1) + '%';
+}
+
 function setLink() {
   const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
   document.body.dataset.link = state;
   el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
+  el('peerHint').classList.toggle('hidden', !(peerHints && peers.size));
   if (!el('game').classList.contains('hidden')) drawStatus();
 }
 
@@ -1002,6 +1416,26 @@ el('rematchBtn').onclick = () => {
   const next = myColor === 'w' ? 'b' : 'w';
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
+};
+
+el('hintBtn').onclick = () => {
+  hintsOn = !hintsOn;
+  el('hintBtn').textContent = hintsOn ? 'On' : 'Off';
+  hint = null;
+  hintFen = null;
+  broadcast({ t: 'hint', on: hintsOn });
+  draw();
+};
+
+el('pgnBtn').onclick = async () => {
+  const pgn = game.pgn() || '(no moves yet)';
+  try {
+    await navigator.clipboard.writeText(pgn);
+    el('pgnBtn').textContent = 'Copied';
+    setTimeout(() => el('pgnBtn').textContent = 'PGN', 1600);
+  } catch {
+    prompt('Game notation:', pgn);
+  }
 };
 
 el('setBtn').onclick = () => {
