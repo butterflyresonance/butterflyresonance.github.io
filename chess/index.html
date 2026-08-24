@@ -97,6 +97,43 @@
 
   /* ---- lobby ---- */
   .lobby { margin-top: 34px; }
+
+  .how {
+    border-top: 1px solid var(--edge);
+    border-bottom: 1px solid var(--edge);
+    margin: 0 0 26px;
+  }
+  .how summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 13px 0;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color .15s;
+  }
+  .how summary::-webkit-details-marker { display: none; }
+  .how summary::after {
+    content: "+";
+    font-size: 15px;
+    line-height: 1;
+    color: var(--brass-dim);
+  }
+  .how[open] summary::after { content: "–"; }
+  .how summary:hover { color: var(--brass); }
+  .how summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .how p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--muted);
+    margin: 0 0 14px;
+    max-width: 52ch;
+  }
+  .how p:first-of-type { margin-top: 2px; }
   .lede {
     font-family: var(--display);
     font-size: 19px;
@@ -188,6 +225,7 @@
   }
 
   /* ---- board ---- */
+  .boardcol { min-width: 0; }
   .board {
     width: 100%;
     aspect-ratio: 1;
@@ -373,7 +411,13 @@
 
   <!-- LOBBY -->
   <section class="lobby" id="lobby">
-    <p class="lede">A chess board for two people and nobody else. No accounts, no server — the two browsers talk straight to each other.</p>
+    <p class="lede">Play chess with one other person. Pick a side, send them the link, and you’re both looking at the same board.</p>
+    <details class="how">
+      <summary>How this works</summary>
+      <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+      <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
+      <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+    </details>
     <fieldset>
       <legend>You play</legend>
       <div class="choices">
@@ -383,6 +427,7 @@
       </div>
     </fieldset>
     <button class="primary" id="startBtn">Open a table</button>
+    <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
   </section>
 
   <!-- INVITE -->
@@ -819,13 +864,17 @@ function drawStatus() {
     s.textContent = game.isCheck() ? 'They’re in check.' : 'Their move.';
   }
 
+  const note = el('gameNote');
   if (peers.size) {
-    el('gameNote').textContent = '';
+    note.textContent = '';
+    note.removeAttribute('title');
   } else {
     const { open, total } = relayHealth();
-    el('gameNote').textContent = total && !open
-      ? 'No signalling relays reachable. A network or firewall may be blocking WebSocket traffic.'
-      : `Waiting for the other side to open the link. ${open}/${total} relays up. Moves only travel while both pages are open.`;
+    note.textContent = total && !open
+      ? 'Can’t reach the network at the moment. A firewall, VPN or browser extension may be blocking the connection.'
+      : 'Waiting for them to open the link. You both need the page open for a move to cross.';
+    // counts kept out of the copy but available on hover / in the console
+    note.title = `${open} of ${total} relays reachable`;
   }
 }
 
