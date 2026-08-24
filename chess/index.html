@@ -818,6 +818,7 @@ let peers = new Set();
 let hintsOn = false;
 let peerHints = false;
 let handshakeFailed = false;   // found each other, but no direct connection
+let navigating = false;        // true while we write our own hash
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
@@ -1069,6 +1070,9 @@ function persist() {
 function restore() {
   const saved = store.get('table:' + code);
   if (!saved || !Array.isArray(saved.history)) return;
+  // The hash carries the *invitee's* colour so the address bar is shareable
+  // as-is; our own side is whatever we saved, which survives a refresh.
+  if (saved.myColor === 'w' || saved.myColor === 'b') myColor = saved.myColor;
   const fresh = new Chess();
   for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
   game = fresh;
@@ -1423,6 +1427,8 @@ el('startBtn').onclick = () => {
     : choice;
   code = makeCode();
   myColor = mine;
+  persist();                 // record our side before touching the hash
+  navigating = true;         // our own write — not a jump to another game
   location.hash = `r=${code}&c=${mine === 'w' ? 'b' : 'w'}`;
   begin();
 };
@@ -1506,7 +1512,10 @@ if (r) {
   setLink();
 }
 
-window.addEventListener('hashchange', () => location.reload());
+window.addEventListener('hashchange', () => {
+  if (navigating) { navigating = false; return; }
+  location.reload();
+});
 </script>
 </body>
 </html>
