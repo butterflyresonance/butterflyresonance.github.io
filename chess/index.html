@@ -823,6 +823,12 @@ const TURN_SERVERS = [
 const el = id => document.getElementById(id);
 const boardEl = el('board');
 
+/* ---------- tiny guarded storage ---------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
 let game = new Chess();
 let myColor = 'w';
 let code = null;
@@ -848,12 +854,6 @@ let lastRejoin = 0;
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
-
-/* ---------- tiny guarded storage ---------- */
-const store = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
-};
 
 let pieceSet = store.get('table:set') === 'bauhaus' ? 'bauhaus' : 'staunton';
 
