@@ -675,14 +675,44 @@ function orderKey(san, board) {
   return s;
 }
 
-function ordered(game) {
+function ordered(game, first) {
   const moves = game.moves();
   // board() is only needed to value capture victims; skip it in quiet positions
   const board = moves.some(m => m.includes('x')) ? game.board() : null;
   return moves
-    .map(san => [orderKey(san, board), san])
+    .map(san => [san === first ? 1e7 : orderKey(san, board), san])
     .sort((a, b) => b[0] - a[0])
     .map(x => x[1]);
+}
+
+/* ---------- transposition table ----------
+   Different move orders reach the same board: 1.Nf3 d5 2.d4 and 1.d4 d5 2.Nf3
+   are identical, and without this the whole subtree below is searched twice.
+   Measured on this engine, repeats are ~21% of nodes at depth 3 and ~47% at
+   depth 5, so the waste grows exactly where the extra depth is wanted.
+
+   The table lives for one search only. Carry-over between consecutive searches
+   was measured at 19%, then 3%, then 1% — the tree has moved on, so keeping it
+   across moves buys almost nothing and costs memory. */
+const TT_EXACT = 0, TT_LOWER = 1, TT_UPPER = 2;
+const TT_MAX = 200000;
+
+// board + turn + castling + en passant. The move counters don't change the
+// position, so they're left out of the key.
+const ttKey = game => game.fen().split(' ', 4).join(' ');
+
+/* Mate scores count from the current ply, so they can't be stored raw — the
+   same mate is a different distance from a different depth. Normalise going
+   in and back out. */
+const toTT = (score, ply) =>
+  score > MATE - 1000 ? score + ply : score < -MATE + 1000 ? score - ply : score;
+const fromTT = (score, ply) =>
+  score > MATE - 1000 ? score - ply : score < -MATE + 1000 ? score + ply : score;
+
+function ttStore(tt, key, depth, score, flag, best) {
+  if (tt.size >= TT_MAX) tt.clear();      // crude, but a full table is rare
+  const prev = tt.get(key);
+  if (!prev || prev.depth <= depth) tt.set(key, { depth, score, flag, best });
 }
 
 /* Search only captures and promotions at the leaves, so the engine never stops
@@ -710,51 +740,96 @@ function quiesce(game, alpha, beta, nodes) {
   return alpha;
 }
 
-function negamax(game, depth, alpha, beta, ply, nodes, deadline) {
+function negamax(game, depth, alpha, beta, ply, nodes, deadline, tt) {
   if ((++nodes.checks & 511) === 0 && Date.now() > deadline) { nodes.stop = true; return 0; }
 
-  const moves = ordered(game);
+  const key = ttKey(game);
+  const hit = tt.get(key);
+  let ttBest = null;
+
+  if (hit) {
+    ttBest = hit.best;                    // useful for ordering at any depth
+    if (hit.depth >= depth) {
+      const s = fromTT(hit.score, ply);
+      if (hit.flag === TT_EXACT) return s;
+      if (hit.flag === TT_LOWER && s > alpha) alpha = s;
+      else if (hit.flag === TT_UPPER && s < beta) beta = s;
+      if (alpha >= beta) return s;
+    }
+  }
+
+  const moves = ordered(game, ttBest);
 
   // No legal moves is mate or stalemate — far cheaper than isCheckmate()
   // plus isDraw() at every node, which together cost ~65µs.
   if (!moves.length) return game.isCheck() ? -MATE + ply : 0;
-  if (depth === 0) return quiesce(game, alpha, beta, nodes);
+
+  const alphaOrig = alpha;
+
+  // Leaf results go in the table too. Without this the table is nearly useless
+  // here: leaves are most of the tree, so skipping them took the probe hit rate
+  // from ~33% down to ~6%.
+  if (depth === 0) {
+    const v = quiesce(game, alpha, beta, nodes);
+    ttStore(tt, key, 0, toTT(v, ply),
+            v <= alphaOrig ? TT_UPPER : v >= beta ? TT_LOWER : TT_EXACT, null);
+    return v;
+  }
+
+  let bestSan = moves[0];
 
   for (const san of moves) {
     game.move(san);
     nodes.n++;
-    const score = -negamax(game, depth - 1, -beta, -alpha, ply + 1, nodes, deadline);
+    const score = -negamax(game, depth - 1, -beta, -alpha, ply + 1, nodes, deadline, tt);
     game.undo();
     if (nodes.stop) return 0;
-    if (score >= beta) return beta;
-    if (score > alpha) alpha = score;
+    if (score >= beta) {
+      ttStore(tt, key, depth, toTT(beta, ply), TT_LOWER, san);
+      return beta;
+    }
+    if (score > alpha) { alpha = score; bestSan = san; }
   }
+
+  ttStore(tt, key, depth, toTT(alpha, ply),
+          alpha > alphaOrig ? TT_EXACT : TT_UPPER, bestSan);
   return alpha;
 }
 
 /* Iterative deepening: finish shallow searches first so there is always a
    usable answer when the clock runs out, and use the result to order the next
    pass. */
-/* maxDepth is a backstop, not the real limit — iterative deepening stops when
-   the clock runs out. It was 5, which silently capped long searches: a 30s
-   budget finished depth 5 and returned early, doing nothing with the time. */
-function bestMove(fen, ms = 1500, maxDepth = 24) {
+/* No depth cap: the clock is the limit. There used to be one, on the theory
+   that a sparse position might deepen without bound — measured, it doesn't.
+   Two bare kings with a 30s budget reaches depth 22, because branching stays
+   around 5-8 per side and iterations never get cheap enough to run away. */
+function bestMove(fen, ms = 1500) {
   const game = new Chess(fen);
   const deadline = Date.now() + ms;
   const nodes = { n: 0, checks: 0, stop: false };
+  const tt = new Map();          // one table per search; see the note above
 
   let root = ordered(game);
   if (!root.length) return null;
 
+  // With one legal move there is nothing to decide, and searching it anyway
+  // spends the entire budget: measured at 8s it reached depth 11 before
+  // returning the only move available. At 60s that's a minute of waiting.
+  if (root.length === 1) {
+    const only = new Chess(fen).moves({ verbose: true })[0];
+    return { san: only.san, from: only.from, to: only.to,
+             score: 0, depth: 0, nodes: 0, mate: false, forced: true };
+  }
+
   let best = { san: root[0], score: 0, depth: 0 };
 
-  for (let depth = 1; depth <= maxDepth; depth++) {
+  for (let depth = 1; ; depth++) {
     let alpha = -Infinity, localBest = null;
 
     for (const san of root) {
       game.move(san);
       nodes.n++;
-      const score = -negamax(game, depth - 1, -Infinity, -alpha, 1, nodes, deadline);
+      const score = -negamax(game, depth - 1, -Infinity, -alpha, 1, nodes, deadline, tt);
       game.undo();
       if (nodes.stop) break;
       if (score > alpha || !localBest) { alpha = score; localBest = san; }
@@ -762,7 +837,7 @@ function bestMove(fen, ms = 1500, maxDepth = 24) {
 
     if (nodes.stop) break;
     best = { san: localBest, score: alpha, depth };
-    root = [localBest, ...root.filter(s => s !== localBest)];
+    root = ordered(game, localBest);       // table now informs ordering too
     if (Math.abs(alpha) > MATE - 100) break;   // forced mate, stop looking
   }
 
@@ -1586,6 +1661,11 @@ function drawHint() {
   }
 
   el('hintMove').textContent = hint.san;
+
+  if (hint.forced) {
+    el('hintMeta').textContent = 'only move';
+    return;                       // no search was run, so there's no score
+  }
 
   if (hint.mate) {
     const n = Math.ceil((100000 - Math.abs(hint.score)) / 2);
