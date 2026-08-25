@@ -382,6 +382,14 @@
     color: var(--muted);
   }
   .setrow { flex-wrap: wrap; }
+  .thinkrow { gap: 12px; }
+  .thinkrow input[type="range"] {
+    flex: 1;
+    min-width: 110px;
+    accent-color: var(--brass);
+    background: transparent;
+  }
+  .thinkval { color: var(--brass); min-width: 42px; text-align: right; }
   .setrow button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
 
   /* ---- phone: the status line belongs above the board, not under it.
@@ -521,10 +529,20 @@
           </div>
         </div>
         <div class="setrow">
-          <span>Pieces</span>
-          <button id="setBtn">Staunton</button>
           <span>Hints</span>
           <button id="hintBtn">Off</button>
+          <span>Engine plays</span>
+          <button id="autoBtn">Off</button>
+        </div>
+        <div class="setrow thinkrow hidden" id="thinkRow">
+          <span>Think</span>
+          <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
+                 aria-label="Engine thinking time">
+          <span class="thinkval" id="thinkVal">1.5s</span>
+        </div>
+        <div class="setrow">
+          <span>Pieces</span>
+          <button id="setBtn">Staunton</button>
           <span>Sound</span>
           <button id="soundBtn">On</button>
           <button id="pgnBtn">PGN</button>
@@ -717,7 +735,10 @@ function negamax(game, depth, alpha, beta, ply, nodes, deadline) {
 /* Iterative deepening: finish shallow searches first so there is always a
    usable answer when the clock runs out, and use the result to order the next
    pass. */
-function bestMove(fen, ms = 1500, maxDepth = 5) {
+/* maxDepth is a backstop, not the real limit — iterative deepening stops when
+   the clock runs out. It was 5, which silently capped long searches: a 30s
+   budget finished depth 5 and returned early, doing nothing with the time. */
+function bestMove(fen, ms = 1500, maxDepth = 24) {
   const game = new Chess(fen);
   const deadline = Date.now() + ms;
   const nodes = { n: 0, checks: 0, stop: false };
@@ -761,12 +782,12 @@ function bestMove(fen, ms = 1500, maxDepth = 5) {
 }
 
 self.onmessage = e => {
-  const { fen, ms } = e.data;
+  const { fen, ms, mode } = e.data;
   try {
     const r = bestMove(fen, ms);
-    self.postMessage(r ? { ...r, fen } : { fen, san: null });
+    self.postMessage(r ? { ...r, fen, mode } : { fen, mode, san: null });
   } catch (err) {
-    self.postMessage({ fen, san: null, error: String(err) });
+    self.postMessage({ fen, mode, san: null, error: String(err) });
   }
 };
 </script>
@@ -854,6 +875,10 @@ let lastRejoin = 0;
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
+let autoPlay = false;          // engine plays our side
+let peerAuto = false;
+let engineJob = null;          // {fen, mode} currently with the worker
+let thinkMs = Math.min(60000, Math.max(1000, Number(store.get('table:think')) || 2000));
 
 let pieceSet = store.get('table:set') === 'bauhaus' ? 'bauhaus' : 'staunton';
 
@@ -978,7 +1003,7 @@ function connect() {
       handshakeFailed = false;
       setLink();
       sendState();
-      broadcast({ t: 'hint', on: hintsOn });
+      broadcast({ t: 'hint', on: hintsOn, auto: autoPlay });
     };
     room.onPeerLeave = id => { peers.delete(id); setLink(); };
   }
@@ -1094,7 +1119,12 @@ function handleMessage(msg) {
   if (msg.t === 'rematch') { startFresh(msg.yourColor); return; }
 
   // Hints are announced rather than silent — see the note in the README.
-  if (msg.t === 'hint') { peerHints = !!msg.on; setLink(); return; }
+  if (msg.t === 'hint') {
+    peerHints = !!msg.on;
+    peerAuto = !!msg.auto;
+    setLink();
+    return;
+  }
 
   if (msg.t === 'tb') {
     if (result || !game.history().length) return;
@@ -1145,6 +1175,16 @@ function adopt(history, remoteResult, force = false) {
 function localMove(from, to, promotion) {
   let m;
   try { m = game.move({ from, to, promotion }); } catch { return false; }
+  return afterLocalMove(m);
+}
+
+function localMoveSan(san) {
+  let m;
+  try { m = game.move(san); } catch { return false; }
+  return afterLocalMove(m);
+}
+
+function afterLocalMove(m) {
   if (!m) return false;
   lastMove = { from: m.from, to: m.to };
   broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
@@ -1250,9 +1290,23 @@ function ensureEngine() {
     const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
     engine = new Worker(url, { type: 'module' });
     engine.onmessage = e => {
+      const { fen, mode, san } = e.data;
+      if (engineJob && engineJob.fen === fen && engineJob.mode === mode) engineJob = null;
       // A reply for a position we have already left is stale; drop it.
-      if (!hintsOn || e.data.fen !== game.fen()) return;
-      hint = e.data.san ? e.data : null;
+      if (fen !== game.fen()) return;
+
+      if (mode === 'play') {
+        if (!autoPlay || result || game.turn() !== myColor) return;
+        if (!san || !localMoveSan(san)) {
+          // An unplayable suggestion would otherwise loop forever.
+          autoPlay = false;
+          draw();
+        }
+        return;
+      }
+
+      if (!hintsOn) return;
+      hint = san ? e.data : null;
       drawHint();
       drawArrow();
     };
@@ -1269,16 +1323,32 @@ function ensureEngine() {
   return engine;
 }
 
+/* One path to the worker for both uses. `mode` comes back on the reply so a
+   result can't be mistaken for the other kind, and the fen is checked so a
+   late answer for a position we've left is discarded. */
+function askEngine(mode) {
+  const fen = game.fen();
+  if (engineJob && engineJob.fen === fen && engineJob.mode === mode) return;
+  const worker = ensureEngine();
+  if (!worker) return;
+  engineJob = { fen, mode };
+  worker.postMessage({ fen, ms: thinkMs, mode });
+}
+
 function requestHint() {
   if (!hintsOn || result || game.turn() !== myColor) { hint = null; hintFen = null; return; }
   const fen = game.fen();
   if (hintFen === fen) return;          // already asked about this position
-  const worker = ensureEngine();
-  if (!worker) return;
   hintFen = fen;
   hint = null;
   drawHint();
-  worker.postMessage({ fen, ms: 1500 });
+  askEngine('hint');
+}
+
+function maybeAutoPlay() {
+  if (!autoPlay || result || !code) return;
+  if (game.turn() !== myColor) return;
+  askEngine('play');
 }
 
 /* ---------- rendering ---------- */
@@ -1292,6 +1362,7 @@ function draw() {
   drawTaken();
   drawLedger();
   requestHint();
+  maybeAutoPlay();
   drawHint();
   drawArrow();
   setPresence();
@@ -1301,6 +1372,10 @@ function draw() {
   el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
+  el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
+  el('thinkRange').value = thinkMs;
+  el('thinkVal').textContent = fmtThink(thinkMs);
+  el('thinkRow').classList.toggle('hidden', !(hintsOn || autoPlay));
 }
 
 function drawBoard() {
@@ -1402,7 +1477,11 @@ function drawStatus() {
   }
 
   const check = game.isCheck() ? ' You’re in check.' : '';
-  if (game.turn() === myColor) {
+  if (game.turn() === myColor && autoPlay && engineJob && engineJob.mode === 'play') {
+    // At long budgets an idle board is indistinguishable from a crash.
+    s.textContent = 'Thinking…';
+    s.classList.add('urgent');
+  } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
     s.classList.add('urgent');
   } else {
@@ -1528,7 +1607,11 @@ function setLink() {
   el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
-  el('peerHint').classList.toggle('hidden', !(peerHints && peers.size));
+  const tell = peerAuto
+    ? 'They’re letting the engine play their moves.'
+    : peerHints ? 'They have hints switched on.' : '';
+  el('peerHint').textContent = tell;
+  el('peerHint').classList.toggle('hidden', !(tell && peers.size));
   if (!el('game').classList.contains('hidden')) drawStatus();
 }
 
@@ -1642,12 +1725,34 @@ el('soundBtn').onclick = () => {
   if (soundOn) blip();          // confirm it actually works
 };
 
+function fmtThink(ms) {
+  return ms >= 10000 ? Math.round(ms / 1000) + 's' : (ms / 1000).toFixed(0) + 's';
+}
+
+el('thinkRange').oninput = e => {
+  thinkMs = Number(e.target.value);
+  el('thinkVal').textContent = fmtThink(thinkMs);
+  store.set('table:think', thinkMs);
+  // a longer think should apply to the position on the board now
+  hintFen = null;
+  engineJob = null;
+  hint = null;
+  draw();
+};
+
+el('autoBtn').onclick = () => {
+  autoPlay = !autoPlay;
+  engineJob = null;
+  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay });
+  draw();
+};
+
 el('hintBtn').onclick = () => {
   hintsOn = !hintsOn;
   el('hintBtn').textContent = hintsOn ? 'On' : 'Off';
   hint = null;
   hintFen = null;
-  broadcast({ t: 'hint', on: hintsOn });
+  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay });
   draw();
 };
 
