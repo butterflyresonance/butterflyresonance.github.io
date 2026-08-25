@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Table (fast engine) — a private chess board</title>
+<title>Table — a private chess board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -602,426 +602,70 @@
 <!-- Engine source. Parked as text/plain so the page never runs it on the
      main thread; it is handed to a Worker as a Blob when hints go on. -->
 <script id="engineSrc" type="text/plain">
-/* ---------------------------------------------------------------------------
-   0x88 board, mutable, with make/unmake.
+import { Chess } from 'https://esm.sh/chess.js@1.4.0';
 
-   Squares are rank*16 + file, a1 = 0, h8 = 119. A square is off the board iff
-   (sq & 0x88) is non-zero, which is the whole point of the layout: bounds
-   checking is one AND rather than two comparisons.
+const VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
 
-   Pieces are small integers: 1..6 are white pawn..king, 9..14 the same in
-   black (colour is bit 3). 0 is empty. Keeping them as numbers means the board
-   is an Int8Array and make/unmake never allocates.
---------------------------------------------------------------------------- */
-
-const EMPTY = 0;
-const PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6;
-const WHITE = 0, BLACK = 8;
-
-const typeOf   = p => p & 7;
-const colourOf = p => p & 8;
-
-const KNIGHT_OFF = [-33, -31, -18, -14, 14, 18, 31, 33];
-const BISHOP_OFF = [-17, -15, 15, 17];
-const ROOK_OFF   = [-16, -1, 1, 16];
-const KING_OFF   = [-17, -16, -15, -1, 1, 15, 16, 17];
-
-// castling right bits
-const WK = 1, WQ = 2, BK = 4, BQ = 8;
-
-const FILES = 'abcdefgh';
-const toAlg = sq => FILES[sq & 7] + ((sq >> 4) + 1);
-const fromAlg = s => (Number(s[1]) - 1) * 16 + FILES.indexOf(s[0]);
-
-/* Move packing. Everything the search needs fits in one integer, so move lists
-   are plain arrays of numbers and generating them allocates nothing else. */
-const SPEC_NONE = 0, SPEC_EP = 1, SPEC_CASTLE = 2, SPEC_DOUBLE = 3;
-const mk = (from, to, promo, cap, spec) =>
-  from | (to << 7) | (promo << 14) | (cap << 17) | (spec << 21);
-const mFrom  = m => m & 127;
-const mTo    = m => (m >> 7) & 127;
-const mPromo = m => (m >> 14) & 7;
-const mCap   = m => (m >> 17) & 15;
-const mSpec  = m => (m >> 21) & 7;
-
-const PIECE_CHAR = { p: PAWN, n: KNIGHT, b: BISHOP, r: ROOK, q: QUEEN, k: KING };
-
-class Board {
-  constructor(fen) {
-    this.board = new Int8Array(128);
-    this.kings = [0, 0];              // [white, black]
-    this.undo = [];
-    if (fen) this.load(fen);
-  }
-
-  load(fen) {
-    this.board.fill(0);
-    const [placement, turn, castling, ep, half, full] = fen.trim().split(/\s+/);
-
-    let rank = 7, file = 0;
-    for (const ch of placement) {
-      if (ch === '/') { rank--; file = 0; continue; }
-      if (ch >= '1' && ch <= '8') { file += Number(ch); continue; }
-      const lower = ch.toLowerCase();
-      const piece = PIECE_CHAR[lower] | (ch === lower ? BLACK : WHITE);
-      const sq = rank * 16 + file;
-      this.board[sq] = piece;
-      if (typeOf(piece) === KING) this.kings[colourOf(piece) ? 1 : 0] = sq;
-      file++;
-    }
-
-    this.turn = turn === 'w' ? WHITE : BLACK;
-    this.castling =
-      (castling.includes('K') ? WK : 0) | (castling.includes('Q') ? WQ : 0) |
-      (castling.includes('k') ? BK : 0) | (castling.includes('q') ? BQ : 0);
-    this.ep = ep && ep !== '-' ? fromAlg(ep) : -1;
-    this.half = Number(half) || 0;
-    this.full = Number(full) || 1;
-    this.undo.length = 0;
-    return this;
-  }
-
-  fen() {
-    let placement = '';
-    for (let rank = 7; rank >= 0; rank--) {
-      let run = 0;
-      for (let file = 0; file < 8; file++) {
-        const p = this.board[rank * 16 + file];
-        if (!p) { run++; continue; }
-        if (run) { placement += run; run = 0; }
-        const ch = 'x pnbrqk'[typeOf(p) + 1];
-        placement += colourOf(p) ? ch : ch.toUpperCase();
-      }
-      if (run) placement += run;
-      if (rank) placement += '/';
-    }
-    const c = (this.castling & WK ? 'K' : '') + (this.castling & WQ ? 'Q' : '') +
-              (this.castling & BK ? 'k' : '') + (this.castling & BQ ? 'q' : '');
-    return `${placement} ${this.turn === WHITE ? 'w' : 'b'} ${c || '-'} ` +
-           `${this.ep >= 0 ? toAlg(this.ep) : '-'} ${this.half} ${this.full}`;
-  }
-
-  /* Is `sq` attacked by `by` (WHITE or BLACK)? Used for legality and for
-     detecting check, so it runs constantly — no allocation, early exits. */
-  attacked(sq, by) {
-    const board = this.board;
-
-    // pawns
-    const dir = by === WHITE ? -16 : 16;    // step back from sq toward the pawn
-    for (const d of [dir - 1, dir + 1]) {
-      const s = sq + d;
-      if (!(s & 0x88) && board[s] === (PAWN | by)) return true;
-    }
-    // knights
-    for (const d of KNIGHT_OFF) {
-      const s = sq + d;
-      if (!(s & 0x88) && board[s] === (KNIGHT | by)) return true;
-    }
-    // king
-    for (const d of KING_OFF) {
-      const s = sq + d;
-      if (!(s & 0x88) && board[s] === (KING | by)) return true;
-    }
-    // sliders
-    for (const d of BISHOP_OFF) {
-      let s = sq + d;
-      while (!(s & 0x88)) {
-        const p = board[s];
-        if (p) {
-          if (colourOf(p) === by && (typeOf(p) === BISHOP || typeOf(p) === QUEEN)) return true;
-          break;
-        }
-        s += d;
-      }
-    }
-    for (const d of ROOK_OFF) {
-      let s = sq + d;
-      while (!(s & 0x88)) {
-        const p = board[s];
-        if (p) {
-          if (colourOf(p) === by && (typeOf(p) === ROOK || typeOf(p) === QUEEN)) return true;
-          break;
-        }
-        s += d;
-      }
-    }
-    return false;
-  }
-
-  inCheck(colour = this.turn) {
-    return this.attacked(this.kings[colour ? 1 : 0], colour ^ BLACK);
-  }
-
-  /* Pseudo-legal generation: illegal moves (leaving your own king in check) are
-     filtered in make(), because most of them get cut off before that matters. */
-  moves(capturesOnly = false) {
-    const out = [];
-    const board = this.board;
-    const us = this.turn, them = us ^ BLACK;
-
-    for (let sq = 0; sq < 128; sq++) {
-      if (sq & 0x88) { sq += 7; continue; }
-      const piece = board[sq];
-      if (!piece || colourOf(piece) !== us) continue;
-      const type = typeOf(piece);
-
-      if (type === PAWN) {
-        const fwd = us === WHITE ? 16 : -16;
-        const startRank = us === WHITE ? 1 : 6;
-        const lastRank  = us === WHITE ? 7 : 0;
-
-        const one = sq + fwd;
-        if (!capturesOnly && !(one & 0x88) && !board[one]) {
-          if ((one >> 4) === lastRank) {
-            for (const pr of [QUEEN, ROOK, BISHOP, KNIGHT]) out.push(mk(sq, one, pr, 0, SPEC_NONE));
-          } else {
-            out.push(mk(sq, one, 0, 0, SPEC_NONE));
-            const two = sq + fwd * 2;
-            if ((sq >> 4) === startRank && !board[two]) out.push(mk(sq, two, 0, 0, SPEC_DOUBLE));
-          }
-        }
-        for (const d of [fwd - 1, fwd + 1]) {
-          const to = sq + d;
-          if (to & 0x88) continue;
-          const target = board[to];
-          if (target && colourOf(target) === them) {
-            if ((to >> 4) === lastRank) {
-              for (const pr of [QUEEN, ROOK, BISHOP, KNIGHT]) out.push(mk(sq, to, pr, target, SPEC_NONE));
-            } else out.push(mk(sq, to, 0, target, SPEC_NONE));
-          } else if (!target && to === this.ep) {
-            out.push(mk(sq, to, 0, PAWN | them, SPEC_EP));
-          }
-        }
-        continue;
-      }
-
-      const offsets = type === KNIGHT ? KNIGHT_OFF
-                    : type === BISHOP ? BISHOP_OFF
-                    : type === ROOK   ? ROOK_OFF
-                    : KING_OFF;
-      const sliding = type === BISHOP || type === ROOK || type === QUEEN;
-
-      if (type === QUEEN) {
-        for (const d of KING_OFF) this._ray(out, sq, d, true, them, capturesOnly);
-      } else if (sliding) {
-        for (const d of offsets) this._ray(out, sq, d, true, them, capturesOnly);
-      } else {
-        for (const d of offsets) this._ray(out, sq, d, false, them, capturesOnly);
-      }
-    }
-
-    if (!capturesOnly) this._castles(out);
-    return out;
-  }
-
-  _ray(out, from, d, sliding, them, capturesOnly) {
-    let to = from + d;
-    while (!(to & 0x88)) {
-      const target = this.board[to];
-      if (!target) {
-        if (!capturesOnly) out.push(mk(from, to, 0, 0, SPEC_NONE));
-      } else {
-        if (colourOf(target) === them) out.push(mk(from, to, 0, target, SPEC_NONE));
-        break;
-      }
-      if (!sliding) break;
-      to += d;
-    }
-  }
-
-  _castles(out) {
-    const us = this.turn, them = us ^ BLACK;
-    if (this.inCheck()) return;
-    if (us === WHITE) {
-      if ((this.castling & WK) && !this.board[5] && !this.board[6] &&
-          !this.attacked(5, them) && !this.attacked(6, them))
-        out.push(mk(4, 6, 0, 0, SPEC_CASTLE));
-      if ((this.castling & WQ) && !this.board[3] && !this.board[2] && !this.board[1] &&
-          !this.attacked(3, them) && !this.attacked(2, them))
-        out.push(mk(4, 2, 0, 0, SPEC_CASTLE));
-    } else {
-      if ((this.castling & BK) && !this.board[117] && !this.board[118] &&
-          !this.attacked(117, them) && !this.attacked(118, them))
-        out.push(mk(116, 118, 0, 0, SPEC_CASTLE));
-      if ((this.castling & BQ) && !this.board[115] && !this.board[114] && !this.board[113] &&
-          !this.attacked(115, them) && !this.attacked(114, them))
-        out.push(mk(116, 114, 0, 0, SPEC_CASTLE));
-    }
-  }
-
-  /* Returns false and leaves the position untouched if the move is illegal,
-     so callers can simply skip it. */
-  make(move) {
-    const from = mFrom(move), to = mTo(move), promo = mPromo(move);
-    const spec = mSpec(move), cap = mCap(move);
-    const board = this.board;
-    const us = this.turn, them = us ^ BLACK;
-    const piece = board[from];
-
-    this.undo.push({
-      move, castling: this.castling, ep: this.ep, half: this.half,
-      kingW: this.kings[0], kingB: this.kings[1]
-    });
-
-    board[to] = promo ? (promo | us) : piece;
-    board[from] = 0;
-
-    if (spec === SPEC_EP) board[to + (us === WHITE ? -16 : 16)] = 0;
-
-    if (spec === SPEC_CASTLE) {
-      if (to === 6)        { board[5] = board[7];     board[7] = 0; }
-      else if (to === 2)   { board[3] = board[0];     board[0] = 0; }
-      else if (to === 118) { board[117] = board[119]; board[119] = 0; }
-      else if (to === 114) { board[115] = board[112]; board[112] = 0; }
-    }
-
-    if (typeOf(piece) === KING) this.kings[us ? 1 : 0] = to;
-
-    // castling rights die when the king or a rook leaves home, or a rook is taken
-    if (from === 4 || to === 4)       this.castling &= ~(WK | WQ);
-    if (from === 116 || to === 116)   this.castling &= ~(BK | BQ);
-    if (from === 7 || to === 7)       this.castling &= ~WK;
-    if (from === 0 || to === 0)       this.castling &= ~WQ;
-    if (from === 119 || to === 119)   this.castling &= ~BK;
-    if (from === 112 || to === 112)   this.castling &= ~BQ;
-
-    this.ep = spec === SPEC_DOUBLE ? (from + to) / 2 : -1;
-    this.half = (cap || typeOf(piece) === PAWN) ? 0 : this.half + 1;
-    if (us === BLACK) this.full++;
-    this.turn = them;
-
-    // legality: our king must not be left attacked
-    if (this.attacked(this.kings[us ? 1 : 0], them)) { this.unmake(); return false; }
-    return true;
-  }
-
-  unmake() {
-    const rec = this.undo.pop();
-    if (!rec) return;
-    const move = rec.move;
-    const from = mFrom(move), to = mTo(move), promo = mPromo(move);
-    const spec = mSpec(move), cap = mCap(move);
-    const board = this.board;
-
-    this.turn ^= BLACK;
-    const us = this.turn;
-    if (us === BLACK) this.full--;
-
-    board[from] = promo ? (PAWN | us) : board[to];
-    board[to] = 0;
-
-    if (spec === SPEC_EP) {
-      board[to + (us === WHITE ? -16 : 16)] = cap;
-    } else if (cap) {
-      board[to] = cap;
-    }
-
-    if (spec === SPEC_CASTLE) {
-      if (to === 6)        { board[7] = board[5];     board[5] = 0; }
-      else if (to === 2)   { board[0] = board[3];     board[3] = 0; }
-      else if (to === 118) { board[119] = board[117]; board[117] = 0; }
-      else if (to === 114) { board[112] = board[115]; board[115] = 0; }
-    }
-
-    this.castling = rec.castling;
-    this.ep = rec.ep;
-    this.half = rec.half;
-    this.kings[0] = rec.kingW;
-    this.kings[1] = rec.kingB;
-  }
-
-  /* A null move: hand the turn over without playing anything. On our own board
-     this is nearly free — flip the side, drop en passant rights, remember what
-     to restore. No position rebuild, unlike doing this through chess.js. */
-  makeNull() {
-    this.undo.push({
-      move: 0, castling: this.castling, ep: this.ep, half: this.half,
-      kingW: this.kings[0], kingB: this.kings[1]
-    });
-    this.ep = -1;
-    this.half++;
-    this.turn ^= BLACK;
-  }
-
-  unmakeNull() {
-    const rec = this.undo.pop();
-    this.turn ^= BLACK;
-    this.castling = rec.castling;
-    this.ep = rec.ep;
-    this.half = rec.half;
-    this.kings[0] = rec.kingW;
-    this.kings[1] = rec.kingB;
-  }
-
-  perft(depth) {
-    if (depth === 0) return 1;
-    let total = 0;
-    for (const m of this.moves()) {
-      if (!this.make(m)) continue;
-      total += depth === 1 ? 1 : this.perft(depth - 1);
-      this.unmake();
-    }
-    return total;
-  }
-}
-
-
-
-const VAL = [0, 100, 320, 330, 500, 900, 0];   // indexed by type
-const MATE = 100000;
-
-/* Piece-square tables, a8 first, from White's point of view. */
+/* Piece-square tables, from White's point of view, a8 first (matching the
+   order chess.js's board() walks). Values are small nudges in centipawns —
+   they encode "knights like the middle, pawns like advancing, the king likes
+   the corner" without needing any real positional understanding. */
 const PST = {
-  [PAWN]: [ 0,  0,  0,  0,  0,  0,  0,  0,
-           50, 50, 50, 50, 50, 50, 50, 50,
-           10, 10, 20, 30, 30, 20, 10, 10,
-            5,  5, 10, 25, 25, 10,  5,  5,
-            0,  0,  0, 20, 20,  0,  0,  0,
-            5, -5,-10,  0,  0,-10, -5,  5,
-            5, 10, 10,-20,-20, 10, 10,  5,
-            0,  0,  0,  0,  0,  0,  0,  0],
-  [KNIGHT]: [-50,-40,-30,-30,-30,-30,-40,-50,
-             -40,-20,  0,  0,  0,  0,-20,-40,
-             -30,  0, 10, 15, 15, 10,  0,-30,
-             -30,  5, 15, 20, 20, 15,  5,-30,
-             -30,  0, 15, 20, 20, 15,  0,-30,
-             -30,  5, 10, 15, 15, 10,  5,-30,
-             -40,-20,  0,  5,  5,  0,-20,-40,
-             -50,-40,-30,-30,-30,-30,-40,-50],
-  [BISHOP]: [-20,-10,-10,-10,-10,-10,-10,-20,
-             -10,  0,  0,  0,  0,  0,  0,-10,
-             -10,  0,  5, 10, 10,  5,  0,-10,
-             -10,  5,  5, 10, 10,  5,  5,-10,
-             -10,  0, 10, 10, 10, 10,  0,-10,
-             -10, 10, 10, 10, 10, 10, 10,-10,
-             -10,  5,  0,  0,  0,  0,  5,-10,
-             -20,-10,-10,-10,-10,-10,-10,-20],
-  [ROOK]: [  0,  0,  0,  0,  0,  0,  0,  0,
-             5, 10, 10, 10, 10, 10, 10,  5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-             0,  0,  0,  5,  5,  0,  0,  0],
-  [QUEEN]: [-20,-10,-10, -5, -5,-10,-10,-20,
-            -10,  0,  0,  0,  0,  0,  0,-10,
-            -10,  0,  5,  5,  5,  5,  0,-10,
-             -5,  0,  5,  5,  5,  5,  0, -5,
-              0,  0,  5,  5,  5,  5,  0, -5,
-            -10,  5,  5,  5,  5,  5,  0,-10,
-            -10,  0,  5,  0,  0,  0,  0,-10,
-            -20,-10,-10, -5, -5,-10,-10,-20],
-  [KING]: [-30,-40,-40,-50,-50,-40,-40,-30,
-           -30,-40,-40,-50,-50,-40,-40,-30,
-           -30,-40,-40,-50,-50,-40,-40,-30,
-           -30,-40,-40,-50,-50,-40,-40,-30,
-           -20,-30,-30,-40,-40,-30,-30,-20,
-           -10,-20,-20,-20,-20,-20,-20,-10,
-            20, 20,  0,  0,  0, 20, 20, 20,
-            20, 30, 10,  0,  0, 10, 30, 20]
+  p: [ 0,  0,  0,  0,  0,  0,  0,  0,
+      50, 50, 50, 50, 50, 50, 50, 50,
+      10, 10, 20, 30, 30, 20, 10, 10,
+       5,  5, 10, 25, 25, 10,  5,  5,
+       0,  0,  0, 20, 20,  0,  0,  0,
+       5, -5,-10,  0,  0,-10, -5,  5,
+       5, 10, 10,-20,-20, 10, 10,  5,
+       0,  0,  0,  0,  0,  0,  0,  0],
+  n: [-50,-40,-30,-30,-30,-30,-40,-50,
+      -40,-20,  0,  0,  0,  0,-20,-40,
+      -30,  0, 10, 15, 15, 10,  0,-30,
+      -30,  5, 15, 20, 20, 15,  5,-30,
+      -30,  0, 15, 20, 20, 15,  0,-30,
+      -30,  5, 10, 15, 15, 10,  5,-30,
+      -40,-20,  0,  5,  5,  0,-20,-40,
+      -50,-40,-30,-30,-30,-30,-40,-50],
+  b: [-20,-10,-10,-10,-10,-10,-10,-20,
+      -10,  0,  0,  0,  0,  0,  0,-10,
+      -10,  0,  5, 10, 10,  5,  0,-10,
+      -10,  5,  5, 10, 10,  5,  5,-10,
+      -10,  0, 10, 10, 10, 10,  0,-10,
+      -10, 10, 10, 10, 10, 10, 10,-10,
+      -10,  5,  0,  0,  0,  0,  5,-10,
+      -20,-10,-10,-10,-10,-10,-10,-20],
+  r: [  0,  0,  0,  0,  0,  0,  0,  0,
+        5, 10, 10, 10, 10, 10, 10,  5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+       -5,  0,  0,  0,  0,  0,  0, -5,
+        0,  0,  0,  5,  5,  0,  0,  0],
+  q: [-20,-10,-10, -5, -5,-10,-10,-20,
+      -10,  0,  0,  0,  0,  0,  0,-10,
+      -10,  0,  5,  5,  5,  5,  0,-10,
+       -5,  0,  5,  5,  5,  5,  0, -5,
+        0,  0,  5,  5,  5,  5,  0, -5,
+      -10,  5,  5,  5,  5,  5,  0,-10,
+      -10,  0,  5,  0,  0,  0,  0,-10,
+      -20,-10,-10, -5, -5,-10,-10,-20],
+  // Midgame king: hide in the corner behind pawns.
+  k: [-30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30,
+      -20,-30,-30,-40,-40,-30,-30,-20,
+      -10,-20,-20,-20,-20,-20,-20,-10,
+       20, 20,  0,  0,  0, 20, 20, 20,
+       20, 30, 10,  0,  0, 10, 30, 20]
 };
 
+/* Endgame king: the exact opposite. Once the queens are off the king is a
+   strong attacking piece, and without this table it spends the endgame
+   cowering on h1 while its pawns are picked off. Interpolated by phase, so the
+   change is gradual rather than a cliff. */
 const KING_EG = [
   -50,-30,-30,-30,-30,-30,-30,-50,
   -30,-20,-10,  0,  0,-10,-20,-30,
@@ -1033,229 +677,262 @@ const KING_EG = [
   -50,-40,-30,-20,-20,-30,-40,-50
 ];
 
-const PHASE = [0, 0, 1, 1, 2, 4, 0];
+// 24 at the opening, 0 with only kings and pawns left.
+const PHASE = { p: 0, n: 1, b: 1, r: 2, q: 4, k: 0 };
 
-// 0x88 square -> table index, mirrored for Black
-const idxW = sq => (7 - (sq >> 4)) * 8 + (sq & 7);
-const idxB = sq => (sq >> 4) * 8 + (sq & 7);
+const MATE = 100000;
 
-/* ---------- Zobrist ---------- */
-let zseed = 0x2f6e2b1;
-const rnd32 = () => {
-  zseed ^= zseed << 13; zseed |= 0;
-  zseed ^= zseed >>> 17;
-  zseed ^= zseed << 5;  zseed |= 0;
-  return zseed >>> 0;
-};
-const ZP = [];                       // [piece][square] -> [hi, lo]
-for (let p = 0; p < 15; p++) {
-  ZP[p] = [];
-  for (let s = 0; s < 128; s++) ZP[p][s] = [rnd32(), rnd32()];
-}
-const ZTURN = [rnd32(), rnd32()];
-const ZCASTLE = []; for (let i = 0; i < 16; i++) ZCASTLE[i] = [rnd32(), rnd32()];
-const ZEP = []; for (let i = 0; i < 9; i++) ZEP[i] = [rnd32(), rnd32()];
+/* Evaluation, always from the side-to-move's point of view (negamax). */
+function evaluate(game) {
+  let score = 0;
+  let kingMg = 0, kingEg = 0, phase = 0;
+  const bishops = { w: 0, b: 0 };
+  const board = game.board();
 
-/* Two 32-bit halves: one indexes the table, the other verifies the entry.
-   A single 32-bit key collides often enough at 200k entries to matter. */
-function hashOf(b) {
-  let h1 = 0, h2 = 0;
-  for (let sq = 0; sq < 128; sq++) {
-    if (sq & 0x88) { sq += 7; continue; }
-    const p = b.board[sq];
-    if (!p) continue;
-    h1 ^= ZP[p][sq][0]; h2 ^= ZP[p][sq][1];
-  }
-  if (b.turn === BLACK) { h1 ^= ZTURN[0]; h2 ^= ZTURN[1]; }
-  h1 ^= ZCASTLE[b.castling][0]; h2 ^= ZCASTLE[b.castling][1];
-  const epFile = b.ep >= 0 ? (b.ep & 7) : 8;
-  h1 ^= ZEP[epFile][0]; h2 ^= ZEP[epFile][1];
-  return [h1 >>> 0, h2 >>> 0];
-}
+  for (let i = 0; i < 64; i++) {
+    const cell = board[i >> 3][i & 7];
+    if (!cell) continue;
+    // White reads the table straight; Black reads it vertically mirrored.
+    const idx = cell.color === 'w' ? i : (56 - (i & ~7)) + (i & 7);
+    const sign = cell.color === 'w' ? 1 : -1;
 
-/* ---------- evaluation ---------- */
-function evaluate(b) {
-  let score = 0, kingMg = 0, kingEg = 0, phase = 0;
-  let wb = 0, bb = 0;
-  const board = b.board;
-
-  for (let sq = 0; sq < 128; sq++) {
-    if (sq & 0x88) { sq += 7; continue; }
-    const p = board[sq];
-    if (!p) continue;
-    const t = typeOf(p);
-    const white = colourOf(p) === WHITE;
-    const idx = white ? idxW(sq) : idxB(sq);
-    const sign = white ? 1 : -1;
-
-    if (t === KING) {
-      kingMg += sign * PST[KING][idx];
+    if (cell.type === 'k') {
+      kingMg += sign * PST.k[idx];
       kingEg += sign * KING_EG[idx];
-      continue;
+      continue;                       // kings have no material value
     }
-    score += sign * (VAL[t] + PST[t][idx]);
-    phase += PHASE[t];
-    if (t === BISHOP) { if (white) wb++; else bb++; }
+
+    score += sign * (VAL[cell.type] + PST[cell.type][idx]);
+    phase += PHASE[cell.type];
+    if (cell.type === 'b') bishops[cell.color]++;
   }
 
-  if (wb >= 2) score += 30;
-  if (bb >= 2) score -= 30;
+  if (bishops.w >= 2) score += 30;
+  if (bishops.b >= 2) score -= 30;
 
-  const ph = phase > 24 ? 24 : phase;
+  // Taper the king between the two tables rather than switching at a threshold.
+  const ph = Math.min(24, phase);
   score += (kingMg * ph + kingEg * (24 - ph)) / 24;
 
-  return b.turn === WHITE ? Math.round(score) : -Math.round(score);
+  return game.turn() === 'w' ? Math.round(score) : -Math.round(score);
+}
+
+/* Ordering heuristics read the SAN string rather than asking chess.js for
+   verbose moves — verbose generation costs 1.1ms a call because it builds
+   disambiguated SAN for every move, against 66µs for the plain list. That one
+   swap is worth roughly 18x on search speed. */
+const FILE = { a:0,b:1,c:2,d:3,e:4,f:5,g:6,h:7 };
+
+function destOf(san) {
+  let t = san.replace(/[+#]$/, '');
+  const eq = t.indexOf('=');
+  if (eq > 0) t = t.slice(0, eq);
+  if (t === 'O-O' || t === 'O-O-O') return null;
+  return t.slice(-2);
 }
 
 /* ---------- static exchange evaluation ----------
-   On our own board this is safe to do in place: we only touch piece placement
-   and restore it, and nothing here reads castling or en passant. */
-function smallestAttacker(b, sq, side) {
-  const board = b.board;
-  const dir = side === WHITE ? -16 : 16;
-  for (const d of [dir - 1, dir + 1]) {
-    const s = sq + d;
-    if (!(s & 0x88) && board[s] === (PAWN | side)) return s;
-  }
-  for (const d of [-33, -31, -18, -14, 14, 18, 31, 33]) {
-    const s = sq + d;
-    if (!(s & 0x88) && board[s] === (KNIGHT | side)) return s;
-  }
-  for (const d of [-17, -15, 15, 17]) {
-    let s = sq + d;
-    while (!(s & 0x88)) {
-      const p = board[s];
-      if (p) { if (p === (BISHOP | side)) return s; break; }
-      s += d;
-    }
-  }
-  for (const d of [-16, -1, 1, 16]) {
-    let s = sq + d;
-    while (!(s & 0x88)) {
-      const p = board[s];
-      if (p) { if (p === (ROOK | side)) return s; break; }
-      s += d;
-    }
-  }
-  for (const d of [-17, -16, -15, -1, 1, 15, 16, 17]) {
-    let s = sq + d;
-    while (!(s & 0x88)) {
-      const p = board[s];
-      if (p) { if (p === (QUEEN | side)) return s; break; }
-      s += d;
-    }
-  }
-  for (const d of [-17, -16, -15, -1, 1, 15, 16, 17]) {
-    const s = sq + d;
-    if (!(s & 0x88) && board[s] === (KING | side)) return s;
-  }
-  return -1;
-}
+   "If I capture there, and we both keep taking cheapest-first, what do I end up
+   with?" This is the explicit form of don't-put-it-where-it-just-gets-taken.
+   chess.js exposes attackers() at ~1µs, and removing the capturing piece from
+   the board reveals any x-ray attacker behind it on the next query.
 
-function seeAfter(b, sq, side) {
-  const from = smallestAttacker(b, sq, side);
-  if (from < 0) return 0;
-  const board = b.board;
-  const victim = board[sq];
-  if (!victim) return 0;
-  const mover = board[from];
-  board[from] = 0;
-  board[sq] = mover;
-  const value = Math.max(0, VAL[typeOf(victim)] - seeAfter(b, sq, side ^ BLACK));
-  board[sq] = victim;
-  board[from] = mover;
+   IMPORTANT: this must never run on the live search position. remove()/put()
+   silently clear the en passant square and castling rights, and neither can be
+   restored reliably — setCastlingRights refuses while a king is off its square,
+   and nothing restores en passant at all. Left unchecked that makes the search
+   generate moves for a position that isn't the one on the board, and it
+   produced an illegal move within a few games. Callers pass a throwaway clone;
+   the board restore below is only so one clone can serve several probes. */
+function seeAfter(game, sq, side) {
+  const att = game.attackers(sq, side);
+  if (!att.length) return 0;
+
+  let from = null, cheapest = Infinity;
+  for (const f of att) {
+    const p = game.get(f);
+    if (p && VAL[p.type] < cheapest) { cheapest = VAL[p.type]; from = f; }
+  }
+  const victim = game.get(sq);
+  if (!victim || !from) return 0;
+
+  const mover = game.remove(from);
+  game.remove(sq);
+  game.put(mover, sq);
+  // max(0, ...): the side to move may simply decline to recapture.
+  const value = Math.max(0, VAL[victim.type] - seeAfter(game, sq, side === 'w' ? 'b' : 'w'));
+  game.remove(sq);
+  game.put(victim, sq);
+  game.put(mover, from);
   return value;
 }
 
-function seeMove(b, move) {
-  const to = mTo(move), cap = mCap(move);
-  if (!cap) return 0;
-  const board = b.board;
-  const from = mFrom(move);
-  const mover = board[from];
-  const victim = board[to];
-  if (!victim) return 0;                  // en passant: treat as neutral
-  board[from] = 0;
-  board[to] = mover;
-  const value = VAL[typeOf(victim)] - seeAfter(b, to, b.turn ^ BLACK);
-  board[to] = victim;
-  board[from] = mover;
+/* Net material from actually making the capture — no clamp at this level,
+   because we're deciding whether to play it at all. */
+function seeCapture(game, sq, side) {
+  const victim = game.get(sq);
+  if (!victim) return 0;                 // en passant: treat as neutral
+  const att = game.attackers(sq, side);
+  if (!att.length) return 0;
+
+  let from = null, cheapest = Infinity;
+  for (const f of att) {
+    const p = game.get(f);
+    if (p && VAL[p.type] < cheapest) { cheapest = VAL[p.type]; from = f; }
+  }
+  if (!from) return 0;
+
+  const mover = game.remove(from);
+  game.remove(sq);
+  game.put(mover, sq);
+  const value = VAL[victim.type] - seeAfter(game, sq, side === 'w' ? 'b' : 'w');
+  game.remove(sq);
+  game.put(victim, sq);
+  game.put(mover, from);
   return value;
 }
 
-/* Zugzwang guard: passing is only safe to assume bad when you have a real piece
-   to move. */
-function hasHeavy(b) {
-  const us = b.turn;
-  for (let sq = 0; sq < 128; sq++) {
-    if (sq & 0x88) { sq += 7; continue; }
-    const p = b.board[sq];
-    if (p && colourOf(p) === us) { const t = typeOf(p); if (t !== PAWN && t !== KING) return true; }
+/* Most Valuable Victim: look at what sits on the destination square, so the
+   search tries "pawn takes queen" long before "queen takes pawn". */
+function orderKey(san, board, nodes, ply) {
+  let s = 0;
+
+  // Killers: quiet moves that caused a cutoff at this same ply elsewhere in the
+  // tree. They cost nothing to remember and refute a lot of siblings.
+  if (nodes && nodes.killers) {
+    const k = nodes.killers[ply];
+    if (k) {
+      if (k[0] === san) return 480;
+      if (k[1] === san) return 460;
+    }
   }
-  return false;
-}
 
-/* ---------- move ordering ---------- */
-function scoreMove(b, move, ttMove, killers, history) {
-  if (move === ttMove) return 1e7;
-  const cap = mCap(move);
-  if (cap) return 500000 + 10 * VAL[typeOf(cap)] - VAL[typeOf(b.board[mFrom(move)])];
-  if (mPromo(move)) return 400000 + VAL[mPromo(move)];
-  if (killers) {
-    if (move === killers[0]) return 300000;
-    if (move === killers[1]) return 290000;
+  if (san.includes('x')) {
+    s = 500;
+    const d = destOf(san);
+    if (d && board) {
+      const cell = board[8 - Number(d[1])][FILE[d[0]]];
+      s += 10 * (cell ? VAL[cell.type] : VAL.p);   // empty means en passant
+    }
+    const mover = /^[NBRQK]/.test(san) ? san[0].toLowerCase() : 'p';
+    s -= VAL[mover];
   }
-  return history[move] || 0;
+  if (san.includes('=')) s += 900;
+  if (san.endsWith('#')) s += 10000;
+  else if (san.endsWith('+')) s += 50;
+
+  // History: how often this move has caused a cutoff anywhere. Weak signal,
+  // free to collect, and it sorts the quiet moves that nothing else ranks.
+  if (!s && nodes && nodes.history) s = Math.min(400, (nodes.history[san] || 0) / 64);
+
+  return s;
 }
 
-function sortMoves(b, moves, ttMove, killers, history) {
-  const scored = moves.map(m => [scoreMove(b, m, ttMove, killers, history), m]);
-  scored.sort((a, x) => x[0] - a[0]);
-  return scored.map(x => x[1]);
+function ordered(game, first, nodes, ply) {
+  const moves = game.moves();
+  // board() is only needed to value capture victims; skip it in quiet positions
+  const board = moves.some(m => m.includes('x')) ? game.board() : null;
+  return moves
+    .map(san => [san === first ? 1e7 : orderKey(san, board, nodes, ply), san])
+    .sort((a, b) => b[0] - a[0])
+    .map(x => x[1]);
 }
 
-/* ---------- search ---------- */
+function rememberCutoff(nodes, san, ply, depth) {
+  if (san.includes('x') || san.includes('=')) return;   // captures rank already
+  const k = nodes.killers[ply] || (nodes.killers[ply] = [null, null]);
+  if (k[0] !== san) { k[1] = k[0]; k[0] = san; }
+  nodes.history[san] = (nodes.history[san] || 0) + depth * depth;
+}
+
+/* ---------- transposition table ----------
+   Different move orders reach the same board: 1.Nf3 d5 2.d4 and 1.d4 d5 2.Nf3
+   are identical, and without this the whole subtree below is searched twice.
+   Measured on this engine, repeats are ~21% of nodes at depth 3 and ~47% at
+   depth 5, so the waste grows exactly where the extra depth is wanted.
+
+   The table lives for one search only. Carry-over between consecutive searches
+   was measured at 19%, then 3%, then 1% — the tree has moved on, so keeping it
+   across moves buys almost nothing and costs memory. */
 const TT_EXACT = 0, TT_LOWER = 1, TT_UPPER = 2;
-const TT_MAX = 400000;
+const TT_MAX = 200000;
 
-function quiesce(b, alpha, beta, ctx) {
-  const stand = evaluate(b);
+// chess.js ships a position hash: 0.23µs against 3.59µs to build a key out of
+// the FEN string, and it already accounts for side to move.
+const ttKey = game => game.hash();
+
+
+/* Mate scores count from the current ply, so they can't be stored raw — the
+   same mate is a different distance from a different depth. Normalise going
+   in and back out. */
+const toTT = (score, ply) =>
+  score > MATE - 1000 ? score + ply : score < -MATE + 1000 ? score - ply : score;
+const fromTT = (score, ply) =>
+  score > MATE - 1000 ? score - ply : score < -MATE + 1000 ? score + ply : score;
+
+function ttStore(tt, key, depth, score, flag, best) {
+  if (tt.size >= TT_MAX) tt.clear();      // crude, but a full table is rare
+  const prev = tt.get(key);
+  if (!prev || prev.depth <= depth) tt.set(key, { depth, score, flag, best });
+}
+
+/* Search only captures and promotions at the leaves, so the engine never stops
+   counting halfway through a trade and reports a won piece it is about to lose
+   straight back. */
+function quiesce(game, alpha, beta, nodes) {
+  const stand = evaluate(game);
   if (stand >= beta) return beta;
   if (stand > alpha) alpha = stand;
 
-  const caps = b.moves(true).filter(m => mCap(m) || mPromo(m));
-  const sorted = sortMoves(b, caps, 0, null, ctx.history);
+  const board = game.board();
+  const side = game.turn();
+  const caps = game.moves()
+    .filter(san => san.includes('x') || san.includes('='))
+    .map(san => [orderKey(san, board, nodes, 0), san])
+    .sort((a, b) => b[0] - a[0]);
 
-  for (const m of sorted) {
-    if (mCap(m) && !mPromo(m) && seeMove(b, m) < 0) continue;   // losing capture
-    if (!b.make(m)) continue;
-    ctx.nodes++;
-    const score = -quiesce(b, -beta, -alpha, ctx);
-    b.unmake();
+  let probe = null;        // built lazily, reused for every probe at this node
+
+  for (const [, san] of caps) {
+    /* Skip captures that lose material outright. The cheapest attacker is the
+       best case, so if that loses, every capture on that square loses. */
+    if (san.includes('x') && !san.includes('=')) {
+      const dest = destOf(san);
+      if (dest) {
+        if (!probe) probe = new Chess(game.fen());
+        if (seeCapture(probe, dest, side) < 0) continue;
+      }
+    }
+    game.move(san);
+    nodes.n++;
+    const score = -quiesce(game, -beta, -alpha, nodes);
+    game.undo();
     if (score >= beta) return beta;
     if (score > alpha) alpha = score;
   }
   return alpha;
 }
 
-function negamax(b, depth, alpha, beta, ply, ctx) {
-  if ((++ctx.checks & 1023) === 0) {
+function negamax(game, depth, alpha, beta, ply, nodes, deadline, tt) {
+  if ((++nodes.checks & 511) === 0) {
     const now = Date.now();
-    if (now > ctx.deadline) { ctx.stop = true; return 0; }
-    if (ctx.beat && now > ctx.nextBeat) {
-      ctx.nextBeat = now + 2000;
-      ctx.beat(ctx.depth, ctx.nodes);
+    if (now > deadline) { nodes.stop = true; return 0; }
+    // Tell the page we're alive. Without this it can only guess from elapsed
+    // time, and guessing kills searches that are merely slow.
+    if (nodes.beat && now > nodes.nextBeat) {
+      nodes.nextBeat = now + 2000;
+      nodes.beat(nodes.depth, nodes.n);
     }
   }
 
-  const [h1, h2] = hashOf(b);
-  const hit = ctx.tt.get(h1);
-  let ttMove = 0;
-  if (hit && hit.check === h2) {
-    ttMove = hit.move;
+  const key = ttKey(game);
+  const hit = tt.get(key);
+  let ttBest = null;
+
+  if (hit) {
+    ttBest = hit.best;                    // useful for ordering at any depth
     if (hit.depth >= depth) {
-      const s = hit.score > MATE - 1000 ? hit.score - ply
-              : hit.score < -MATE + 1000 ? hit.score + ply : hit.score;
+      const s = fromTT(hit.score, ply);
       if (hit.flag === TT_EXACT) return s;
       if (hit.flag === TT_LOWER && s > alpha) alpha = s;
       else if (hit.flag === TT_UPPER && s < beta) beta = s;
@@ -1263,72 +940,66 @@ function negamax(b, depth, alpha, beta, ply, ctx) {
     }
   }
 
-  const inCheck = b.inCheck();
-  if (inCheck && ply < 40) depth++;            // check extension
+  const moves = ordered(game, ttBest, nodes, ply);
 
-  if (depth <= 0) return quiesce(b, alpha, beta, ctx);
-
-  /* Null-move pruning with a verification re-search. */
-  if (ctx.useNull && depth >= 3 && !ctx.noNull && !inCheck &&
-      beta < MATE - 1000 && hasHeavy(b)) {
-    const R = 2;
-    b.makeNull();
-    const s = -negamax(b, depth - 1 - R, -beta, -beta + 1, ply + 1, ctx);
-    b.unmakeNull();
-    if (ctx.stop) return 0;
-    if (s >= beta) {
-      ctx.noNull = (ctx.noNull || 0) + 1;
-      const v = negamax(b, depth - 1 - R, beta - 1, beta, ply, ctx);
-      ctx.noNull--;
-      if (ctx.stop) return 0;
-      if (v >= beta) return beta;
-    }
-  }
-
-  const killers = ctx.killers[ply] || (ctx.killers[ply] = [0, 0]);
-  const moves = sortMoves(b, b.moves(), ttMove, killers, ctx.history);
+  // No legal moves is mate or stalemate — far cheaper than isCheckmate()
+  // plus isDraw() at every node, which together cost ~65µs.
+  if (!moves.length) return game.isCheck() ? -MATE + ply : 0;
 
   const alphaOrig = alpha;
-  let best = 0, legal = 0;
 
-  for (const m of moves) {
-    if (!b.make(m)) continue;
-    legal++;
-    ctx.nodes++;
-    const score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx);
-    b.unmake();
-    if (ctx.stop) return 0;
+  /* Check extension: never stop searching while a king is in check. The
+     position isn't quiet, and quiescence only looks at captures, so it would
+     miss the escape entirely. Capped by ply so perpetual check can't extend
+     without bound. */
+  const inCheck = game.isCheck();
+  const extend = inCheck && ply < 40 ? 1 : 0;
+  if (depth <= 0 && extend) depth = 1;
 
-    if (score >= beta) {
-      ttStore(ctx.tt, h1, h2, depth, toTT(beta, ply), TT_LOWER, m);
-      if (!mCap(m)) {
-        if (killers[0] !== m) { killers[1] = killers[0]; killers[0] = m; }
-        ctx.history[m] = (ctx.history[m] || 0) + depth * depth;
-      }
-      return beta;
-    }
-    if (score > alpha) { alpha = score; best = m; }
+  // Leaf results go in the table too. Without this the table is nearly useless
+  // here: leaves are most of the tree, so skipping them took the probe hit rate
+  // from ~33% down to ~6%.
+  if (depth === 0) {
+    const v = quiesce(game, alpha, beta, nodes);
+    ttStore(tt, key, 0, toTT(v, ply),
+            v <= alphaOrig ? TT_UPPER : v >= beta ? TT_LOWER : TT_EXACT, null);
+    return v;
   }
 
-  if (!legal) return inCheck ? -MATE + ply : 0;
+  let bestSan = moves[0];
 
-  ttStore(ctx.tt, h1, h2, depth, toTT(alpha, ply),
-          alpha > alphaOrig ? TT_EXACT : TT_UPPER, best);
+  for (const san of moves) {
+    game.move(san);
+    nodes.n++;
+    const score = -negamax(game, depth - 1, -beta, -alpha, ply + 1, nodes, deadline, tt);
+    game.undo();
+    if (nodes.stop) return 0;
+    if (score >= beta) {
+      ttStore(tt, key, depth, toTT(beta, ply), TT_LOWER, san);
+      rememberCutoff(nodes, san, ply, depth);
+      return beta;
+    }
+    if (score > alpha) { alpha = score; bestSan = san; }
+  }
+
+  ttStore(tt, key, depth, toTT(alpha, ply),
+          alpha > alphaOrig ? TT_EXACT : TT_UPPER, bestSan);
   return alpha;
 }
 
-/* Mate scores are relative to the current ply, so the same mate has a
-   different score depending on where it was found. Normalise in both
-   directions on the way in; negamax un-normalises on the way out. */
-const toTT = (score, ply) =>
-  score > MATE - 1000 ? score + ply : score < -MATE + 1000 ? score - ply : score;
-
-function ttStore(tt, h1, h2, depth, score, flag, move) {
-  if (tt.size >= TT_MAX) tt.clear();
-  const prev = tt.get(h1);
-  if (!prev || prev.depth <= depth) tt.set(h1, { check: h2, depth, score, flag, move });
-}
-
+/* Iterative deepening: finish shallow searches first so there is always a
+   usable answer when the clock runs out, and use the result to order the next
+   pass. */
+/* No depth cap: the clock is the limit. There used to be one, on the theory
+   that a sparse position might deepen without bound — measured, it doesn't.
+   Two bare kings with a 30s budget reaches depth 22, because branching stays
+   around 5-8 per side and iterations never get cheap enough to run away. */
+/* Fisher-Yates. Equal-scoring root moves were previously decided by whichever
+   the move ordering happened to put first, which made every game identical and
+   systematically preferred captures over equal quiet moves — an ordering
+   optimisation deciding play. Shuffling the root before the first iteration
+   breaks the tie randomly instead; later iterations still search the previous
+   best first, so pruning is unaffected. */
 function shuffle(list, rng) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
@@ -1338,71 +1009,78 @@ function shuffle(list, rng) {
   return a;
 }
 
-const PROMO_CHAR = { [QUEEN]: 'q', [ROOK]: 'r', [BISHOP]: 'b', [KNIGHT]: 'n' };
+function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random) {
+  const game = new Chess(fen);
+  const deadline = Date.now() + ms;
+  const nodes = { n: 0, checks: 0, stop: false,
+                  beat: onBeat, nextBeat: Date.now() + 2000, depth: 0,
+                  killers: [], history: Object.create(null) };
+  const tt = new Map();          // one table per search; see the note above
 
-/* Null-move pruning. Measured in this engine: 49-77% fewer nodes to a fixed
-   depth, worth +0.7 ply at 200ms and +1.2 ply at 600ms, with no loss on a
-   verified mate suite. Strength over a batch of games is still unresolved at
-   the sample sizes runnable here — flip this to false to compare. */
-const USE_NULL = true;
+  let root = shuffle(ordered(game, null, nodes, 0), rng);
+  if (!root.length) return null;
 
-function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = USE_NULL) {
-  const b = new Board(fen);
-  const ctx = {
-    nodes: 0, checks: 0, stop: false, deadline: Date.now() + ms,
-    beat: onBeat, nextBeat: Date.now() + 2000, depth: 0,
-    tt: new Map(), killers: [], history: Object.create(null), useNull
-  };
-
-  const legal = b.moves().filter(m => { const ok = b.make(m); if (ok) b.unmake(); return ok; });
-  if (!legal.length) return null;
-
-  const describe = (m, extra) => ({
-    from: toAlg(mFrom(m)), to: toAlg(mTo(m)),
-    promotion: mPromo(m) ? PROMO_CHAR[mPromo(m)] : undefined,
-    nodes: ctx.nodes, ...extra
-  });
-
-  if (legal.length === 1) {
-    return describe(legal[0], { score: 0, depth: 0, mate: false, forced: true });
+  // With one legal move there is nothing to decide, and searching it anyway
+  // spends the entire budget: measured at 8s it reached depth 11 before
+  // returning the only move available. At 60s that's a minute of waiting.
+  if (root.length === 1) {
+    const only = new Chess(fen).moves({ verbose: true })[0];
+    return { san: only.san, from: only.from, to: only.to,
+             score: 0, depth: 0, nodes: 0, mate: false, forced: true };
   }
 
-  let root = shuffle(legal, rng);
-  let bestMv = root[0], bestScore = 0, reached = 0;
+  let best = { san: root[0], score: 0, depth: 0 };
 
-  for (let depth = 1; depth <= capDepth; depth++) {
-    ctx.depth = depth;
-    let alpha = -Infinity, localBest = 0;
+  for (let depth = 1; ; depth++) {
+    nodes.depth = depth;
+    let alpha = -Infinity, localBest = null;
 
-    for (const m of root) {
-      if (!b.make(m)) continue;
-      ctx.nodes++;
-      const score = -negamax(b, depth - 1, -Infinity, -alpha, 1, ctx);
-      b.unmake();
-      if (ctx.stop) break;
-      if (score > alpha || !localBest) { alpha = score; localBest = m; }
+    for (const san of root) {
+      game.move(san);
+      nodes.n++;
+      const score = -negamax(game, depth - 1, -Infinity, -alpha, 1, nodes, deadline, tt);
+      game.undo();
+      if (nodes.stop) break;
+      if (score > alpha || !localBest) { alpha = score; localBest = san; }
     }
 
-    if (ctx.stop) break;
-    bestMv = localBest; bestScore = alpha; reached = depth;
-    root = [localBest, ...root.filter(m => m !== localBest)];
-    if (Math.abs(alpha) > MATE - 100) break;
+    if (nodes.stop) break;
+    best = { san: localBest, score: alpha, depth };
+    root = ordered(game, localBest, nodes, 0);   // table informs ordering too
+    if (Math.abs(alpha) > MATE - 100) break;   // forced mate, stop looking
   }
 
-  return describe(bestMv, {
-    score: bestScore, depth: reached, mate: Math.abs(bestScore) > MATE - 100
-  });
-}
+  // Only now, once per search, pay for verbose generation to get the squares
+  // the arrow needs. This doubles as a legality check: if the chosen move isn't
+  // in the real position's move list, something corrupted the search state and
+  // returning it would crash the caller.
+  const legal = new Chess(fen).moves({ verbose: true });
+  const full = legal.find(m => m.san === best.san);
+  if (!full) {
+    const fallback = legal[Math.floor(rng() * legal.length)];
+    return { san: fallback.san, from: fallback.from, to: fallback.to,
+             score: 0, depth: 0, nodes: nodes.n, mate: false, recovered: true };
+  }
 
+  return {
+    san: best.san,
+    from: full.from,
+    to: full.to,
+    score: best.score,
+    depth: best.depth,
+    nodes: nodes.n,
+    mate: Math.abs(best.score) > MATE - 100
+  };
+}
 
 self.onmessage = e => {
   const { fen, ms, mode } = e.data;
   const beat = (depth, n) => self.postMessage({ fen, mode, beat: true, depth, nodes: n });
   try {
     const r = bestMove(fen, ms, beat);
-    self.postMessage(r ? { ...r, fen, mode } : { fen, mode, from: null });
+    self.postMessage(r ? { ...r, fen, mode } : { fen, mode, san: null });
   } catch (err) {
-    self.postMessage({ fen, mode, from: null, error: String(err) });
+    self.postMessage({ fen, mode, san: null, error: String(err) });
   }
 };
 </script>
@@ -1463,7 +1141,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-08-25.2-fast';
+const VERSION = '2026-08-25.1';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -1939,7 +1617,7 @@ function ensureEngine() {
     const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
     engine = new Worker(url, { type: 'module' });
     engine.onmessage = e => {
-      const { fen, mode, beat, depth } = e.data;
+      const { fen, mode, san, beat, depth } = e.data;
 
       if (beat) {
         if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
@@ -1951,16 +1629,6 @@ function ensureEngine() {
         }
         return;
       }
-
-      /* The engine returns squares, not notation. chess.js is already here on
-         the main thread, so it does the conversion — which means the engine
-         never has to generate SAN, and can't disagree with chess.js about
-         disambiguation or check suffixes. */
-      const san = e.data.from
-        ? (game.moves({ verbose: true }).find(m =>
-            m.from === e.data.from && m.to === e.data.to &&
-            (!e.data.promotion || m.promotion === e.data.promotion)) || {}).san
-        : null;
 
       if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
         engineJob = null;
@@ -1974,7 +1642,7 @@ function ensureEngine() {
 
       if (mode === 'play') {
         if (!engineToMove()) return;
-        if (!e.data.from || !localMove(e.data.from, e.data.to, e.data.promotion)) {
+        if (!san || !localMoveSan(san)) {
           // An unplayable suggestion would otherwise loop forever.
           if (solo) engineFailed('The engine returned a move that can’t be played.');
           else { autoPlay = false; draw(); }
@@ -1985,7 +1653,7 @@ function ensureEngine() {
       }
 
       if (!hintsOn) return;
-      hint = san ? { ...e.data, san } : null;
+      hint = san ? e.data : null;
       drawHint();
       drawArrow();
     };
