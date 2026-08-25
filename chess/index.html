@@ -95,6 +95,37 @@
   }
   body[data-link="live"] .link-state { color: var(--brass); }
 
+  /* ---- diagnostics ---- */
+  .verstamp {
+    display: block;
+    margin: 6px 0 0 auto;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    opacity: .55;
+    font-size: 10px;
+    letter-spacing: .1em;
+    cursor: pointer;
+  }
+  .verstamp:hover { color: var(--brass); opacity: 1; }
+  .debug {
+    margin-top: 16px;
+    border: 1px solid var(--edge);
+    padding: 14px;
+  }
+  .debug pre {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    margin: 8px 0 14px;
+    max-height: 300px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   /* ---- lobby ---- */
   .lobby { margin-top: 34px; }
 
@@ -178,6 +209,8 @@
   button:hover:not(:disabled) { border-color: var(--brass-dim); }
   button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
   button.primary { border-color: var(--brass); color: var(--brass); width: 100%; }
+  button.primary.alt { border-color: var(--edge); color: var(--text); margin-top: 4px; }
+  button.primary.alt:hover { border-color: var(--brass-dim); }
   button:disabled { opacity: .35; cursor: default; }
 
   /* ---- invite ---- */
@@ -466,6 +499,16 @@
     <h1>Table</h1>
     <div class="link-state" id="linkState">no game</div>
   </header>
+  <button class="verstamp" id="verBtn" title="Build version — tap for diagnostics"></button>
+
+  <section class="debug hidden" id="debugPanel">
+    <div class="label">Diagnostics</div>
+    <pre id="debugText">…</pre>
+    <div class="invite-actions">
+      <button id="copyDiagBtn">Copy report</button>
+      <button id="reloadBtn">Force reload</button>
+    </div>
+  </section>
 
   <!-- LOBBY -->
   <section class="lobby" id="lobby">
@@ -486,6 +529,8 @@
     </fieldset>
     <button class="primary" id="startBtn">Open a table</button>
     <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+    <button class="primary alt" id="soloBtn">Play the engine</button>
+    <p class="note">No link and nobody to wait for. How hard it plays is set by how long you let it think.</p>
   </section>
 
   <!-- INVITE -->
@@ -531,7 +576,7 @@
         <div class="setrow">
           <span>Hints</span>
           <button id="hintBtn">Off</button>
-          <span>Engine plays</span>
+          <span id="autoLabel">Engine plays</span>
           <button id="autoBtn">Off</button>
         </div>
         <div class="setrow thinkrow hidden" id="thinkRow">
@@ -701,6 +746,7 @@ const TT_MAX = 200000;
 // position, so they're left out of the key.
 const ttKey = game => game.fen().split(' ', 4).join(' ');
 
+
 /* Mate scores count from the current ply, so they can't be stored raw — the
    same mate is a different distance from a different depth. Normalise going
    in and back out. */
@@ -741,7 +787,16 @@ function quiesce(game, alpha, beta, nodes) {
 }
 
 function negamax(game, depth, alpha, beta, ply, nodes, deadline, tt) {
-  if ((++nodes.checks & 511) === 0 && Date.now() > deadline) { nodes.stop = true; return 0; }
+  if ((++nodes.checks & 511) === 0) {
+    const now = Date.now();
+    if (now > deadline) { nodes.stop = true; return 0; }
+    // Tell the page we're alive. Without this it can only guess from elapsed
+    // time, and guessing kills searches that are merely slow.
+    if (nodes.beat && now > nodes.nextBeat) {
+      nodes.nextBeat = now + 2000;
+      nodes.beat(nodes.depth, nodes.n);
+    }
+  }
 
   const key = ttKey(game);
   const hit = tt.get(key);
@@ -803,13 +858,29 @@ function negamax(game, depth, alpha, beta, ply, nodes, deadline, tt) {
    that a sparse position might deepen without bound — measured, it doesn't.
    Two bare kings with a 30s budget reaches depth 22, because branching stays
    around 5-8 per side and iterations never get cheap enough to run away. */
-function bestMove(fen, ms = 1500) {
+/* Fisher-Yates. Equal-scoring root moves were previously decided by whichever
+   the move ordering happened to put first, which made every game identical and
+   systematically preferred captures over equal quiet moves — an ordering
+   optimisation deciding play. Shuffling the root before the first iteration
+   breaks the tie randomly instead; later iterations still search the previous
+   best first, so pruning is unaffected. */
+function shuffle(list, rng) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random) {
   const game = new Chess(fen);
   const deadline = Date.now() + ms;
-  const nodes = { n: 0, checks: 0, stop: false };
+  const nodes = { n: 0, checks: 0, stop: false,
+                  beat: onBeat, nextBeat: Date.now() + 2000, depth: 0 };
   const tt = new Map();          // one table per search; see the note above
 
-  let root = ordered(game);
+  let root = shuffle(ordered(game), rng);
   if (!root.length) return null;
 
   // With one legal move there is nothing to decide, and searching it anyway
@@ -824,6 +895,7 @@ function bestMove(fen, ms = 1500) {
   let best = { san: root[0], score: 0, depth: 0 };
 
   for (let depth = 1; ; depth++) {
+    nodes.depth = depth;
     let alpha = -Infinity, localBest = null;
 
     for (const san of root) {
@@ -858,8 +930,9 @@ function bestMove(fen, ms = 1500) {
 
 self.onmessage = e => {
   const { fen, ms, mode } = e.data;
+  const beat = (depth, n) => self.postMessage({ fen, mode, beat: true, depth, nodes: n });
   try {
-    const r = bestMove(fen, ms);
+    const r = bestMove(fen, ms, beat);
     self.postMessage(r ? { ...r, fen, mode } : { fen, mode, san: null });
   } catch (err) {
     self.postMessage({ fen, mode, san: null, error: String(err) });
@@ -919,6 +992,36 @@ const TURN_SERVERS = [
 const el = id => document.getElementById(id);
 const boardEl = el('board');
 
+/* ---------- build stamp + log capture ----------
+   The version is shown in the corner so two people can check they're on the
+   same build: GitHub Pages serves index.html through a CDN and browsers cache
+   it, so one side can easily be running yesterday's file. */
+const VERSION = '2026-08-25.1';
+const LOG_MAX = 120;
+const logBuf = [];
+
+function logLine(kind, parts) {
+  const t = new Date().toISOString().slice(11, 19);
+  let text;
+  try {
+    text = parts.map(p =>
+      typeof p === 'string' ? p :
+      p instanceof Error ? p.message :
+      JSON.stringify(p)).join(' ');
+  } catch { text = '[unserialisable]'; }
+  logBuf.push(`${t} ${kind} ${text.slice(0, 300)}`);
+  if (logBuf.length > LOG_MAX) logBuf.shift();
+}
+
+// Capture warnings from here *and* from Trystero — relay failures and
+// "could not connect to peer" are exactly what needs reporting.
+for (const level of ['warn', 'error']) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => { logLine(level, args); original(...args); };
+}
+window.addEventListener('error', e => logLine('error', [e.message]));
+window.addEventListener('unhandledrejection', e => logLine('error', ['unhandled', e.reason]));
+
 /* ---------- tiny guarded storage ---------- */
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -939,6 +1042,7 @@ let hintsOn = false;
 let peerHints = false;
 let handshakeFailed = false;   // found each other, but no direct connection
 let navigating = false;        // true while we write our own hash
+let solo = false;              // playing the engine, no peer, no relays
 let seatClash = false;         // both ended up on the same side
 let takebackAsked = false;     // we have a request outstanding
 let soundOn = store.get('table:sound') !== false;
@@ -952,7 +1056,10 @@ let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
 let autoPlay = false;          // engine plays our side
 let peerAuto = false;
-let engineJob = null;          // {fen, mode} currently with the worker
+let engineJob = null;          // {fen, mode, at} currently with the worker
+let engineWatchdog = null;
+let engineRetried = false;
+let engineNote = '';           // survives drawStatus overwriting gameNote
 let thinkMs = Math.min(60000, Math.max(1000, Number(store.get('table:think')) || 2000));
 
 let pieceSet = store.get('table:set') === 'bauhaus' ? 'bauhaus' : 'staunton';
@@ -1011,7 +1118,7 @@ function pieceSVG(type, color, cls = '') {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c') };
+  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo') };
 }
 
 /* The hash states *your own* colour, so each player holds a self-describing
@@ -1019,7 +1126,7 @@ function parseHash() {
    you're on depends on storage. */
 function setHash(colour) {
   navigating = true;          // our own write, not a jump to another game
-  location.hash = `r=${code}&c=${colour}`;
+  location.hash = solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
 }
 
 function makeCode() {
@@ -1365,18 +1472,38 @@ function ensureEngine() {
     const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
     engine = new Worker(url, { type: 'module' });
     engine.onmessage = e => {
-      const { fen, mode, san } = e.data;
-      if (engineJob && engineJob.fen === fen && engineJob.mode === mode) engineJob = null;
+      const { fen, mode, san, beat, depth } = e.data;
+
+      if (beat) {
+        if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
+          engineJob.depth = depth;
+          engineRetried = false;   // demonstrably alive
+          engineNote = '';
+          armWatchdog();
+          drawStatus();            // show how deep it has got
+        }
+        return;
+      }
+
+      if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
+        engineJob = null;
+        clearTimeout(engineWatchdog);
+        engineWatchdog = null;
+        engineRetried = false;    // it's alive; allow a future retry
+        engineNote = '';
+      }
       // A reply for a position we have already left is stale; drop it.
       if (fen !== game.fen()) return;
 
       if (mode === 'play') {
-        if (!autoPlay || result || game.turn() !== myColor) return;
+        if (!engineToMove()) return;
         if (!san || !localMoveSan(san)) {
           // An unplayable suggestion would otherwise loop forever.
-          autoPlay = false;
-          draw();
+          if (solo) engineFailed('The engine returned a move that can’t be played.');
+          else { autoPlay = false; draw(); }
+          return;
         }
+        if (solo) blip();          // it's the opponent moving, same as a peer
         return;
       }
 
@@ -1385,17 +1512,32 @@ function ensureEngine() {
       drawHint();
       drawArrow();
     };
-    engine.onerror = () => {
+    engine.onerror = err => {
+      console.warn('engine worker failed', err);
       engine = null;
-      hintsOn = false;
-      el('hintBtn').textContent = 'Off';
-      el('hintPanel').classList.add('hidden');
-      el('gameNote').textContent = 'The hint engine could not start in this browser.';
+      // Releasing the job matters more than the message: askEngine() skips any
+      // request matching the outstanding job, so a job left behind here can
+      // never be retried and the board sits on "Thinking…" forever.
+      engineFailed('The engine stopped. It needs to load chess.js from the network.');
     };
   } catch {
     engine = null;
   }
   return engine;
+}
+
+/* Give up on the outstanding request and say so, rather than leaving a job
+   pending that blocks every future one. */
+function engineFailed(message) {
+  clearTimeout(engineWatchdog);
+  engineWatchdog = null;
+  engineJob = null;
+  autoPlay = false;
+  hintsOn = false;
+  hint = null;
+  hintFen = null;
+  engineNote = message;
+  draw();
 }
 
 /* One path to the worker for both uses. `mode` comes back on the reply so a
@@ -1405,9 +1547,43 @@ function askEngine(mode) {
   const fen = game.fen();
   if (engineJob && engineJob.fen === fen && engineJob.mode === mode) return;
   const worker = ensureEngine();
-  if (!worker) return;
-  engineJob = { fen, mode };
+  if (!worker) { engineFailed('The engine couldn’t start in this browser.'); return; }
+
+  engineJob = { fen, mode, at: Date.now(), depth: 0 };
   worker.postMessage({ fen, ms: thinkMs, mode });
+  armWatchdog();
+}
+
+/* The watchdog measures SILENCE, not elapsed time. A fixed deadline can't tell
+   a slow search from a dead one, so it kills anything that legitimately runs
+   long — and then kills the retry too. The worker beats every ~2s while it
+   searches, and any beat rearms this, so a search may take as long as it likes
+   while a worker that has actually died is caught within one window. */
+const ENGINE_SILENCE_MS = 12000;
+
+function armWatchdog() {
+  clearTimeout(engineWatchdog);
+  engineWatchdog = setTimeout(onEngineSilent, ENGINE_SILENCE_MS);
+}
+
+function onEngineSilent() {
+  if (!engineJob) return;
+
+  // A hidden tab can have its worker throttled or frozen; silence there means
+  // suspended, not dead. Wait until we're visible again before judging.
+  if (document.hidden) { armWatchdog(); return; }
+
+  console.warn('engine silent for ' + ENGINE_SILENCE_MS + 'ms', engineJob);
+  engineJob = null;
+  try { engine && engine.terminate(); } catch {}
+  engine = null;
+
+  if (engineRetried) {
+    engineFailed('The engine stopped responding. Reload to try again.');
+    return;
+  }
+  engineRetried = true;
+  draw();                       // draw() re-asks through maybeAutoPlay
 }
 
 function requestHint() {
@@ -1420,10 +1596,15 @@ function requestHint() {
   askEngine('hint');
 }
 
+/* In solo the engine is the opponent, so it moves when it is *not* our turn.
+   With a peer, "Engine plays" hands over our own side instead. */
+function engineToMove() {
+  if (result || !code) return false;
+  return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
+}
+
 function maybeAutoPlay() {
-  if (!autoPlay || result || !code) return;
-  if (game.turn() !== myColor) return;
-  askEngine('play');
+  if (engineToMove()) askEngine('play');
 }
 
 /* ---------- rendering ---------- */
@@ -1433,24 +1614,26 @@ const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 
 function draw() {
   drawBoard();
-  drawStatus();
   drawTaken();
   drawLedger();
   requestHint();
   maybeAutoPlay();
+  drawStatus();          // after maybeAutoPlay, so "Thinking…" isn't a draw behind
   drawHint();
   drawArrow();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
-  el('takebackBtn').disabled = !!result || game.history().length === 0 || !peers.size;
+  el('takebackBtn').disabled = !!result || game.history().length === 0 || (!solo && !peers.size);
   el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
+  el('autoBtn').classList.toggle('hidden', solo);
+  el('autoLabel').classList.toggle('hidden', solo);
   el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
   el('thinkRange').value = thinkMs;
   el('thinkVal').textContent = fmtThink(thinkMs);
-  el('thinkRow').classList.toggle('hidden', !(hintsOn || autoPlay));
+  el('thinkRow').classList.toggle('hidden', !(hintsOn || autoPlay || solo));
 }
 
 function drawBoard() {
@@ -1552,9 +1735,9 @@ function drawStatus() {
   }
 
   const check = game.isCheck() ? ' You’re in check.' : '';
-  if (game.turn() === myColor && autoPlay && engineJob && engineJob.mode === 'play') {
+  if (engineToMove() && engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) {
     // At long budgets an idle board is indistinguishable from a crash.
-    s.textContent = 'Thinking…';
+    s.textContent = engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
@@ -1564,6 +1747,18 @@ function drawStatus() {
   }
 
   const note = el('gameNote');
+  if (engineNote) {
+    note.textContent = engineNote;
+    note.removeAttribute('title');
+    return;
+  }
+
+  if (solo) {                    // nothing to connect to, nothing to report
+    note.textContent = '';
+    note.removeAttribute('title');
+    return;
+  }
+
   if (peers.size) {
     note.textContent = seatClash
       ? 'You’re both on the same side. One of you should open the link from the share button.'
@@ -1682,6 +1877,13 @@ function drawHint() {
 }
 
 function setLink() {
+  if (solo) {
+    document.body.dataset.link = 'live';
+    el('linkState').textContent = 'practice';
+    el('invite').classList.add('hidden');
+    el('peerHint').classList.add('hidden');
+    return;
+  }
   const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
   document.body.dataset.link = state;
   el('linkState').textContent =
@@ -1746,7 +1948,98 @@ function askPromotion(from, to) {
   overlay.querySelector('button').focus();
 }
 
+/* ---------- diagnostics ----------
+   The point is that whoever is stuck can send this to whoever isn't. It names
+   the build, which of the two failure modes is happening, and what the relays
+   and the engine are doing. */
+let debugTimer = null;
+
+function diagnostics() {
+  const { open, total } = relayHealth();
+  const link = document.body.dataset.link;
+  const eng = !engine ? 'not started'
+    : engineJob ? `busy (${engineJob.mode}, depth ${engineJob.depth || '-'})`
+    : 'ready';
+
+  return [
+    `Table ${VERSION}`,
+    `${new Date().toISOString()}`,
+    ``,
+    `room        ${code || '(none)'}`,
+    `you         ${myColor === 'w' ? 'white' : 'black'}`,
+    `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
+    `peers       ${peers.size}`,
+    `relays      ${open}/${total} open`,
+    `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
+    `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
+    ``,
+    `engine      ${eng}`,
+    `think       ${fmtThink(thinkMs)}`,
+    `hints       ${hintsOn ? 'on' : 'off'}   autoplay ${autoPlay ? 'on' : 'off'}`,
+    engineNote ? `note        ${engineNote}` : ``,
+    ``,
+    `url         ${location.href}`,
+    `agent       ${navigator.userAgent}`,
+    ``,
+    `--- log ---`,
+    ...logBuf.slice(-40)
+  ].filter(l => l !== ``).join('\n');
+}
+
+function drawDebug() {
+  el('debugText').textContent = diagnostics();
+}
+
+function toggleDebug() {
+  const panel = el('debugPanel');
+  const showing = panel.classList.toggle('hidden');
+  clearInterval(debugTimer);
+  debugTimer = null;
+  if (!showing) {
+    drawDebug();
+    debugTimer = setInterval(drawDebug, 1000);
+  }
+}
+
+el('verBtn').textContent = VERSION;
+el('verBtn').onclick = toggleDebug;
+
+el('copyDiagBtn').onclick = async () => {
+  const text = diagnostics();
+  try {
+    await navigator.clipboard.writeText(text);
+    el('copyDiagBtn').textContent = 'Copied';
+    setTimeout(() => el('copyDiagBtn').textContent = 'Copy report', 1600);
+  } catch {
+    prompt('Diagnostics:', text);
+  }
+};
+
+// Bypasses the CDN and the browser cache, which is the usual reason two people
+// are looking at different builds.
+el('reloadBtn').onclick = () => {
+  const u = new URL(location.href);
+  u.searchParams.set('v', Date.now().toString(36));
+  location.replace(u.toString());
+};
+
+// ?debug or #...&debug opens it straight away, for someone who can't be talked
+// through tapping a version number.
+if (/[?&#]debug\b/.test(location.href)) toggleDebug();
+
 /* ---------- buttons ---------- */
+el('soloBtn').onclick = () => {
+  const choice = document.querySelector('input[name=side]:checked').value;
+  const mine = choice === 'r'
+    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
+    : choice;
+  solo = true;
+  code = 'solo';
+  myColor = mine;
+  setHash(mine);
+  begin();
+};
+
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
   const mine = choice === 'r'
@@ -1793,6 +2086,14 @@ el('rematchBtn').onclick = () => {
 
 el('takebackBtn').onclick = () => {
   if (!game.history().length || result) return;
+
+  if (solo) {                    // no one to ask
+    const hist = game.history();
+    const drop = Math.min(game.turn() === myColor ? 2 : 1, hist.length);
+    adopt(hist.slice(0, hist.length - drop), null, true);
+    return;
+  }
+
   takebackAsked = true;
   broadcast({ t: 'tb', color: myColor });
   draw();
@@ -1858,14 +2159,21 @@ function begin() {
   el('lobby').classList.add('hidden');
   el('game').classList.remove('hidden');
   restore();
-  connect();
+  if (!solo) {
+    connect();
+    el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
+  }
   draw();
   setLink();
-  el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
 }
 
-const { r, c } = parseHash();
-if (r) {
+const { r, c, solo: soloHash } = parseHash();
+if (soloHash) {
+  solo = true;
+  code = 'solo';
+  myColor = c === 'b' ? 'b' : 'w';
+  begin();
+} else if (r) {
   code = r;
   myColor = c === 'b' ? 'b' : 'w';
   begin();
