@@ -967,7 +967,24 @@ class Board {
 
 
 
-const VAL = [0, 100, 320, 330, 500, 900, 0];   // indexed by type
+/* Tuned 2026-08-26 over 1,637,127 quiet positions from the Lichess Elite
+   database (2500+/2300+). Two methods with different failure modes agreed to
+   within a point on the minor pieces: Texel gradient descent on prediction
+   error (tune.py), and a win-rate break-even measurement that shares no code
+   with this file (piecevalue.py). Previously 320/330/500/900 -- inherited
+   convention, never measured for this engine.
+
+   Pawn stays pinned at 100. It is the anchor: without one fixed scale the
+   whole weight vector can grow or shrink freely and the fit is degenerate.
+
+   The queen is the one value the two methods disagreed on (974 vs 1060). Its
+   coverage is poor -- queens are level in 92% of positions, and the rest are
+   usually already decided -- so it rests on the weaker evidence of the four.
+   1100 sits at the top of the supported range after correcting for the
+   break-even method's known 2-4% downward bias. NOTE: VAL also feeds seeMove,
+   so raising the queen changes which captures quiescence prunes. That is a
+   search change no regression here can see, and the reason this wants SPRT. */
+const VAL = [0, 100, 306, 322, 505, 1100, 0];   // indexed by type
 const MATE = 100000;
 
 /* Piece-square tables, a8 first, from White's point of view. */
@@ -1035,6 +1052,61 @@ const KING_EG = [
 
 const PHASE = [0, 0, 1, 1, 2, 4, 0];
 
+// All material bar kings, at the start of a game.
+const START_MATERIAL = 2 * (8 * 100 + 2 * 320 + 2 * 330 + 2 * 500 + 900);
+
+// Passed pawns are the biggest single term in the evaluation and have to scale
+// steeply — a passer on the 6th is worth far more than twice one on the 3rd.
+const PASSED = [0, 10, 20, 30, 50, 80, 130, 0];
+
+const MOB_WEIGHT = [0, 0, 4, 5, 2, 1, 0];   // by piece type
+
+/* Every positional term is scaled here so each can be tuned or switched off
+   independently. Set any of them to 0 to remove that term entirely. These
+   defaults are NOT tuned — see the note in README-fast.md. */
+/* Fitted by tune.py over the same 1,637,127 positions, 2026-08-26.
+   Previously hand-set to 0.4 / 0.7 / 0.5 / 0.8.
+
+   mobility was damped to 0.4 on a 70-75 game match whose interval crossed 50%,
+   so that never established much either way; the regression prefers 0.6.
+   shield oscillated across epochs rather than settling -- read 0.55 as
+   indistinguishable from 0.5, not as a measurement.
+   trade came back essentially unchanged (0.796), the one weight the data pins
+   firmly, and the only one that was already right. */
+const W = {
+  mobility: 0.6,
+  pawns:    0.91,
+  shield:   0.55,
+  trade:    0.8
+};
+
+/* Search heuristics, each individually switchable and each exposed as a UCI
+   option by uci.mjs. They are separate switches on purpose: every one of them
+   is forward pruning -- a bet that part of the tree is not worth looking at --
+   and if they were bundled, a failed SPRT would not say which bet was wrong.
+   NONE of these has been validated by a match yet. They are on because the
+   page and the harness must run the same engine (see the useNull comment on
+   bestMove for what happens when they diverge), not because they are proven. */
+const OPT = {
+  lmr:      true,   // late move reductions
+  pvs:      true,   // null-window search on all but the first move
+  rfp:      true,   // reverse futility: bail when static eval is far above beta
+  delta:    true,   // skip captures in quiescence that cannot reach alpha
+  futility: true,   // skip quiet moves that cannot lift a hopeless score
+  lmp:      true,   // stop searching quiet moves once enough have failed
+  counter:  true,   // order the reply that refuted this move last time
+  /* OFF by default, unlike the rest. Measured at depth 6 and depth 8 across
+     three positions, at window widths from 40 to 400cp, it never beat having
+     it off: +25%, +4%, +7%, +4% nodes at depth 6, and -5%, +10%, +66% at
+     depth 8. No width helps consistently. The likely reason is that this root
+     already narrows its own window as the best score improves, so a second
+     narrowing buys little while every failed window re-searches the whole
+     depth. Left in and switchable so it can be re-tested if the search
+     changes -- but it is not on the strength of a measurement it failed. */
+  asp:      false,  // search a narrow window around the previous score
+  aspDelta: 50      // half-width of that window, in centipawns
+};
+
 // 0x88 square -> table index, mirrored for Black
 const idxW = sq => (7 - (sq >> 4)) * 8 + (sq & 7);
 const idxB = sq => (sq >> 4) * 8 + (sq & 7);
@@ -1073,10 +1145,84 @@ function hashOf(b) {
   return [h1 >>> 0, h2 >>> 0];
 }
 
+/* Pseudo-legal destination count. On this board it's a few ray walks with no
+   legality filtering — what made mobility unaffordable through chess.js was
+   rebuilding a position to see the other side's moves, which doesn't arise
+   here. */
+function mobility(board, sq, type, us) {
+  let n = 0;
+  const offs = type === KNIGHT ? [-33,-31,-18,-14,14,18,31,33]
+             : type === BISHOP ? [-17,-15,15,17]
+             : type === ROOK   ? [-16,-1,1,16]
+             : [-17,-16,-15,-1,1,15,16,17];
+  const sliding = type !== KNIGHT;
+  for (const d of offs) {
+    let to = sq + d;
+    while (!(to & 0x88)) {
+      const p = board[to];
+      if (p) { if (colourOf(p) !== us) n++; break; }
+      n++;
+      if (!sliding) break;
+      to += d;
+    }
+  }
+  return n * MOB_WEIGHT[type];
+}
+
+/* Doubled, isolated, connected and passed pawns. `mine` and `theirs` are lists
+   of pawn squares; `white` decides which way "ahead" points. */
+function pawnStructure(mine, theirs, white) {
+  let score = 0;
+  const files = [0,0,0,0,0,0,0,0];
+  for (const sq of mine) files[sq & 7]++;
+
+  for (let f = 0; f < 8; f++) if (files[f] > 1) score -= 15 * (files[f] - 1);
+
+  for (const sq of mine) {
+    const f = sq & 7, r = sq >> 4;
+    const rel = white ? r : 7 - r;
+
+    if (!(f > 0 && files[f-1]) && !(f < 7 && files[f+1])) score -= 15;
+
+    let blocked = false;
+    for (const t of theirs) {
+      if (Math.abs((t & 7) - f) > 1) continue;
+      if (white ? (t >> 4) > r : (t >> 4) < r) { blocked = true; break; }
+    }
+    if (!blocked) score += PASSED[rel];
+
+    for (const o of mine) {
+      if (o === sq) continue;
+      if (Math.abs((o & 7) - f) === 1 && Math.abs((o >> 4) - r) <= 1) { score += 8; break; }
+    }
+  }
+  return score;
+}
+
+/* Cheap king safety: is there still a pawn in front of the king? The full
+   attack-unit version needs attack maps; this catches much of the value. */
+function kingShield(board, kingSq, us) {
+  let pen = 0;
+  const f = kingSq & 7;
+  const fwd = us === WHITE ? 16 : -16;
+  for (const df of [-1, 0, 1]) {
+    if (f + df < 0 || f + df > 7) continue;
+    let sheltered = false;
+    for (const step of [1, 2]) {
+      const sq = kingSq + fwd * step + df;
+      if (sq & 0x88) continue;
+      if (board[sq] === (PAWN | us)) { sheltered = true; break; }
+    }
+    if (!sheltered) pen -= 22;
+  }
+  return pen;
+}
+
 /* ---------- evaluation ---------- */
 function evaluate(b) {
   let score = 0, kingMg = 0, kingEg = 0, phase = 0;
-  let wb = 0, bb = 0;
+  let wb = 0, bb = 0, matW = 0, matB = 0;
+  const wp = [], bp = [];
   const board = b.board;
 
   for (let sq = 0; sq < 128; sq++) {
@@ -1084,7 +1230,8 @@ function evaluate(b) {
     const p = board[sq];
     if (!p) continue;
     const t = typeOf(p);
-    const white = colourOf(p) === WHITE;
+    const us = colourOf(p);
+    const white = us === WHITE;
     const idx = white ? idxW(sq) : idxB(sq);
     const sign = white ? 1 : -1;
 
@@ -1093,18 +1240,96 @@ function evaluate(b) {
       kingEg += sign * KING_EG[idx];
       continue;
     }
+
     score += sign * (VAL[t] + PST[t][idx]);
     phase += PHASE[t];
-    if (t === BISHOP) { if (white) wb++; else bb++; }
+    if (white) matW += VAL[t]; else matB += VAL[t];
+
+    if (t === PAWN) { (white ? wp : bp).push(sq); }
+    else {
+      if (t === BISHOP) { if (white) wb++; else bb++; }
+      score += sign * mobility(board, sq, t, us) * W.mobility;
+    }
   }
 
   if (wb >= 2) score += 30;
   if (bb >= 2) score -= 30;
 
+  score += (pawnStructure(wp, bp, true) - pawnStructure(bp, wp, false)) * W.pawns;
+
   const ph = phase > 24 ? 24 : phase;
+
+  // King safety matters in the middlegame and not at all in the endgame, where
+  // the king wants to be out in the open.
+  score += (kingShield(board, b.kings[0], WHITE) -
+            kingShield(board, b.kings[1], BLACK)) * (ph / 24) * W.shield;
+
   score += (kingMg * ph + kingEg * (24 - ph)) / 24;
 
+  /* Trading is progress when you're ahead and a mistake when you're behind: the
+     same lead is worth more with fewer pieces left. Scale the material edge by
+     how much has come off the board. */
+  score += (matW - matB) * (1 - (matW + matB) / START_MATERIAL) * W.trade;
+
   return b.turn === WHITE ? Math.round(score) : -Math.round(score);
+}
+
+/* Decompose the evaluation into a fixed part and the four tunable terms, all
+   from WHITE's point of view so they can be regressed against a game result.
+   Because eval = base + sum(w_i * f_i), the weights are linear coefficients and
+   the gradient is analytic — this is logistic regression, not a search. */
+function features(b) {
+  const board = b.board;
+  let base = 0, kingMg = 0, kingEg = 0, phase = 0;
+  let wb = 0, bb = 0, matW = 0, matB = 0, mob = 0;
+  const wp = [], bp = [];
+  const counts = [0,0,0,0,0,0,0];   // net piece counts by type, white-positive
+
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) { sq += 7; continue; }
+    const p = board[sq];
+    if (!p) continue;
+    const t = typeOf(p);
+    const us = colourOf(p);
+    const white = us === WHITE;
+    const idx = white ? idxW(sq) : idxB(sq);
+    const sign = white ? 1 : -1;
+
+    if (t === KING) {
+      kingMg += sign * PST[KING][idx];
+      kingEg += sign * KING_EG[idx];
+      continue;
+    }
+    /* Piece values are held out of `base` so the tuner can fit them too. Pawns
+       stay pinned at 100 as the anchor — without one fixed scale the whole
+       weight vector can grow or shrink freely and the fit is degenerate. */
+    base += sign * PST[t][idx];
+    if (t === PAWN) base += sign * 100;
+    else counts[t] += sign;
+    phase += PHASE[t];
+    if (white) matW += VAL[t]; else matB += VAL[t];
+    if (t === PAWN) (white ? wp : bp).push(sq);
+    else {
+      if (t === BISHOP) { if (white) wb++; else bb++; }
+      mob += sign * mobility(board, sq, t, us) / MOB_WEIGHT[t] * MOB_WEIGHT[t];
+    }
+  }
+  if (wb >= 2) base += 30;
+  if (bb >= 2) base -= 30;
+
+  const ph = phase > 24 ? 24 : phase;
+  base += (kingMg * ph + kingEg * (24 - ph)) / 24;
+
+  return {
+    base,
+    knight: counts[KNIGHT], bishop: counts[BISHOP],
+    rook: counts[ROOK], queen: counts[QUEEN],
+    mobility: mob,
+    pawns: pawnStructure(wp, bp, true) - pawnStructure(bp, wp, false),
+    shield: (kingShield(board, b.kings[0], WHITE) -
+             kingShield(board, b.kings[1], BLACK)) * ph / 24,
+    trade: (matW - matB) * (1 - (matW + matB) / START_MATERIAL)
+  };
 }
 
 /* ---------- static exchange evaluation ----------
@@ -1196,7 +1421,7 @@ function hasHeavy(b) {
 }
 
 /* ---------- move ordering ---------- */
-function scoreMove(b, move, ttMove, killers, history) {
+function scoreMove(b, move, ttMove, killers, history, counter) {
   if (move === ttMove) return 1e7;
   const cap = mCap(move);
   if (cap) return 500000 + 10 * VAL[typeOf(cap)] - VAL[typeOf(b.board[mFrom(move)])];
@@ -1205,11 +1430,16 @@ function scoreMove(b, move, ttMove, killers, history) {
     if (move === killers[0]) return 300000;
     if (move === killers[1]) return 290000;
   }
+  /* Counter-move: the reply that refuted this exact opponent move somewhere
+     else in the tree. Killers are position-independent for the ply; this is
+     keyed to what was just played, which catches threats a killer misses.
+     Ranked just below the killers and above raw history. */
+  if (counter && move === counter) return 280000;
   return history[move] || 0;
 }
 
-function sortMoves(b, moves, ttMove, killers, history) {
-  const scored = moves.map(m => [scoreMove(b, m, ttMove, killers, history), m]);
+function sortMoves(b, moves, ttMove, killers, history, counter) {
+  const scored = moves.map(m => [scoreMove(b, m, ttMove, killers, history, counter), m]);
   scored.sort((a, x) => x[0] - a[0]);
   return scored.map(x => x[1]);
 }
@@ -1228,6 +1458,11 @@ function quiesce(b, alpha, beta, ctx) {
 
   for (const m of sorted) {
     if (mCap(m) && !mPromo(m) && seeMove(b, m) < 0) continue;   // losing capture
+    /* Delta pruning: if winning this piece outright still leaves us far short
+       of alpha, the capture cannot matter. The margin is deliberately generous
+       -- a tight one starts pruning real tactics in sharp positions. */
+    if (OPT.delta && mCap(m) && !mPromo(m) &&
+        stand + VAL[typeOf(mCap(m))] + 200 < alpha) continue;
     if (!b.make(m)) continue;
     ctx.nodes++;
     const score = -quiesce(b, -beta, -alpha, ctx);
@@ -1238,7 +1473,7 @@ function quiesce(b, alpha, beta, ctx) {
   return alpha;
 }
 
-function negamax(b, depth, alpha, beta, ply, ctx) {
+function negamax(b, depth, alpha, beta, ply, ctx, prevMove = 0) {
   if ((++ctx.checks & 1023) === 0) {
     const now = Date.now();
     if (now > ctx.deadline) { ctx.stop = true; return 0; }
@@ -1268,12 +1503,26 @@ function negamax(b, depth, alpha, beta, ply, ctx) {
 
   if (depth <= 0) return quiesce(b, alpha, beta, ctx);
 
+  /* Reverse futility: near the leaves, if the static score is already so far
+     above beta that a plausible swing cannot bring it back, take the cutoff.
+     Capped at shallow depth and skipped near mate scores.
+
+     NON-PV NODES ONLY (beta - alpha === 1). Without that guard this loses
+     forced mates: in a position already winning by a rook or more, the static
+     score sits miles above beta, the cutoff fires, and the engine settles for
+     "still winning" instead of finding mate in two. The tactics suite caught
+     exactly that on 8/P5Pp/k3B3/bR2K3/7Q/8/8/B7 w - - 0 1, where it promoted
+     a pawn instead of playing Qa4#. Restricting it to null-window nodes keeps
+     the principal variation exact while still pruning the bulk of the tree. */
+  if (OPT.rfp && !inCheck && beta - alpha === 1 && depth <= 4 &&
+      beta < MATE - 1000 && evaluate(b) - 85 * depth >= beta) return beta;
+
   /* Null-move pruning with a verification re-search. */
   if (ctx.useNull && depth >= 3 && !ctx.noNull && !inCheck &&
       beta < MATE - 1000 && hasHeavy(b)) {
     const R = 2;
     b.makeNull();
-    const s = -negamax(b, depth - 1 - R, -beta, -beta + 1, ply + 1, ctx);
+    const s = -negamax(b, depth - 1 - R, -beta, -beta + 1, ply + 1, ctx, 0);
     b.unmakeNull();
     if (ctx.stop) return 0;
     if (s >= beta) {
@@ -1286,16 +1535,70 @@ function negamax(b, depth, alpha, beta, ply, ctx) {
   }
 
   const killers = ctx.killers[ply] || (ctx.killers[ply] = [0, 0]);
-  const moves = sortMoves(b, b.moves(), ttMove, killers, ctx.history);
+  const counter = (OPT.counter && prevMove) ? ctx.counter[prevMove] : 0;
+  const moves = sortMoves(b, b.moves(), ttMove, killers, ctx.history, counter);
+
+  /* Futility and late move pruning share the same preconditions: shallow, not
+     in check, and off the principal variation. Both discard moves outright
+     rather than reducing them, so unlike LMR a mistake here is unrecoverable —
+     which is why they are confined to non-PV nodes near the leaves, and why
+     captures, promotions and checks are always exempt. The static score is
+     only computed when it can actually be used. */
+  const shallow = !inCheck && beta - alpha === 1 && depth <= 3;
+  const futile = OPT.futility && shallow &&
+                 evaluate(b) + 90 * depth <= alpha;
 
   const alphaOrig = alpha;
   let best = 0, legal = 0;
 
+  let moveNum = 0;
   for (const m of moves) {
     if (!b.make(m)) continue;
     legal++;
+    moveNum++;
     ctx.nodes++;
-    const score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx);
+
+    /* Late move pruning: this far down a well-ordered list at shallow depth,
+       the remaining quiet moves are very unlikely to be the answer. */
+    if (OPT.lmp && shallow && moveNum > 3 + depth * depth &&
+        !mCap(m) && !mPromo(m) && !b.inCheck()) { b.unmake(); continue; }
+
+    /* Futility: the score is already so far below alpha that a quiet move
+       cannot plausibly close the gap. */
+    if (futile && moveNum > 1 &&
+        !mCap(m) && !mPromo(m) && !b.inCheck()) { b.unmake(); continue; }
+
+    /* Late move reductions. Ordering already put captures, promotions, the
+       hash move and killers first, so a quiet move this far down the list is
+       probably not the answer -- search it shallower and make it prove
+       otherwise. Never reduce while in check, giving check, capturing,
+       promoting, or a killer: those are exactly the moves that refute the
+       ordering when it is wrong. */
+    let R = 0;
+    if (OPT.lmr && depth >= 3 && moveNum > 3 && !inCheck &&
+        !mCap(m) && !mPromo(m) &&
+        m !== killers[0] && m !== killers[1] && !b.inCheck()) {
+      R = (depth >= 6 && moveNum >= 6) ? 2 : 1;
+      if (R > depth - 2) R = depth - 2;
+      if (R < 0) R = 0;
+    }
+    const probe = OPT.pvs && moveNum > 1;
+
+    let score;
+    if (moveNum === 1 || (R === 0 && !probe)) {
+      /* Full width, full depth: the move ordering says this is the best one,
+         and everything below is measured against it. */
+      score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx, m);
+    } else {
+      /* Cheap probe first, at the reduced depth and/or a null window. Anything
+         that beats alpha is re-searched at full depth and full width, so a
+         reduction can cost time but can never lose a move. */
+      score = -negamax(b, depth - 1 - R, probe ? -alpha - 1 : -beta,
+                       -alpha, ply + 1, ctx, m);
+      if (!ctx.stop && score > alpha)
+        score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx, m);
+    }
+
     b.unmake();
     if (ctx.stop) return 0;
 
@@ -1304,6 +1607,7 @@ function negamax(b, depth, alpha, beta, ply, ctx) {
       if (!mCap(m)) {
         if (killers[0] !== m) { killers[1] = killers[0]; killers[0] = m; }
         ctx.history[m] = (ctx.history[m] || 0) + depth * depth;
+        if (prevMove) ctx.counter[prevMove] = m;
       }
       return beta;
     }
@@ -1340,18 +1644,20 @@ function shuffle(list, rng) {
 
 const PROMO_CHAR = { [QUEEN]: 'q', [ROOK]: 'r', [BISHOP]: 'b', [KNIGHT]: 'n' };
 
-/* Null-move pruning. Measured in this engine: 49-77% fewer nodes to a fixed
-   depth, worth +0.7 ply at 200ms and +1.2 ply at 600ms, with no loss on a
-   verified mate suite. Strength over a batch of games is still unresolved at
-   the sample sizes runnable here — flip this to false to compare. */
-const USE_NULL = true;
-
-function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = USE_NULL) {
+/* useNull defaults to TRUE. It was false for a long time, which meant the
+   browser build -- whose worker calls bestMove(fen, ms, beat) with three
+   arguments -- silently ran without null-move pruning, while uci.mjs passed
+   its own flag and so every fastchess measurement had it on. The two builds
+   were not the same engine. README-fast.md measured null-move at +1.55 pawns
+   (77.5% over 100 games at depth 5 vs plain depth 4); the page was getting
+   none of it. Harnesses can still switch it off explicitly. */
+function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = true) {
   const b = new Board(fen);
   const ctx = {
     nodes: 0, checks: 0, stop: false, deadline: Date.now() + ms,
     beat: onBeat, nextBeat: Date.now() + 2000, depth: 0,
-    tt: new Map(), killers: [], history: Object.create(null), useNull
+    tt: new Map(), killers: [], history: Object.create(null),
+    counter: Object.create(null), useNull
   };
 
   const legal = b.moves().filter(m => { const ok = b.make(m); if (ok) b.unmake(); return ok; });
@@ -1372,15 +1678,52 @@ function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = I
 
   for (let depth = 1; depth <= capDepth; depth++) {
     ctx.depth = depth;
-    let alpha = -Infinity, localBest = 0;
 
-    for (const m of root) {
-      if (!b.make(m)) continue;
-      ctx.nodes++;
-      const score = -negamax(b, depth - 1, -Infinity, -alpha, 1, ctx);
-      b.unmake();
+    /* Aspiration window. Each iteration usually scores close to the last one,
+       so search a narrow band around it and let most of the tree fall outside
+       the window and be cut cheaply. When the guess is wrong the search fails
+       at an edge and the whole depth has to be repeated wider, which costs
+       real time - so the window only opens once there is a previous score
+       worth trusting, it widens by a large factor rather than creeping, and
+       past a point it gives up and goes fully open. That last step is what
+       guarantees this loop terminates. */
+    let delta = OPT.aspDelta;
+    let lo = -Infinity, hi = Infinity;
+    if (OPT.asp && depth >= 4 && Math.abs(bestScore) < MATE - 1000) {
+      lo = bestScore - delta;
+      hi = bestScore + delta;
+    }
+
+    let alpha = -Infinity, localBest = 0;
+    for (;;) {
+      let best = -Infinity;
+      localBest = 0;
+      for (const m of root) {
+        if (!b.make(m)) continue;
+        ctx.nodes++;
+        const score = -negamax(b, depth - 1, -hi, -Math.max(lo, best), 1, ctx, m);
+        b.unmake();
+        if (ctx.stop) break;
+        if (score > best || !localBest) { best = score; localBest = m; }
+      }
       if (ctx.stop) break;
-      if (score > alpha || !localBest) { alpha = score; localBest = m; }
+
+      /* Open only the side that failed. Widening both throws away a bound
+         that was still good and makes every re-search cost more than it
+         needs to. Past the cap the window goes fully open, which is what
+         guarantees this terminates. */
+      if (lo > -Infinity && best <= lo) {                  // failed low
+        delta *= 4;
+        lo = delta > 1200 ? -Infinity : bestScore - delta;
+        continue;                                          // same depth, wider
+      }
+      if (hi < Infinity && best >= hi) {                   // failed high
+        delta *= 4;
+        hi = delta > 1200 ? Infinity : bestScore + delta;
+        continue;
+      }
+      alpha = best;
+      break;
     }
 
     if (ctx.stop) break;
@@ -1463,7 +1806,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-08-25.2-fast';
+const VERSION = '2026-08-26.5-fast';
 const LOG_MAX = 120;
 const logBuf = [];
 
