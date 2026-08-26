@@ -1074,11 +1074,34 @@ const MOB_WEIGHT = [0, 0, 4, 5, 2, 1, 0];   // by piece type
    trade came back essentially unchanged (0.796), the one weight the data pins
    firmly, and the only one that was already right. */
 const W = {
-  mobility: 0.6,
-  pawns:    0.91,
-  shield:   0.55,
-  trade:    0.8
+  mobility:   0.6,
+  pawns:      0.91,
+  shield:     0.55,
+  trade:      0.8,
+  kingsafety: 0.5
 };
+
+/* State of these weights as of 2026-08-26, so nobody re-litigates them:
+   a 3000-epoch fit over 1,637,127 Lichess Elite positions proposed
+   knight 302, bishop 309, rook 555, queen 1032, mobility 1.50, pawns 1.53,
+   shield 0.22, kingsafety 0.34.
+
+   NONE of it was adopted, on purpose. sensitivity.py swept each weight while
+   holding the others fixed and found that for SEVEN of the nine, the value
+   shipped above is already inside the band the data cannot distinguish -- all
+   four piece values included, so 1100 and 1032 for the queen are the same
+   claim as far as this dataset is concerned. kingsafety 0.5 sits inside its
+   band of 0.255-0.510, so it is fitted, not provisional.
+
+   Only two are real proposals: mobility 0.6 -> ~1.50 and pawns 0.91 -> ~1.53.
+   Both are pending `sprt.bat retune`. Mobility is also the one weight there is
+   any games-based evidence against (README-fast.md: full-weight mobility
+   scored 40% over 75 games), so it does not get adopted on regression alone.
+
+   shield is NOT DETERMINED at all -- zero and 0.669 fit equally well, because
+   the king safety term now covers what it was crudely standing in for. It is
+   a candidate for deletion, not retuning, but prediction error cannot make
+   that call; only a match can. */
 
 /* Search heuristics, each individually switchable and each exposed as a UCI
    option by uci.mjs. They are separate switches on purpose: every one of them
@@ -1149,8 +1172,13 @@ function hashOf(b) {
    legality filtering — what made mobility unaffordable through chess.js was
    rebuilding a position to see the other side's moves, which doesn't arise
    here. */
-function mobility(board, sq, type, us) {
-  let n = 0;
+/* Scratch: king-zone squares hit by the most recent mobility() walk. A module
+   variable rather than a returned pair, because this runs millions of times per
+   search and must not allocate. */
+let KA = 0;
+
+function mobility(board, sq, type, us, zone) {
+  let n = 0, atk = 0;
   const offs = type === KNIGHT ? [-33,-31,-18,-14,14,18,31,33]
              : type === BISHOP ? [-17,-15,15,17]
              : type === ROOK   ? [-16,-1,1,16]
@@ -1160,12 +1188,14 @@ function mobility(board, sq, type, us) {
     let to = sq + d;
     while (!(to & 0x88)) {
       const p = board[to];
-      if (p) { if (colourOf(p) !== us) n++; break; }
+      if (p) { if (colourOf(p) !== us) { n++; if (zone[to]) atk++; } break; }
       n++;
+      if (zone[to]) atk++;
       if (!sliding) break;
       to += d;
     }
   }
+  KA = atk;                    // read immediately by the caller, before the next call
   return n * MOB_WEIGHT[type];
 }
 
@@ -1201,6 +1231,43 @@ function pawnStructure(mine, theirs, white) {
 
 /* Cheap king safety: is there still a pawn in front of the king? The full
    attack-unit version needs attack maps; this catches much of the value. */
+/* ---------- king safety ----------
+   kingShield below only asks whether pawns are still standing in front of the
+   king. It cannot tell that three enemy pieces are aimed at it. This is the
+   other half: count what the opponent actually attacks near the king.
+
+   The zone is the 3x3 box around the king, precomputed for every square so the
+   hot loop is one array lookup. (Extending it to the rank in front of the king
+   is the obvious refinement, and needs one table per colour.) */
+const KING_ZONE = (() => {
+  const t = new Array(128);
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) continue;
+    const z = new Uint8Array(128);
+    for (const d of [-17, -16, -15, -1, 0, 1, 15, 16, 17]) {
+      const to = sq + d;
+      if (!(to & 0x88)) z[to] = 1;
+    }
+    t[sq] = z;
+  }
+  return t;
+})();
+
+const KA_WEIGHT = [0, 0, 20, 20, 40, 80, 0];   // pressure per attacker, by type
+
+/* Quadratic in the accumulated pressure, flattening at the top. The SHAPE is
+   the whole point: two attackers are far more than twice as dangerous as one,
+   and a linear term cannot say that -- which is why simply counting attackers
+   does not work and this does. The absolute scale is arbitrary; W.kingsafety
+   fits a multiplier over the entire curve. */
+const KING_DANGER = new Int16Array(200);
+for (let i = 0; i < 200; i++) KING_DANGER[i] = Math.min(500, Math.round(i * i / 6));
+
+/* One attacker is not an attack. Requiring two is what stops a lone wandering
+   knight from reading as a mating net. */
+const danger = (weight, attackers) =>
+  attackers < 2 ? 0 : KING_DANGER[weight > 199 ? 199 : weight];
+
 function kingShield(board, kingSq, us) {
   let pen = 0;
   const f = kingSq & 7;
@@ -1224,6 +1291,9 @@ function evaluate(b) {
   let wb = 0, bb = 0, matW = 0, matB = 0;
   const wp = [], bp = [];
   const board = b.board;
+  // pressure on each king, accumulated from the opponent's pieces
+  const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
+  let awW = 0, anW = 0, awB = 0, anB = 0;
 
   for (let sq = 0; sq < 128; sq++) {
     if (sq & 0x88) { sq += 7; continue; }
@@ -1248,7 +1318,11 @@ function evaluate(b) {
     if (t === PAWN) { (white ? wp : bp).push(sq); }
     else {
       if (t === BISHOP) { if (white) wb++; else bb++; }
-      score += sign * mobility(board, sq, t, us) * W.mobility;
+      score += sign * mobility(board, sq, t, us, white ? zB : zW) * W.mobility;
+      if (KA) {
+        if (white) { awB += KA * KA_WEIGHT[t]; anB++; }
+        else       { awW += KA * KA_WEIGHT[t]; anW++; }
+      }
     }
   }
 
@@ -1263,6 +1337,10 @@ function evaluate(b) {
   // the king wants to be out in the open.
   score += (kingShield(board, b.kings[0], WHITE) -
             kingShield(board, b.kings[1], BLACK)) * (ph / 24) * W.shield;
+
+  // Positive when Black's king is the one under pressure. Faded out by phase
+  // for the same reason as the shield: in an endgame the king wants to be out.
+  score += (danger(awB, anB) - danger(awW, anW)) * (ph / 24) * W.kingsafety;
 
   score += (kingMg * ph + kingEg * (24 - ph)) / 24;
 
@@ -1280,6 +1358,8 @@ function evaluate(b) {
    the gradient is analytic — this is logistic regression, not a search. */
 function features(b) {
   const board = b.board;
+  const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
+  let awW = 0, anW = 0, awB = 0, anB = 0;
   let base = 0, kingMg = 0, kingEg = 0, phase = 0;
   let wb = 0, bb = 0, matW = 0, matB = 0, mob = 0;
   const wp = [], bp = [];
@@ -1311,7 +1391,11 @@ function features(b) {
     if (t === PAWN) (white ? wp : bp).push(sq);
     else {
       if (t === BISHOP) { if (white) wb++; else bb++; }
-      mob += sign * mobility(board, sq, t, us) / MOB_WEIGHT[t] * MOB_WEIGHT[t];
+      mob += sign * mobility(board, sq, t, us, white ? zB : zW);
+      if (KA) {
+        if (white) { awB += KA * KA_WEIGHT[t]; anB++; }
+        else       { awW += KA * KA_WEIGHT[t]; anW++; }
+      }
     }
   }
   if (wb >= 2) base += 30;
@@ -1328,7 +1412,8 @@ function features(b) {
     pawns: pawnStructure(wp, bp, true) - pawnStructure(bp, wp, false),
     shield: (kingShield(board, b.kings[0], WHITE) -
              kingShield(board, b.kings[1], BLACK)) * ph / 24,
-    trade: (matW - matB) * (1 - (matW + matB) / START_MATERIAL)
+    trade: (matW - matB) * (1 - (matW + matB) / START_MATERIAL),
+    kingsafety: (danger(awB, anB) - danger(awW, anW)) * ph / 24
   };
 }
 
@@ -1475,6 +1560,14 @@ function quiesce(b, alpha, beta, ctx) {
 
 function negamax(b, depth, alpha, beta, ply, ctx, prevMove = 0) {
   if ((++ctx.checks & 1023) === 0) {
+    /* A node budget makes a match reproducible and removes timing noise
+       entirely, which is what you want when testing an EVALUATION change: both
+       sides do identical work and only the scoring differs. It is the wrong
+       limit for testing SEARCH changes, whose whole benefit is reaching more
+       depth in the same time -- at equal nodes a reduction looks like nothing.
+       Checked on the same 1024-node cadence as the clock, so it can overshoot
+       by up to that much. */
+    if (ctx.nodes >= ctx.maxNodes) { ctx.stop = true; return 0; }
     const now = Date.now();
     if (now > ctx.deadline) { ctx.stop = true; return 0; }
     if (ctx.beat && now > ctx.nextBeat) {
@@ -1651,13 +1744,13 @@ const PROMO_CHAR = { [QUEEN]: 'q', [ROOK]: 'r', [BISHOP]: 'b', [KNIGHT]: 'n' };
    were not the same engine. README-fast.md measured null-move at +1.55 pawns
    (77.5% over 100 games at depth 5 vs plain depth 4); the page was getting
    none of it. Harnesses can still switch it off explicitly. */
-function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = true) {
+function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = true, maxNodes = Infinity) {
   const b = new Board(fen);
   const ctx = {
     nodes: 0, checks: 0, stop: false, deadline: Date.now() + ms,
     beat: onBeat, nextBeat: Date.now() + 2000, depth: 0,
     tt: new Map(), killers: [], history: Object.create(null),
-    counter: Object.create(null), useNull
+    counter: Object.create(null), useNull, maxNodes
   };
 
   const legal = b.moves().filter(m => { const ok = b.make(m); if (ok) b.unmake(); return ok; });
@@ -1806,7 +1899,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-08-26.5-fast';
+const VERSION = '2026-08-26.7-fast';
 const LOG_MAX = 120;
 const logBuf = [];
 
