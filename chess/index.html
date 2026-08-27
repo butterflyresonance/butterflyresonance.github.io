@@ -1076,32 +1076,51 @@ const MOB_WEIGHT = [0, 0, 4, 5, 2, 1, 0];   // by piece type
 const W = {
   mobility:   0.6,
   pawns:      0.91,
-  shield:     0.55,
+  shield:     0,     // OFF - deleting it measured free, see below
   trade:      0.8,
-  kingsafety: 0.5
+  kingsafety: 0      // OFF - rejected by match play, see below
 };
 
-/* State of these weights as of 2026-08-26, so nobody re-litigates them:
-   a 3000-epoch fit over 1,637,127 Lichess Elite positions proposed
-   knight 302, bishop 309, rook 555, queen 1032, mobility 1.50, pawns 1.53,
-   shield 0.22, kingsafety 0.34.
+/* Settled by SPRT on 2026-08-27. Do not re-litigate without new evidence.
+   Full numbers in HANDOFF.md; `python3 summary.py` regenerates them.
 
-   NONE of it was adopted, on purpose. sensitivity.py swept each weight while
-   holding the others fixed and found that for SEVEN of the nine, the value
-   shipped above is already inside the band the data cannot distinguish -- all
-   four piece values included, so 1100 and 1032 for the queen are the same
-   claim as far as this dataset is concerned. kingsafety 0.5 sits inside its
-   band of 0.255-0.510, so it is fitted, not provisional.
+   kingsafety is ZERO because the games said so: -13.32 +/- 16.72 Elo over 1200
+   games, LLR -2.05 against a -2.94 rejection bound. That is AFTER coverage
+   flagged it unfittable, and AFTER sensitivity.py rescued it by showing that
+   switching it off cost 44% of the entire tuning gain in PREDICTION ERROR.
+   Both regression tools said keep it. The only measurement that counts said
+   drop it. Two reasons it fails:
+     - the search already finds the attack, so a static bonus counts the same
+       danger twice and pushes the engine into attacks that do not work. This
+       gets worse the deeper the search runs, and the search went from depth
+       5-8 to 9-13 in the same week this term was added;
+     - a king under attack IS won more often in the training data, because
+       those are HUMAN games and humans defend badly under pressure. The term
+       learned a fact about human psychology, not about chess.
+   The code stays and option.KingSafety still exposes it, so it can be retested
+   if it is ever scaled down sensibly - it can currently swing the evaluation
+   by 250cp off a crude 3x3 zone with a two-attacker threshold.
 
-   Only two are real proposals: mobility 0.6 -> ~1.50 and pawns 0.91 -> ~1.53.
-   Both are pending `sprt.bat retune`. Mobility is also the one weight there is
-   any games-based evidence against (README-fast.md: full-weight mobility
-   scored 40% over 75 games), so it does not get adopted on regression alone.
+   mobility stays at 0.6. The 3000-epoch fit over 1.6M positions wanted 1.50;
+   games said -10.72. Separately 0.6 against the original 0.4 measured
+   +1.74 +/- 16.40 - indistinguishable. This question is CLOSED: the weight is
+   flat in the regression and flat in games. Do not spend more time on it.
 
-   shield is NOT DETERMINED at all -- zero and 0.669 fit equally well, because
-   the king safety term now covers what it was crudely standing in for. It is
-   a candidate for deletion, not retuning, but prediction error cannot make
-   that call; only a match can. */
+   pieces, pawns, trade: the whole evaluation retune measured ~zero in games
+   (+16.81 then -2.90 across two runs at different node counts). Every piece
+   value shipped here is inside the band sensitivity.py could not distinguish.
+
+   shield is ZERO as of 2026-08-27. sensitivity.py could not distinguish its
+   weight from zero at all - every value from 0 to 0.669 fitted equally well -
+   and deleting it then measured +1.74 +/- 16.98 on SIMPLIFICATION bounds
+   (elo0=-5 elo1=0), i.e. removing it costs nothing. It was only ever a crude
+   stand-in for king safety, asking whether pawns are still in front of the
+   king without any idea whether anyone is attacking it.
+
+   Note what the pair of them means together: the evaluation now has NO king
+   safety of any kind, and measured stronger for it. At depth 9-13 the search
+   finds threats against the king on its own, and both static attempts to
+   anticipate that were double-counting. */
 
 /* Search heuristics, each individually switchable and each exposed as a UCI
    option by uci.mjs. They are separate switches on purpose: every one of them
@@ -1188,9 +1207,9 @@ function mobility(board, sq, type, us, zone) {
     let to = sq + d;
     while (!(to & 0x88)) {
       const p = board[to];
-      if (p) { if (colourOf(p) !== us) { n++; if (zone[to]) atk++; } break; }
+      if (p) { if (colourOf(p) !== us) { n++; if (zone && zone[to]) atk++; } break; }
       n++;
-      if (zone[to]) atk++;
+      if (zone && zone[to]) atk++;
       if (!sliding) break;
       to += d;
     }
@@ -1291,8 +1310,12 @@ function evaluate(b) {
   let wb = 0, bb = 0, matW = 0, matB = 0;
   const wp = [], bp = [];
   const board = b.board;
-  // pressure on each king, accumulated from the opponent's pieces
-  const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
+  /* Pressure on each king, from the opponent's pieces. With the term switched
+     off this is dead work in the hottest loop in the engine, so pass null and
+     let mobility() skip the lookup entirely. */
+  const ksOn = W.kingsafety !== 0;
+  const zW = ksOn ? KING_ZONE[b.kings[0]] : null,
+        zB = ksOn ? KING_ZONE[b.kings[1]] : null;
   let awW = 0, anW = 0, awB = 0, anB = 0;
 
   for (let sq = 0; sq < 128; sq++) {
@@ -1335,8 +1358,9 @@ function evaluate(b) {
 
   // King safety matters in the middlegame and not at all in the endgame, where
   // the king wants to be out in the open.
-  score += (kingShield(board, b.kings[0], WHITE) -
-            kingShield(board, b.kings[1], BLACK)) * (ph / 24) * W.shield;
+  // Skipped entirely at zero weight, same as king safety below.
+  if (W.shield) score += (kingShield(board, b.kings[0], WHITE) -
+                          kingShield(board, b.kings[1], BLACK)) * (ph / 24) * W.shield;
 
   // Positive when Black's king is the one under pressure. Faded out by phase
   // for the same reason as the shield: in an endgame the king wants to be out.
@@ -1358,6 +1382,10 @@ function evaluate(b) {
    the gradient is analytic — this is logistic regression, not a search. */
 function features(b) {
   const board = b.board;
+  /* features() ALWAYS computes this, even with W.kingsafety at zero. Its job
+     is to expose the raw feature for tune.py to fit; gating it on the weight
+     would make the column read as all-zero, and the term would look like it
+     had no coverage rather than no weight. */
   const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
   let awW = 0, anW = 0, awB = 0, anB = 0;
   let base = 0, kingMg = 0, kingEg = 0, phase = 0;
@@ -1899,7 +1927,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-08-26.7-fast';
+const VERSION = '2026-08-27.2-fast';
 const LOG_MAX = 120;
 const logBuf = [];
 
