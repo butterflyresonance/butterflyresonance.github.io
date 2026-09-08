@@ -442,7 +442,7 @@
     border-bottom: 1px solid var(--edge);
     margin-top: 12px;
   }
-  .coach summary {
+  .coach > summary {
     list-style: none;
     cursor: pointer;
     padding: 11px 0;
@@ -455,18 +455,73 @@
     gap: 12px;
     transition: color .15s;
   }
-  .coach summary::-webkit-details-marker { display: none; }
-  .coach summary::after {
+  .coach > summary::-webkit-details-marker { display: none; }
+  .coach > summary::after {
     content: "+";
     font-size: 15px;
     line-height: 1;
     color: var(--brass-dim);
     flex: none;
   }
-  .coach[open] summary::after { content: "\2013"; }
-  .coach summary:hover { color: var(--brass); }
-  .coach summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .coach[open] > summary::after { content: "\2013"; }
+  .coach > summary:hover { color: var(--brass); }
+  .coach > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
   .coach-body { padding: 2px 0 14px; }
+
+  /* sections: the scan, in the order worth running it */
+  .groups { margin: 0 0 12px; }
+  .grp {
+    border-bottom: 1px solid var(--edge);
+  }
+  .grp:first-child { border-top: 1px solid var(--edge); }
+  div.grp, .grp > summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    font-size: 12px;
+    color: var(--muted);
+    list-style: none;
+    cursor: pointer;
+  }
+  div.grp { cursor: default; }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp > summary:hover { color: var(--brass); }
+  .grp > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .gtitle { flex: 1; min-width: 0; }
+  .gcount {
+    flex: none;
+    color: var(--brass);
+    font-variant-numeric: tabular-nums;
+  }
+  details.grp > summary::after {
+    content: "+";
+    flex: none;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--brass-dim);
+    width: 9px;
+    text-align: center;
+  }
+  details.grp[open] > summary::after { content: "\2013"; }
+  details.grp[open] > summary { color: var(--brass); }
+  details.grp[open] > summary .gcount { color: var(--brass-dim); }
+  .gitems { padding: 2px 0 10px; }
+
+  .verdict {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+  }
+  .verdict.v-good { color: var(--brass); border-color: var(--brass-dim); }
+  .verdict.v-bad { color: var(--danger); border-color: rgba(192,90,74,.45); }
+  .verdict.v-dim { opacity: .7; }
 
   .tallies { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
   .tally {
@@ -2046,7 +2101,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-09-08.4-coach';
+const VERSION = '2026-09-08.6-coach';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2850,6 +2905,45 @@ function see(cells, i, side) {
   return Math.max(0, gain);
 }
 
+/* What `side` nets by capturing on i, unclamped, with -Infinity for "there is
+   nothing to take it with". see() clamps this at zero because nobody is obliged
+   to capture, and that clamp hides the distinction this function exists for: an
+   even trade and an impossible capture both come back as zero there, and for a
+   threat they could not be more different. A piece that can simply be swapped
+   off is not making a threat, it is making an offer. */
+function seeRaw(cells, i, side) {
+  const victim = cells[i];
+  if (!victim || victim.color === side || victim.type === 'k') return -Infinity;
+
+  const atk = attackersOf(cells, i, side);
+  if (!atk.length) return -Infinity;
+
+  let from = -1, cheapest = Infinity;
+  for (const a of atk) {
+    const v = CV[cells[a].type];
+    if (v < cheapest) { cheapest = v; from = a; }
+  }
+  if (cells[from].type === 'k' && attackersOf(cells, i, other(side)).length) {
+    const rest = atk.filter(a => cells[a].type !== 'k');
+    if (!rest.length) return -Infinity;
+    from = rest.reduce((x, y) => (CV[cells[x].type] <= CV[cells[y].type] ? x : y));
+  }
+
+  const mover = cells[from];
+  cells[from] = null;
+  cells[i] = mover;
+  const gain = CV[victim.type] - see(cells, i, other(side));
+  cells[i] = victim;
+  cells[from] = mover;
+  return gain;
+}
+
+/* Does the piece on i survive as a threat? Not "does it lose material" — it has
+   to be something the opponent cannot answer by trading it off, or the threat
+   it was making never happens. This is the difference between a move that
+   attacks something and a move that wins something. */
+const sticks = (cells, i, foe) => seeRaw(cells, i, foe) < 0;
+
 /* Pins and skewers are one piece of geometry with the values swapped: a slider,
    then an enemy piece, then a second enemy piece further along the same ray. If
    the far piece is worth more it is a pin and the near one is stuck; if the
@@ -3095,27 +3189,149 @@ function costText(cells, c) {
   return `hangs the ${say(cells, c.sq)}`;
 }
 
-/* ---------- the analysis ---------- */
+/* ---------- answering a move ----------
+   The immediate answer: the cheapest capture of the piece that just moved. This
+   is one ply, not a search, and it is deliberately the only reply considered —
+   for nearly every tactic a learner walks into, the refutation is simply "they
+   take the piece", and naming that capture is what turns a claim into something
+   you can check on the board yourself. */
+function answerCapture(sim, after, to, foe) {
+  const raw = seeRaw(after, to, foe);
+  if (raw === -Infinity) return null;
+  const name = sqName(to);
+  let best = null;
+  for (const r of legalFor(sim)) {
+    if (r.to !== name || !r.captured) continue;
+    const v = CV[r.piece];
+    if (!best || v < best.v) best = { san: r.san, v };
+  }
+  return best ? { san: best.san, net: raw } : { san: null, net: raw };
+}
 
-function analyze(fen, me) {
+/* Every listed idea carries one of these. Nothing is dropped for being bad —
+   the verdict is the teaching, and an idea that does not work is worth seeing
+   precisely so you learn why. */
+function verdictOf(ans, mine = true) {
+  const who = mine ? 'you' : 'them';
+  if (!ans) return { kind: 'works', label: 'nothing answers it', net: null, san: null };
+  if (ans.net > 0) return { kind: 'loses', label: `costs ${who} ${ans.net}`, net: ans.net, san: ans.san };
+  if (ans.net === 0) return { kind: 'traded', label: 'traded off', net: 0, san: ans.san };
+  return { kind: 'works', label: 'the recapture loses', net: ans.net, san: ans.san };
+}
+
+const answerLine = (v, mine = true) =>
+  v.kind === 'works' && !v.san ? 'Nothing can take it there, so the idea stands.'
+  : v.kind === 'works' ? `Taking with ${v.san} would lose material, so the idea stands.`
+  : v.kind === 'traded' ? `Answered by ${v.san} — an even trade, but the piece comes off and the idea goes with it.`
+  : `Answered by ${v.san}, and ${mine ? 'you' : 'they'} come out about ${v.net} down.`;
+
+/* ---------- what their last move changed ----------
+   The step people skip. Not "what is their plan" but two literal questions:
+   what does that piece hit now that it did not, and what did it stop doing.
+   Both are diffs between two positions, which makes them cheap and exact. */
+function lastMoveDiff(prevFen, fen, me, lastSan) {
+  if (!prevFen || !lastSan) return [];
+  let prev, now;
+  try {
+    prev = toCells(new Chess(prevFen, { skipValidation: true }));
+    now = toCells(new Chess(fen, { skipValidation: true }));
+  } catch { return []; }
+
+  const them = other(me);
+  const out = [];
+
+  // where did their piece land? the square that gained one of their pieces
+  let to = -1;
+  for (let i = 0; i < 64; i++) {
+    const a = prev[i], b = now[i];
+    if (b && b.color === them && (!a || a.color !== them || a.type !== b.type)) { to = i; break; }
+  }
+
+  if (to >= 0) {
+    const gone = prev[to] && prev[to].color === me ? prev[to] : null;
+    if (gone) out.push({ text: `${lastSan} took your ${NAME[gone.type]} on ${sqName(to)}.`, squares: [sqName(to)] });
+
+    const hitNow = attacksFrom(now, to).filter(j => now[j] && now[j].color === me);
+    const hitBefore = new Set(attacksFrom(prev, to).filter(j => prev[j] && prev[j].color === me));
+    const fresh = hitNow.filter(j => !hitBefore.has(j));
+    if (fresh.length) {
+      out.push({
+        text: `Their ${say(now, to)} now attacks ${listOf(now, fresh)} — none of that was true a move ago.`,
+        squares: [sqName(to), ...fresh.map(sqName)]
+      });
+    }
+  }
+
+  // what stopped being defended, on their side: pieces that lost a defender
+  const dropped = [];
+  for (let i = 0; i < 64; i++) {
+    const p = now[i];
+    if (!p || p.color !== them || i === to) continue;
+    if (!prev[i] || prev[i].color !== them || prev[i].type !== p.type) continue;
+    const before = attackersOf(prev, i, them).length;
+    const after = attackersOf(now, i, them).length;
+    if (after < before) dropped.push(i);
+  }
+  if (dropped.length) {
+    out.push({
+      text: `It stopped guarding ${listOf(now, dropped)}. Every move both makes and unmakes defenders, and this is the half nobody looks at.`,
+      squares: dropped.map(sqName)
+    });
+  }
+
+  // lines that opened behind it: their sliders that now reach something of mine
+  const opened = [];
+  for (let i = 0; i < 64; i++) {
+    const p = now[i];
+    if (!p || p.color !== them || !RAYS[p.type] || i === to) continue;
+    for (const j of attacksFrom(now, i)) {
+      if (!now[j] || now[j].color !== me) continue;
+      if (attacksFrom(prev, i).includes(j)) continue;
+      opened.push({ by: i, target: j });
+    }
+  }
+  for (const o of opened.slice(0, 3)) {
+    out.push({
+      text: `Moving off that line let their ${say(now, o.by)} through to ${say(now, o.target)}. The piece doing the damage never moved, which is why this one gets missed.`,
+      squares: [sqName(o.by), sqName(o.target)],
+      ray: [sqName(o.by), sqName(o.target)]
+    });
+  }
+
+  return out;
+}
+
+/* ---------- the analysis ----------
+   Nothing is filtered out. Every capture, every check, every motif and every
+   undefended piece is listed with a verdict attached, because a coach that
+   quietly drops the bad ideas is deciding for you which ideas were worth having
+   — and the ones that do not work are exactly the ones worth understanding. The
+   panel stays readable by grouping and collapsing, not by hiding. */
+
+function analyze(fen, me, opts = {}) {
   const base = new Chess(fen, { skipValidation: true });
   const cells = toCells(base);
   const them = other(me);
   const mineToMove = base.turn() === me;
 
-  const findings = [];
   let n = 0;
-  const add = f => findings.push({ id: 'f' + (n++), ...f });
+  const G = new Map();
+  const push = (key, item) => {
+    if (!G.has(key)) G.set(key, []);
+    G.get(key).push({ id: 'f' + (n++), key, ...item });
+  };
 
-  /* ---- their move list first: it supplies the gates for everything else ----
-     `reach` is every square they could hit after one move, which is what turns
-     "undefended" from trivia into a warning. `theirRank` and `myRank` say
-     whether a heavy piece can actually arrive on the relevant back rank. */
+  /* ---- what their last move changed ---- */
+  for (const d of lastMoveDiff(opts.prevFen, fen, me, opts.lastSan)) {
+    push('changed', { side: 'them', motif: 'changed', weight: 50, head: d.text, text: '', verdict: null, squares: d.squares, ray: d.ray });
+  }
+
+  /* ---- their move list: threats, and the reach gates ---- */
   const theirBoard = mineToMove ? flipped(fen) : new Chess(fen, { skipValidation: true });
   const theirMoves = legalFor(theirBoard);
   const myLoose = looseCandidates(cells, me);
-  const reach = new Map();     // loose square -> the move that actually wins it
-  const watch = new Map();     // loose square -> a move that would, if its refutation left
+  const reach = new Map();
+  const watch = new Map();
   let myRankReachable = false;
   const myBackRank = me === 'w' ? 7 : 0;
   const threats = [];
@@ -3130,70 +3346,65 @@ function analyze(fen, me) {
       if ((m.piece === 'r' || m.piece === 'q') && (to / 8 | 0) === myBackRank) myRankReachable = true;
 
       const safe = see(after, to, me) === 0;
-
-      /* Two grades of loose, and the difference is worth keeping.
-
-         If they can reach the piece and survive the trip, that is live: deal
-         with it now. If they can reach it but the trip loses material, the
-         threat is refuted — but refuted BY SOMETHING, usually one pawn or one
-         defender, and that something is part of your own position that you are
-         about to start moving. A knight that hangs itself on b3 today walks in
-         freely the move after the a-pawn advances, and nothing about the rook
-         will have changed. So the refuted version is still reported, quietly,
-         with the name of whatever is holding it up: the coach is there to say
-         look here, not to say do this. */
-      {
-        const hits = attacksFrom(after, to);
-        for (const c of myLoose) {
-          if (!hits.includes(c)) continue;
-          if (safe) {
-            if (!reach.has(c) && see(after, c, them) > 0) reach.set(c, m.san);
-          } else if (!watch.has(c)) {
-            const guards = attackersOf(after, to, me);
-            if (!guards.length) continue;
-            const guard = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
-            watch.set(c, { san: m.san, guard: say(after, guard), to, piece: m.piece });
+      const hits = attacksFrom(after, to);
+      for (const c of myLoose) {
+        if (!hits.includes(c)) continue;
+        if (safe) {
+          if (!reach.has(c) && see(after, c, them) > 0) reach.set(c, m.san);
+        } else if (!watch.has(c)) {
+          const guards = attackersOf(after, to, me);
+          if (guards.length) {
+            const g = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
+            watch.set(c, { san: m.san, guard: say(after, g), to, piece: m.piece });
           }
         }
       }
 
-      if (safe) {
+      // every idea of theirs, sound or not, with what answers it
+      const prey = preyOf(after, to);
+      const forks = isFork(after, prey);
+      const grabs = m.captured && safe;
 
-        if (m.captured) {
-          const won = CV[m.captured];
-          threats.push({ w: 30 + won, san: m.san, from: m.from, to: m.to,
-            why: `takes your ${NAME[m.captured]} on ${m.to} and keeps it` });
-        }
-        const prey = preyOf(after, to);
-        if (isFork(after, prey)) {
-          threats.push({ w: 36 + prey.length, san: m.san, from: m.from, to: m.to,
-            why: `forks ${listOf(after, prey.map(x => x.sq))}` });
-        }
+      if (forks || grabs) {
+        const v = verdictOf(answerCapture(theirBoard, after, to, me), false);
+        threats.push({
+          w: (v.kind === 'works' ? 60 : 20) + (forks ? 10 : 0) + (m.captured ? CV[m.captured] : 0),
+          san: m.san, from: m.from, to: m.to, verdict: v,
+          why: forks ? `forks ${listOf(after, prey.map(x => x.sq))}`
+                     : `takes your ${NAME[m.captured]} on ${m.to}`
+        });
       }
       theirBoard.undo();
     }
   }
 
-  /* ---- my move list: one trial move, and what it creates ----
-     This pass also builds `myReach` — every square I could be attacking after
-     one move — which is the gate that stops "their piece is undefended" from
-     firing on pieces I have no way of touching. */
+  for (const t of threats.sort((a, b) => b.w - a.w)) {
+    push('threats', {
+      side: 'them', motif: 'threat', weight: t.w, move: t.san, verdict: t.verdict,
+      squares: [t.from, t.to], arrow: [t.from, t.to],
+      head: `${t.san} — it ${t.why}`,
+      text: t.verdict.kind === 'works'
+        ? 'Nothing of yours answers this by taking, so whatever you play has to deal with it.'
+        : `${answerLine(t.verdict, false)} Worth seeing anyway — it stops working because of one piece of yours, and pieces move.`
+    });
+  }
+
+  /* ---- my move list: everything I can do, with the answer to each ---- */
   const myBoard = mineToMove ? new Chess(fen, { skipValidation: true }) : flipped(fen);
   const myMoves = legalFor(myBoard);
-  const myReach = new Map();   // their loose square -> the move that wins it now
-  const chance = new Map();    // their loose square -> a move that would, once the way is clear
+  const myReach = new Map();
+  const chance = new Map();
   const theirLoose = looseCandidates(cells, them);
   let theirRankReachable = false;
   const theirBackRank = them === 'w' ? 7 : 0;
 
   if (myBoard) {
-    const pinsBefore = new Set(findPins(cells, false).map(p => `${p.kind}:${p.front}:${p.back}`));
+    const pinsBefore = new Set(findPins(cells, true).map(p => `${p.kind}:${p.front}:${p.back}`));
     const discFrom = new Map();
     for (const d of findDiscoveries(cells, me)) {
       if (!discFrom.has(d.screen)) discFrom.set(d.screen, []);
       discFrom.get(d.screen).push(d);
     }
-
     const discSeen = new Map();
     const pinSeen = new Map();
 
@@ -3207,364 +3418,333 @@ function analyze(fen, me) {
       const from = sqIndex(m.from);
       if ((m.piece === 'r' || m.piece === 'q') && (to / 8 | 0) === theirBackRank) theirRankReachable = true;
 
-      /* The offensive mirror of the watch tier. Their undefended piece with a
-         move that reaches it is a threat you can play; their undefended piece
-         with a move that reaches it and gets taken on arrival is a plan you can
-         work toward, and the thing standing in the way has a name. Same
-         reasoning as the defensive side: what makes it not work today is a
-         piece, and pieces move. */
-      {
-        const arrivalSafe = see(after, to, them) === 0;
-        const hits = attacksFrom(after, to);
-        for (const c of theirLoose) {
-          if (!hits.includes(c)) continue;
-          if (arrivalSafe) {
-            if (!myReach.has(c) && see(after, c, me) > 0) myReach.set(c, m.san);
-          } else if (!chance.has(c)) {
-            const guards = attackersOf(after, to, them);
-            if (!guards.length) continue;
-            const guard = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
-            chance.set(c, { san: m.san, guard: say(after, guard), guardType: after[guard].type, to, piece: m.piece });
+      const hits = attacksFrom(after, to);
+      const arrivalSticks = sticks(after, to, them);
+      for (const c of theirLoose) {
+        if (!hits.includes(c)) continue;
+        if (arrivalSticks) {
+          if (!myReach.has(c) && see(after, c, me) > 0) myReach.set(c, m.san);
+        } else if (!chance.has(c)) {
+          const guards = attackersOf(after, to, them);
+          if (guards.length) {
+            const g = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
+            chance.set(c, { san: m.san, guard: say(after, g), guardType: after[g].type, selfGuard: g === c, to, piece: m.piece });
           }
         }
       }
 
-      // the coach speaks only on your turn: on theirs this pass is just the gate
-      if (!mineToMove) { myBoard.undo(); continue; }
+      const mate = myBoard.isCheckmate();
+      const check = myBoard.inCheck();
 
-      if (myBoard.isCheckmate()) {
-        add({
+      /* answerCapture generates their whole reply list, so it is paid for only
+         on the moves that actually get listed — most moves in a position are
+         not a check, a capture or a motif, and asking how they would be
+         answered is wasted work. */
+      let _ans, _v;
+      const ans = () => (_ans === undefined ? (_ans = answerCapture(myBoard, after, to, them)) : _ans);
+      const v = () => (_v || (_v = verdictOf(ans())));
+
+      const cost = collateral(cells, after, me, to);
+      const costs = cost.length ? ' It also ' + cost.map(c => costText(after, c)).join(', and ') + '.' : '';
+
+      if (mate) {
+        push('checks', {
           side: 'you', motif: 'mate', weight: 1000, move: m.san,
+          verdict: { kind: 'works', label: 'mate' },
           squares: [m.from, m.to], arrow: [m.from, m.to],
           head: `${m.san} is mate`,
-          text: 'Checkmate in one. Running the forcing moves first — every check, every capture — is how you stop walking past these.'
+          text: 'Checkmate in one. This is what running the checks first is for.'
         });
         myBoard.undo();
         continue;
       }
 
-      const risk = see(after, to, them);
-      const safe = risk === 0;
-      const cost = collateral(cells, after, me, to);
-      const costs = cost.length ? ' But it ' + cost.map(c => costText(after, c)).join(', and ') + '.' : '';
-      const hangs = safe ? '' : ` Mind the ${NAME[m.piece]} though — it is not safe on ${m.to}, and they win about ${risk} taking it.`;
-
-      /* A fork the move creates. An unsafe one is kept only when the fork is
-         still worth more than the piece making it — "that looks like a fork,
-         but count the square first" is a lesson; hanging your queen to give a
-         check is just a bad move, and printing it teaches nothing. */
-      const prey = preyOf(after, to);
-      if (isFork(after, prey) && prey.length > preyOf(cells, from).length) {
-        const bounty = Math.max(0, ...prey.map(x => (cells[x.sq] ? CV[after[x.sq].type] : 0)).filter(v => v < 100));
-        if (safe || risk < bounty) {
-          add({
-            side: 'you', motif: 'fork-available', weight: (safe ? 34 : 15) + prey.length,
-            move: m.san, squares: [m.from, m.to, ...prey.map(x => sqName(x.sq))], arrow: [m.from, m.to],
-            head: `${m.san} forks ${prey.length} pieces${safe ? '' : ' — but look at the square'}`,
-            text: `From ${m.to} the ${NAME[m.piece]} hits ${listOf(after, prey.map(x => x.sq))}.` +
-              (safe ? ' Nothing wins material taking on that square, so they cannot simply remove it.' : '') + hangs + costs
-          });
-        }
+      /* every check, sound or not — the forcing-move list is only useful if it
+         is complete, and half of learning it is seeing why most of them fail */
+      if (check) {
+        push('checks', {
+          side: 'you', motif: 'check', weight: (v().kind === 'works' ? 30 : 8) + preyOf(after, to).length,
+          move: m.san, verdict: v(), squares: [m.from, m.to], arrow: [m.from, m.to],
+          head: `${m.san}+`,
+          text: answerLine(v()) + costs
+        });
       }
 
-      /* Pins and skewers the move creates. Several squares often set up the
-         same pin — Qh4 and Qg5 pinning the same knight against the same queen
-         is one idea, not two — so they are keyed on the pair and only the best
-         square survives. */
-      if (RAYS[m.piece] && safe) {
-        const made = findPins(after, false).filter(p =>
-          p.by === to && !pinsBefore.has(`${p.kind}:${p.front}:${p.back}`));
-        for (const p of made) {
+      /* every capture, with the exchange spelled out */
+      if (m.captured) {
+        const net = CV[m.captured] - (ans() && ans().net > 0 ? ans().net : 0);
+        push('captures', {
+          side: 'you', motif: 'capture', weight: (v().kind === 'works' ? 40 : 12) + CV[m.captured],
+          move: m.san, verdict: v(), squares: [m.from, m.to], arrow: [m.from, m.to],
+          head: `${m.san} takes a ${NAME[m.captured]}`,
+          text: (v().kind === 'works'
+                  ? `Nothing recaptures — that is ${CV[m.captured]} for free.`
+                  : v().kind === 'traded'
+                    ? `${answerLine(v())} An even trade at ${CV[m.captured]} apiece.`
+                    : answerLine(v())) + costs
+        });
+      }
+
+      /* forks */
+      const prey = preyOf(after, to);
+      if (isFork(after, prey) && prey.length > preyOf(cells, from).length) {
+        push('forks', {
+          side: 'you', motif: 'fork-available',
+          weight: (v().kind === 'works' ? 34 : v().kind === 'traded' ? 18 : 12) + prey.length,
+          move: m.san, verdict: v(),
+          squares: [m.from, m.to, ...prey.map(x => sqName(x.sq))], arrow: [m.from, m.to],
+          head: `${m.san} forks ${listOf(after, prey.map(x => x.sq))}`,
+          text: (v().kind === 'works'
+                  ? 'Nothing removes the forking piece, so only one of them can be saved.'
+                  : v().kind === 'traded'
+                    ? `${answerLine(v())} A fork only wins material if the forking piece survives to take something.`
+                    : answerLine(v())) + costs
+        });
+      }
+
+      /* pins and skewers, collapsed per idea rather than per square */
+      if (RAYS[m.piece]) {
+        for (const p of findPins(after, true)) {
+          if (p.by !== to || p.kind === 'align') continue;
+          if (pinsBefore.has(`${p.kind}:${p.front}:${p.back}`)) continue;
           const key = `${p.kind}:${p.front}:${p.back}`;
-          const score = (p.absolute ? 2 : 0) + (cost.length ? 0 : 1);
+          const score = (v().kind === 'works' ? 3 : v().kind === 'traded' ? 1 : 0) + (p.absolute ? 2 : 0);
           const held = pinSeen.get(key);
           if (held) { held.ways++; if (held.score >= score) continue; held.ways--; }
-          pinSeen.set(key, { p, score, san: m.san, from: m.from, to: m.to,
+          pinSeen.set(key, { p, score, v: v(), san: m.san, from: m.from, to: m.to,
                              ways: (held ? held.ways : 0) + 1, after, costs });
         }
       }
 
-      /* A discovered attack: the moved piece was the screen. Every square the
-         screen can step to opens the same line, so these are collected and one
-         finding is emitted per discovery — with the best square as the example,
-         because "you have six ways to do this" is the useful shape, not six
-         identical entries. The best square is the one that is safe and where
-         the moved piece also hits something: a discovery plus a threat is a
-         double attack, and that is the version that wins material. */
+      /* discovered attacks */
       for (const d of (discFrom.get(from) || [])) {
-        if (!attackersOf(after, d.target, me).includes(d.by)) continue;   // still on the line
+        if (!attackersOf(after, d.target, me).includes(d.by)) continue;
         const key = d.by + ':' + d.target;
-        const bonus = (safe ? 4 : 0) + preyOf(after, to).length;
+        const bonus = (v().kind === 'works' ? 4 : 0) + preyOf(after, to).length;
         const held = discSeen.get(key);
-        if (held && held.bonus >= bonus) { held.ways++; continue; }
-        if (held) held.ways++;
-        discSeen.set(key, {
-          d, bonus, safe, san: m.san, from: m.from, to: m.to,
-          ways: held ? held.ways : 1,
-          also: preyOf(after, to).filter(x => x.sq !== d.target),
-          after, hangs, costs
-        });
+        if (held) { held.ways++; if (held.bonus >= bonus) continue; held.ways--; }
+        discSeen.set(key, { d, bonus, v: v(), san: m.san, from: m.from, to: m.to,
+                            ways: (held ? held.ways : 0) + 1,
+                            also: preyOf(after, to).filter(x => x.sq !== d.target), after, costs });
       }
 
       myBoard.undo();
     }
 
-    for (const v of pinSeen.values()) {
-      const kind = v.p.kind;
-      add({
-        side: 'you', motif: kind + '-available', weight: 16 + (v.p.absolute ? 3 : 0),
-        move: v.san,
-        squares: [v.from, v.to, sqName(v.p.front), sqName(v.p.back)],
-        arrow: [v.from, v.to], rays: [[v.to, sqName(v.p.back)]],
-        head: `${v.san} ${kind === 'pin' ? 'pins' : 'skewers'} the ${say(v.after, v.p.front)}`,
+    for (const w of pinSeen.values()) {
+      const kind = w.p.kind;
+      push('pins', {
+        side: 'you', motif: kind + '-available',
+        weight: (w.v.kind === 'works' ? 20 : 8) + (w.p.absolute ? 4 : 0),
+        move: w.san, verdict: w.v,
+        squares: [w.from, w.to, sqName(w.p.front), sqName(w.p.back)],
+        arrow: [w.from, w.to], rays: [[w.to, sqName(w.p.back)]],
+        head: `${w.san} ${kind === 'pin' ? 'pins' : 'skewers'} the ${say(w.after, w.p.front)}`,
         text: (kind === 'pin'
-          ? `It is held against the ${say(v.after, v.p.back)} behind it.` +
-            (v.p.absolute
-              ? ' That is the king behind, so it is frozen: it cannot move, and it cannot defend anything while it stands there. Pile a second attacker onto it.'
-              : ' Worth more behind than in front, so it is stuck as long as that stays true.')
-          : `It is worth more than the ${say(v.after, v.p.back)} behind it, so it has to move and leave the other one there.`) +
-          (v.ways > 1 ? ` ${v.ways} squares set this up; this is the cleanest.` : '') + v.costs
+          ? `Against the ${say(w.after, w.p.back)} behind it.` +
+            (w.p.absolute ? ' That is the king, so the piece is frozen — it cannot move and it cannot defend.' : '')
+          : `It is worth more than the ${say(w.after, w.p.back)} behind it, so it has to move and leave the other there.`) +
+          ' ' + answerLine(w.v) +
+          (w.ways > 1 ? ` ${w.ways} squares set this up; this is the cleanest.` : '') + w.costs
       });
     }
 
-    for (const v of discSeen.values()) {
-      const piece = NAME[cells[v.d.by].type];
-      add({
-        side: 'you', motif: 'discovery-available', weight: (v.d.check ? 30 : 24) + (v.safe ? 2 : 0),
-        move: v.san, squares: [v.from, v.to, sqName(v.d.by), sqName(v.d.target)],
-        arrow: [v.from, v.to], rays: [[sqName(v.d.by), sqName(v.d.target)]],
-        head: `${v.san} uncovers your ${piece} on ${sqName(v.d.by)}${v.d.check ? ' — with check' : ''}`,
-        text: `Stepping off that line lets the ${piece} through to the ${say(v.after, v.d.target)}.` +
-          (v.d.check
-            ? ' It is check, so they have to answer the check first — which means the piece that moved can go somewhere greedy on the way.'
-            : ' The piece doing the damage never moves, which is exactly why this one is easy to walk past.') +
-          (v.ways > 1 ? ` ${v.ways} different squares open the line; this is the one that does most on arrival.` : '') +
-          (v.also.length ? ` On top of the discovery it hits ${listOf(v.after, v.also.map(x => x.sq))}.` : '') +
-          v.hangs + v.costs
+    for (const w of discSeen.values()) {
+      const piece = NAME[cells[w.d.by].type];
+      push('discovery', {
+        side: 'you', motif: 'discovery-available',
+        weight: (w.d.check ? 30 : 22) + (w.v.kind === 'works' ? 4 : 0),
+        move: w.san, verdict: w.v,
+        squares: [w.from, w.to, sqName(w.d.by), sqName(w.d.target)],
+        arrow: [w.from, w.to], rays: [[sqName(w.d.by), sqName(w.d.target)]],
+        head: `${w.san} uncovers your ${piece} on ${sqName(w.d.by)}${w.d.check ? ' — with check' : ''}`,
+        text: `Stepping off that line lets the ${piece} through to the ${say(w.after, w.d.target)}. ` +
+          (w.d.check ? 'It is check, so they have to answer that first. ' : 'The piece doing the damage never moves. ') +
+          answerLine(w.v) +
+          (w.ways > 1 ? ` ${w.ways} squares open the line; this one does most on arrival.` : '') +
+          (w.also.length ? ` It also hits ${listOf(w.after, w.also.map(x => x.sq))}.` : '') + w.costs
       });
     }
   }
 
-  /* ---- what is loose, on both sides ---- */
-  for (const x of findLoose(cells, me, reach)) {
-    add({
-      side: 'you', motif: x.kind, weight: x.kind === 'loose' ? 8 : 40 + 2 * x.loss,
-      squares: [sqName(x.sq)],
-      head: `Your ${say(cells, x.sq)} — ${x.kind === 'loose' ? 'undefended' : x.kind === 'hanging' ? 'hanging' : 'under-defended'}`,
-      text: x.kind === 'loose'
-        ? `Nothing is guarding it. It is not attacked yet, but ${x.via} comes after it and there is no recapture — one move from safe to lost. Catching that gap before the attack arrives is the whole habit; a loose piece is what every fork and every discovered attack is aimed at.`
-        : x.kind === 'hanging'
-          ? `They can take it and you cannot get the material back — about ${x.loss} down.`
-          : `It has ${x.def} defender${x.def === 1 ? '' : 's'}, but their cheapest attacker is worth less than your cheapest defender, so the exchange still costs you about ${x.loss}.`
-    });
-  }
-  /* Refuted approaches: not a threat, a dependency. Weighted low on purpose —
-     these sit at the bottom of the list and drop off the panel first when the
-     position has real problems in it. */
-  for (const [sq, w] of watch) {
-    if (reach.has(sq)) continue;
-    add({
-      side: 'you', motif: 'watch', weight: 5,
-      squares: [sqName(sq), sqName(w.to)],
-      head: `Your ${say(cells, sq)} — undefended, and one move from mattering`,
-      text: `Nothing guards it. ${w.san} would attack it, and the only thing wrong with that is the ${w.guard}, which takes the ${NAME[w.piece]} on ${sqName(w.to)}. ` +
-        `So the ${NAME[cells[sq].type]} is safe because of where that piece is standing, not because of anything about the ${NAME[cells[sq].type]} itself. ` +
-        `Move it or trade it off without thinking, and the threat is live with nothing else having changed. Nothing to do about it now — just worth carrying while you pick a move.`
-    });
+  /* ---- undefended pieces: all of them, graded by how reachable they are ---- */
+  const looseRow = (i, mine) => {
+    const p = cells[i];
+    const def = attackersOf(cells, i, p.color).length;
+    const att = attackersOf(cells, i, other(p.color)).length;
+    if (att) {
+      const loss = see(cells, i, other(p.color));
+      if (loss > 0) {
+        return {
+          motif: def ? 'underguarded' : 'hanging', weight: (mine ? 40 : 22) + 2 * loss,
+          verdict: { kind: mine ? 'loses' : 'works', label: mine ? `costs you ${loss}` : `wins ${loss}` },
+          head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — ${def ? 'under-defended' : 'hanging'}`,
+          text: mine
+            ? `${def} defender${def === 1 ? '' : 's'}, but the exchange still costs you about ${loss}.`
+            : `You can win about ${loss} there right now.`
+        };
+      }
+      return null;
+    }
+    if (def || p.type === 'p' || p.type === 'k') return null;
+
+    const via = mine ? reach.get(i) : myReach.get(i);
+    const soft = mine ? watch.get(i) : chance.get(i);
+    if (via) {
+      return {
+        motif: 'loose', weight: mine ? 26 : 18,
+        verdict: { kind: mine ? 'loses' : 'works', label: mine ? `${via} wins it` : `${via} wins it` },
+        head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+        text: mine
+          ? `Nothing guards it, and ${via} comes after it with no recapture. One move from safe to lost.`
+          : `Nothing guards it, and ${via} attacks it with an attacker they cannot trade off.`
+      };
+    }
+    if (soft) {
+      return {
+        motif: 'watch', weight: 8,
+        verdict: { kind: 'latent', label: `held up by the ${soft.guard.split(' on ')[0]}` },
+        head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+        text: mine
+          ? `Nothing guards it. ${soft.san} would attack it, and the only thing wrong with that is the ${soft.guard}, which takes on ${sqName(soft.to)}. Safe because of where that piece stands, not because of anything about the ${NAME[p.type]} — so notice before you move it.`
+          : `Nothing guards it. ${soft.san} would attack it, but their ${soft.guard} covers ${sqName(soft.to)}` +
+            (soft.selfGuard ? ' — the piece you are attacking guards its own approach, so it just trades itself off.' : '.') +
+            ' A plan rather than a move.'
+      };
+    }
+    return {
+      motif: 'idle', weight: 2,
+      verdict: { kind: 'idle', label: 'nothing can reach it' },
+      head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+      text: 'Nothing guards it and nothing can get at it in one move either. Listed because undefended is a standing fact about the position, and the moment a line opens it stops being harmless.'
+    };
+  };
+
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p) continue;
+    const row = looseRow(i, p.color === me);
+    if (row) push('loose', { side: p.color === me ? 'you' : 'them', squares: [sqName(i)], ...row });
   }
 
-  for (const [sq, w] of chance) {
-    if (myReach.has(sq)) continue;
-    add({
-      side: 'them', motif: 'chance', weight: 4,
-      squares: [sqName(sq), sqName(w.to)],
-      head: `Their ${say(cells, sq)} — undefended, and reachable once the way is clear`,
-      text: `Nothing guards it. ${w.san} would attack it, but their ${w.guard} covers ${sqName(w.to)} and takes your ${NAME[w.piece]} there. ` +
-        `So this is a plan rather than a move: put a second attacker on ${sqName(w.to)}, or chase or trade that ${NAME[w.guardType]}, and the ${NAME[w.piece]} arrives with a real threat behind it. ` +
-        `Undefended pieces are worth carrying for exactly this reason — the position around them keeps changing.`
-    });
-  }
-
-  for (const x of findLoose(cells, them, myReach)) {
-    add({
-      side: 'them', motif: x.kind, weight: x.kind === 'loose' ? 6 : 20 + x.loss,
-      squares: [sqName(x.sq)],
-      head: `Their ${say(cells, x.sq)} — ${x.kind === 'loose' ? 'undefended' : x.kind === 'hanging' ? 'hanging' : 'under-defended'}`,
-      text: x.kind === 'loose'
-        ? `Nothing guards it, and you can hit it with ${x.via} — there is no recapture. Worth holding in mind even if that is not the move you want; undefended pieces are what makes a fork or a skewer work two moves from now.`
-        : `You can win about ${x.loss} there right now.`
-    });
-  }
-
-  /* ---- pins and skewers already on the board ---- */
+  /* ---- tactics already standing on the board ---- */
   for (const p of findPins(cells, false)) {
     const yours = cells[p.by].color === me;
-    const owner = yours ? 'you' : 'them';
-    if (p.kind === 'pin') {
-      add({
-        side: owner, motif: 'pin', weight: p.absolute ? 14 : 10,
-        squares: [sqName(p.by), sqName(p.front), sqName(p.back)],
-        ray: [sqName(p.by), sqName(p.back)],
-        head: `${yours ? 'Your' : 'Their'} ${NAME[cells[p.by].type]} on ${sqName(p.by)} pins the ${say(cells, p.front)}`,
-        text: p.absolute
-          ? `It is pinned against the king, so it cannot legally move at all.${yours ? ' It cannot defend anything either — treat it as if it were not on the board, and look for a second attacker.' : ' Your piece is frozen. Break the pin, defend it again, or step the king off the line.'}`
-          : `Moving it would expose the ${say(cells, p.back)} behind it.${yours ? ' It can still legally move, so the pin only holds while the piece behind is worth more.' : ' You can still move it — just count what happens behind it first.'}`
-      });
-    } else {
-      add({
-        side: owner, motif: 'skewer', weight: 12,
-        squares: [sqName(p.by), sqName(p.front), sqName(p.back)],
-        ray: [sqName(p.by), sqName(p.back)],
-        head: `${yours ? 'Your' : 'Their'} ${NAME[cells[p.by].type]} on ${sqName(p.by)} skewers the ${say(cells, p.front)}`,
-        text: `The ${say(cells, p.front)} is worth more than the ${say(cells, p.back)} behind it, so when it moves away the piece behind is there to be taken. A pin with the values the other way round.`
-      });
-    }
+    push('standing', {
+      side: yours ? 'you' : 'them', motif: p.kind,
+      weight: (p.absolute ? 14 : 10) + (yours ? 0 : 2),
+      verdict: { kind: p.absolute ? 'works' : 'idle', label: p.absolute ? 'absolute' : 'relative' },
+      squares: [sqName(p.by), sqName(p.front), sqName(p.back)],
+      ray: [sqName(p.by), sqName(p.back)],
+      head: `${yours ? 'Your' : 'Their'} ${NAME[cells[p.by].type]} on ${sqName(p.by)} ${p.kind === 'pin' ? 'pins' : 'skewers'} the ${say(cells, p.front)}`,
+      text: p.kind === 'pin'
+        ? (p.absolute
+            ? `Against the king, so it cannot legally move — and cannot defend anything either. ${yours ? 'Add a second attacker to it.' : 'Break the pin, defend it again, or step the king off the line.'}`
+            : `Against the ${say(cells, p.back)}. It can still legally move, so this holds only while the piece behind is worth more.`)
+        : `The ${say(cells, p.front)} outvalues the ${say(cells, p.back)} behind it, so moving it leaves the other one there.`
+    });
   }
 
-  /* ---- forks already on the board ---- */
   for (let i = 0; i < 64; i++) {
     const p = cells[i];
     if (!p) continue;
     const prey = preyOf(cells, i);
     if (!isFork(cells, prey)) continue;
-    if (see(cells, i, other(p.color)) > 0) continue;   // a forking piece that hangs is a gift
     const yours = p.color === me;
-    add({
-      side: yours ? 'you' : 'them', motif: 'fork', weight: yours ? 18 : 24,
+    push('standing', {
+      side: yours ? 'you' : 'them', motif: 'fork', weight: 16,
+      verdict: { kind: see(cells, i, other(p.color)) > 0 ? 'loses' : 'works',
+                 label: see(cells, i, other(p.color)) > 0 ? 'but it can be taken' : 'and it is safe there' },
       squares: [sqName(i), ...prey.map(x => sqName(x.sq))],
-      head: `${yours ? 'Your' : 'Their'} ${say(cells, i)} is forking ${prey.length} pieces`,
-      text: `It hits ${listOf(cells, prey.map(x => x.sq))} at once, and it is safe where it stands. Only one of them can be saved.`
+      head: `${yours ? 'Your' : 'Their'} ${say(cells, i)} forks ${listOf(cells, prey.map(x => x.sq))}`,
+      text: see(cells, i, other(p.color)) > 0
+        ? 'It can be taken where it stands, so the fork does not collect.'
+        : 'It is safe where it stands, so only one of them can be saved.'
     });
   }
 
-  /* ---- overloaded defenders ---- */
-  for (const o of findOverloaded(cells, me)) {
-    add({
-      side: 'you', motif: 'overloaded', weight: 14,
-      squares: [sqName(o.sq), ...o.guarded.map(sqName)],
-      head: `Your ${say(cells, o.sq)} is doing two jobs`,
-      text: `It is the only thing holding ${listOf(cells, o.guarded)}. If they can make it move, or simply take it, one of those drops.`
-    });
-  }
-  for (const o of findOverloaded(cells, them)) {
-    add({
-      side: 'them', motif: 'overloaded', weight: 12,
-      squares: [sqName(o.sq), ...o.guarded.map(sqName)],
-      head: `Their ${say(cells, o.sq)} is doing two jobs`,
-      text: `It is the only defender of ${listOf(cells, o.guarded)}. Attack it, or take it, and it cannot hold both.`
-    });
+  /* ---- structural weaknesses ---- */
+  for (const [side, label] of [[me, 'you'], [them, 'them']]) {
+    for (const o of findOverloaded(cells, side)) {
+      push('weak', {
+        side: label, motif: 'overloaded', weight: label === 'you' ? 14 : 12,
+        verdict: { kind: label === 'you' ? 'loses' : 'works', label: 'doing two jobs' },
+        squares: [sqName(o.sq), ...o.guarded.map(sqName)],
+        head: `${label === 'you' ? 'Your' : 'Their'} ${say(cells, o.sq)} is the only defender of two pieces`,
+        text: `It holds ${listOf(cells, o.guarded)}. ${label === 'you' ? 'If they make it move, or take it, one of those drops.' : 'Attack it or take it and it cannot hold both.'}`
+      });
+    }
   }
 
-  /* ---- back rank ---- */
   const brMe = backRank(cells, me, myRankReachable);
-  if (brMe) add({
+  if (brMe) push('weak', {
     side: 'you', motif: 'backrank', weight: 26, squares: [sqName(brMe.sq)],
+    verdict: { kind: 'loses', label: 'no escape square' },
     head: 'Your king has no escape square on the back rank',
-    text: 'Its own pawns are in the way, nothing covers the flight squares, and they can get a rook or queen onto that rank. Make luft before you need it, not after.'
+    text: 'Own pawns in the way, nothing covering the flight squares, and they can get a heavy piece onto that rank. Make luft before you need it.'
   });
   const brThem = backRank(cells, them, theirRankReachable);
-  if (brThem) add({
+  if (brThem) push('weak', {
     side: 'them', motif: 'backrank', weight: 22, squares: [sqName(brThem.sq)],
+    verdict: { kind: 'works', label: 'no escape square' },
     head: 'Their king has no escape square on the back rank',
-    text: 'Their own pawns seal it and you can reach that rank. Getting a rook or queen there safely is mate — and the threat alone often wins material, because defending it costs them a move.'
+    text: 'Their own pawns seal it and you can reach that rank. A rook or queen arriving there safely is mate, and the threat alone costs them a move.'
   });
 
-  /* ---- their threats, best three ---- */
-  threats.sort((a, b) => b.w - a.w);
-  const seenThreat = new Set();
-  for (const t of threats) {
-    if (seenThreat.has(t.san)) continue;
-    seenThreat.add(t.san);
-    if (seenThreat.size > 2) break;
-    add({
-      side: 'them', motif: 'threat', weight: t.w, move: t.san,
-      squares: [t.from, t.to], arrow: [t.from, t.to],
-      head: `They have ${t.san}`,
-      text: `It ${t.why}. Their move is the other half of yours — whatever you play has to survive this.`
-    });
-  }
-
-  /* ---- trapped pieces: attacked, and nowhere safe to go ---- */
-  if (myBoard) {
+  /* trapped: attacked, and nowhere safe to go */
+  if (myBoard && mineToMove) {
     const escapes = new Map();
     for (const m of myMoves) {
       if (!escapes.has(m.from)) escapes.set(m.from, []);
       escapes.get(m.from).push(m);
     }
-    for (const x of findLoose(cells, me, reach)) {
-      if (x.kind === 'loose' || x.loss <= 0) continue;
-      if (cells[x.sq].type === 'p') continue;
-      const outs = escapes.get(sqName(x.sq)) || [];
+    for (let i = 0; i < 64; i++) {
+      const p = cells[i];
+      if (!p || p.color !== me || p.type === 'p' || p.type === 'k') continue;
+      if (see(cells, i, them) <= 0) continue;
+      const outs = escapes.get(sqName(i)) || [];
       if (!outs.length) continue;
       let saved = false;
       for (const m of outs) {
-        let ok = true;
-        try { myBoard.move({ from: m.from, to: m.to, promotion: m.promotion }); } catch { ok = false; }
-        if (!ok) continue;
+        try { myBoard.move({ from: m.from, to: m.to, promotion: m.promotion }); } catch { continue; }
         if (see(toCells(myBoard), sqIndex(m.to), them) === 0) saved = true;
         myBoard.undo();
         if (saved) break;
       }
-      if (!saved) {
-        add({
-          side: 'you', motif: 'trapped', weight: 45 + 2 * x.loss, squares: [sqName(x.sq)],
-          head: `Your ${say(cells, x.sq)} has nowhere safe to go`,
-          text: 'It is attacked, and every square it can reach is covered as well. Defending it, blocking, or making a bigger threat elsewhere is the way out — moving it only changes which square it is lost on.'
-        });
-      }
+      if (!saved) push('weak', {
+        side: 'you', motif: 'trapped', weight: 45, squares: [sqName(i)],
+        verdict: { kind: 'loses', label: 'no safe square' },
+        head: `Your ${say(cells, i)} has nowhere safe to go`,
+        text: 'Attacked, and every square it can reach is covered too. Defending it, blocking, or a bigger threat elsewhere is the way out — moving it only changes where it is lost.'
+      });
     }
   }
 
+  /* ---- assemble ---- */
+  const ORDER = [
+    ['changed',   'What their last move changed'],
+    ['threats',   'What they threaten'],
+    ['checks',    'Your checks'],
+    ['captures',  'Your captures'],
+    ['forks',     'Forks you can make'],
+    ['pins',      'Pins and skewers you can make'],
+    ['discovery', 'Discovered attacks you can make'],
+    ['standing',  'Tactics already on the board'],
+    ['loose',     'Undefended pieces'],
+    ['weak',      'Standing weaknesses']
+  ];
+
+  const groups = [];
+  const findings = [];
+  for (const [key, title] of ORDER) {
+    const items = (G.get(key) || []).sort((a, b) => b.weight - a.weight);
+    if (!items.length) continue;
+    groups.push({ key, title, count: items.length, items });
+    findings.push(...items);
+  }
   findings.sort((a, b) => b.weight - a.weight);
-  return { fen, me, toMove: base.turn(), findings, counts: tally(findings) };
-}
 
-/* The counts line: enough to know a target exists, not enough to know where.
-   Knowing there is something to find is what forces the search; being shown
-   where it is replaces the search entirely. That is the whole reason the panel
-   has a middle setting. */
-const LABELS = {
-  'mate|you': ['mate in one', 'mates in one'],
-  'fork-available|you': ['fork available', 'forks available'],
-  'pin-available|you': ['pin available', 'pins available'],
-  'skewer-available|you': ['skewer available', 'skewers available'],
-  'discovery-available|you': ['discovered attack available', 'discovered attacks available'],
-  'fork|you': ['fork you already have', 'forks you already have'],
-  'fork|them': ['fork against you', 'forks against you'],
-  'pin|you': ['pin you already have', 'pins you already have'],
-  'pin|them': ['pin against you', 'pins against you'],
-  'skewer|you': ['skewer you already have', 'skewers you already have'],
-  'skewer|them': ['skewer against you', 'skewers against you'],
-  'hanging|you': ['piece of yours hanging', 'pieces of yours hanging'],
-  'hanging|them': ['piece of theirs hanging', 'pieces of theirs hanging'],
-  'underguarded|you': ['piece of yours under-defended', 'pieces of yours under-defended'],
-  'underguarded|them': ['piece of theirs under-defended', 'pieces of theirs under-defended'],
-  'loose|you': ['piece of yours undefended', 'pieces of yours undefended'],
-  'loose|them': ['piece of theirs undefended', 'pieces of theirs undefended'],
-  'overloaded|you': ['overloaded defender of yours', 'overloaded defenders of yours'],
-  'overloaded|them': ['overloaded defender of theirs', 'overloaded defenders of theirs'],
-  'backrank|you': ['weak back rank — yours', 'weak back ranks — yours'],
-  'backrank|them': ['weak back rank — theirs', 'weak back ranks — theirs'],
-  'trapped|you': ['piece of yours trapped', 'pieces of yours trapped'],
-  'watch|you': ['thing to keep an eye on', 'things to keep an eye on'],
-  'chance|them': ['chance to work toward', 'chances to work toward'],
-  'threat|them': ['threat against you', 'threats against you']
-};
-
-function tally(findings) {
-  const map = new Map();
-  for (const f of findings) {
-    const key = f.motif + '|' + f.side;
-    map.set(key, (map.get(key) || 0) + 1);
-  }
-  const out = [];
-  for (const [key, count] of map) {
-    const [motif, side] = key.split('|');
-    const label = LABELS[key] || [motif, motif];
-    out.push({ motif, side, count, text: `${count} ${count === 1 ? label[0] : label[1]}` });
-  }
-  out.sort((a, b) => b.count - a.count);
-  return out;
+  return { fen, me, toMove: base.turn(), groups, findings, counts: groups.map(g => ({ key: g.key, title: g.title, count: g.count })) };
 }
 
 function draw() {
@@ -3838,25 +4018,29 @@ function drawHint() {
 }
 
 /* ---------- the coach panel ----------
-   Three settings, and the middle one is the point. "Counts" says how many
-   things are there without saying what or where: knowing a target exists forces
-   the search, being shown the answer replaces it. "Explained" is the reveal,
-   and it drops back to Counts the moment you play a move, so the next position
-   starts with the search rather than the answer.
+   Three settings, and the middle one is the point. "Counts" names the sections
+   and how many things are in each without saying what or where: knowing a
+   target exists forces the search, being shown the answer replaces it.
+   "Explained" opens the same sections up, and drops back to Counts the moment
+   you play a move, so the next position starts with the search rather than the
+   answer.
 
-   Everything here is display. The thinking is in analyze() above, which is a
-   pure function of the FEN, so the panel, the board marks and the rays are all
-   just three readings of the same object. */
+   The analysis lists everything — every capture, every check, every motif,
+   every undefended piece, sound or not, each with a verdict and the move that
+   answers it. That is a lot of rows in a sharp position, which is exactly why
+   the sections collapse: nothing is hidden from you, but nothing is shouted at
+   you either. The section headers are the scan, in the order worth running it. */
 
 const COACH_MODES = ['off', 'counts', 'explained'];
 const COACH_LABEL = { off: 'Off', counts: 'Counts', explained: 'Explained' };
 
 let coachMode = COACH_MODES.includes(store.get('table:coach')) ? store.get('table:coach') : 'off';
 let peerCoach = false;
-let coachRead = null;      // {fen, findings, counts} for the position on the board
+let coachRead = null;      // {fen, groups, findings} for the position on the board
 let coachPending = null;   // fen currently being analysed
 let coachPick = null;      // id of the finding drawn on the board
 let coachReverted = false; // we just dropped back to Counts after a move
+let coachOpen = new Set(Array.isArray(store.get('table:coachOpen')) ? store.get('table:coachOpen') : []);
 
 function announce() {
   broadcast({ t: 'hint', on: hintsOn, auto: autoPlay, coach: coachMode !== 'off' });
@@ -3872,8 +4056,8 @@ function setCoach(mode) {
   draw();
 }
 
-/* The analysis is a few tens of milliseconds on a laptop and a few hundred on a
-   phone — not enough to worry about, but enough to see if it runs before paint.
+/* The analysis is tens of milliseconds on a laptop and a few hundred on a
+   phone — not enough to worry about, but enough to see if it ran before paint.
    So it is deferred by a tick: the board lands first, the panel fills in. */
 function requestCoach() {
   if (coachMode === 'off' || result || game.turn() !== myColor) {
@@ -3887,11 +4071,16 @@ function requestCoach() {
   coachPending = fen;
   setTimeout(() => {
     if (coachPending !== fen || game.fen() !== fen) return;
+    const hist = game.history({ verbose: true });
+    const last = hist.at(-1);
     try {
-      coachRead = analyze(fen, myColor);
+      coachRead = analyze(fen, myColor, {
+        prevFen: last ? last.before : null,
+        lastSan: last ? last.san : null
+      });
     } catch (e) {
       console.warn('coach failed', e);
-      coachRead = { fen, findings: [], counts: [], failed: true };
+      coachRead = { fen, groups: [], findings: [], failed: true };
     }
     coachPending = null;
     drawCoach();
@@ -3901,8 +4090,8 @@ function requestCoach() {
 }
 
 /* With nothing picked the board shows the state of the material — your soft
-   spots ringed in red, theirs in brass. Pick a finding and it shows only that
-   one, because six overlays at once is wallpaper. */
+   spots ringed in red, theirs in brass, the merely latent ones dotted. Pick a
+   row and it shows only that one, because ten overlays at once is wallpaper. */
 function coachMarks() {
   const marks = new Map();
   if (coachMode !== 'explained' || !coachRead) return marks;
@@ -3911,17 +4100,18 @@ function coachMarks() {
 
   if (coachPick) {
     const f = coachRead.findings.find(x => x.id === coachPick);
-    if (f) for (const sq of f.squares) set(sq, f.side === 'you' ? 'good' : 'warn');
+    if (f) for (const sq of f.squares || []) set(sq, f.side === 'you' ? 'good' : 'warn');
     return marks;
   }
 
   for (const f of coachRead.findings) {
-    const soft = f.motif === 'hanging' || f.motif === 'underguarded' || f.motif === 'trapped';
-    if (f.side === 'you' && soft) set(f.squares[0], 'warn');
-    else if (f.side === 'you' && f.motif === 'loose') set(f.squares[0], 'note');
-    else if (f.side === 'you' && f.motif === 'watch') set(f.squares[0], 'watch');
-    else if (f.side === 'them' && f.motif === 'chance') set(f.squares[0], 'chance');
-    else if (f.side === 'them' && (soft || f.motif === 'loose')) set(f.squares[0], 'good');
+    if (f.key !== 'loose' && f.motif !== 'trapped') continue;
+    const live = f.verdict && (f.verdict.kind === 'works' || f.verdict.kind === 'loses');
+    const latent = f.verdict && f.verdict.kind === 'latent';
+    if (f.side === 'you' && live) set(f.squares[0], 'warn');
+    else if (f.side === 'you' && latent) set(f.squares[0], 'watch');
+    else if (f.side === 'them' && live) set(f.squares[0], 'good');
+    else if (f.side === 'them' && latent) set(f.squares[0], 'chance');
   }
   return marks;
 }
@@ -3960,7 +4150,27 @@ function drawCoachRays() {
   svg.innerHTML = out;
 }
 
-const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* bright means it happens, muted means it does not — regardless of whose it is */
+function chipClass(f) {
+  if (!f.verdict) return '';
+  const k = f.verdict.kind;
+  if (k === 'works' || k === 'loses') {
+    const bad = (f.side === 'them' && k === 'works') || (f.side === 'you' && k === 'loses');
+    return bad ? 'v-bad' : 'v-good';
+  }
+  return 'v-dim';
+}
+
+function rowHTML(f) {
+  const chip = f.verdict
+    ? `<span class="verdict ${chipClass(f)}">${esc(f.verdict.label)}</span>` : '';
+  return `<button class="find ${f.side === 'them' ? 'them' : ''} ${coachPick === f.id ? 'on' : ''}" data-find="${f.id}">
+      <span class="head">${esc(f.head)}</span>${chip}
+      ${f.text ? `<span class="why">${esc(f.text)}</span>` : ''}
+    </button>`;
+}
 
 function drawCoach() {
   const panel = el('coachPanel');
@@ -3985,53 +4195,46 @@ function drawCoach() {
     body.innerHTML = '<p class="coach-note">The coach reads the position when it is your turn, so the scan stays tied to the moment you actually have to choose something.</p>';
     return;
   }
-  if (!coachRead) {
-    sum.textContent = 'Reading the position…';
-    body.innerHTML = '';
-    return;
-  }
+  if (!coachRead) { sum.textContent = 'Reading the position…'; body.innerHTML = ''; return; }
   if (coachRead.failed) {
     sum.textContent = 'Could not read this position';
     body.innerHTML = '<p class="coach-note">Something went wrong in the scan. The game is unaffected.</p>';
     return;
   }
 
-  const fs = coachRead.findings;
+  const groups = coachRead.groups;
+  const total = coachRead.findings.length;
   const revert = coachReverted
-    ? '<p class="coach-note">Back to counts for your new move — have your own look first, then open the explanations.</p>'
+    ? '<p class="coach-note">Back to counts for your new move — have your own look first, then open the sections.</p>'
     : '';
 
-  if (!fs.length) {
-    sum.textContent = 'Nothing jumping out';
+  if (!total) {
+    sum.textContent = 'Nothing to flag';
     body.innerHTML = revert +
-      '<p class="coach-note">No loose pieces, no pins or forks either way, and nothing they can win next move. ' +
-      'That is a real answer, not a shrug — it means the move is a positional one, and the scan has done its job by ruling the tactics out.</p>';
+      '<p class="coach-note">No captures, no checks, nothing loose either way, and nothing they can win next move. ' +
+      'That is a real answer rather than a shrug: it means this move is a positional one, and the scan has done its job by ruling the tactics out.</p>';
     return;
   }
 
-  sum.textContent = `${fs.length} thing${fs.length === 1 ? '' : 's'} worth looking at`;
+  sum.textContent = `${total} thing${total === 1 ? '' : 's'} across ${groups.length} section${groups.length === 1 ? '' : 's'}`;
 
   if (coachMode === 'counts') {
-    const tallies = coachRead.counts
-      .map(c => `<span class="tally ${c.side === 'them' ? 'them' : ''}"><b>${c.count}</b> ${esc(c.text.replace(/^\d+\s/, ''))}</span>`)
-      .join('');
     body.innerHTML = revert +
-      `<div class="tallies">${tallies}</div>` +
-      '<p class="coach-note">Find them on the board before you look. Knowing something is there is what makes you search; ' +
-      'being shown where it is means you never do. Switch the coach to Explained when you have had your own go.</p>';
+      '<div class="groups">' + groups.map(g =>
+        `<div class="grp"><span class="gtitle">${esc(g.title)}</span><span class="gcount">${g.count}</span></div>`
+      ).join('') + '</div>' +
+      '<p class="coach-note">Work the sections in order and find them on the board before you look. ' +
+      'Knowing something is there is what makes you search; being shown where it is means you never do. ' +
+      'Switch to Explained when you have had your own go.</p>';
     return;
   }
 
-  const shown = fs.slice(0, 7);
-  const rows = shown.map(f => `
-    <button class="find ${f.side === 'them' ? 'them' : ''} ${coachPick === f.id ? 'on' : ''}" data-find="${f.id}">
-      <span class="head">${esc(f.head)}</span>
-      <span class="why">${esc(f.text)}</span>
-    </button>`).join('');
-
-  body.innerHTML = revert + rows +
-    (fs.length > shown.length ? `<p class="coach-more">and ${fs.length - shown.length} more, smaller.</p>` : '') +
-    '<p class="coach-more">Tap one to see it on the board.</p>';
+  body.innerHTML = revert + groups.map(g => `
+    <details class="grp" data-g="${g.key}"${coachOpen.has(g.key) ? ' open' : ''}>
+      <summary><span class="gtitle">${esc(g.title)}</span><span class="gcount">${g.count}</span></summary>
+      <div class="gitems">${g.items.map(rowHTML).join('')}</div>
+    </details>`).join('') +
+    '<p class="coach-more">Everything is listed, working or not — the verdict on each says whether it survives, and what answers it. Tap a row to see it on the board.</p>';
 }
 
 el('coachBtn').onclick = () => {
@@ -4047,6 +4250,15 @@ el('coachBody').addEventListener('click', e => {
   drawBoard();
   drawCoachRays();
 });
+
+/* remember which sections you keep open — if you always check the captures
+   first, it should still be open next move */
+el('coachBody').addEventListener('toggle', e => {
+  const d = e.target.closest('details[data-g]');
+  if (!d) return;
+  if (d.open) coachOpen.add(d.dataset.g); else coachOpen.delete(d.dataset.g);
+  store.set('table:coachOpen', [...coachOpen]);
+}, true);
 
 function setLink() {
   if (solo) {
