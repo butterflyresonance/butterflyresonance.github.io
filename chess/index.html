@@ -577,6 +577,38 @@
   .sq .mark.good { border: 2px solid var(--brass); }
   .sq .mark.watch { border: 2px dotted rgba(232,230,225,.32); inset: 13%; }
   .sq .mark.chance { border: 2px dotted rgba(200,163,91,.45); inset: 13%; }
+  .sq .mark.focus { border: 3px solid var(--text); inset: 4%; }
+
+  /* the square readout */
+  .inspect {
+    border: 1px solid var(--brass-dim);
+    padding: 11px 12px 12px;
+    margin: 2px 0 14px;
+  }
+  .ihead {
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: var(--brass);
+    margin-bottom: 8px;
+  }
+  .irow {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .irow span { flex: none; min-width: 108px; }
+  .irow b { font-weight: 400; color: var(--text); }
+  .iverdict {
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 9px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--edge);
+  }
   .coachlayer {
     position: absolute;
     inset: 0;
@@ -2101,7 +2133,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-09-08.11-coach';
+const VERSION = '2026-09-09.3-inspect';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2480,6 +2512,7 @@ function afterLocalMove(m) {
   coachOpen.clear();
   coachReverted = true;
   coachPick = null;
+  inspectSq = null;
   broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
   checkEnd();
   if (result) sendState();
@@ -3075,7 +3108,7 @@ function looseCandidates(cells, side) {
   const out = [];
   for (let i = 0; i < 64; i++) {
     const p = cells[i];
-    if (!p || p.color !== side || p.type === 'k' || p.type === 'p') continue;
+    if (!p || p.color !== side || p.type === 'k') continue;
     if (attackersOf(cells, i, side).length) continue;
     if (attackersOf(cells, i, other(side)).length) continue;
     out.push(i);
@@ -3083,7 +3116,14 @@ function looseCandidates(cells, side) {
   return out;
 }
 
-/* Three states, and the difference between them is the whole lesson.
+/* Pawns are included. They were excluded at first as noise, on the reasoning
+   that pawn advances constantly create undefended pawns — but in the opening
+   almost every pawn is defended by something on the back rank, and the ones
+   that are not are the point: 1.e4 leaves e4 undefended, which is the whole
+   reason ...Nf6 and ...d5 exist. Leaving them out was the coach deciding what
+   was worth your attention.
+
+   Three states, and the difference between them is the whole lesson.
      hanging      — attacked now, and the exchange loses material
      underguarded — it has defenders, but the cheapest attacker still comes out ahead
      loose        — undefended and not yet attacked: the raw material of every
@@ -3105,7 +3145,7 @@ function findLoose(cells, side, reach = null) {
     if (att) {
       const loss = see(cells, i, other(side));
       if (loss > 0) out.push({ sq: i, kind: def ? 'underguarded' : 'hanging', loss, def, att });
-    } else if (!def && p.type !== 'p' && (!reach || reach.has(i))) {
+    } else if (!def && (!reach || reach.has(i))) {
       out.push({ sq: i, kind: 'loose', loss: 0, def: 0, att: 0, via: reach ? reach.get(i) : null });
     }
   }
@@ -3689,7 +3729,7 @@ function analyze(fen, me, opts = {}) {
       }
       return null;
     }
-    if (def || p.type === 'p' || p.type === 'k') return null;
+    if (def || p.type === 'k') return null;
 
     const via = mine ? reach.get(i) : myReach.get(i);
     const soft = mine ? watch.get(i) : chance.get(i);
@@ -4198,6 +4238,16 @@ function coachMarks() {
 
   const set = (sq, cls) => { if (!marks.has(sq)) marks.set(sq, cls); };
 
+  if (inspectLive()) {
+    const cells = toCells(game);
+    const i = sqIndex(inspectSq);
+    const p = cells[i];
+    if (inspectSq !== selected) set(inspectSq, 'focus');
+    for (const a of attackersOf(cells, i, p ? p.color : 'w')) set(sqName(a), p ? 'good' : 'good');
+    for (const a of attackersOf(cells, i, p ? other(p.color) : 'b')) set(sqName(a), 'warn');
+    return marks;
+  }
+
   if (coachPick) {
     const f = coachRead.findings.find(x => x.id === coachPick);
     if (f) for (const sq of f.squares || []) set(sq, f.side === 'you' ? 'good' : 'warn');
@@ -4250,6 +4300,64 @@ function drawCoachRays() {
   svg.innerHTML = out;
 }
 
+/* ---------- inspecting a square ----------
+   The coach's silence is ambiguous. When a piece is not listed as undefended
+   you cannot tell whether it is genuinely defended or whether the scan skipped
+   it, and the only way to settle that was to ask someone. One tap should do it:
+   who defends this, who attacks it, and what happens if they take. */
+
+let inspectSq = null;
+let inspectFen = null;
+
+function inspect(sq) {
+  if (coachMode === 'off') return false;
+  inspectSq = (inspectSq === sq && inspectFen === game.fen()) ? null : sq;
+  inspectFen = game.fen();
+  coachPick = null;
+  return true;
+}
+
+const inspectLive = () => inspectSq && inspectFen === game.fen();
+
+function inspectHTML() {
+  if (!inspectLive()) return '';
+  const cells = toCells(game);
+  const i = sqIndex(inspectSq);
+  const p = cells[i];
+  const names = list => (list.length ? list.map(a => say(cells, a)).join(', ') : 'nothing');
+  const row = (k, v) => `<div class="irow"><span>${k}</span><b>${esc(v)}</b></div>`;
+
+  if (!p) {
+    return `<div class="inspect"><div class="ihead">${inspectSq} — empty</div>` +
+      row('White attacks it with', names(attackersOf(cells, i, 'w'))) +
+      row('Black attacks it with', names(attackersOf(cells, i, 'b'))) +
+      `<p class="iverdict">An empty square: who controls it decides who can use it.</p></div>`;
+  }
+
+  const mine = p.color === myColor;
+  const def = attackersOf(cells, i, p.color);
+  const att = attackersOf(cells, i, other(p.color));
+  const loss = att.length ? see(cells, i, other(p.color)) : 0;
+
+  const guards = [];
+  for (let j = 0; j < 64; j++) {
+    const q = cells[j];
+    if (!q || q.color !== p.color || j === i || q.type === 'k') continue;
+    if (attackersOf(cells, j, p.color).includes(i)) guards.push(j);
+  }
+
+  const verdict = !att.length
+    ? (def.length ? 'Not attacked.' : 'Undefended, and nothing attacks it.')
+    : loss > 0 ? `Taking it wins about ${loss} for ${mine ? 'them' : 'you'}.`
+    : 'The exchange holds — nothing is won there.';
+
+  return `<div class="inspect"><div class="ihead">${inspectSq} — ${mine ? 'your' : 'their'} ${NAME[p.type]}</div>` +
+    row('Defended by', names(def)) +
+    row('Attacked by', names(att)) +
+    (guards.length ? row('It guards', guards.map(j => say(cells, j)).join(', ')) : '') +
+    `<p class="iverdict">${esc(verdict)}</p></div>`;
+}
+
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* bright means it happens, muted means it does not — regardless of whose it is */
@@ -4290,7 +4398,8 @@ function drawCoach() {
   }
   if (game.turn() !== myColor) {
     sum.textContent = 'Their move';
-    body.innerHTML = '<p class="coach-note">The coach reads the position on your turn.</p>';
+    body.innerHTML = inspectHTML() +
+      '<p class="coach-note">The coach reads the position on your turn. You can still tap a square to inspect it.</p>';
     return;
   }
   if (!coachRead) { sum.textContent = 'Reading the position…'; body.innerHTML = ''; return; }
@@ -4305,18 +4414,19 @@ function drawCoach() {
 
   if (!total) {
     sum.textContent = 'Nothing to flag';
-    body.innerHTML = '<p class="coach-note">No captures, no checks, nothing loose either way, and nothing they win next move.</p>';
+    body.innerHTML = inspectHTML() +
+      '<p class="coach-note">No captures, no checks, nothing loose either way, and nothing they win next move.</p>';
     return;
   }
 
   sum.textContent = `${total} thing${total === 1 ? '' : 's'} across ${groups.length} section${groups.length === 1 ? '' : 's'}`;
 
-  body.innerHTML = groups.map(g => `
+  body.innerHTML = inspectHTML() + groups.map(g => `
     <details class="grp" data-g="${g.key}"${coachOpen.has(g.key) ? ' open' : ''}>
       <summary><span class="gtitle">${esc(g.title)}</span><span class="gcount">${g.count}</span></summary>
       <div class="gitems">${g.items.map(rowHTML).join('')}</div>
     </details>`).join('') +
-    '<p class="coach-more">Tap a row to show it on the board.</p>';
+    '<p class="coach-more">Tap a row to show it on the board. Tap any square for what attacks and defends it.</p>';
 }
 
 el('coachBtn').onclick = () => {
@@ -4364,7 +4474,7 @@ function setLink() {
 
 /* ---------- interaction ---------- */
 function pick(sq) {
-  if (result) return;
+  if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
 
   if (selected) {
     const moves = game.moves({ square: selected, verbose: true }).filter(m => m.to === sq);
@@ -4377,9 +4487,16 @@ function pick(sq) {
     }
   }
 
+  /* Every tap inspects the square. Selecting a piece and reading it are not
+     alternatives — a tap on your own piece does both, so the move dots and the
+     readout come up together and the second tap still plays the move. Only a
+     tap that actually plays a move skips the readout, and that one clears it. */
   const piece = game.get(sq);
   selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
+  inspect(sq);
   drawBoard();
+  drawCoach();
+  drawCoachRays();
 }
 
 boardEl.addEventListener('click', e => {
