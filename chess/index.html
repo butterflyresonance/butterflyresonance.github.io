@@ -676,6 +676,116 @@
   .promo-row button { padding: 8px; }
   .promo-row svg { width: 46px; height: 46px; display: block; }
 
+  /* ---- modal ----
+     One <dialog> for every question the page asks, so nothing ever falls back
+     to the browser's own confirm/prompt boxes. */
+  dialog.modal {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--edge);
+    padding: 22px;
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100dvh - 48px);
+    overflow: auto;
+    font-family: var(--mono);
+  }
+  dialog.modal::backdrop { background: rgba(10,12,14,.88); }
+  .modal h3 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0 0 12px;
+  }
+  .modal-body { font-size: 13px; line-height: 1.6; color: var(--muted); }
+  .modal-body p { margin: 0 0 12px; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .modal-actions button { flex: 1 1 auto; }
+  .modal-actions button.go { border-color: var(--brass); color: var(--brass); }
+  .modal-actions button.danger { border-color: var(--danger); color: var(--danger); }
+  .modal textarea {
+    width: 100%;
+    min-height: 180px;
+    background: var(--ground);
+    color: var(--text);
+    border: 1px solid var(--edge);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px;
+    resize: vertical;
+  }
+
+  /* games list inside the modal */
+  .games-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    color: var(--muted);
+  }
+  .games-tools button { padding: 6px 10px; font-size: 11px; letter-spacing: .1em; }
+  .games-list {
+    border: 1px solid var(--edge);
+    max-height: 46dvh;
+    overflow: auto;
+  }
+  .games-list label {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 4px 10px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--edge);
+    cursor: pointer;
+    color: var(--text);
+  }
+  .games-list label:last-child { border-bottom: 0; }
+  .games-list input { accent-color: var(--brass); margin: 0; align-self: center; }
+  .games-list .g-opp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .games-list .g-res { color: var(--brass); }
+  .games-list .g-meta { grid-column: 2 / 4; color: var(--muted); font-size: 11px; }
+  .games-list .g-now { color: var(--brass); }
+  .games-empty { padding: 14px 12px; color: var(--muted); margin: 0; }
+  .games-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .games-foot.warn { color: var(--danger); }
+
+  /* opponent picker */
+  select.opp {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--ground);
+    color: var(--text);
+    border: 1px solid var(--edge);
+    padding: 11px 10px;
+    width: 100%;
+    accent-color: var(--brass);
+  }
+  select.opp:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .setrow select.opp {
+    width: auto;
+    flex: 1;
+    min-width: 170px;
+    padding: 7px 8px;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .lobby .opp-wrap { margin: 22px 0 8px; }
+  button.linkish {
+    border: 0;
+    padding: 6px 0;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  button.linkish:hover:not(:disabled) { color: var(--brass); }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -723,8 +833,13 @@
     </fieldset>
     <button class="primary" id="startBtn">Open a table</button>
     <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+    <div class="opp-wrap">
+      <label class="label" for="oppLobby">Opponent, if you play an engine</label>
+      <select class="opp" id="oppLobby"></select>
+    </div>
     <button class="primary alt" id="soloBtn">Play the engine</button>
-    <p class="note">No link and nobody to wait for. How hard it plays is set by how long you let it think.</p>
+    <p class="note" id="oppNote">No link and nobody to wait for.</p>
+    <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
   <!-- INVITE -->
@@ -785,6 +900,10 @@
           <span id="autoLabel">Engine plays</span>
           <button id="autoBtn">Off</button>
         </div>
+        <div class="setrow hidden" id="oppRow">
+          <span>Opponent</span>
+          <select class="opp" id="oppGame" aria-label="Opponent"></select>
+        </div>
         <div class="setrow thinkrow hidden" id="thinkRow">
           <span>Think</span>
           <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
@@ -796,7 +915,7 @@
           <button id="setBtn">Staunton</button>
           <span>Sound</span>
           <button id="soundBtn">On</button>
-          <button id="pgnBtn">PGN</button>
+          <button id="pgnBtn">Games</button>
         </div>
         <p class="note hidden" id="peerHint">They have hints switched on.</p>
         <p class="note" id="gameNote"></p>
@@ -804,6 +923,12 @@
     </div>
   </section>
 </div>
+
+<dialog class="modal" id="modal" aria-labelledby="modalTitle">
+  <h3 id="modalTitle"></h3>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-actions" id="modalActions"></div>
+</dialog>
 
 <!-- Engine source. Parked as text/plain so the page never runs it on the
      main thread; it is handed to a Worker as a Blob when hints go on. -->
@@ -2133,7 +2258,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-09-09.3-inspect';
+const VERSION = '2026-09-25.1-games';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2164,6 +2289,112 @@ const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+
+/* ---------- modal ----------
+   Every question the page asks goes through here, never through confirm() or
+   prompt(). Those block the page — including the move that arrives from the
+   other player while the box is up — and look like a different app.
+
+   openModal resolves with the `value` of the button pressed, or null if it was
+   dismissed (Escape, a tap on the backdrop, or another modal replacing it).
+   An action with `run` does its work first; if run returns true the modal
+   stays open, which is how Copy can say "Copied" without closing. */
+const modalEl = el('modal');
+let modalResolve = null;
+
+function closeModal(value = null) {
+  const resolve = modalResolve;
+  modalResolve = null;
+  if (modalEl.open) modalEl.close();
+  if (resolve) resolve(value);
+}
+
+// Escape closes the dialog natively. The close event arrives a task later, by
+// which time a follow-up modal may already be open — so ignore it then.
+modalEl.addEventListener('close', () => { if (!modalEl.open) closeModal(null); });
+modalEl.addEventListener('click', e => {
+  if (e.target !== modalEl) return;          // only the backdrop, not the content
+  const r = modalEl.getBoundingClientRect();
+  const inside = e.clientX >= r.left && e.clientX <= r.right &&
+                 e.clientY >= r.top && e.clientY <= r.bottom;
+  if (!inside) closeModal(null);
+});
+
+function openModal({ title, body = '', actions = [{ label: 'OK', value: true, kind: 'go' }], onOpen }) {
+  closeModal(null);                          // one question at a time
+  el('modalTitle').textContent = title;
+  const bodyEl = el('modalBody');
+  if (typeof body === 'string') bodyEl.innerHTML = body;
+  else bodyEl.replaceChildren(body);
+
+  const row = el('modalActions');
+  row.innerHTML = '';
+  let focusBtn = null;
+  for (const a of actions) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = a.label;
+    if (a.kind) b.className = a.kind;
+    if (a.id) b.id = a.id;
+    b.onclick = async () => {
+      if (a.run && await a.run(b)) return;
+      closeModal(a.value === undefined ? null : a.value);
+    };
+    row.appendChild(b);
+    if (a.focus) focusBtn = b;
+  }
+
+  return new Promise(resolve => {
+    modalResolve = resolve;
+    try { modalEl.showModal(); } catch { modalEl.setAttribute('open', ''); }
+    if (onOpen) onOpen(bodyEl);
+    (focusBtn || row.querySelector('button')).focus();
+  });
+}
+
+const escText = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function confirmModal(title, text, okLabel, { danger = false } = {}) {
+  const v = await openModal({
+    title,
+    body: `<p>${escText(text)}</p>`,
+    actions: [
+      { label: 'Cancel', value: false, focus: true },
+      { label: okLabel, value: true, kind: danger ? 'danger' : 'go' }
+    ]
+  });
+  return v === true;
+}
+
+/* Where the clipboard is refused (some browsers, http://, iframes), show the
+   text selected in a box so it can be copied by hand. */
+function showTextModal(title, text, note = 'Your browser wouldn’t let the page copy this. It’s selected — copy it from here.') {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<p>${escText(note)}</p>`;
+  const ta = document.createElement('textarea');
+  ta.readOnly = true;
+  ta.value = text;
+  wrap.appendChild(ta);
+  return openModal({
+    title, body: wrap,
+    actions: [{ label: 'Close', value: null, kind: 'go' }],
+    onOpen: () => { ta.focus(); ta.select(); }
+  });
+}
+
+async function copyText(text, button, doneLabel = 'Copied') {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (button) {
+      const was = button.dataset.label || (button.dataset.label = button.textContent);
+      button.textContent = doneLabel;
+      setTimeout(() => { button.textContent = was; }, 1600);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 let game = new Chess();
 let myColor = 'w';
@@ -2448,16 +2679,27 @@ function handleMessage(msg) {
   if (msg.t === 'tb') {
     if (result || !game.history().length) return;
     const asker = msg.color === 'w' ? 'White' : 'Black';
-    if (!confirm(`${asker} asks to take back their move. Allow it?`)) {
-      broadcast({ t: 'tbno' });
-      return;
-    }
-    // Wind back to the asker's turn, removing at least one of their own moves.
-    const hist = game.history();
-    const drop = Math.min(game.turn() === msg.color ? 2 : 1, hist.length);
-    const rewound = hist.slice(0, hist.length - drop);
-    broadcast({ t: 'state', history: rewound, result: null, color: myColor, force: true });
-    adopt(rewound, null, true);
+    const askedAt = game.history().length;
+    openModal({
+      title: 'Takeback?',
+      body: `<p>${asker} asks to take back their move.</p>`,
+      actions: [
+        { label: 'Keep the move', value: false, focus: true },
+        { label: 'Allow it', value: true, kind: 'go' }
+      ]
+    }).then(ok => {
+      // The board may have moved on while the question was up.
+      if (!ok || result || game.history().length !== askedAt) {
+        broadcast({ t: 'tbno' });
+        return;
+      }
+      // Wind back to the asker's turn, removing at least one of their own moves.
+      const hist = game.history();
+      const drop = Math.min(game.turn() === msg.color ? 2 : 1, hist.length);
+      const rewound = hist.slice(0, hist.length - drop);
+      broadcast({ t: 'state', history: rewound, result: null, color: myColor, force: true });
+      adopt(rewound, null, true);
+    });
     return;
   }
 
@@ -2524,7 +2766,12 @@ function checkEnd() {
   if (result) return;
   if (game.isCheckmate()) result = { type: 'checkmate', winner: game.turn() === 'w' ? 'b' : 'w' };
   else if (game.isStalemate()) result = { type: 'stalemate', winner: null };
-  else if (game.isDraw()) result = { type: 'draw', winner: null };
+  else if (game.isDraw()) {
+    const why = game.isInsufficientMaterial() ? 'insufficient material'
+      : game.isThreefoldRepetition() ? 'threefold repetition'
+      : 'fifty-move rule';
+    result = { type: 'draw', winner: null, why };
+  }
 }
 
 function startFresh(colorForMe) {
@@ -2536,24 +2783,374 @@ function startFresh(colorForMe) {
   result = null;
   selected = null;
   lastMove = null;
+  gameId = null;         // a new game gets a new record in the history
+  plyAt = Date.now();
+  plyAway = document.hidden;
+  sfNewGame = true;
   persist();
   draw();
 }
 
 function persist() {
   if (!code) return;
-  store.set('table:' + code, { history: game.history(), myColor, result });
+  recordGame();
+  store.set('table:' + code, { history: game.history(), myColor, result, gameId });
 }
 
 function restore() {
   const saved = store.get('table:' + code);
+  plyAt = Date.now();
+  plyAway = document.hidden;
   if (!saved || !Array.isArray(saved.history)) return;
   const fresh = new Chess();
   for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
   game = fresh;
   result = saved.result || null;
+  gameId = saved.gameId || null;
   const verbose = game.history({ verbose: true });
   lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
+}
+
+/* ---------- game history ----------
+   Every game is kept in this browser as it is played, move by move, so it can
+   be exported as PGN and handed to something that can say more about it than
+   a page can.
+
+   One record per game, written from persist() — the single place every change
+   to the game already passes through — so moves, takebacks, results and games
+   adopted from the other player are all caught without hooks elsewhere.
+
+   Alongside the moves it keeps, per ply:
+     times  ms between the previous move landing and this one. That is thinking
+            time for the side that moved. null when it can't be trusted — the
+            tab was hidden for part of it, or the page was reloaded mid-game.
+     notes  what was helping you when you played it: 'hint', 'coach', or
+            'auto' when the engine played your move for you. */
+const HISTORY_KEY = 'table:games';
+const HISTORY_MAX = 1000;
+let gameId = null;       // record the current game writes to
+let plyAt = Date.now();  // when the last ply landed (or the position appeared)
+let plyAway = false;     // the tab was hidden at some point since then
+let historyFull = false; // storage refused a write and old games were dropped
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) plyAway = true; });
+
+function loadGames() {
+  const list = store.get(HISTORY_KEY);
+  return Array.isArray(list) ? list : [];
+}
+
+function saveGames(list) {
+  list.sort((a, b) => a.started < b.started ? -1 : 1);
+  while (list.length > HISTORY_MAX) list.shift();
+  // If storage is full, drop the oldest games until it fits, and say so in the
+  // games panel rather than silently stop recording.
+  for (;;) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      return true;
+    } catch {
+      if (list.length <= 1) return false;
+      list.splice(0, Math.max(1, Math.ceil(list.length / 10)));
+      historyFull = true;
+    }
+  }
+}
+
+function newGameId() {
+  return Date.now().toString(36) + '-' + [...crypto.getRandomValues(new Uint8Array(4))]
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function recordGame() {
+  const hist = game.history();
+  if (!gameId) gameId = newGameId();
+  const list = loadGames();
+  let rec = list.find(g => g.id === gameId);
+  if (!rec) {
+    if (!hist.length) return;              // nothing worth keeping yet
+    rec = {
+      id: gameId,
+      v: 1,
+      started: new Date().toISOString(),
+      mode: solo ? 'engine' : 'online',
+      color: myColor,
+      moves: [], times: [], notes: [],
+      opps: solo ? [] : ['Opponent'],
+      elo: null,
+      takebacks: 0,
+      result: null
+    };
+    list.push(rec);
+  }
+
+  // Keep what still matches; a shorter or different history is a takeback.
+  let same = 0;
+  while (same < rec.moves.length && same < hist.length && rec.moves[same] === hist[same]) same++;
+  const changed = same !== rec.moves.length || hist.length !== rec.moves.length;
+  if (same < rec.moves.length) {
+    rec.takebacks++;
+    rec.moves.length = rec.times.length = rec.notes.length = same;
+  }
+
+  const now = Date.now();
+  for (let i = same; i < hist.length; i++) {
+    const mover = i % 2 === 0 ? 'w' : 'b';
+    const newest = i === hist.length - 1;
+    rec.moves.push(hist[i]);
+    rec.times.push(newest && !plyAway ? now - plyAt : null);
+
+    const note = [];
+    if (mover === myColor) {
+      if (autoPlay) note.push('auto');
+      if (hintsOn) note.push('hint');
+      if (coachMode === 'on') note.push('coach');
+    } else if (solo) {
+      const label = oppLabel();
+      if (!rec.opps.includes(label)) rec.opps.push(label);
+      const elo = sfElo(opponent);
+      // One rating for the game only if every engine move was at that rating.
+      rec.elo = rec.opps.length === 1 ? elo : null;
+    }
+    rec.notes.push(note.join(' '));
+  }
+  if (changed) { plyAt = now; plyAway = document.hidden; }
+
+  if (result && !rec.result) rec.ended = new Date().toISOString();
+  rec.result = result ? { type: result.type, winner: result.winner, why: result.why || null } : null;
+  rec.updated = new Date().toISOString();
+  saveGames(list);
+}
+
+/* ---------- PGN ----------
+   Standard PGN, so Lichess, ChessBase, python-chess or a language model can all
+   read it. Thinking time goes in [%emt h:mm:ss] comments, the form Lichess and
+   python-chess understand; hint/coach/auto notes go in the same comment as
+   plain words. */
+const pad2 = n => String(n).padStart(2, '0');
+
+function resultToken(r) {
+  if (!r) return '*';
+  if (!r.winner) return '1/2-1/2';
+  return r.winner === 'w' ? '1-0' : '0-1';
+}
+
+function endingText(r, color) {
+  if (!r) return '';
+  const loser = r.winner === 'w' ? 'Black' : 'White';
+  if (r.type === 'resign') return `${loser} resigns.`;
+  if (r.type === 'checkmate') return 'Checkmate.';
+  if (r.type === 'stalemate') return 'Stalemate.';
+  return r.why ? `Drawn by ${r.why}.` : 'Drawn.';
+}
+
+function emt(ms) {
+  const s = ms / 1000;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = (s % 60).toFixed(1).padStart(4, '0');
+  return `[%emt ${h}:${pad2(m)}:${sec}]`;
+}
+
+const NOTE_WORDS = { hint: 'hint on', coach: 'coach on', auto: 'engine played this' };
+
+function oppName(rec) {
+  if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : 'Opponent';
+  return rec.opps.length === 1 ? rec.opps[0] : 'Mixed: ' + rec.opps.join(' / ');
+}
+
+function pgnHeader(name, value) {
+  return `[${name} "${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`;
+}
+
+function pgnFor(rec) {
+  const d = new Date(rec.started);
+  const me = 'You', them = oppName(rec);
+  const mine = rec.notes.filter((n, i) => (i % 2 === 0 ? 'w' : 'b') === rec.color);
+  const count = word => mine.filter(n => n.split(' ').includes(word)).length;
+  const known = rec.times.filter((t, i) => t != null && (i % 2 === 0 ? 'w' : 'b') === rec.color);
+  const avg = known.length ? known.reduce((a, b) => a + b, 0) / known.length / 1000 : null;
+
+  const tags = [
+    ['Event', rec.mode === 'engine' ? 'Table: practice against an engine' : 'Table: online game'],
+    ['Site', location.origin + location.pathname],
+    ['Date', `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`],
+    ['Round', '-'],
+    ['White', rec.color === 'w' ? me : them],
+    ['Black', rec.color === 'b' ? me : them],
+    ['Result', resultToken(rec.result)],
+    ['UTCDate', rec.started.slice(0, 10).replace(/-/g, '.')],
+    ['UTCTime', rec.started.slice(11, 19)],
+    ['TimeControl', '-'],
+    ['Termination', rec.result ? 'Normal' : 'Unterminated'],
+    ['PlyCount', rec.moves.length]
+  ];
+  if (rec.elo) tags.push([rec.color === 'w' ? 'BlackElo' : 'WhiteElo', rec.elo]);
+  tags.push(['PlayerColor', rec.color === 'w' ? 'White' : 'Black']);
+  tags.push(['Takebacks', rec.takebacks]);
+  tags.push(['MovesWithHint', count('hint')]);
+  tags.push(['MovesWithCoach', count('coach')]);
+  if (count('auto')) tags.push(['MovesByEngine', count('auto')]);
+  if (avg != null) tags.push(['AvgThinkSeconds', avg.toFixed(1)]);
+
+  const tokens = [];
+  rec.moves.forEach((san, i) => {
+    if (i % 2 === 0) tokens.push(`${i / 2 + 1}.`);
+    tokens.push(san);
+    const parts = [];
+    if (rec.times[i] != null) parts.push(emt(rec.times[i]));
+    if (rec.notes[i]) parts.push(rec.notes[i].split(' ').map(w => NOTE_WORDS[w] || w).join(', '));
+    if (parts.length) tokens.push(`{${parts.join(' ')}}`);
+  });
+  const ending = endingText(rec.result, rec.color);
+  if (ending) tokens.push(`{${ending}}`);
+  tokens.push(resultToken(rec.result));
+
+  // Wrap movetext at 80 columns, as the PGN standard asks.
+  const lines = [];
+  let line = '';
+  for (const t of tokens) {
+    if (line && line.length + 1 + t.length > 80) { lines.push(line); line = t; }
+    else line = line ? line + ' ' + t : t;
+  }
+  if (line) lines.push(line);
+
+  return tags.map(([k, v]) => pgnHeader(k, v)).join('\n') + '\n\n' + lines.join('\n') + '\n';
+}
+
+/* ---------- games panel ---------- */
+function describeResult(rec) {
+  const r = rec.result;
+  if (!r) return 'Unfinished';
+  if (!r.winner) return 'Drawn';
+  return r.winner === rec.color ? 'Won' : 'Lost';
+}
+
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function downloadText(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/x-chess-pgn' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function showGames() {
+  const games = loadGames().slice().reverse();          // newest first
+  const wrap = document.createElement('div');
+
+  if (!games.length) {
+    wrap.innerHTML =
+      '<div class="games-list"><p class="games-empty">No games yet. Every game you play from now on is kept here, move by move.</p></div>' +
+      '<p class="games-foot">Kept in this browser only.</p>';
+  } else {
+    const rows = games.map(g => {
+      const now = g.id === gameId && code ? ' <span class="g-now">· this game</span>' : '';
+      const side = g.color === 'w' ? 'White' : 'Black';
+      const moves = Math.ceil(g.moves.length / 2);
+      const extra = g.takebacks ? ` · ${g.takebacks} takeback${g.takebacks > 1 ? 's' : ''}` : '';
+      return `<label>
+        <input type="checkbox" value="${escText(g.id)}" checked>
+        <span class="g-opp">vs ${escText(oppName(g))}</span>
+        <span class="g-res">${describeResult(g)}</span>
+        <span class="g-meta">${fmtWhen(g.started)} · as ${side} · ${moves} move${moves === 1 ? '' : 's'}${extra}${now}</span>
+      </label>`;
+    }).join('');
+    wrap.innerHTML =
+      `<div class="games-tools">
+         <span id="gamesCount"></span>
+         <span>
+           <button type="button" data-pick="all">All</button>
+           <button type="button" data-pick="none">None</button>
+           ${games.some(g => g.id === gameId && code) ? '<button type="button" data-pick="this">This game</button>' : ''}
+         </span>
+       </div>
+       <div class="games-list">${rows}</div>
+       <p class="games-foot${historyFull ? ' warn' : ''}">${historyFull
+         ? 'Storage was full, so the oldest games were dropped to make room. Export and clear to free space.'
+         : 'Kept in this browser only. Clearing site data removes them, so export now and then.'}</p>`;
+  }
+
+  const boxes = () => [...wrap.querySelectorAll('input[type=checkbox]')];
+  const chosen = () => {
+    const ids = new Set(boxes().filter(b => b.checked).map(b => b.value));
+    return loadGames().filter(g => ids.has(g.id));         // oldest first in the file
+  };
+  const pgnOf = list => list.map(pgnFor).join('\n');
+  const refresh = () => {
+    const n = boxes().filter(b => b.checked).length;
+    const count = wrap.querySelector('#gamesCount');
+    if (count) count.textContent = `${n} of ${games.length} selected`;
+    for (const id of ['gamesCopy', 'gamesDownload']) {
+      const b = document.getElementById(id);
+      if (b) b.disabled = n === 0;
+    }
+  };
+
+  wrap.addEventListener('change', refresh);
+  wrap.addEventListener('click', e => {
+    const p = e.target.closest('[data-pick]');
+    if (!p) return;
+    for (const b of boxes()) {
+      b.checked = p.dataset.pick === 'all' || (p.dataset.pick === 'this' && b.value === gameId);
+    }
+    refresh();
+  });
+
+  const empty = !games.length;
+  return openModal({
+    title: 'Your games',
+    body: wrap,
+    onOpen: refresh,
+    actions: [
+      {
+        label: 'Copy PGN', id: 'gamesCopy', kind: 'go',
+        run: async btn => {
+          if (empty) return true;
+          const text = pgnOf(chosen());
+          if (!await copyText(text, btn)) showTextModal('PGN', text);
+          return true;
+        }
+      },
+      {
+        label: 'Download .pgn', id: 'gamesDownload',
+        run: async () => {
+          if (empty) return true;
+          const list = chosen();
+          const d = new Date();
+          const stamp = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+          downloadText(`table-${list.length === 1 ? 'game' : 'games'}-${stamp}.pgn`, pgnOf(list));
+          return true;
+        }
+      },
+      {
+        label: 'Clear history', kind: 'danger',
+        run: async () => {
+          if (empty) return true;
+          const n = games.length;
+          const ok = await confirmModal(
+            'Clear history?',
+            `This deletes all ${n} saved game${n === 1 ? '' : 's'} from this browser. It can’t be undone — download them first if you want them.`,
+            'Delete them', { danger: true });
+          if (ok) {
+            try { localStorage.removeItem(HISTORY_KEY); } catch {}
+            historyFull = false;
+          }
+          showGames();
+          return true;                     // showGames already replaced this modal
+        }
+      },
+      { label: 'Close', value: null }
+    ]
+  });
 }
 
 /* ---------- presence ----------
@@ -2638,6 +3235,10 @@ function ensureEngine() {
             (!e.data.promotion || m.promotion === e.data.promotion)) || {}).san
         : null;
 
+      // Switched to Stockfish while this engine was still thinking: its move
+      // is no longer wanted, and the outstanding job is Stockfish's now.
+      if (mode === 'play' && usingSF()) return;
+
       if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
         engineJob = null;
         clearTimeout(engineWatchdog);
@@ -2698,7 +3299,18 @@ function engineFailed(message) {
    late answer for a position we've left is discarded. */
 function askEngine(mode) {
   const fen = game.fen();
-  if (engineJob && engineJob.fen === fen && engineJob.mode === mode) return;
+  if (engineJob && engineJob.fen === fen && engineJob.mode === mode && !!engineJob.sf === (mode === 'play' && usingSF())) return;
+
+  // Hints always come from the table engine; only the opponent's moves can
+  // come from Stockfish.
+  if (mode === 'play' && usingSF()) {
+    if (sfBroken) return;  // the note already says why; choosing an opponent retries
+    engineJob = { fen, mode, at: Date.now(), depth: 0, sf: true };
+    engineNote = '';
+    askStockfish(fen);
+    return;
+  }
+
   const worker = ensureEngine();
   if (!worker) { engineFailed('The engine couldn’t start in this browser.'); return; }
 
@@ -2720,7 +3332,7 @@ function armWatchdog() {
 }
 
 function onEngineSilent() {
-  if (!engineJob) return;
+  if (!engineJob || engineJob.sf) return;    // Stockfish has its own timer
 
   // A hidden tab can have its worker throttled or frozen; silence there means
   // suspended, not dead. Wait until we're visible again before judging.
@@ -2758,6 +3370,214 @@ function engineToMove() {
 
 function maybeAutoPlay() {
   if (engineToMove()) askEngine('play');
+}
+
+/* ---------- opponents: the table engine, or Stockfish ----------
+   Stockfish 19 Lite, single-threaded WASM build (stockfish.js by Nathan Rugg /
+   Chess.com, GPLv3). It lives in ./stockfish/ next to this page and loads only
+   when chosen, so the page stays fast for everyone else. The single-threaded
+   build is used because the multi-threaded one needs cross-origin isolation
+   headers, which GitHub Pages can't send. At about 2 MB it is still far
+   stronger than any human.
+
+   Strength comes from Stockfish's own UCI_LimitStrength / UCI_Elo, which runs
+   from 1320 to 3190. Those ratings are calibrated against other engines at a
+   fast time control, not against human rating lists, so treat the numbers as
+   rungs on a ladder rather than a promise about FIDE or chess.com ratings.
+   Rated tiers always get the same short think, so a tier means the same thing
+   every game; full strength uses the Think slider. */
+const SF_PATH = 'stockfish/stockfish-19-lite-single.js';
+const SF_TIERS = [1320, 1450, 1600, 1750, 1900, 2050, 2200, 2400, 2600, 2800, 3000];
+const SF_TIER_MS = 1500;
+
+const sfElo = id => /^sf\d+$/.test(id) ? Number(id.slice(2)) : null;
+const validOpp = v => v === 'table' || v === 'sfmax' || SF_TIERS.includes(sfElo(v)) ? v : 'table';
+
+let opponent = validOpp(store.get('table:opp'));
+let sf = null;           // the Stockfish worker
+let sfReady = false;     // uciok received
+let sfQueue = [];        // commands sent before it was ready
+let sfBusy = null;       // {fen, opp, stopped} being searched right now
+let sfNext = null;       // a position to search once the current one stops
+let sfStrength = null;   // what UCI_LimitStrength/UCI_Elo are currently set to
+let sfNewGame = true;    // send ucinewgame before the next search
+let sfTimer = null;
+let sfBroken = false;    // failed to load or run; picking an opponent retries
+
+const usingSF = () => solo && opponent !== 'table';
+
+function oppLabel(id = opponent) {
+  if (id === 'table') return `Table engine (${fmtThink(thinkMs)}/move)`;
+  if (id === 'sfmax') return `Stockfish 19 full strength (${fmtThink(thinkMs)}/move)`;
+  return `Stockfish 19 at ${sfElo(id)}`;
+}
+
+function oppNoteText() {
+  if (opponent === 'table') return 'No link and nobody to wait for. The table engine gets stronger the longer you let it think.';
+  if (opponent === 'sfmax') return 'Stockfish with nothing held back. It downloads about 2 MB the first time.';
+  return `Stockfish held to about ${sfElo(opponent)}. Its ratings come from engine rating lists, not human ones, so use them as rungs on a ladder.`;
+}
+
+function fillOppSelects() {
+  const html =
+    '<optgroup label="Your engine"><option value="table">Table engine</option></optgroup>' +
+    '<optgroup label="Stockfish, rated">' +
+      SF_TIERS.map(e => `<option value="sf${e}">Stockfish ${e}</option>`).join('') +
+    '</optgroup>' +
+    '<optgroup label="Stockfish"><option value="sfmax">Stockfish, full strength</option></optgroup>';
+  for (const id of ['oppLobby', 'oppGame']) {
+    el(id).innerHTML = html;
+    el(id).value = opponent;
+  }
+  el('oppNote').textContent = oppNoteText();
+}
+
+function setOpponent(v) {
+  opponent = validOpp(v);
+  store.set('table:opp', opponent);
+  el('oppLobby').value = el('oppGame').value = opponent;
+  el('oppNote').textContent = oppNoteText();
+  engineNote = '';
+  sfBroken = false;
+  if (sfBusy && !sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
+  engineJob = null;
+  if (code) draw();
+}
+
+function sfSend(cmd) {
+  if (!sf) return;
+  if (sfReady) sf.postMessage(cmd);
+  else sfQueue.push(cmd);
+}
+
+function sfKill() {
+  clearTimeout(sfTimer);
+  try { sf && sf.terminate(); } catch {}
+  sf = null;
+  sfReady = false;
+  sfQueue = [];
+  sfBusy = null;
+  sfNext = null;
+  sfStrength = null;
+  sfNewGame = true;
+}
+
+function sfFail(message) {
+  console.warn('stockfish:', message);
+  sfKill();
+  sfBroken = true;         // or draw() would restart it, fail again, and loop
+  // Not engineFailed(): that also switches hints off, and hints come from the
+  // table engine, which is fine.
+  if (engineJob && engineJob.sf) engineJob = null;
+  engineNote = message;
+  if (code) draw();
+}
+
+function sfStart() {
+  if (sf) return sf;
+  try {
+    sf = new Worker(SF_PATH);
+  } catch (e) {
+    console.warn('stockfish worker', e);
+    sf = null;
+    return null;
+  }
+  sfReady = false;
+  sf.onmessage = e => sfLine(String(e.data));
+  sf.onerror = e => {
+    e.preventDefault && e.preventDefault();
+    sfFail('Stockfish couldn’t load. It needs the stockfish folder beside this page, opened over http(s) rather than as a file.');
+  };
+  sf.postMessage('uci');
+  return sf;
+}
+
+function sfArm(ms) {
+  clearTimeout(sfTimer);
+  sfTimer = setTimeout(function check() {
+    if (!sfBusy) return;
+    if (document.hidden) { sfTimer = setTimeout(check, 5000); return; }  // throttled, not dead
+    sfFail('Stockfish stopped responding. Pick an opponent again to restart it.');
+  }, ms);
+}
+
+function sfGo(fen) {
+  const want = opponent;
+  if (sfStrength !== want) {
+    if (want === 'sfmax') {
+      sfSend('setoption name UCI_LimitStrength value false');
+    } else {
+      sfSend('setoption name UCI_LimitStrength value true');
+      sfSend(`setoption name UCI_Elo value ${sfElo(want)}`);
+    }
+    sfStrength = want;
+  }
+  if (sfNewGame) { sfSend('ucinewgame'); sfNewGame = false; }
+  const ms = want === 'sfmax' ? thinkMs : SF_TIER_MS;
+  sfBusy = { fen, opp: want, stopped: false };
+  sfSend(`position fen ${fen}`);
+  sfSend(`go movetime ${ms}`);
+  // Generous: the first search also waits for the download.
+  sfArm(ms + (sfReady ? 15000 : 60000));
+  drawStatus();
+}
+
+function askStockfish(fen) {
+  if (!sfStart()) { sfFail('Stockfish couldn’t start in this browser.'); return; }
+  if (sfBusy) {
+    if (sfBusy.fen === fen && sfBusy.opp === opponent && !sfBusy.stopped) return;
+    // One search at a time: stop this one, and start the new one when its
+    // (now unwanted) answer comes back.
+    sfNext = fen;
+    if (!sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
+    return;
+  }
+  sfGo(fen);
+}
+
+function sfLine(line) {
+  if (line === 'uciok') {
+    sfReady = true;
+    const queued = sfQueue;
+    sfQueue = [];
+    for (const cmd of queued) sf.postMessage(cmd);
+    drawStatus();
+    return;
+  }
+
+  if (line.startsWith('info ') && sfBusy && !sfBusy.stopped) {
+    const m = / depth (\d+)/.exec(line);
+    if (m && engineJob && engineJob.sf && engineJob.fen === sfBusy.fen) {
+      const depth = Number(m[1]);
+      if (depth !== engineJob.depth) { engineJob.depth = depth; drawStatus(); }
+    }
+    return;
+  }
+
+  if (!line.startsWith('bestmove')) return;
+  clearTimeout(sfTimer);
+  const job = sfBusy;
+  sfBusy = null;
+
+  if (sfNext) {
+    const fen = sfNext;
+    sfNext = null;
+    if (fen === game.fen() && usingSF() && engineToMove()) sfGo(fen);
+    return;
+  }
+  if (!job || job.stopped) return;
+  if (job.fen !== game.fen() || job.opp !== opponent || !usingSF() || !engineToMove()) return;
+
+  if (engineJob && engineJob.sf && engineJob.fen === job.fen) engineJob = null;
+  engineNote = '';
+
+  const uci = line.split(/\s+/)[1] || '';
+  if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci) ||
+      !localMove(uci.slice(0, 2), uci.slice(2, 4), uci[4])) {
+    sfFail('Stockfish returned a move that can’t be played.');
+    return;
+  }
+  blip();
 }
 
 /* ---------- rendering ---------- */
@@ -3912,7 +4732,12 @@ function draw() {
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
   el('thinkRange').value = thinkMs;
   el('thinkVal').textContent = fmtThink(thinkMs);
-  el('thinkRow').classList.toggle('hidden', !(hintsOn || autoPlay || solo));
+  // Rated Stockfish always thinks for the same time, so the slider would only
+  // mislead — unless hints are on, which still use it.
+  el('oppRow').classList.toggle('hidden', !solo);
+  el('oppGame').value = opponent;
+  const sliderMatters = hintsOn || autoPlay || (solo && (opponent === 'table' || opponent === 'sfmax'));
+  el('thinkRow').classList.toggle('hidden', !sliderMatters);
 }
 
 function drawBoard() {
@@ -4019,7 +4844,8 @@ function drawStatus() {
   const check = game.isCheck() ? ' You’re in check.' : '';
   if (engineToMove() && engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) {
     // At long budgets an idle board is indistinguishable from a crash.
-    s.textContent = engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
+    s.textContent = engineJob.sf && !sfReady ? 'Loading Stockfish…'
+      : engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
@@ -4556,6 +5382,9 @@ function diagnostics() {
     ``,
     `engine      ${eng}`,
     `think       ${fmtThink(thinkMs)}`,
+    `opponent    ${solo ? oppLabel() : 'person'}${solo && opponent !== 'table'
+      ? ` (stockfish ${sfBroken ? 'failed' : !sf ? 'not loaded' : !sfReady ? 'loading' : sfBusy ? 'searching' : 'ready'})` : ''}`,
+    `games kept  ${loadGames().length}${historyFull ? ' (storage full, oldest dropped)' : ''}`,
     `hints       ${hintsOn ? 'on' : 'off'}   autoplay ${autoPlay ? 'on' : 'off'}`,
     `coach       ${coachMode}${coachRead ? ` (${coachRead.findings.length} findings)` : ''}`,
     engineNote ? `note        ${engineNote}` : ``,
@@ -4593,7 +5422,7 @@ el('copyDiagBtn').onclick = async () => {
     el('copyDiagBtn').textContent = 'Copied';
     setTimeout(() => el('copyDiagBtn').textContent = 'Copy report', 1600);
   } catch {
-    prompt('Diagnostics:', text);
+    showTextModal('Diagnostics', text);
   }
 };
 
@@ -4648,23 +5477,45 @@ el('copyBtn').onclick = async () => {
     el('copyBtn').textContent = 'Copied';
     setTimeout(() => el('copyBtn').textContent = 'Copy link', 1600);
   } catch {
-    prompt('Copy this link:', inviteUrl());
+    showTextModal('Invite link', inviteUrl());
   }
 };
 
-el('resignBtn').onclick = () => {
-  if (!confirm('Resign this game?')) return;
+function resign() {
   result = { type: 'resign', winner: myColor === 'w' ? 'b' : 'w' };
   broadcast({ t: 'resign', by: myColor });
   persist();
   draw();
-};
+}
 
-el('rematchBtn').onclick = () => {
+function rematch() {
   const next = myColor === 'w' ? 'b' : 'w';
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
+}
+
+el('resignBtn').onclick = async () => {
+  if (result || !game.history().length) return;
+  const actions = [
+    { label: 'Keep playing', value: null, focus: true },
+    { label: 'Resign', value: 'resign', kind: 'danger' }
+  ];
+  // Against the engine there's nobody to agree a rematch with, so offer the
+  // restart in the same step.
+  if (solo) actions.push({ label: 'Resign & rematch', value: 'again', kind: 'danger' });
+  const choice = await openModal({
+    title: 'Resign?',
+    body: solo
+      ? '<p>The game is saved to your games as a loss either way. A rematch swaps colours.</p>'
+      : '<p>They’ll be told straight away. The game is saved to your games as a loss.</p>',
+    actions
+  });
+  if (!choice || result) return;
+  resign();
+  if (choice === 'again') rematch();
 };
+
+el('rematchBtn').onclick = rematch;
 
 el('takebackBtn').onclick = () => {
   if (!game.history().length || result) return;
@@ -4719,16 +5570,12 @@ el('hintBtn').onclick = () => {
   draw();
 };
 
-el('pgnBtn').onclick = async () => {
-  const pgn = game.pgn() || '(no moves yet)';
-  try {
-    await navigator.clipboard.writeText(pgn);
-    el('pgnBtn').textContent = 'Copied';
-    setTimeout(() => el('pgnBtn').textContent = 'PGN', 1600);
-  } catch {
-    prompt('Game notation:', pgn);
-  }
-};
+el('pgnBtn').onclick = () => showGames();
+el('gamesLobbyBtn').onclick = () => showGames();
+
+el('oppLobby').onchange = e => setOpponent(e.target.value);
+el('oppGame').onchange = e => setOpponent(e.target.value);
+fillOppSelects();
 
 el('setBtn').onclick = () => {
   pieceSet = pieceSet === 'bauhaus' ? 'staunton' : 'bauhaus';

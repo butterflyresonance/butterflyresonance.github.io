@@ -1,0 +1,4772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Table (fast engine) — a private chess board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #15181b;
+    --panel: #1d2226;
+    --edge: #2b3238;
+    --sq-light: #ada497;   /* both squares sit mid-tone so near-white and */
+    --sq-dark:  #535d61;   /* near-black pieces both read on either one   */
+    --brass: #c8a35b;
+    --brass-dim: #6d5a33;
+    --text: #e8e6e1;
+    --muted: #8b9198;
+    --danger: #c05a4a;
+    --display: "Bodoni Moda", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: 0 16px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .wrap { width: 100%; max-width: 460px; }
+
+  /* ---- connection thread ---- */
+  .thread {
+    height: 2px;
+    width: 100%;
+    margin: 0 0 22px;
+    background: var(--edge);
+    position: relative;
+    overflow: hidden;
+  }
+  .thread::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .5s ease;
+  }
+  body[data-link="searching"] .thread::after {
+    transform: scaleX(.35);
+    animation: seek 1.9s ease-in-out infinite;
+  }
+  body[data-link="live"] .thread::after { transform: scaleX(1); }
+  @keyframes seek {
+    0%   { transform: translateX(-100%) scaleX(.35); }
+    100% { transform: translateX(300%) scaleX(.35); }
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 22px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: .01em;
+    margin: 0;
+  }
+  .link-state {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  body[data-link="live"] .link-state { color: var(--brass); }
+
+  /* ---- diagnostics ---- */
+  .verstamp {
+    display: block;
+    margin: 6px 0 0 auto;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    opacity: .55;
+    font-size: 10px;
+    letter-spacing: .1em;
+    cursor: pointer;
+  }
+  .verstamp:hover { color: var(--brass); opacity: 1; }
+  .debug {
+    margin-top: 16px;
+    border: 1px solid var(--edge);
+    padding: 14px;
+  }
+  .debug pre {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    margin: 8px 0 14px;
+    max-height: 300px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ---- lobby ---- */
+  .lobby { margin-top: 34px; }
+
+  .how {
+    border-top: 1px solid var(--edge);
+    border-bottom: 1px solid var(--edge);
+    margin: 0 0 26px;
+  }
+  .how summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 13px 0;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color .15s;
+  }
+  .how summary::-webkit-details-marker { display: none; }
+  .how summary::after {
+    content: "+";
+    font-size: 15px;
+    line-height: 1;
+    color: var(--brass-dim);
+  }
+  .how[open] summary::after { content: "–"; }
+  .how summary:hover { color: var(--brass); }
+  .how summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .how p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--muted);
+    margin: 0 0 14px;
+    max-width: 52ch;
+  }
+  .how p:first-of-type { margin-top: 2px; }
+  .lede {
+    font-family: var(--display);
+    font-size: 19px;
+    line-height: 1.5;
+    margin: 0 0 26px;
+  }
+  fieldset { border: 0; padding: 0; margin: 0 0 22px; }
+  legend, .label {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0 10px;
+  }
+  .choices { display: flex; gap: 8px; }
+  .choices label { flex: 1; }
+  .choices input { position: absolute; opacity: 0; pointer-events: none; }
+  .choices span {
+    display: block;
+    text-align: center;
+    padding: 11px 6px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .choices input:checked + span { border-color: var(--brass); color: var(--brass); }
+  .choices input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  button {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .04em;
+    padding: 12px 16px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--edge);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--brass-dim); }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button.primary { border-color: var(--brass); color: var(--brass); width: 100%; }
+  button.primary.alt { border-color: var(--edge); color: var(--text); margin-top: 4px; }
+  button.primary.alt:hover { border-color: var(--brass-dim); }
+  button:disabled { opacity: .35; cursor: default; }
+
+  /* ---- invite ---- */
+  .invite { margin-top: 30px; }
+  .code {
+    font-family: var(--display);
+    font-size: 34px;
+    letter-spacing: .1em;
+    color: var(--brass);
+    margin: 6px 0 18px;
+  }
+  .invite-actions { display: flex; gap: 8px; }
+  .invite-actions button { flex: 1; }
+  .note {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 16px 0 0;
+  }
+
+  /* ---- game layout ---- */
+  .status {
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 1.3;
+    margin: 24px 0 12px;
+    min-height: 29px;
+  }
+  .status.urgent { color: var(--brass); }
+
+  /* ---- captured strips ---- */
+  .taken {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    height: 26px;
+    margin: 6px 0;
+  }
+  .taken svg { width: 19px; height: 19px; display: block; opacity: .75; }
+  .taken .adv {
+    font-size: 12px;
+    color: var(--brass);
+    margin-left: 8px;
+    letter-spacing: .02em;
+  }
+
+  /* ---- board ---- */
+  .boardcol { min-width: 0; }
+  .boardwrap { position: relative; }
+  .arrow {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  /* ---- hint panel ---- */
+  .hintpanel { margin-top: 18px; }
+  .evalbar {
+    height: 4px;
+    background: var(--edge);
+    position: relative;
+    overflow: hidden;
+  }
+  .evalbar span {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--brass);
+    width: 50%;
+    transition: width .35s ease;
+  }
+  .hintline {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hintline #hintMove { color: var(--brass); letter-spacing: .04em; }
+  .board {
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    outline: 1px solid var(--brass-dim);
+    outline-offset: 3px;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+  }
+  .sq.light { background: var(--sq-light); }
+  .sq.dark  { background: var(--sq-dark); }
+
+  /* last move: a quiet wash, under the piece */
+  .sq.last::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    opacity: .22;
+  }
+  /* selection and check: rings, so the piece itself stays fully readable */
+  .sq.sel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--brass);
+  }
+  .sq.check::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--danger);
+  }
+  .sq.playable { cursor: pointer; }
+
+  .sq svg.pc {
+    position: relative;
+    width: 96%;
+    height: 96%;
+    display: block;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+  }
+  .sq svg.pc.bauhaus { width: 88%; height: 88%; }
+  .sq svg.pc.moved { animation: settle .22s ease-out; }
+  @keyframes settle {
+    from { transform: scale(1.14); }
+    to   { transform: scale(1); }
+  }
+
+  .sq .dot {
+    position: absolute;
+    width: 24%;
+    height: 24%;
+    border-radius: 50%;
+    background: rgba(18,21,24,.42);
+    pointer-events: none;
+  }
+  .sq.occupied .dot {
+    width: 88%; height: 88%;
+    background: transparent;
+    border: 3px solid rgba(18,21,24,.42);
+  }
+  .coord {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: .04em;
+    opacity: .6;
+    pointer-events: none;
+  }
+  .coord.f { right: 3px; bottom: 1px; }
+  .coord.r { left: 3px; top: 1px; }
+  .light .coord { color: #3d3830; }
+  .dark  .coord { color: #d6dbdd; }
+
+  /* ---- ledger ---- */
+  .ledger { margin-top: 22px; }
+  .ledger h2 {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin: 0 0 10px;
+  }
+  .moves {
+    display: grid;
+    grid-template-columns: 30px 1fr 1fr;
+    gap: 2px 10px;
+    font-size: 13px;
+    max-height: 168px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .moves .n { color: var(--muted); }
+  .moves .m { color: var(--text); }
+  .moves .m.latest { color: var(--brass); }
+  .empty-ledger { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .controls { display: flex; gap: 8px; margin-top: 22px; }
+  .controls button { flex: 1; }
+
+  .setrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .setrow { flex-wrap: wrap; }
+  .thinkrow { gap: 12px; }
+  .thinkrow input[type="range"] {
+    flex: 1;
+    min-width: 110px;
+    accent-color: var(--brass);
+    background: transparent;
+  }
+  .thinkval { color: var(--brass); min-width: 42px; text-align: right; }
+  .setrow button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
+
+
+  /* ---- tactics coach ----
+     Three visual grammars rather than three colours, because the board already
+     spends colour on last-move, selection and check: a dashed muted ring means
+     "undefended, nothing on it yet", a dashed red ring means "this costs you",
+     a solid brass ring means "this is yours to take". The marks are child
+     elements, not pseudo-elements, so they can never collide with the ::before
+     and ::after those existing states already own. */
+  .coachblock { margin-top: 18px; }
+  .coachrow { margin-top: 0; }
+  .coachrow .state { color: var(--brass); }
+
+  .coach {
+    border-top: 1px solid var(--edge);
+    border-bottom: 1px solid var(--edge);
+    margin-top: 12px;
+  }
+  .coach > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 11px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    transition: color .15s;
+  }
+  .coach > summary::-webkit-details-marker { display: none; }
+  .coach > summary::after {
+    content: "+";
+    font-size: 15px;
+    line-height: 1;
+    color: var(--brass-dim);
+    flex: none;
+  }
+  .coach[open] > summary::after { content: "\2013"; }
+  .coach > summary:hover { color: var(--brass); }
+  .coach > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .coach-body { padding: 2px 0 14px; }
+
+  /* sections: the scan, in the order worth running it */
+  .groups { margin: 0 0 12px; }
+  .grp {
+    border-bottom: 1px solid var(--edge);
+  }
+  .grp:first-child { border-top: 1px solid var(--edge); }
+  div.grp, .grp > summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+    font-size: 12px;
+    color: var(--muted);
+    list-style: none;
+    cursor: pointer;
+  }
+  div.grp { cursor: default; }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp > summary:hover { color: var(--brass); }
+  .grp > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .gtitle { flex: 1; min-width: 0; }
+  .gcount {
+    flex: none;
+    color: var(--brass);
+    font-variant-numeric: tabular-nums;
+  }
+  details.grp > summary::after {
+    content: "+";
+    flex: none;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--brass-dim);
+    width: 9px;
+    text-align: center;
+  }
+  details.grp[open] > summary::after { content: "\2013"; }
+  details.grp[open] > summary { color: var(--brass); }
+  details.grp[open] > summary .gcount { color: var(--brass-dim); }
+  .gitems { padding: 2px 0 10px; }
+
+  .verdict {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+  }
+  .verdict.v-good { color: var(--brass); border-color: var(--brass-dim); }
+  .verdict.v-bad { color: var(--danger); border-color: rgba(192,90,74,.45); }
+  .verdict.v-dim { opacity: .7; }
+
+  .tallies { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+  .tally {
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .tally b { color: var(--brass); font-weight: 500; }
+  .tally.them b { color: var(--danger); }
+
+  .find {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-left: 2px solid var(--brass-dim);
+    padding: 8px 0 9px 11px;
+    margin: 0 0 3px;
+    background: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0;
+    cursor: pointer;
+  }
+  .find:hover:not(:disabled) { border-left-color: var(--brass); }
+  .find.them { border-left-color: var(--brass-dim); }
+  .find.them:hover { border-left-color: var(--danger); }
+  .find.on { background: rgba(200,163,91,.07); border-left-color: var(--brass); }
+  .find.them.on { background: rgba(192,90,74,.08); border-left-color: var(--danger); }
+  .find .head { display: block; color: var(--brass); line-height: 1.45; }
+  .find.them .head { color: var(--danger); }
+  .find .why {
+    display: block;
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+  .coach-note { font-size: 11.5px; line-height: 1.65; color: var(--muted); margin: 0 0 12px; }
+  .coach-more { font-size: 11px; color: var(--muted); margin: 8px 0 0; }
+
+  /* board marks */
+  .sq .mark {
+    position: absolute;
+    inset: 7%;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .sq .mark.warn { border: 2px dashed var(--danger); }
+  .sq .mark.note { border: 2px dashed rgba(232,230,225,.5); }
+  .sq .mark.good { border: 2px solid var(--brass); }
+  .sq .mark.watch { border: 2px dotted rgba(232,230,225,.32); inset: 13%; }
+  .sq .mark.chance { border: 2px dotted rgba(200,163,91,.45); inset: 13%; }
+  .sq .mark.focus { border: 3px solid var(--text); inset: 4%; }
+
+  /* the square readout */
+  .inspect {
+    border: 1px solid var(--brass-dim);
+    padding: 11px 12px 12px;
+    margin: 2px 0 14px;
+  }
+  .ihead {
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: var(--brass);
+    margin-bottom: 8px;
+  }
+  .irow {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .irow span { flex: none; min-width: 108px; }
+  .irow b { font-weight: 400; color: var(--text); }
+  .iverdict {
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 9px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--edge);
+  }
+  .coachlayer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  /* ---- phone: the status line belongs above the board, not under it.
+         display:contents lifts the rail's children into the same flex flow so
+         they can be ordered independently. ---- */
+  @media (max-width: 819px) {
+    .game-grid { display: flex; flex-direction: column; }
+    .rail { display: contents; }
+    .status    { order: -1; margin: 20px 0 12px; }
+    .boardcol  { order: 0; }
+    .hintpanel { order: 1; }
+    .coachblock { order: 2; }
+    .ledger    { order: 3; }
+    .controls  { order: 4; }
+    .setrow    { order: 5; }
+    #peerHint, #gameNote { order: 6; }
+  }
+
+  /* ---- desktop: board beside the rail ---- */
+  @media (min-width: 820px) {
+    .wrap { max-width: 900px; }
+    .game-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 40px;
+      align-items: start;
+    }
+    .status { margin-top: 0; font-size: 26px; }
+    .rail { padding-top: 4px; }
+    .ledger { margin-top: 26px; }
+    .moves { max-height: 300px; }
+  }
+
+  /* ---- promotion ---- */
+  .promo {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,12,14,.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .promo-box {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    padding: 22px;
+    text-align: center;
+  }
+  .promo-box p {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+  .promo-row { display: flex; gap: 6px; }
+  .promo-row button { padding: 8px; }
+  .promo-row svg { width: 46px; height: 46px; display: block; }
+
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
+    .sq svg.pc.moved { animation: none; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body data-link="idle">
+<div class="wrap">
+  <div class="thread"></div>
+
+  <header>
+    <h1>Table</h1>
+    <div class="link-state" id="linkState">no game</div>
+  </header>
+  <button class="verstamp" id="verBtn" title="Build version — tap for diagnostics"></button>
+
+  <section class="debug hidden" id="debugPanel">
+    <div class="label">Diagnostics</div>
+    <pre id="debugText">…</pre>
+    <div class="invite-actions">
+      <button id="copyDiagBtn">Copy report</button>
+      <button id="reloadBtn">Force reload</button>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section class="lobby" id="lobby">
+    <p class="lede">Play chess with one other person. Pick a side, send them the link, and you’re both looking at the same board.</p>
+    <details class="how">
+      <summary>How this works</summary>
+      <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+      <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
+      <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+    </details>
+    <fieldset>
+      <legend>You play</legend>
+      <div class="choices">
+        <label><input type="radio" name="side" value="w" checked><span>White</span></label>
+        <label><input type="radio" name="side" value="b"><span>Black</span></label>
+        <label><input type="radio" name="side" value="r"><span>Toss</span></label>
+      </div>
+    </fieldset>
+    <button class="primary" id="startBtn">Open a table</button>
+    <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+    <button class="primary alt" id="soloBtn">Play the engine</button>
+    <p class="note">No link and nobody to wait for. How hard it plays is set by how long you let it think.</p>
+  </section>
+
+  <!-- INVITE -->
+  <section class="invite hidden" id="invite">
+    <div class="label">Table</div>
+    <div class="code" id="codeText">— — —</div>
+    <div class="invite-actions">
+      <button id="waBtn">Send on WhatsApp</button>
+      <button id="copyBtn">Copy link</button>
+    </div>
+    <p class="note">Send this once. After that the link is the table — either of you can reopen it any time.</p>
+  </section>
+
+  <!-- GAME -->
+  <section class="game hidden" id="game">
+    <div class="game-grid">
+      <div class="boardcol">
+        <div class="taken" id="takenTop"></div>
+        <div class="boardwrap">
+          <div class="board" id="board"></div>
+          <svg class="coachlayer" id="coachSvg" viewBox="0 0 100 100" aria-hidden="true"></svg>
+          <svg class="arrow" id="arrow" viewBox="0 0 100 100" aria-hidden="true"></svg>
+        </div>
+        <div class="taken" id="takenBottom"></div>
+      </div>
+      <div class="rail">
+        <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
+        <div class="ledger">
+          <h2>Moves</h2>
+          <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+        </div>
+        <div class="controls">
+          <button id="takebackBtn">Takeback</button>
+          <button id="resignBtn">Resign</button>
+          <button id="rematchBtn">Rematch</button>
+        </div>
+        <section class="coachblock" id="coachBlock">
+          <div class="setrow coachrow">
+            <span>Coach</span>
+            <button id="coachBtn">Off</button>
+            <span class="state" id="coachState"></span>
+          </div>
+          <details class="coach hidden" id="coachPanel">
+            <summary><span id="coachSummary">Reading the position…</span></summary>
+            <div class="coach-body" id="coachBody"></div>
+          </details>
+        </section>
+        <div class="hintpanel hidden" id="hintPanel">
+          <div class="evalbar"><span id="evalFill"></span></div>
+          <div class="hintline">
+            <span id="hintMove">thinking…</span>
+            <span id="hintMeta"></span>
+          </div>
+        </div>
+        <div class="setrow">
+          <span>Hints</span>
+          <button id="hintBtn">Off</button>
+          <span id="autoLabel">Engine plays</span>
+          <button id="autoBtn">Off</button>
+        </div>
+        <div class="setrow thinkrow hidden" id="thinkRow">
+          <span>Think</span>
+          <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
+                 aria-label="Engine thinking time">
+          <span class="thinkval" id="thinkVal">1.5s</span>
+        </div>
+        <div class="setrow">
+          <span>Pieces</span>
+          <button id="setBtn">Staunton</button>
+          <span>Sound</span>
+          <button id="soundBtn">On</button>
+          <button id="pgnBtn">PGN</button>
+        </div>
+        <p class="note hidden" id="peerHint">They have hints switched on.</p>
+        <p class="note" id="gameNote"></p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Engine source. Parked as text/plain so the page never runs it on the
+     main thread; it is handed to a Worker as a Blob when hints go on. -->
+<script id="engineSrc" type="text/plain">
+/* ---------------------------------------------------------------------------
+   0x88 board, mutable, with make/unmake.
+
+   Squares are rank*16 + file, a1 = 0, h8 = 119. A square is off the board iff
+   (sq & 0x88) is non-zero, which is the whole point of the layout: bounds
+   checking is one AND rather than two comparisons.
+
+   Pieces are small integers: 1..6 are white pawn..king, 9..14 the same in
+   black (colour is bit 3). 0 is empty. Keeping them as numbers means the board
+   is an Int8Array and make/unmake never allocates.
+--------------------------------------------------------------------------- */
+
+const EMPTY = 0;
+const PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6;
+const WHITE = 0, BLACK = 8;
+
+const typeOf   = p => p & 7;
+const colourOf = p => p & 8;
+
+const KNIGHT_OFF = [-33, -31, -18, -14, 14, 18, 31, 33];
+const BISHOP_OFF = [-17, -15, 15, 17];
+const ROOK_OFF   = [-16, -1, 1, 16];
+const KING_OFF   = [-17, -16, -15, -1, 1, 15, 16, 17];
+
+// castling right bits
+const WK = 1, WQ = 2, BK = 4, BQ = 8;
+
+const FILES = 'abcdefgh';
+const toAlg = sq => FILES[sq & 7] + ((sq >> 4) + 1);
+const fromAlg = s => (Number(s[1]) - 1) * 16 + FILES.indexOf(s[0]);
+
+/* Move packing. Everything the search needs fits in one integer, so move lists
+   are plain arrays of numbers and generating them allocates nothing else. */
+const SPEC_NONE = 0, SPEC_EP = 1, SPEC_CASTLE = 2, SPEC_DOUBLE = 3;
+const mk = (from, to, promo, cap, spec) =>
+  from | (to << 7) | (promo << 14) | (cap << 17) | (spec << 21);
+const mFrom  = m => m & 127;
+const mTo    = m => (m >> 7) & 127;
+const mPromo = m => (m >> 14) & 7;
+const mCap   = m => (m >> 17) & 15;
+const mSpec  = m => (m >> 21) & 7;
+
+const PIECE_CHAR = { p: PAWN, n: KNIGHT, b: BISHOP, r: ROOK, q: QUEEN, k: KING };
+
+class Board {
+  constructor(fen) {
+    this.board = new Int8Array(128);
+    this.kings = [0, 0];              // [white, black]
+    this.undo = [];
+    if (fen) this.load(fen);
+  }
+
+  load(fen) {
+    this.board.fill(0);
+    const [placement, turn, castling, ep, half, full] = fen.trim().split(/\s+/);
+
+    let rank = 7, file = 0;
+    for (const ch of placement) {
+      if (ch === '/') { rank--; file = 0; continue; }
+      if (ch >= '1' && ch <= '8') { file += Number(ch); continue; }
+      const lower = ch.toLowerCase();
+      const piece = PIECE_CHAR[lower] | (ch === lower ? BLACK : WHITE);
+      const sq = rank * 16 + file;
+      this.board[sq] = piece;
+      if (typeOf(piece) === KING) this.kings[colourOf(piece) ? 1 : 0] = sq;
+      file++;
+    }
+
+    this.turn = turn === 'w' ? WHITE : BLACK;
+    this.castling =
+      (castling.includes('K') ? WK : 0) | (castling.includes('Q') ? WQ : 0) |
+      (castling.includes('k') ? BK : 0) | (castling.includes('q') ? BQ : 0);
+    this.ep = ep && ep !== '-' ? fromAlg(ep) : -1;
+    this.half = Number(half) || 0;
+    this.full = Number(full) || 1;
+    this.undo.length = 0;
+    return this;
+  }
+
+  fen() {
+    let placement = '';
+    for (let rank = 7; rank >= 0; rank--) {
+      let run = 0;
+      for (let file = 0; file < 8; file++) {
+        const p = this.board[rank * 16 + file];
+        if (!p) { run++; continue; }
+        if (run) { placement += run; run = 0; }
+        const ch = 'x pnbrqk'[typeOf(p) + 1];
+        placement += colourOf(p) ? ch : ch.toUpperCase();
+      }
+      if (run) placement += run;
+      if (rank) placement += '/';
+    }
+    const c = (this.castling & WK ? 'K' : '') + (this.castling & WQ ? 'Q' : '') +
+              (this.castling & BK ? 'k' : '') + (this.castling & BQ ? 'q' : '');
+    return `${placement} ${this.turn === WHITE ? 'w' : 'b'} ${c || '-'} ` +
+           `${this.ep >= 0 ? toAlg(this.ep) : '-'} ${this.half} ${this.full}`;
+  }
+
+  /* Is `sq` attacked by `by` (WHITE or BLACK)? Used for legality and for
+     detecting check, so it runs constantly — no allocation, early exits. */
+  attacked(sq, by) {
+    const board = this.board;
+
+    // pawns
+    const dir = by === WHITE ? -16 : 16;    // step back from sq toward the pawn
+    for (const d of [dir - 1, dir + 1]) {
+      const s = sq + d;
+      if (!(s & 0x88) && board[s] === (PAWN | by)) return true;
+    }
+    // knights
+    for (const d of KNIGHT_OFF) {
+      const s = sq + d;
+      if (!(s & 0x88) && board[s] === (KNIGHT | by)) return true;
+    }
+    // king
+    for (const d of KING_OFF) {
+      const s = sq + d;
+      if (!(s & 0x88) && board[s] === (KING | by)) return true;
+    }
+    // sliders
+    for (const d of BISHOP_OFF) {
+      let s = sq + d;
+      while (!(s & 0x88)) {
+        const p = board[s];
+        if (p) {
+          if (colourOf(p) === by && (typeOf(p) === BISHOP || typeOf(p) === QUEEN)) return true;
+          break;
+        }
+        s += d;
+      }
+    }
+    for (const d of ROOK_OFF) {
+      let s = sq + d;
+      while (!(s & 0x88)) {
+        const p = board[s];
+        if (p) {
+          if (colourOf(p) === by && (typeOf(p) === ROOK || typeOf(p) === QUEEN)) return true;
+          break;
+        }
+        s += d;
+      }
+    }
+    return false;
+  }
+
+  inCheck(colour = this.turn) {
+    return this.attacked(this.kings[colour ? 1 : 0], colour ^ BLACK);
+  }
+
+  /* Pseudo-legal generation: illegal moves (leaving your own king in check) are
+     filtered in make(), because most of them get cut off before that matters. */
+  moves(capturesOnly = false) {
+    const out = [];
+    const board = this.board;
+    const us = this.turn, them = us ^ BLACK;
+
+    for (let sq = 0; sq < 128; sq++) {
+      if (sq & 0x88) { sq += 7; continue; }
+      const piece = board[sq];
+      if (!piece || colourOf(piece) !== us) continue;
+      const type = typeOf(piece);
+
+      if (type === PAWN) {
+        const fwd = us === WHITE ? 16 : -16;
+        const startRank = us === WHITE ? 1 : 6;
+        const lastRank  = us === WHITE ? 7 : 0;
+
+        const one = sq + fwd;
+        if (!capturesOnly && !(one & 0x88) && !board[one]) {
+          if ((one >> 4) === lastRank) {
+            for (const pr of [QUEEN, ROOK, BISHOP, KNIGHT]) out.push(mk(sq, one, pr, 0, SPEC_NONE));
+          } else {
+            out.push(mk(sq, one, 0, 0, SPEC_NONE));
+            const two = sq + fwd * 2;
+            if ((sq >> 4) === startRank && !board[two]) out.push(mk(sq, two, 0, 0, SPEC_DOUBLE));
+          }
+        }
+        for (const d of [fwd - 1, fwd + 1]) {
+          const to = sq + d;
+          if (to & 0x88) continue;
+          const target = board[to];
+          if (target && colourOf(target) === them) {
+            if ((to >> 4) === lastRank) {
+              for (const pr of [QUEEN, ROOK, BISHOP, KNIGHT]) out.push(mk(sq, to, pr, target, SPEC_NONE));
+            } else out.push(mk(sq, to, 0, target, SPEC_NONE));
+          } else if (!target && to === this.ep) {
+            out.push(mk(sq, to, 0, PAWN | them, SPEC_EP));
+          }
+        }
+        continue;
+      }
+
+      const offsets = type === KNIGHT ? KNIGHT_OFF
+                    : type === BISHOP ? BISHOP_OFF
+                    : type === ROOK   ? ROOK_OFF
+                    : KING_OFF;
+      const sliding = type === BISHOP || type === ROOK || type === QUEEN;
+
+      if (type === QUEEN) {
+        for (const d of KING_OFF) this._ray(out, sq, d, true, them, capturesOnly);
+      } else if (sliding) {
+        for (const d of offsets) this._ray(out, sq, d, true, them, capturesOnly);
+      } else {
+        for (const d of offsets) this._ray(out, sq, d, false, them, capturesOnly);
+      }
+    }
+
+    if (!capturesOnly) this._castles(out);
+    return out;
+  }
+
+  _ray(out, from, d, sliding, them, capturesOnly) {
+    let to = from + d;
+    while (!(to & 0x88)) {
+      const target = this.board[to];
+      if (!target) {
+        if (!capturesOnly) out.push(mk(from, to, 0, 0, SPEC_NONE));
+      } else {
+        if (colourOf(target) === them) out.push(mk(from, to, 0, target, SPEC_NONE));
+        break;
+      }
+      if (!sliding) break;
+      to += d;
+    }
+  }
+
+  _castles(out) {
+    const us = this.turn, them = us ^ BLACK;
+    if (this.inCheck()) return;
+    if (us === WHITE) {
+      if ((this.castling & WK) && !this.board[5] && !this.board[6] &&
+          !this.attacked(5, them) && !this.attacked(6, them))
+        out.push(mk(4, 6, 0, 0, SPEC_CASTLE));
+      if ((this.castling & WQ) && !this.board[3] && !this.board[2] && !this.board[1] &&
+          !this.attacked(3, them) && !this.attacked(2, them))
+        out.push(mk(4, 2, 0, 0, SPEC_CASTLE));
+    } else {
+      if ((this.castling & BK) && !this.board[117] && !this.board[118] &&
+          !this.attacked(117, them) && !this.attacked(118, them))
+        out.push(mk(116, 118, 0, 0, SPEC_CASTLE));
+      if ((this.castling & BQ) && !this.board[115] && !this.board[114] && !this.board[113] &&
+          !this.attacked(115, them) && !this.attacked(114, them))
+        out.push(mk(116, 114, 0, 0, SPEC_CASTLE));
+    }
+  }
+
+  /* Returns false and leaves the position untouched if the move is illegal,
+     so callers can simply skip it. */
+  make(move) {
+    const from = mFrom(move), to = mTo(move), promo = mPromo(move);
+    const spec = mSpec(move), cap = mCap(move);
+    const board = this.board;
+    const us = this.turn, them = us ^ BLACK;
+    const piece = board[from];
+
+    this.undo.push({
+      move, castling: this.castling, ep: this.ep, half: this.half,
+      kingW: this.kings[0], kingB: this.kings[1]
+    });
+
+    board[to] = promo ? (promo | us) : piece;
+    board[from] = 0;
+
+    if (spec === SPEC_EP) board[to + (us === WHITE ? -16 : 16)] = 0;
+
+    if (spec === SPEC_CASTLE) {
+      if (to === 6)        { board[5] = board[7];     board[7] = 0; }
+      else if (to === 2)   { board[3] = board[0];     board[0] = 0; }
+      else if (to === 118) { board[117] = board[119]; board[119] = 0; }
+      else if (to === 114) { board[115] = board[112]; board[112] = 0; }
+    }
+
+    if (typeOf(piece) === KING) this.kings[us ? 1 : 0] = to;
+
+    // castling rights die when the king or a rook leaves home, or a rook is taken
+    if (from === 4 || to === 4)       this.castling &= ~(WK | WQ);
+    if (from === 116 || to === 116)   this.castling &= ~(BK | BQ);
+    if (from === 7 || to === 7)       this.castling &= ~WK;
+    if (from === 0 || to === 0)       this.castling &= ~WQ;
+    if (from === 119 || to === 119)   this.castling &= ~BK;
+    if (from === 112 || to === 112)   this.castling &= ~BQ;
+
+    this.ep = spec === SPEC_DOUBLE ? (from + to) / 2 : -1;
+    this.half = (cap || typeOf(piece) === PAWN) ? 0 : this.half + 1;
+    if (us === BLACK) this.full++;
+    this.turn = them;
+
+    // legality: our king must not be left attacked
+    if (this.attacked(this.kings[us ? 1 : 0], them)) { this.unmake(); return false; }
+    return true;
+  }
+
+  unmake() {
+    const rec = this.undo.pop();
+    if (!rec) return;
+    const move = rec.move;
+    const from = mFrom(move), to = mTo(move), promo = mPromo(move);
+    const spec = mSpec(move), cap = mCap(move);
+    const board = this.board;
+
+    this.turn ^= BLACK;
+    const us = this.turn;
+    if (us === BLACK) this.full--;
+
+    board[from] = promo ? (PAWN | us) : board[to];
+    board[to] = 0;
+
+    if (spec === SPEC_EP) {
+      board[to + (us === WHITE ? -16 : 16)] = cap;
+    } else if (cap) {
+      board[to] = cap;
+    }
+
+    if (spec === SPEC_CASTLE) {
+      if (to === 6)        { board[7] = board[5];     board[5] = 0; }
+      else if (to === 2)   { board[0] = board[3];     board[3] = 0; }
+      else if (to === 118) { board[119] = board[117]; board[117] = 0; }
+      else if (to === 114) { board[112] = board[115]; board[115] = 0; }
+    }
+
+    this.castling = rec.castling;
+    this.ep = rec.ep;
+    this.half = rec.half;
+    this.kings[0] = rec.kingW;
+    this.kings[1] = rec.kingB;
+  }
+
+  /* A null move: hand the turn over without playing anything. On our own board
+     this is nearly free — flip the side, drop en passant rights, remember what
+     to restore. No position rebuild, unlike doing this through chess.js. */
+  makeNull() {
+    this.undo.push({
+      move: 0, castling: this.castling, ep: this.ep, half: this.half,
+      kingW: this.kings[0], kingB: this.kings[1]
+    });
+    this.ep = -1;
+    this.half++;
+    this.turn ^= BLACK;
+  }
+
+  unmakeNull() {
+    const rec = this.undo.pop();
+    this.turn ^= BLACK;
+    this.castling = rec.castling;
+    this.ep = rec.ep;
+    this.half = rec.half;
+    this.kings[0] = rec.kingW;
+    this.kings[1] = rec.kingB;
+  }
+
+  perft(depth) {
+    if (depth === 0) return 1;
+    let total = 0;
+    for (const m of this.moves()) {
+      if (!this.make(m)) continue;
+      total += depth === 1 ? 1 : this.perft(depth - 1);
+      this.unmake();
+    }
+    return total;
+  }
+}
+
+
+
+/* Tuned 2026-08-26 over 1,637,127 quiet positions from the Lichess Elite
+   database (2500+/2300+). Two methods with different failure modes agreed to
+   within a point on the minor pieces: Texel gradient descent on prediction
+   error (tune.py), and a win-rate break-even measurement that shares no code
+   with this file (piecevalue.py). Previously 320/330/500/900 -- inherited
+   convention, never measured for this engine.
+
+   Pawn stays pinned at 100. It is the anchor: without one fixed scale the
+   whole weight vector can grow or shrink freely and the fit is degenerate.
+
+   The queen is the one value the two methods disagreed on (974 vs 1060). Its
+   coverage is poor -- queens are level in 92% of positions, and the rest are
+   usually already decided -- so it rests on the weaker evidence of the four.
+   1100 sits at the top of the supported range after correcting for the
+   break-even method's known 2-4% downward bias. NOTE: VAL also feeds seeMove,
+   so raising the queen changes which captures quiescence prunes. That is a
+   search change no regression here can see, and the reason this wants SPRT. */
+const VAL = [0, 100, 306, 322, 505, 1100, 0];   // indexed by type
+const MATE = 100000;
+
+/* Piece-square tables, a8 first, from White's point of view. */
+const PST = {
+  [PAWN]: [ 0,  0,  0,  0,  0,  0,  0,  0,
+           50, 50, 50, 50, 50, 50, 50, 50,
+           10, 10, 20, 30, 30, 20, 10, 10,
+            5,  5, 10, 25, 25, 10,  5,  5,
+            0,  0,  0, 20, 20,  0,  0,  0,
+            5, -5,-10,  0,  0,-10, -5,  5,
+            5, 10, 10,-20,-20, 10, 10,  5,
+            0,  0,  0,  0,  0,  0,  0,  0],
+  [KNIGHT]: [-50,-40,-30,-30,-30,-30,-40,-50,
+             -40,-20,  0,  0,  0,  0,-20,-40,
+             -30,  0, 10, 15, 15, 10,  0,-30,
+             -30,  5, 15, 20, 20, 15,  5,-30,
+             -30,  0, 15, 20, 20, 15,  0,-30,
+             -30,  5, 10, 15, 15, 10,  5,-30,
+             -40,-20,  0,  5,  5,  0,-20,-40,
+             -50,-40,-30,-30,-30,-30,-40,-50],
+  [BISHOP]: [-20,-10,-10,-10,-10,-10,-10,-20,
+             -10,  0,  0,  0,  0,  0,  0,-10,
+             -10,  0,  5, 10, 10,  5,  0,-10,
+             -10,  5,  5, 10, 10,  5,  5,-10,
+             -10,  0, 10, 10, 10, 10,  0,-10,
+             -10, 10, 10, 10, 10, 10, 10,-10,
+             -10,  5,  0,  0,  0,  0,  5,-10,
+             -20,-10,-10,-10,-10,-10,-10,-20],
+  [ROOK]: [  0,  0,  0,  0,  0,  0,  0,  0,
+             5, 10, 10, 10, 10, 10, 10,  5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+            -5,  0,  0,  0,  0,  0,  0, -5,
+             0,  0,  0,  5,  5,  0,  0,  0],
+  [QUEEN]: [-20,-10,-10, -5, -5,-10,-10,-20,
+            -10,  0,  0,  0,  0,  0,  0,-10,
+            -10,  0,  5,  5,  5,  5,  0,-10,
+             -5,  0,  5,  5,  5,  5,  0, -5,
+              0,  0,  5,  5,  5,  5,  0, -5,
+            -10,  5,  5,  5,  5,  5,  0,-10,
+            -10,  0,  5,  0,  0,  0,  0,-10,
+            -20,-10,-10, -5, -5,-10,-10,-20],
+  [KING]: [-30,-40,-40,-50,-50,-40,-40,-30,
+           -30,-40,-40,-50,-50,-40,-40,-30,
+           -30,-40,-40,-50,-50,-40,-40,-30,
+           -30,-40,-40,-50,-50,-40,-40,-30,
+           -20,-30,-30,-40,-40,-30,-30,-20,
+           -10,-20,-20,-20,-20,-20,-20,-10,
+            20, 20,  0,  0,  0, 20, 20, 20,
+            20, 30, 10,  0,  0, 10, 30, 20]
+};
+
+const KING_EG = [
+  -50,-30,-30,-30,-30,-30,-30,-50,
+  -30,-20,-10,  0,  0,-10,-20,-30,
+  -30,-10, 20, 30, 30, 20,-10,-30,
+  -30,-10, 30, 40, 40, 30,-10,-30,
+  -30,-10, 30, 40, 40, 30,-10,-30,
+  -30,-10, 20, 30, 30, 20,-10,-30,
+  -30,-30,  0,  0,  0,  0,-30,-30,
+  -50,-40,-30,-20,-20,-30,-40,-50
+];
+
+const PHASE = [0, 0, 1, 1, 2, 4, 0];
+
+// All material bar kings, at the start of a game.
+const START_MATERIAL = 2 * (8 * 100 + 2 * 320 + 2 * 330 + 2 * 500 + 900);
+
+// Passed pawns are the biggest single term in the evaluation and have to scale
+// steeply — a passer on the 6th is worth far more than twice one on the 3rd.
+const PASSED = [0, 10, 20, 30, 50, 80, 130, 0];
+
+const MOB_WEIGHT = [0, 0, 4, 5, 2, 1, 0];   // by piece type
+
+/* Every positional term is scaled here so each can be tuned or switched off
+   independently. Set any of them to 0 to remove that term entirely. These
+   defaults are NOT tuned — see the note in README-fast.md. */
+/* Fitted by tune.py over the same 1,637,127 positions, 2026-08-26.
+   Previously hand-set to 0.4 / 0.7 / 0.5 / 0.8.
+
+   mobility was damped to 0.4 on a 70-75 game match whose interval crossed 50%,
+   so that never established much either way; the regression prefers 0.6.
+   shield oscillated across epochs rather than settling -- read 0.55 as
+   indistinguishable from 0.5, not as a measurement.
+   trade came back essentially unchanged (0.796), the one weight the data pins
+   firmly, and the only one that was already right. */
+const W = {
+  mobility:   0.6,
+  pawns:      0.91,
+  shield:     0,     // OFF - deleting it measured free, see below
+  trade:      0.8,
+  kingsafety: 0      // OFF - rejected by match play, see below
+};
+
+/* Settled by SPRT on 2026-08-27. Do not re-litigate without new evidence.
+   Full numbers in HANDOFF.md; `python3 summary.py` regenerates them.
+
+   kingsafety is ZERO because the games said so: -13.32 +/- 16.72 Elo over 1200
+   games, LLR -2.05 against a -2.94 rejection bound. That is AFTER coverage
+   flagged it unfittable, and AFTER sensitivity.py rescued it by showing that
+   switching it off cost 44% of the entire tuning gain in PREDICTION ERROR.
+   Both regression tools said keep it. The only measurement that counts said
+   drop it. Two reasons it fails:
+     - the search already finds the attack, so a static bonus counts the same
+       danger twice and pushes the engine into attacks that do not work. This
+       gets worse the deeper the search runs, and the search went from depth
+       5-8 to 9-13 in the same week this term was added;
+     - a king under attack IS won more often in the training data, because
+       those are HUMAN games and humans defend badly under pressure. The term
+       learned a fact about human psychology, not about chess.
+   The code stays and option.KingSafety still exposes it, so it can be retested
+   if it is ever scaled down sensibly - it can currently swing the evaluation
+   by 250cp off a crude 3x3 zone with a two-attacker threshold.
+
+   mobility stays at 0.6. The 3000-epoch fit over 1.6M positions wanted 1.50;
+   games said -10.72. Separately 0.6 against the original 0.4 measured
+   +1.74 +/- 16.40 - indistinguishable. This question is CLOSED: the weight is
+   flat in the regression and flat in games. Do not spend more time on it.
+
+   pieces, pawns, trade: the whole evaluation retune measured ~zero in games
+   (+16.81 then -2.90 across two runs at different node counts). Every piece
+   value shipped here is inside the band sensitivity.py could not distinguish.
+
+   shield is ZERO as of 2026-08-27. sensitivity.py could not distinguish its
+   weight from zero at all - every value from 0 to 0.669 fitted equally well -
+   and deleting it then measured +1.74 +/- 16.98 on SIMPLIFICATION bounds
+   (elo0=-5 elo1=0), i.e. removing it costs nothing. It was only ever a crude
+   stand-in for king safety, asking whether pawns are still in front of the
+   king without any idea whether anyone is attacking it.
+
+   Note what the pair of them means together: the evaluation now has NO king
+   safety of any kind, and measured stronger for it. At depth 9-13 the search
+   finds threats against the king on its own, and both static attempts to
+   anticipate that were double-counting. */
+
+/* Search heuristics, each individually switchable and each exposed as a UCI
+   option by uci.mjs. They are separate switches on purpose: every one of them
+   is forward pruning -- a bet that part of the tree is not worth looking at --
+   and if they were bundled, a failed SPRT would not say which bet was wrong.
+   NONE of these has been validated by a match yet. They are on because the
+   page and the harness must run the same engine (see the useNull comment on
+   bestMove for what happens when they diverge), not because they are proven. */
+const OPT = {
+  lmr:      true,   // late move reductions
+  pvs:      true,   // null-window search on all but the first move
+  rfp:      true,   // reverse futility: bail when static eval is far above beta
+  delta:    true,   // skip captures in quiescence that cannot reach alpha
+  futility: true,   // skip quiet moves that cannot lift a hopeless score
+  lmp:      true,   // stop searching quiet moves once enough have failed
+  counter:  true,   // order the reply that refuted this move last time
+  /* OFF by default, unlike the rest. Measured at depth 6 and depth 8 across
+     three positions, at window widths from 40 to 400cp, it never beat having
+     it off: +25%, +4%, +7%, +4% nodes at depth 6, and -5%, +10%, +66% at
+     depth 8. No width helps consistently. The likely reason is that this root
+     already narrows its own window as the best score improves, so a second
+     narrowing buys little while every failed window re-searches the whole
+     depth. Left in and switchable so it can be re-tested if the search
+     changes -- but it is not on the strength of a measurement it failed. */
+  asp:      false,  // search a narrow window around the previous score
+  aspDelta: 50      // half-width of that window, in centipawns
+};
+
+// 0x88 square -> table index, mirrored for Black
+const idxW = sq => (7 - (sq >> 4)) * 8 + (sq & 7);
+const idxB = sq => (sq >> 4) * 8 + (sq & 7);
+
+/* ---------- Zobrist ---------- */
+let zseed = 0x2f6e2b1;
+const rnd32 = () => {
+  zseed ^= zseed << 13; zseed |= 0;
+  zseed ^= zseed >>> 17;
+  zseed ^= zseed << 5;  zseed |= 0;
+  return zseed >>> 0;
+};
+const ZP = [];                       // [piece][square] -> [hi, lo]
+for (let p = 0; p < 15; p++) {
+  ZP[p] = [];
+  for (let s = 0; s < 128; s++) ZP[p][s] = [rnd32(), rnd32()];
+}
+const ZTURN = [rnd32(), rnd32()];
+const ZCASTLE = []; for (let i = 0; i < 16; i++) ZCASTLE[i] = [rnd32(), rnd32()];
+const ZEP = []; for (let i = 0; i < 9; i++) ZEP[i] = [rnd32(), rnd32()];
+
+/* Two 32-bit halves: one indexes the table, the other verifies the entry.
+   A single 32-bit key collides often enough at 200k entries to matter. */
+function hashOf(b) {
+  let h1 = 0, h2 = 0;
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) { sq += 7; continue; }
+    const p = b.board[sq];
+    if (!p) continue;
+    h1 ^= ZP[p][sq][0]; h2 ^= ZP[p][sq][1];
+  }
+  if (b.turn === BLACK) { h1 ^= ZTURN[0]; h2 ^= ZTURN[1]; }
+  h1 ^= ZCASTLE[b.castling][0]; h2 ^= ZCASTLE[b.castling][1];
+  const epFile = b.ep >= 0 ? (b.ep & 7) : 8;
+  h1 ^= ZEP[epFile][0]; h2 ^= ZEP[epFile][1];
+  return [h1 >>> 0, h2 >>> 0];
+}
+
+/* Pseudo-legal destination count. On this board it's a few ray walks with no
+   legality filtering — what made mobility unaffordable through chess.js was
+   rebuilding a position to see the other side's moves, which doesn't arise
+   here. */
+/* Scratch: king-zone squares hit by the most recent mobility() walk. A module
+   variable rather than a returned pair, because this runs millions of times per
+   search and must not allocate. */
+let KA = 0;
+
+function mobility(board, sq, type, us, zone) {
+  let n = 0, atk = 0;
+  const offs = type === KNIGHT ? [-33,-31,-18,-14,14,18,31,33]
+             : type === BISHOP ? [-17,-15,15,17]
+             : type === ROOK   ? [-16,-1,1,16]
+             : [-17,-16,-15,-1,1,15,16,17];
+  const sliding = type !== KNIGHT;
+  for (const d of offs) {
+    let to = sq + d;
+    while (!(to & 0x88)) {
+      const p = board[to];
+      if (p) { if (colourOf(p) !== us) { n++; if (zone && zone[to]) atk++; } break; }
+      n++;
+      if (zone && zone[to]) atk++;
+      if (!sliding) break;
+      to += d;
+    }
+  }
+  KA = atk;                    // read immediately by the caller, before the next call
+  return n * MOB_WEIGHT[type];
+}
+
+/* Doubled, isolated, connected and passed pawns. `mine` and `theirs` are lists
+   of pawn squares; `white` decides which way "ahead" points. */
+function pawnStructure(mine, theirs, white) {
+  let score = 0;
+  const files = [0,0,0,0,0,0,0,0];
+  for (const sq of mine) files[sq & 7]++;
+
+  for (let f = 0; f < 8; f++) if (files[f] > 1) score -= 15 * (files[f] - 1);
+
+  for (const sq of mine) {
+    const f = sq & 7, r = sq >> 4;
+    const rel = white ? r : 7 - r;
+
+    if (!(f > 0 && files[f-1]) && !(f < 7 && files[f+1])) score -= 15;
+
+    let blocked = false;
+    for (const t of theirs) {
+      if (Math.abs((t & 7) - f) > 1) continue;
+      if (white ? (t >> 4) > r : (t >> 4) < r) { blocked = true; break; }
+    }
+    if (!blocked) score += PASSED[rel];
+
+    for (const o of mine) {
+      if (o === sq) continue;
+      if (Math.abs((o & 7) - f) === 1 && Math.abs((o >> 4) - r) <= 1) { score += 8; break; }
+    }
+  }
+  return score;
+}
+
+/* Cheap king safety: is there still a pawn in front of the king? The full
+   attack-unit version needs attack maps; this catches much of the value. */
+/* ---------- king safety ----------
+   kingShield below only asks whether pawns are still standing in front of the
+   king. It cannot tell that three enemy pieces are aimed at it. This is the
+   other half: count what the opponent actually attacks near the king.
+
+   The zone is the 3x3 box around the king, precomputed for every square so the
+   hot loop is one array lookup. (Extending it to the rank in front of the king
+   is the obvious refinement, and needs one table per colour.) */
+const KING_ZONE = (() => {
+  const t = new Array(128);
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) continue;
+    const z = new Uint8Array(128);
+    for (const d of [-17, -16, -15, -1, 0, 1, 15, 16, 17]) {
+      const to = sq + d;
+      if (!(to & 0x88)) z[to] = 1;
+    }
+    t[sq] = z;
+  }
+  return t;
+})();
+
+const KA_WEIGHT = [0, 0, 20, 20, 40, 80, 0];   // pressure per attacker, by type
+
+/* Quadratic in the accumulated pressure, flattening at the top. The SHAPE is
+   the whole point: two attackers are far more than twice as dangerous as one,
+   and a linear term cannot say that -- which is why simply counting attackers
+   does not work and this does. The absolute scale is arbitrary; W.kingsafety
+   fits a multiplier over the entire curve. */
+const KING_DANGER = new Int16Array(200);
+for (let i = 0; i < 200; i++) KING_DANGER[i] = Math.min(500, Math.round(i * i / 6));
+
+/* One attacker is not an attack. Requiring two is what stops a lone wandering
+   knight from reading as a mating net. */
+const danger = (weight, attackers) =>
+  attackers < 2 ? 0 : KING_DANGER[weight > 199 ? 199 : weight];
+
+function kingShield(board, kingSq, us) {
+  let pen = 0;
+  const f = kingSq & 7;
+  const fwd = us === WHITE ? 16 : -16;
+  for (const df of [-1, 0, 1]) {
+    if (f + df < 0 || f + df > 7) continue;
+    let sheltered = false;
+    for (const step of [1, 2]) {
+      const sq = kingSq + fwd * step + df;
+      if (sq & 0x88) continue;
+      if (board[sq] === (PAWN | us)) { sheltered = true; break; }
+    }
+    if (!sheltered) pen -= 22;
+  }
+  return pen;
+}
+
+/* ---------- evaluation ---------- */
+function evaluate(b) {
+  let score = 0, kingMg = 0, kingEg = 0, phase = 0;
+  let wb = 0, bb = 0, matW = 0, matB = 0;
+  const wp = [], bp = [];
+  const board = b.board;
+  /* Pressure on each king, from the opponent's pieces. With the term switched
+     off this is dead work in the hottest loop in the engine, so pass null and
+     let mobility() skip the lookup entirely. */
+  const ksOn = W.kingsafety !== 0;
+  const zW = ksOn ? KING_ZONE[b.kings[0]] : null,
+        zB = ksOn ? KING_ZONE[b.kings[1]] : null;
+  let awW = 0, anW = 0, awB = 0, anB = 0;
+
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) { sq += 7; continue; }
+    const p = board[sq];
+    if (!p) continue;
+    const t = typeOf(p);
+    const us = colourOf(p);
+    const white = us === WHITE;
+    const idx = white ? idxW(sq) : idxB(sq);
+    const sign = white ? 1 : -1;
+
+    if (t === KING) {
+      kingMg += sign * PST[KING][idx];
+      kingEg += sign * KING_EG[idx];
+      continue;
+    }
+
+    score += sign * (VAL[t] + PST[t][idx]);
+    phase += PHASE[t];
+    if (white) matW += VAL[t]; else matB += VAL[t];
+
+    if (t === PAWN) { (white ? wp : bp).push(sq); }
+    else {
+      if (t === BISHOP) { if (white) wb++; else bb++; }
+      score += sign * mobility(board, sq, t, us, white ? zB : zW) * W.mobility;
+      if (KA) {
+        if (white) { awB += KA * KA_WEIGHT[t]; anB++; }
+        else       { awW += KA * KA_WEIGHT[t]; anW++; }
+      }
+    }
+  }
+
+  if (wb >= 2) score += 30;
+  if (bb >= 2) score -= 30;
+
+  score += (pawnStructure(wp, bp, true) - pawnStructure(bp, wp, false)) * W.pawns;
+
+  const ph = phase > 24 ? 24 : phase;
+
+  // King safety matters in the middlegame and not at all in the endgame, where
+  // the king wants to be out in the open.
+  // Skipped entirely at zero weight, same as king safety below.
+  if (W.shield) score += (kingShield(board, b.kings[0], WHITE) -
+                          kingShield(board, b.kings[1], BLACK)) * (ph / 24) * W.shield;
+
+  // Positive when Black's king is the one under pressure. Faded out by phase
+  // for the same reason as the shield: in an endgame the king wants to be out.
+  score += (danger(awB, anB) - danger(awW, anW)) * (ph / 24) * W.kingsafety;
+
+  score += (kingMg * ph + kingEg * (24 - ph)) / 24;
+
+  /* Trading is progress when you're ahead and a mistake when you're behind: the
+     same lead is worth more with fewer pieces left. Scale the material edge by
+     how much has come off the board. */
+  score += (matW - matB) * (1 - (matW + matB) / START_MATERIAL) * W.trade;
+
+  return b.turn === WHITE ? Math.round(score) : -Math.round(score);
+}
+
+/* Decompose the evaluation into a fixed part and the four tunable terms, all
+   from WHITE's point of view so they can be regressed against a game result.
+   Because eval = base + sum(w_i * f_i), the weights are linear coefficients and
+   the gradient is analytic — this is logistic regression, not a search. */
+function features(b) {
+  const board = b.board;
+  /* features() ALWAYS computes this, even with W.kingsafety at zero. Its job
+     is to expose the raw feature for tune.py to fit; gating it on the weight
+     would make the column read as all-zero, and the term would look like it
+     had no coverage rather than no weight. */
+  const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
+  let awW = 0, anW = 0, awB = 0, anB = 0;
+  let base = 0, kingMg = 0, kingEg = 0, phase = 0;
+  let wb = 0, bb = 0, matW = 0, matB = 0, mob = 0;
+  const wp = [], bp = [];
+  const counts = [0,0,0,0,0,0,0];   // net piece counts by type, white-positive
+
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) { sq += 7; continue; }
+    const p = board[sq];
+    if (!p) continue;
+    const t = typeOf(p);
+    const us = colourOf(p);
+    const white = us === WHITE;
+    const idx = white ? idxW(sq) : idxB(sq);
+    const sign = white ? 1 : -1;
+
+    if (t === KING) {
+      kingMg += sign * PST[KING][idx];
+      kingEg += sign * KING_EG[idx];
+      continue;
+    }
+    /* Piece values are held out of `base` so the tuner can fit them too. Pawns
+       stay pinned at 100 as the anchor — without one fixed scale the whole
+       weight vector can grow or shrink freely and the fit is degenerate. */
+    base += sign * PST[t][idx];
+    if (t === PAWN) base += sign * 100;
+    else counts[t] += sign;
+    phase += PHASE[t];
+    if (white) matW += VAL[t]; else matB += VAL[t];
+    if (t === PAWN) (white ? wp : bp).push(sq);
+    else {
+      if (t === BISHOP) { if (white) wb++; else bb++; }
+      mob += sign * mobility(board, sq, t, us, white ? zB : zW);
+      if (KA) {
+        if (white) { awB += KA * KA_WEIGHT[t]; anB++; }
+        else       { awW += KA * KA_WEIGHT[t]; anW++; }
+      }
+    }
+  }
+  if (wb >= 2) base += 30;
+  if (bb >= 2) base -= 30;
+
+  const ph = phase > 24 ? 24 : phase;
+  base += (kingMg * ph + kingEg * (24 - ph)) / 24;
+
+  return {
+    base,
+    knight: counts[KNIGHT], bishop: counts[BISHOP],
+    rook: counts[ROOK], queen: counts[QUEEN],
+    mobility: mob,
+    pawns: pawnStructure(wp, bp, true) - pawnStructure(bp, wp, false),
+    shield: (kingShield(board, b.kings[0], WHITE) -
+             kingShield(board, b.kings[1], BLACK)) * ph / 24,
+    trade: (matW - matB) * (1 - (matW + matB) / START_MATERIAL),
+    kingsafety: (danger(awB, anB) - danger(awW, anW)) * ph / 24
+  };
+}
+
+/* ---------- static exchange evaluation ----------
+   On our own board this is safe to do in place: we only touch piece placement
+   and restore it, and nothing here reads castling or en passant. */
+function smallestAttacker(b, sq, side) {
+  const board = b.board;
+  const dir = side === WHITE ? -16 : 16;
+  for (const d of [dir - 1, dir + 1]) {
+    const s = sq + d;
+    if (!(s & 0x88) && board[s] === (PAWN | side)) return s;
+  }
+  for (const d of [-33, -31, -18, -14, 14, 18, 31, 33]) {
+    const s = sq + d;
+    if (!(s & 0x88) && board[s] === (KNIGHT | side)) return s;
+  }
+  for (const d of [-17, -15, 15, 17]) {
+    let s = sq + d;
+    while (!(s & 0x88)) {
+      const p = board[s];
+      if (p) { if (p === (BISHOP | side)) return s; break; }
+      s += d;
+    }
+  }
+  for (const d of [-16, -1, 1, 16]) {
+    let s = sq + d;
+    while (!(s & 0x88)) {
+      const p = board[s];
+      if (p) { if (p === (ROOK | side)) return s; break; }
+      s += d;
+    }
+  }
+  for (const d of [-17, -16, -15, -1, 1, 15, 16, 17]) {
+    let s = sq + d;
+    while (!(s & 0x88)) {
+      const p = board[s];
+      if (p) { if (p === (QUEEN | side)) return s; break; }
+      s += d;
+    }
+  }
+  for (const d of [-17, -16, -15, -1, 1, 15, 16, 17]) {
+    const s = sq + d;
+    if (!(s & 0x88) && board[s] === (KING | side)) return s;
+  }
+  return -1;
+}
+
+function seeAfter(b, sq, side) {
+  const from = smallestAttacker(b, sq, side);
+  if (from < 0) return 0;
+  const board = b.board;
+  const victim = board[sq];
+  if (!victim) return 0;
+  const mover = board[from];
+  board[from] = 0;
+  board[sq] = mover;
+  const value = Math.max(0, VAL[typeOf(victim)] - seeAfter(b, sq, side ^ BLACK));
+  board[sq] = victim;
+  board[from] = mover;
+  return value;
+}
+
+function seeMove(b, move) {
+  const to = mTo(move), cap = mCap(move);
+  if (!cap) return 0;
+  const board = b.board;
+  const from = mFrom(move);
+  const mover = board[from];
+  const victim = board[to];
+  if (!victim) return 0;                  // en passant: treat as neutral
+  board[from] = 0;
+  board[to] = mover;
+  const value = VAL[typeOf(victim)] - seeAfter(b, to, b.turn ^ BLACK);
+  board[to] = victim;
+  board[from] = mover;
+  return value;
+}
+
+/* Zugzwang guard: passing is only safe to assume bad when you have a real piece
+   to move. */
+function hasHeavy(b) {
+  const us = b.turn;
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) { sq += 7; continue; }
+    const p = b.board[sq];
+    if (p && colourOf(p) === us) { const t = typeOf(p); if (t !== PAWN && t !== KING) return true; }
+  }
+  return false;
+}
+
+/* ---------- move ordering ---------- */
+function scoreMove(b, move, ttMove, killers, history, counter) {
+  if (move === ttMove) return 1e7;
+  const cap = mCap(move);
+  if (cap) return 500000 + 10 * VAL[typeOf(cap)] - VAL[typeOf(b.board[mFrom(move)])];
+  if (mPromo(move)) return 400000 + VAL[mPromo(move)];
+  if (killers) {
+    if (move === killers[0]) return 300000;
+    if (move === killers[1]) return 290000;
+  }
+  /* Counter-move: the reply that refuted this exact opponent move somewhere
+     else in the tree. Killers are position-independent for the ply; this is
+     keyed to what was just played, which catches threats a killer misses.
+     Ranked just below the killers and above raw history. */
+  if (counter && move === counter) return 280000;
+  return history[move] || 0;
+}
+
+function sortMoves(b, moves, ttMove, killers, history, counter) {
+  const scored = moves.map(m => [scoreMove(b, m, ttMove, killers, history, counter), m]);
+  scored.sort((a, x) => x[0] - a[0]);
+  return scored.map(x => x[1]);
+}
+
+/* ---------- search ---------- */
+const TT_EXACT = 0, TT_LOWER = 1, TT_UPPER = 2;
+const TT_MAX = 400000;
+
+function quiesce(b, alpha, beta, ctx) {
+  const stand = evaluate(b);
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
+
+  const caps = b.moves(true).filter(m => mCap(m) || mPromo(m));
+  const sorted = sortMoves(b, caps, 0, null, ctx.history);
+
+  for (const m of sorted) {
+    if (mCap(m) && !mPromo(m) && seeMove(b, m) < 0) continue;   // losing capture
+    /* Delta pruning: if winning this piece outright still leaves us far short
+       of alpha, the capture cannot matter. The margin is deliberately generous
+       -- a tight one starts pruning real tactics in sharp positions. */
+    if (OPT.delta && mCap(m) && !mPromo(m) &&
+        stand + VAL[typeOf(mCap(m))] + 200 < alpha) continue;
+    if (!b.make(m)) continue;
+    ctx.nodes++;
+    const score = -quiesce(b, -beta, -alpha, ctx);
+    b.unmake();
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
+}
+
+function negamax(b, depth, alpha, beta, ply, ctx, prevMove = 0) {
+  if ((++ctx.checks & 1023) === 0) {
+    /* A node budget makes a match reproducible and removes timing noise
+       entirely, which is what you want when testing an EVALUATION change: both
+       sides do identical work and only the scoring differs. It is the wrong
+       limit for testing SEARCH changes, whose whole benefit is reaching more
+       depth in the same time -- at equal nodes a reduction looks like nothing.
+       Checked on the same 1024-node cadence as the clock, so it can overshoot
+       by up to that much. */
+    if (ctx.nodes >= ctx.maxNodes) { ctx.stop = true; return 0; }
+    const now = Date.now();
+    if (now > ctx.deadline) { ctx.stop = true; return 0; }
+    if (ctx.beat && now > ctx.nextBeat) {
+      ctx.nextBeat = now + 2000;
+      ctx.beat(ctx.depth, ctx.nodes);
+    }
+  }
+
+  const [h1, h2] = hashOf(b);
+  const hit = ctx.tt.get(h1);
+  let ttMove = 0;
+  if (hit && hit.check === h2) {
+    ttMove = hit.move;
+    if (hit.depth >= depth) {
+      const s = hit.score > MATE - 1000 ? hit.score - ply
+              : hit.score < -MATE + 1000 ? hit.score + ply : hit.score;
+      if (hit.flag === TT_EXACT) return s;
+      if (hit.flag === TT_LOWER && s > alpha) alpha = s;
+      else if (hit.flag === TT_UPPER && s < beta) beta = s;
+      if (alpha >= beta) return s;
+    }
+  }
+
+  const inCheck = b.inCheck();
+  if (inCheck && ply < 40) depth++;            // check extension
+
+  if (depth <= 0) return quiesce(b, alpha, beta, ctx);
+
+  /* Reverse futility: near the leaves, if the static score is already so far
+     above beta that a plausible swing cannot bring it back, take the cutoff.
+     Capped at shallow depth and skipped near mate scores.
+
+     NON-PV NODES ONLY (beta - alpha === 1). Without that guard this loses
+     forced mates: in a position already winning by a rook or more, the static
+     score sits miles above beta, the cutoff fires, and the engine settles for
+     "still winning" instead of finding mate in two. The tactics suite caught
+     exactly that on 8/P5Pp/k3B3/bR2K3/7Q/8/8/B7 w - - 0 1, where it promoted
+     a pawn instead of playing Qa4#. Restricting it to null-window nodes keeps
+     the principal variation exact while still pruning the bulk of the tree. */
+  if (OPT.rfp && !inCheck && beta - alpha === 1 && depth <= 4 &&
+      beta < MATE - 1000 && evaluate(b) - 85 * depth >= beta) return beta;
+
+  /* Null-move pruning with a verification re-search. */
+  if (ctx.useNull && depth >= 3 && !ctx.noNull && !inCheck &&
+      beta < MATE - 1000 && hasHeavy(b)) {
+    const R = 2;
+    b.makeNull();
+    const s = -negamax(b, depth - 1 - R, -beta, -beta + 1, ply + 1, ctx, 0);
+    b.unmakeNull();
+    if (ctx.stop) return 0;
+    if (s >= beta) {
+      ctx.noNull = (ctx.noNull || 0) + 1;
+      const v = negamax(b, depth - 1 - R, beta - 1, beta, ply, ctx);
+      ctx.noNull--;
+      if (ctx.stop) return 0;
+      if (v >= beta) return beta;
+    }
+  }
+
+  const killers = ctx.killers[ply] || (ctx.killers[ply] = [0, 0]);
+  const counter = (OPT.counter && prevMove) ? ctx.counter[prevMove] : 0;
+  const moves = sortMoves(b, b.moves(), ttMove, killers, ctx.history, counter);
+
+  /* Futility and late move pruning share the same preconditions: shallow, not
+     in check, and off the principal variation. Both discard moves outright
+     rather than reducing them, so unlike LMR a mistake here is unrecoverable —
+     which is why they are confined to non-PV nodes near the leaves, and why
+     captures, promotions and checks are always exempt. The static score is
+     only computed when it can actually be used. */
+  const shallow = !inCheck && beta - alpha === 1 && depth <= 3;
+  const futile = OPT.futility && shallow &&
+                 evaluate(b) + 90 * depth <= alpha;
+
+  const alphaOrig = alpha;
+  let best = 0, legal = 0;
+
+  let moveNum = 0;
+  for (const m of moves) {
+    if (!b.make(m)) continue;
+    legal++;
+    moveNum++;
+    ctx.nodes++;
+
+    /* Late move pruning: this far down a well-ordered list at shallow depth,
+       the remaining quiet moves are very unlikely to be the answer. */
+    if (OPT.lmp && shallow && moveNum > 3 + depth * depth &&
+        !mCap(m) && !mPromo(m) && !b.inCheck()) { b.unmake(); continue; }
+
+    /* Futility: the score is already so far below alpha that a quiet move
+       cannot plausibly close the gap. */
+    if (futile && moveNum > 1 &&
+        !mCap(m) && !mPromo(m) && !b.inCheck()) { b.unmake(); continue; }
+
+    /* Late move reductions. Ordering already put captures, promotions, the
+       hash move and killers first, so a quiet move this far down the list is
+       probably not the answer -- search it shallower and make it prove
+       otherwise. Never reduce while in check, giving check, capturing,
+       promoting, or a killer: those are exactly the moves that refute the
+       ordering when it is wrong. */
+    let R = 0;
+    if (OPT.lmr && depth >= 3 && moveNum > 3 && !inCheck &&
+        !mCap(m) && !mPromo(m) &&
+        m !== killers[0] && m !== killers[1] && !b.inCheck()) {
+      R = (depth >= 6 && moveNum >= 6) ? 2 : 1;
+      if (R > depth - 2) R = depth - 2;
+      if (R < 0) R = 0;
+    }
+    const probe = OPT.pvs && moveNum > 1;
+
+    let score;
+    if (moveNum === 1 || (R === 0 && !probe)) {
+      /* Full width, full depth: the move ordering says this is the best one,
+         and everything below is measured against it. */
+      score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx, m);
+    } else {
+      /* Cheap probe first, at the reduced depth and/or a null window. Anything
+         that beats alpha is re-searched at full depth and full width, so a
+         reduction can cost time but can never lose a move. */
+      score = -negamax(b, depth - 1 - R, probe ? -alpha - 1 : -beta,
+                       -alpha, ply + 1, ctx, m);
+      if (!ctx.stop && score > alpha)
+        score = -negamax(b, depth - 1, -beta, -alpha, ply + 1, ctx, m);
+    }
+
+    b.unmake();
+    if (ctx.stop) return 0;
+
+    if (score >= beta) {
+      ttStore(ctx.tt, h1, h2, depth, toTT(beta, ply), TT_LOWER, m);
+      if (!mCap(m)) {
+        if (killers[0] !== m) { killers[1] = killers[0]; killers[0] = m; }
+        ctx.history[m] = (ctx.history[m] || 0) + depth * depth;
+        if (prevMove) ctx.counter[prevMove] = m;
+      }
+      return beta;
+    }
+    if (score > alpha) { alpha = score; best = m; }
+  }
+
+  if (!legal) return inCheck ? -MATE + ply : 0;
+
+  ttStore(ctx.tt, h1, h2, depth, toTT(alpha, ply),
+          alpha > alphaOrig ? TT_EXACT : TT_UPPER, best);
+  return alpha;
+}
+
+/* Mate scores are relative to the current ply, so the same mate has a
+   different score depending on where it was found. Normalise in both
+   directions on the way in; negamax un-normalises on the way out. */
+const toTT = (score, ply) =>
+  score > MATE - 1000 ? score + ply : score < -MATE + 1000 ? score - ply : score;
+
+function ttStore(tt, h1, h2, depth, score, flag, move) {
+  if (tt.size >= TT_MAX) tt.clear();
+  const prev = tt.get(h1);
+  if (!prev || prev.depth <= depth) tt.set(h1, { check: h2, depth, score, flag, move });
+}
+
+function shuffle(list, rng) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const PROMO_CHAR = { [QUEEN]: 'q', [ROOK]: 'r', [BISHOP]: 'b', [KNIGHT]: 'n' };
+
+/* useNull defaults to TRUE. It was false for a long time, which meant the
+   browser build -- whose worker calls bestMove(fen, ms, beat) with three
+   arguments -- silently ran without null-move pruning, while uci.mjs passed
+   its own flag and so every fastchess measurement had it on. The two builds
+   were not the same engine. README-fast.md measured null-move at +1.55 pawns
+   (77.5% over 100 games at depth 5 vs plain depth 4); the page was getting
+   none of it. Harnesses can still switch it off explicitly. */
+function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = true, maxNodes = Infinity) {
+  const b = new Board(fen);
+  const ctx = {
+    nodes: 0, checks: 0, stop: false, deadline: Date.now() + ms,
+    beat: onBeat, nextBeat: Date.now() + 2000, depth: 0,
+    tt: new Map(), killers: [], history: Object.create(null),
+    counter: Object.create(null), useNull, maxNodes
+  };
+
+  const legal = b.moves().filter(m => { const ok = b.make(m); if (ok) b.unmake(); return ok; });
+  if (!legal.length) return null;
+
+  const describe = (m, extra) => ({
+    from: toAlg(mFrom(m)), to: toAlg(mTo(m)),
+    promotion: mPromo(m) ? PROMO_CHAR[mPromo(m)] : undefined,
+    nodes: ctx.nodes, ...extra
+  });
+
+  if (legal.length === 1) {
+    return describe(legal[0], { score: 0, depth: 0, mate: false, forced: true });
+  }
+
+  let root = shuffle(legal, rng);
+  let bestMv = root[0], bestScore = 0, reached = 0;
+
+  for (let depth = 1; depth <= capDepth; depth++) {
+    ctx.depth = depth;
+
+    /* Aspiration window. Each iteration usually scores close to the last one,
+       so search a narrow band around it and let most of the tree fall outside
+       the window and be cut cheaply. When the guess is wrong the search fails
+       at an edge and the whole depth has to be repeated wider, which costs
+       real time - so the window only opens once there is a previous score
+       worth trusting, it widens by a large factor rather than creeping, and
+       past a point it gives up and goes fully open. That last step is what
+       guarantees this loop terminates. */
+    let delta = OPT.aspDelta;
+    let lo = -Infinity, hi = Infinity;
+    if (OPT.asp && depth >= 4 && Math.abs(bestScore) < MATE - 1000) {
+      lo = bestScore - delta;
+      hi = bestScore + delta;
+    }
+
+    let alpha = -Infinity, localBest = 0;
+    for (;;) {
+      let best = -Infinity;
+      localBest = 0;
+      for (const m of root) {
+        if (!b.make(m)) continue;
+        ctx.nodes++;
+        const score = -negamax(b, depth - 1, -hi, -Math.max(lo, best), 1, ctx, m);
+        b.unmake();
+        if (ctx.stop) break;
+        if (score > best || !localBest) { best = score; localBest = m; }
+      }
+      if (ctx.stop) break;
+
+      /* Open only the side that failed. Widening both throws away a bound
+         that was still good and makes every re-search cost more than it
+         needs to. Past the cap the window goes fully open, which is what
+         guarantees this terminates. */
+      if (lo > -Infinity && best <= lo) {                  // failed low
+        delta *= 4;
+        lo = delta > 1200 ? -Infinity : bestScore - delta;
+        continue;                                          // same depth, wider
+      }
+      if (hi < Infinity && best >= hi) {                   // failed high
+        delta *= 4;
+        hi = delta > 1200 ? Infinity : bestScore + delta;
+        continue;
+      }
+      alpha = best;
+      break;
+    }
+
+    if (ctx.stop) break;
+    bestMv = localBest; bestScore = alpha; reached = depth;
+    root = [localBest, ...root.filter(m => m !== localBest)];
+    if (Math.abs(alpha) > MATE - 100) break;
+  }
+
+  return describe(bestMv, {
+    score: bestScore, depth: reached, mate: Math.abs(bestScore) > MATE - 100
+  });
+}
+
+
+self.onmessage = e => {
+  const { fen, ms, mode } = e.data;
+  const beat = (depth, n) => self.postMessage({ fen, mode, beat: true, depth, nodes: n });
+  try {
+    const r = bestMove(fen, ms, beat);
+    self.postMessage(r ? { ...r, fen, mode } : { fen, mode, from: null });
+  } catch (err) {
+    self.postMessage({ fen, mode, from: null, error: String(err) });
+  }
+};
+</script>
+
+<script type="module">
+import { Chess } from 'https://esm.sh/chess.js@1.4.0';
+import { joinRoom as joinNostr, getRelaySockets as nostrSockets } from 'https://esm.sh/@trystero-p2p/nostr@0.25.3';
+import { joinRoom as joinMqtt, getRelaySockets as mqttSockets } from 'https://esm.sh/@trystero-p2p/mqtt@0.25.3';
+
+const APP_ID = 'table-chess-v1';
+
+// Trystero picks nostr relays by shuffling its defaults with a seed derived from
+// APP_ID, so the app name silently decides which 5 you get — and some of the 47
+// defaults are dead. Pin the big, well-maintained ones instead. All of these are
+// from Trystero's own list, so they're known to accept the event kinds it needs.
+const NOSTR_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.mostr.pub',
+  'wss://purplerelay.com',
+  'wss://strfry.openhoofd.nl',
+  'wss://nostr.data.haus',
+  'wss://relay.froth.zone',
+  'wss://nostr-01.yakihonne.com'
+];
+
+const MQTT_BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://public:public@public.cloud.shiftr.io'
+];
+
+// Trystero only supplies STUN by default (Google + Cloudflare), which tells each
+// side its own public address but can't help when both ends sit behind a NAT that
+// refuses unsolicited inbound packets — symmetric NAT, most corporate networks,
+// a lot of mobile carriers. Then the two sides find each other through the relays
+// and still can't open a connection. TURN fixes that by relaying the traffic.
+//
+// These are Open Relay's free public servers: no signup, best-effort, and shared
+// with the whole internet. Port 443 over TCP is listed because some networks drop
+// UDP entirely. For something dependable, put your own credentials here — see the
+// README.
+const TURN_SERVERS = [
+  { urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:staticauth.openrelay.metered.ca:80',
+    username: 'openrelayproject', credential: 'openrelayproject' }
+];
+
+const el = id => document.getElementById(id);
+const boardEl = el('board');
+
+/* ---------- build stamp + log capture ----------
+   The version is shown in the corner so two people can check they're on the
+   same build: GitHub Pages serves index.html through a CDN and browsers cache
+   it, so one side can easily be running yesterday's file. */
+const VERSION = '2026-09-09.3-inspect';
+const LOG_MAX = 120;
+const logBuf = [];
+
+function logLine(kind, parts) {
+  const t = new Date().toISOString().slice(11, 19);
+  let text;
+  try {
+    text = parts.map(p =>
+      typeof p === 'string' ? p :
+      p instanceof Error ? p.message :
+      JSON.stringify(p)).join(' ');
+  } catch { text = '[unserialisable]'; }
+  logBuf.push(`${t} ${kind} ${text.slice(0, 300)}`);
+  if (logBuf.length > LOG_MAX) logBuf.shift();
+}
+
+// Capture warnings from here *and* from Trystero — relay failures and
+// "could not connect to peer" are exactly what needs reporting.
+for (const level of ['warn', 'error']) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => { logLine(level, args); original(...args); };
+}
+window.addEventListener('error', e => logLine('error', [e.message]));
+window.addEventListener('unhandledrejection', e => logLine('error', ['unhandled', e.reason]));
+
+/* ---------- tiny guarded storage ---------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+let game = new Chess();
+let myColor = 'w';
+let code = null;
+let result = null;
+let selected = null;
+let lastMove = null;
+let senders = [];
+let peers = new Set();
+
+/* engine / hints */
+let hintsOn = false;
+let peerHints = false;
+let handshakeFailed = false;   // found each other, but no direct connection
+let navigating = false;        // true while we write our own hash
+let solo = false;              // playing the engine, no peer, no relays
+let seatClash = false;         // both ended up on the same side
+let takebackAsked = false;     // we have a request outstanding
+let soundOn = store.get('table:sound') !== false;
+let audioCtx = null;
+let faviconState = null;
+let rooms = [];                // held so we can tear down and rejoin
+let healthTimer = null;
+let lastRejoin = 0;
+let engine = null;
+let hint = null;        // {san, from, to, score, depth, mate, fen}
+let hintFen = null;     // position the current request was for
+let autoPlay = false;          // engine plays our side
+let peerAuto = false;
+let engineJob = null;          // {fen, mode, at} currently with the worker
+let engineWatchdog = null;
+let engineRetried = false;
+let engineNote = '';           // survives drawStatus overwriting gameNote
+let thinkMs = Math.min(60000, Math.max(1000, Number(store.get('table:think')) || 2000));
+
+let pieceSet = store.get('table:set') === 'bauhaus' ? 'bauhaus' : 'staunton';
+
+/* ---------- pieces ----------
+   SVG paths, not Unicode glyphs: glyphs can only be outlined with
+   -webkit-text-stroke, which paints half its width inside the letterform and
+   chews through thin details, and the shapes vary with whatever symbol font the
+   machine happens to have. Paths give one silhouette everywhere.
+
+   Default set is Cburnett — the Staunton pieces from Wikipedia and lichess,
+   drawn to stay legible at diagram size. GPLv2+, by Colin M.L. Burnett.        */
+const STAUNTON = {
+  wk: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linejoin="miter" d="M22.5 11.63V6M20 8h5"/><path fill="#fff" stroke-linecap="butt" stroke-linejoin="miter" d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5"/><path fill="#fff" d="M11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10z"/><path d="M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0"/></g>',
+  wq: '<g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0m16.5-4.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0M41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0M16 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0M33 9a2 2 0 1 1-4 0 2 2 0 1 1 4 0"/><path stroke-linecap="butt" d="M9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-14V25L7 14z"/><path stroke-linecap="butt" d="M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z"/><path fill="none" d="M11.5 30c3.5-1 18.5-1 22 0M12 33.5c6-1 15-1 21 0"/></g>',
+  wr: '<g fill="#fff" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linecap="butt" d="M9 39h27v-3H9zm3-3v-4h21v4zm-1-22V9h4v2h5V9h5v2h5V9h4v5"/><path d="m34 14-3 3H14l-3-3"/><path stroke-linecap="butt" stroke-linejoin="miter" d="M31 17v12.5H14V17"/><path d="m31 29.5 1.5 2.5h-20l1.5-2.5"/><path fill="none" stroke-linejoin="miter" d="M11 14h23"/></g>',
+  wb: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><g fill="#fff" stroke-linecap="butt"><path d="M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.94 3-2 3-2z"/><path d="M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z"/><path d="M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z"/></g><path stroke-linejoin="miter" d="M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5"/></g>',
+  wn: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path fill="#fff" d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21"/><path fill="#fff" d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3"/><path fill="#000" d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0m5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5"/></g>',
+  wp: '<path fill="#fff" stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"/>',
+  bk: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linejoin="miter" d="M22.5 11.6V6"/><path fill="#000" stroke-linecap="butt" stroke-linejoin="miter" d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5"/><path fill="#000" d="M11.5 37a22.3 22.3 0 0 0 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10z"/><path stroke-linejoin="miter" d="M20 8h5"/><path stroke="#ececec" d="M32 29.5s8.5-4 6-9.7C34.1 14 25 18 22.5 24.6v2.1-2.1C20 18 9.9 14 7 19.9c-2.5 5.6 4.8 9 4.8 9"/><path stroke="#ececec" d="M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0"/></g>',
+  bq: '<g fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><g stroke="none"><circle cx="6" cy="12" r="2.75"/><circle cx="14" cy="9" r="2.75"/><circle cx="22.5" cy="8" r="2.75"/><circle cx="31" cy="9" r="2.75"/><circle cx="39" cy="12" r="2.75"/></g><path stroke-linecap="butt" d="M9 26c8.5-1.5 21-1.5 27 0l2.5-12.5L31 25l-.3-14.1-5.2 13.6-3-14.5-3 14.5-5.2-13.6L14 25 6.5 13.5z"/><path stroke-linecap="butt" d="M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z"/><path fill="none" stroke-linecap="butt" d="M11 38.5a35 35 1 0 0 23 0"/><path fill="none" stroke="#ececec" d="M11 29a35 35 1 0 1 23 0m-21.5 2.5h20m-21 3a35 35 1 0 0 22 0m-23 3a35 35 1 0 0 24 0"/></g>',
+  br: '<g fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path stroke-linecap="butt" d="M9 39h27v-3H9zm3.5-7 1.5-2.5h17l1.5 2.5zm-.5 4v-4h21v4z"/><path stroke-linecap="butt" stroke-linejoin="miter" d="M14 29.5v-13h17v13z"/><path stroke-linecap="butt" d="M14 16.5 11 14h23l-3 2.5zM11 14V9h4v2h5V9h5v2h5V9h4v5z"/><path fill="none" stroke="#ececec" stroke-linejoin="miter" stroke-width="1" d="M12 35.5h21m-20-4h19m-18-2h17m-17-13h17M11 14h23"/></g>',
+  bb: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><g fill="#000" stroke-linecap="butt"><path d="M9 36c3.4-1 10.1.4 13.5-2 3.4 2.4 10.1 1 13.5 2 0 0 1.6.5 3 2-.7 1-1.6 1-3 .5-3.4-1-10.1.5-13.5-1-3.4 1.5-10.1 0-13.5 1-1.4.5-2.3.5-3-.5 1.4-2 3-2 3-2z"/><path d="M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z"/><path d="M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z"/></g><path stroke="#ececec" stroke-linejoin="miter" d="M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5"/></g>',
+  bn: '<g fill="none" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path fill="#000" d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21"/><path fill="#000" d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.04-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-1-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-2 2.5-3c1 0 1 3 1 3"/><path fill="#ececec" stroke="#ececec" d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0m5.43-9.75a.5 1.5 30 1 1-.86-.5.5 1.5 30 1 1 .86.5"/><path fill="#ececec" stroke="none" d="m24.55 10.4-.45 1.45.5.15c3.15 1 5.65 2.49 7.9 6.75S35.75 29.06 35.25 39l-.05.5h2.25l.05-.5c.5-10.06-.88-16.85-3.25-21.34s-5.79-6.64-9.19-7.16z"/></g>',
+  bp: '<path stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z"/>',
+};
+
+/* Alternate set, after Josef Hartwig's 1924 Bauhaus design: each form states how
+   the piece moves. Square for the pawn's single step, crenellated block for the
+   rook's ranks and files, an L for the knight, a diamond whose edges are the
+   bishop's diagonals, a circle for the queen's freedom in every direction, and
+   the king as diamond over square — every direction, but one step only.        */
+const BAUHAUS = {
+  p: '<rect x="36" y="54" width="28" height="30"/>',
+  r: '<path d="M28,84 V44 H38 V54 H46 V44 H54 V54 H62 V44 H72 V84 Z"/>',
+  n: '<path d="M32,84 V32 H54 V62 H72 V84 Z"/>',
+  b: '<path d="M50,42 L70,63 L50,84 L30,63 Z"/>',
+  q: '<circle cx="50" cy="62" r="22"/>',
+  k: '<path d="M50,27 L67,44 L50,61 L33,44 Z"/><rect x="35" y="64" width="30" height="20"/>'
+};
+
+function pieceSVG(type, color, cls = '') {
+  if (pieceSet === 'bauhaus') {
+    const fill   = color === 'w' ? '#f2ede2' : '#22262b';
+    const stroke = color === 'w' ? '#191c20' : '#e6e0d3';
+    // viewBox cropped to the shapes' own bounding box so they sit with presence
+    // in the square rather than floating in dead space.
+    return `<svg class="pc bauhaus ${cls}" viewBox="19 24 62 62" aria-hidden="true"
+      ><g fill="${fill}" stroke="${stroke}" stroke-width="3.5"
+          stroke-linejoin="round">${BAUHAUS[type]}</g></svg>`;
+  }
+  return `<svg class="pc ${cls}" viewBox="0 0 45 45" aria-hidden="true"
+    >${STAUNTON[color + type]}</svg>`;
+}
+
+/* ---------- routing ---------- */
+function parseHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo') };
+}
+
+/* The hash states *your own* colour, so each player holds a self-describing
+   link and the share button hands out the complement. Nothing about which side
+   you're on depends on storage. */
+function setHash(colour) {
+  navigating = true;          // our own write, not a jump to another game
+  location.hash = solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
+}
+
+function makeCode() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(9));
+  return [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+}
+
+/* ---------- networking ---------- */
+function connect() {
+  const base = { appId: APP_ID, password: code, turnConfig: TURN_SERVERS };
+
+  const strategies = [
+    { join: joinNostr, urls: NOSTR_RELAYS },
+    { join: joinMqtt,  urls: MQTT_BROKERS }
+  ];
+
+  for (const { join, urls } of strategies) {
+    let room;
+    try {
+      room = join(
+        {
+          ...base,
+          relayConfig: {
+            urls,
+            redundancy: urls.length
+          }
+        },
+        code,
+        {
+          onJoinError: err => {
+            console.warn('join failed', err);
+            // "could not connect to peer" means signalling worked and the direct
+            // connection is what failed — a different problem, and worth saying so.
+            if (String(err && err.error).includes('could not connect to peer')) {
+              handshakeFailed = true;
+              drawStatus();
+            }
+          }
+        }
+      );
+    } catch (e) {
+      console.warn('strategy unavailable', e);
+      continue;
+    }
+
+    const action = room.makeAction('msg');
+    action.onMessage = data => handleMessage(data);
+    senders.push(data => action.send(data));
+
+    rooms.push(room);
+
+    room.onPeerJoin = id => {
+      peers.add(id);
+      handshakeFailed = false;
+      setLink();
+      sendState();
+      announce();
+    };
+    room.onPeerLeave = id => { peers.delete(id); setLink(); };
+  }
+
+  setLink();
+  clearInterval(healthTimer);
+  healthTimer = setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
+}
+
+/* ---------- coming back from the background ----------
+   A backgrounded tab can be frozen (tasks suspended) or discarded outright, and
+   either way the connection may be gone with nothing on screen to say so. When
+   the page comes back and nobody is connected, drop the old rooms and rejoin
+   rather than waiting for a stale connection to notice it's dead. */
+function teardown() {
+  clearInterval(healthTimer);
+  healthTimer = null;
+  for (const room of rooms) {
+    try { Promise.resolve(room.leave()).catch(() => {}); } catch {}
+  }
+  rooms = [];
+  senders = [];
+  peers.clear();
+}
+
+function rejoinIfDropped() {
+  if (!code) return;
+  if (peers.size) return;                       // still connected, leave it alone
+  if (Date.now() - lastRejoin < 5000) return;   // don't thrash on rapid switching
+  lastRejoin = Date.now();
+  teardown();
+  connect();
+  draw();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) rejoinIfDropped();
+});
+// Page Lifecycle: fired when a frozen tab is brought back.
+document.addEventListener('resume', rejoinIfDropped);
+// bfcache restores don't fire visibilitychange.
+window.addEventListener('pageshow', e => { if (e.persisted) rejoinIfDropped(); });
+window.addEventListener('online', rejoinIfDropped);
+
+function relayHealth() {
+  let open = 0, total = 0;
+  for (const getSockets of [nostrSockets, mqttSockets]) {
+    try {
+      const sockets = getSockets() || {};
+      for (const url of Object.keys(sockets)) {
+        total++;
+        if (sockets[url] && sockets[url].readyState === 1) open++;
+      }
+    } catch {}
+  }
+  return { open, total };
+}
+
+function broadcast(msg) {
+  for (const send of senders) {
+    try {
+      Promise.resolve(send(msg)).catch(e => console.warn('send failed', e));
+    } catch (e) {
+      console.warn('send failed', e);
+    }
+  }
+}
+
+function sendState() {
+  broadcast({ t: 'state', history: game.history(), result, color: myColor });
+}
+
+function handleMessage(msg) {
+  if (!msg || typeof msg !== 'object') return;
+
+  if (msg.t === 'state') {
+    // Shouldn't happen — the share button hands out the opposite seat — but if
+    // someone passes on their own link instead, neither side can move and the
+    // reason isn't visible. Say it plainly rather than trying to fix it.
+    seatClash = msg.color === myColor;
+    if (Array.isArray(msg.history)) adopt(msg.history, msg.result, !!msg.force);
+    if (msg.force) takebackAsked = false;
+    return;
+  }
+
+  if (msg.t === 'move') {
+    const ply = game.history().length;
+    if (msg.ply === ply) {
+      try {
+        const m = game.move(msg.san);
+        if (m) {
+          lastMove = { from: m.from, to: m.to };
+          checkEnd();
+          persist();
+          draw();
+          blip();                  // their move, not ours
+        }
+      } catch { sendState(); }
+    } else if (msg.ply > ply) {
+      broadcast({ t: 'sync' });
+    }
+    return;
+  }
+
+  if (msg.t === 'sync') { sendState(); return; }
+
+  if (msg.t === 'resign') {
+    result = { type: 'resign', winner: msg.by === 'w' ? 'b' : 'w' };
+    persist(); draw();
+    return;
+  }
+
+  if (msg.t === 'rematch') { startFresh(msg.yourColor); return; }
+
+  // Hints are announced rather than silent — see the note in the README.
+  if (msg.t === 'hint') {
+    peerHints = !!msg.on;
+    peerAuto = !!msg.auto;
+    peerCoach = !!msg.coach;
+    setLink();
+    return;
+  }
+
+  if (msg.t === 'tb') {
+    if (result || !game.history().length) return;
+    const asker = msg.color === 'w' ? 'White' : 'Black';
+    if (!confirm(`${asker} asks to take back their move. Allow it?`)) {
+      broadcast({ t: 'tbno' });
+      return;
+    }
+    // Wind back to the asker's turn, removing at least one of their own moves.
+    const hist = game.history();
+    const drop = Math.min(game.turn() === msg.color ? 2 : 1, hist.length);
+    const rewound = hist.slice(0, hist.length - drop);
+    broadcast({ t: 'state', history: rewound, result: null, color: myColor, force: true });
+    adopt(rewound, null, true);
+    return;
+  }
+
+  if (msg.t === 'tbno') {
+    takebackAsked = false;
+    el('gameNote').textContent = 'They’d rather keep the move.';
+    setTimeout(() => drawStatus(), 3000);
+    return;
+  }
+}
+
+function adopt(history, remoteResult, force = false) {
+  // Normally a shorter history means we're ahead and they need catching up.
+  // A takeback is the one case where going backwards is the correct answer.
+  if (!force) {
+    if (history.length < game.history().length) { sendState(); return; }
+    if (history.length === game.history().length && !remoteResult) return;
+  }
+
+  const fresh = new Chess();
+  for (const san of history) {
+    try { fresh.move(san); } catch { return; }
+  }
+  game = fresh;
+  const verbose = game.history({ verbose: true });
+  lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
+  result = remoteResult || null;
+  checkEnd();
+  persist();
+  draw();
+}
+
+/* ---------- game flow ---------- */
+function localMove(from, to, promotion) {
+  let m;
+  try { m = game.move({ from, to, promotion }); } catch { return false; }
+  return afterLocalMove(m);
+}
+
+function localMoveSan(san) {
+  let m;
+  try { m = game.move(san); } catch { return false; }
+  return afterLocalMove(m);
+}
+
+function afterLocalMove(m) {
+  if (!m) return false;
+  lastMove = { from: m.from, to: m.to };
+  /* Close the sections. Otherwise the next position arrives with its answers
+     already open, and there is no point at which you look for yourself. */
+  coachOpen.clear();
+  coachReverted = true;
+  coachPick = null;
+  inspectSq = null;
+  broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
+  checkEnd();
+  if (result) sendState();
+  persist();
+  draw();
+  return true;
+}
+
+function checkEnd() {
+  if (result) return;
+  if (game.isCheckmate()) result = { type: 'checkmate', winner: game.turn() === 'w' ? 'b' : 'w' };
+  else if (game.isStalemate()) result = { type: 'stalemate', winner: null };
+  else if (game.isDraw()) result = { type: 'draw', winner: null };
+}
+
+function startFresh(colorForMe) {
+  game = new Chess();
+  myColor = colorForMe;
+  seatClash = false;
+  takebackAsked = false;
+  setHash(colorForMe);   // sides swap on a rematch; keep the link truthful
+  result = null;
+  selected = null;
+  lastMove = null;
+  persist();
+  draw();
+}
+
+function persist() {
+  if (!code) return;
+  store.set('table:' + code, { history: game.history(), myColor, result });
+}
+
+function restore() {
+  const saved = store.get('table:' + code);
+  if (!saved || !Array.isArray(saved.history)) return;
+  const fresh = new Chess();
+  for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
+  game = fresh;
+  result = saved.result || null;
+  const verbose = game.history({ verbose: true });
+  lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
+}
+
+/* ---------- presence ----------
+   Moves only cross while both pages are open, so the app asks you to leave the
+   tab sitting there. These close the loop: something has to say a move landed
+   while you were looking elsewhere. */
+function blip() {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 620;
+    const t = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.14, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.22);
+  } catch { /* no audio available; the title and favicon still do their job */ }
+}
+
+function setFavicon(active) {
+  if (faviconState === active) return;          // don't churn the DOM every draw
+  faviconState = active;
+  const dot = active ? 'var(--brass)' : '#535d61';
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<rect width="32" height="32" rx="6" fill="#15181b"/>` +
+    `<circle cx="16" cy="16" r="7" fill="${active ? '#c8a35b' : '#4a545a'}"/></svg>`;
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    document.head.appendChild(link);
+  }
+  link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+function setPresence() {
+  const yours = !!code && !result && game.turn() === myColor;
+  document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Table';
+  setFavicon(yours);
+}
+
+document.addEventListener('visibilitychange', setPresence);
+
+/* ---------- engine ----------
+   The search runs in a Worker so a 1.5s think never freezes the board. The
+   source sits in an inert text/plain block and is handed over as a
+   Blob, which keeps the page a single file with no build step. */
+function ensureEngine() {
+  if (engine) return engine;
+  try {
+    const src = document.getElementById('engineSrc').textContent;
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    engine = new Worker(url, { type: 'module' });
+    engine.onmessage = e => {
+      const { fen, mode, beat, depth } = e.data;
+
+      if (beat) {
+        if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
+          engineJob.depth = depth;
+          engineRetried = false;   // demonstrably alive
+          engineNote = '';
+          armWatchdog();
+          drawStatus();            // show how deep it has got
+        }
+        return;
+      }
+
+      /* The engine returns squares, not notation. chess.js is already here on
+         the main thread, so it does the conversion — which means the engine
+         never has to generate SAN, and can't disagree with chess.js about
+         disambiguation or check suffixes. */
+      const san = e.data.from
+        ? (game.moves({ verbose: true }).find(m =>
+            m.from === e.data.from && m.to === e.data.to &&
+            (!e.data.promotion || m.promotion === e.data.promotion)) || {}).san
+        : null;
+
+      if (engineJob && engineJob.fen === fen && engineJob.mode === mode) {
+        engineJob = null;
+        clearTimeout(engineWatchdog);
+        engineWatchdog = null;
+        engineRetried = false;    // it's alive; allow a future retry
+        engineNote = '';
+      }
+      // A reply for a position we have already left is stale; drop it.
+      if (fen !== game.fen()) return;
+
+      if (mode === 'play') {
+        if (!engineToMove()) return;
+        if (!e.data.from || !localMove(e.data.from, e.data.to, e.data.promotion)) {
+          // An unplayable suggestion would otherwise loop forever.
+          if (solo) engineFailed('The engine returned a move that can’t be played.');
+          else { autoPlay = false; draw(); }
+          return;
+        }
+        if (solo) blip();          // it's the opponent moving, same as a peer
+        return;
+      }
+
+      if (!hintsOn) return;
+      hint = san ? { ...e.data, san } : null;
+      drawHint();
+      drawArrow();
+    };
+    engine.onerror = err => {
+      console.warn('engine worker failed', err);
+      engine = null;
+      // Releasing the job matters more than the message: askEngine() skips any
+      // request matching the outstanding job, so a job left behind here can
+      // never be retried and the board sits on "Thinking…" forever.
+      engineFailed('The engine stopped. It needs to load chess.js from the network.');
+    };
+  } catch {
+    engine = null;
+  }
+  return engine;
+}
+
+/* Give up on the outstanding request and say so, rather than leaving a job
+   pending that blocks every future one. */
+function engineFailed(message) {
+  clearTimeout(engineWatchdog);
+  engineWatchdog = null;
+  engineJob = null;
+  autoPlay = false;
+  hintsOn = false;
+  hint = null;
+  hintFen = null;
+  engineNote = message;
+  draw();
+}
+
+/* One path to the worker for both uses. `mode` comes back on the reply so a
+   result can't be mistaken for the other kind, and the fen is checked so a
+   late answer for a position we've left is discarded. */
+function askEngine(mode) {
+  const fen = game.fen();
+  if (engineJob && engineJob.fen === fen && engineJob.mode === mode) return;
+  const worker = ensureEngine();
+  if (!worker) { engineFailed('The engine couldn’t start in this browser.'); return; }
+
+  engineJob = { fen, mode, at: Date.now(), depth: 0 };
+  worker.postMessage({ fen, ms: thinkMs, mode });
+  armWatchdog();
+}
+
+/* The watchdog measures SILENCE, not elapsed time. A fixed deadline can't tell
+   a slow search from a dead one, so it kills anything that legitimately runs
+   long — and then kills the retry too. The worker beats every ~2s while it
+   searches, and any beat rearms this, so a search may take as long as it likes
+   while a worker that has actually died is caught within one window. */
+const ENGINE_SILENCE_MS = 12000;
+
+function armWatchdog() {
+  clearTimeout(engineWatchdog);
+  engineWatchdog = setTimeout(onEngineSilent, ENGINE_SILENCE_MS);
+}
+
+function onEngineSilent() {
+  if (!engineJob) return;
+
+  // A hidden tab can have its worker throttled or frozen; silence there means
+  // suspended, not dead. Wait until we're visible again before judging.
+  if (document.hidden) { armWatchdog(); return; }
+
+  console.warn('engine silent for ' + ENGINE_SILENCE_MS + 'ms', engineJob);
+  engineJob = null;
+  try { engine && engine.terminate(); } catch {}
+  engine = null;
+
+  if (engineRetried) {
+    engineFailed('The engine stopped responding. Reload to try again.');
+    return;
+  }
+  engineRetried = true;
+  draw();                       // draw() re-asks through maybeAutoPlay
+}
+
+function requestHint() {
+  if (!hintsOn || result || game.turn() !== myColor) { hint = null; hintFen = null; return; }
+  const fen = game.fen();
+  if (hintFen === fen) return;          // already asked about this position
+  hintFen = fen;
+  hint = null;
+  drawHint();
+  askEngine('hint');
+}
+
+/* In solo the engine is the opponent, so it moves when it is *not* our turn.
+   With a peer, "Engine plays" hands over our own side instead. */
+function engineToMove() {
+  if (result || !code) return false;
+  return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
+}
+
+function maybeAutoPlay() {
+  if (engineToMove()) askEngine('play');
+}
+
+/* ---------- rendering ---------- */
+const FILES = 'abcdefgh';
+const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+
+/* ================= tactics coach =================
+   Static, one-ply analysis of the position on the board. There is no search
+   here: every finding is geometry over the pieces as they stand, plus — for the
+   "available" motifs — one trial move. That limit is deliberate. The engine's
+   job is to find the best move; the coach's job is to rehearse the scan a human
+   runs before every move, which is exactly this: who is loose, who is aligned,
+   what does one move create, and what does it give up.
+
+   The board is a flat 64-cell array taken from chess.js, indexed row-major from
+   a8 (0) to h1 (63), so row 0 is rank 8 and index 63 is h1. chess.js is used
+   only for legal move generation and for the flipped-turn trick below; all the
+   attack geometry lives here, because the questions the coach asks — who still
+   attacks this square once these two pieces have come off it — have no chess.js
+   API.
+
+   Most of the work in here is not detection, it is suppression. Every one of
+   these motifs is trivially easy to find and mostly worthless when found: the
+   starting position contains two undefended rooks, two sealed back ranks and a
+   dozen technically-real pins onto pawns. A coach that reports those teaches a
+   person to ignore it. So each detector carries a gate — is the pinned piece
+   worth pinning, could anything actually reach that loose piece next move — and
+   the gates matter more than the geometry. */
+
+const CV = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
+const NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+
+const RAYS = {
+  r: [[-1, 0], [1, 0], [0, -1], [0, 1]],
+  b: [[-1, -1], [-1, 1], [1, -1], [1, 1]],
+  q: [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]
+};
+const HOPS = {
+  n: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
+  k: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+};
+
+const at = (r, c) => r * 8 + c;
+const on = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const sqName = i => FILES[i % 8] + (8 - (i / 8 | 0));
+const sqIndex = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);
+const other = s => (s === 'w' ? 'b' : 'w');
+
+/* a piece named the way a person would say it out loud */
+function say(cells, i) {
+  const p = cells[i];
+  return p ? `${NAME[p.type]} on ${sqName(i)}` : sqName(i);
+}
+function listOf(cells, idxs) {
+  const parts = idxs.map(i => 'the ' + say(cells, i));
+  if (parts.length < 3) return parts.join(' and ');
+  return parts.slice(0, -1).join(', ') + ' and ' + parts.at(-1);
+}
+
+function toCells(chess) {
+  const out = new Array(64).fill(null);
+  const rows = chess.board();
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const cell = rows[r][c];
+      if (cell) out[at(r, c)] = { type: cell.type, color: cell.color };
+    }
+  }
+  return out;
+}
+
+/* every square the piece on i hits, blockers respected */
+function attacksFrom(cells, i) {
+  const p = cells[i];
+  if (!p) return [];
+  const out = [];
+  const r0 = i / 8 | 0, c0 = i % 8;
+
+  if (p.type === 'p') {
+    const pr = p.color === 'w' ? r0 - 1 : r0 + 1;
+    for (const dc of [-1, 1]) if (on(pr, c0 + dc)) out.push(at(pr, c0 + dc));
+    return out;
+  }
+  if (HOPS[p.type]) {
+    for (const [dr, dc] of HOPS[p.type]) {
+      const r = r0 + dr, c = c0 + dc;
+      if (on(r, c)) out.push(at(r, c));
+    }
+    return out;
+  }
+  for (const [dr, dc] of RAYS[p.type]) {
+    let r = r0 + dr, c = c0 + dc;
+    while (on(r, c)) {
+      out.push(at(r, c));
+      if (cells[at(r, c)]) break;
+      r += dr; c += dc;
+    }
+  }
+  return out;
+}
+
+/* Every piece of `side` that attacks square i. Pure geometry, so a pinned piece
+   still counts — which is right for "is this defended", because the defender
+   usually can recapture. */
+function attackersOf(cells, i, side) {
+  const out = [];
+  const r0 = i / 8 | 0, c0 = i % 8;
+
+  // a white pawn on the rank below attacks diagonally up onto i
+  const pr = side === 'w' ? r0 + 1 : r0 - 1;
+  for (const dc of [-1, 1]) {
+    const c = c0 + dc;
+    if (!on(pr, c)) continue;
+    const p = cells[at(pr, c)];
+    if (p && p.color === side && p.type === 'p') out.push(at(pr, c));
+  }
+
+  for (const t of ['n', 'k']) {
+    for (const [dr, dc] of HOPS[t]) {
+      const r = r0 + dr, c = c0 + dc;
+      if (!on(r, c)) continue;
+      const p = cells[at(r, c)];
+      if (p && p.color === side && p.type === t) out.push(at(r, c));
+    }
+  }
+
+  for (const [dr, dc] of RAYS.q) {
+    const diag = dr !== 0 && dc !== 0;
+    let r = r0 + dr, c = c0 + dc;
+    while (on(r, c)) {
+      const p = cells[at(r, c)];
+      if (p) {
+        if (p.color === side && (p.type === 'q' || p.type === (diag ? 'b' : 'r'))) out.push(at(r, c));
+        break;
+      }
+      r += dr; c += dc;
+    }
+  }
+  return out;
+}
+
+/* Which of `side`'s pieces are absolutely pinned, and where each may still go.
+   A piece pinned against its own king cannot legally leave the line, so it is
+   not a defender of anything off that line — and the attack tables above, being
+   pure geometry, have no idea. That gap is measurable: it is what makes the
+   coach call a pawn a recapture when the rook behind it says otherwise.
+
+   The returned map is square -> the set of squares that piece may still move to
+   (the line between king and pinner, plus the pinner itself). Null when nothing
+   is pinned, which is the common case and costs one scan to establish. */
+function pinMap(cells, side) {
+  let king = -1;
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (p && p.type === 'k' && p.color === side) { king = i; break; }
+  }
+  if (king < 0) return null;
+
+  let map = null;
+  const kr = king / 8 | 0, kc = king % 8;
+  for (const [dr, dc] of RAYS.q) {
+    const diag = dr !== 0 && dc !== 0;
+    let r = kr + dr, c = kc + dc, own = -1;
+    const line = [];
+    while (on(r, c)) {
+      const idx = at(r, c);
+      line.push(idx);
+      const p = cells[idx];
+      if (p) {
+        if (own < 0) {
+          if (p.color !== side) break;      // enemy piece first: a check or nothing, not a pin
+          own = idx;
+        } else {
+          if (p.color !== side && (p.type === 'q' || p.type === (diag ? 'b' : 'r'))) {
+            (map ||= new Map()).set(own, new Set(line));
+          }
+          break;
+        }
+      }
+      r += dr; c += dc;
+    }
+  }
+  return map;
+}
+
+/* attackers that could actually make the capture — pinned pieces dropped unless
+   the square is on their own pin line */
+function capturersOf(cells, i, side) {
+  const atk = attackersOf(cells, i, side);
+  if (!atk.length) return atk;
+  const pins = pinMap(cells, side);
+  if (!pins) return atk;
+  return atk.filter(a => { const line = pins.get(a); return !line || line.has(i); });
+}
+
+/* Static exchange evaluation on square i: the material `side` wins by starting
+   the capture sequence there, with both sides always recapturing with their
+   cheapest piece and either free to stop when carrying on would cost them. The
+   clamp at zero is that choice — nobody is obliged to continue a losing trade.
+   Positive means the square is worth taking; zero means it holds. */
+function see(cells, i, side) {
+  const victim = cells[i];
+  if (!victim || victim.color === side || victim.type === 'k') return 0;
+
+  const atk = capturersOf(cells, i, side);
+  if (!atk.length) return 0;
+
+  let from = -1, cheapest = Infinity;
+  for (const a of atk) {
+    const v = CV[cells[a].type];
+    if (v < cheapest) { cheapest = v; from = a; }
+  }
+  // a king may only take on a square nothing else defends
+  if (cells[from].type === 'k' && capturersOf(cells, i, other(side)).length) {
+    const rest = atk.filter(a => cells[a].type !== 'k');
+    if (!rest.length) return 0;
+    from = rest.reduce((x, y) => (CV[cells[x].type] <= CV[cells[y].type] ? x : y));
+  }
+
+  const mover = cells[from];
+  cells[from] = null;
+  cells[i] = mover;
+  const gain = CV[victim.type] - see(cells, i, other(side));
+  cells[i] = victim;
+  cells[from] = mover;
+  return Math.max(0, gain);
+}
+
+/* What `side` nets by capturing on i, unclamped, with -Infinity for "there is
+   nothing to take it with". see() clamps this at zero because nobody is obliged
+   to capture, and that clamp hides the distinction this function exists for: an
+   even trade and an impossible capture both come back as zero there, and for a
+   threat they could not be more different. A piece that can simply be swapped
+   off is not making a threat, it is making an offer. */
+function seeRaw(cells, i, side) {
+  const victim = cells[i];
+  if (!victim || victim.color === side || victim.type === 'k') return -Infinity;
+
+  const atk = capturersOf(cells, i, side);
+  if (!atk.length) return -Infinity;
+
+  let from = -1, cheapest = Infinity;
+  for (const a of atk) {
+    const v = CV[cells[a].type];
+    if (v < cheapest) { cheapest = v; from = a; }
+  }
+  if (cells[from].type === 'k' && capturersOf(cells, i, other(side)).length) {
+    const rest = atk.filter(a => cells[a].type !== 'k');
+    if (!rest.length) return -Infinity;
+    from = rest.reduce((x, y) => (CV[cells[x].type] <= CV[cells[y].type] ? x : y));
+  }
+
+  const mover = cells[from];
+  cells[from] = null;
+  cells[i] = mover;
+  const gain = CV[victim.type] - see(cells, i, other(side));
+  cells[i] = victim;
+  cells[from] = mover;
+  return gain;
+}
+
+/* Does the piece on i survive as a threat? Not "does it lose material" — it has
+   to be something the opponent cannot answer by trading it off, or the threat
+   it was making never happens. This is the difference between a move that
+   attacks something and a move that wins something. */
+const sticks = (cells, i, foe) => seeRaw(cells, i, foe) < 0;
+
+/* Pins and skewers are one piece of geometry with the values swapped: a slider,
+   then an enemy piece, then a second enemy piece further along the same ray. If
+   the far piece is worth more it is a pin and the near one is stuck; if the
+   near piece is worth more it is a skewer and moving it exposes the other.
+
+   The gate: pinning a pawn is not a tactic, and neither is skewering onto one.
+   A pin also has to be worth something — either the pinned piece is genuinely
+   frozen (the king is behind it) or there is a real gap in value to exploit. */
+function findPins(cells, loose = true) {
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p || !RAYS[p.type]) continue;
+    const r0 = i / 8 | 0, c0 = i % 8;
+    for (const [dr, dc] of RAYS[p.type]) {
+      let r = r0 + dr, c = c0 + dc, front = -1;
+      while (on(r, c)) {
+        const q = cells[at(r, c)];
+        if (q) {
+          if (q.color === p.color) break;
+          if (front < 0) front = at(r, c);
+          else {
+            const back = at(r, c);
+            const fv = CV[cells[front].type], bv = CV[cells[back].type];
+            const absolute = cells[back].type === 'k';
+            if (loose) {
+              out.push({ kind: bv > fv ? 'pin' : fv > bv ? 'skewer' : 'align', by: i, front, back, absolute });
+            } else if (bv > fv && fv >= 3 && (absolute || bv - fv >= 2)) {
+              out.push({ kind: 'pin', by: i, front, back, absolute });
+            } else if (fv > bv && fv >= 3 && bv >= 3) {
+              out.push({ kind: 'skewer', by: i, front, back, absolute: false });
+            }
+            break;
+          }
+        }
+        r += dr; c += dc;
+      }
+    }
+  }
+  return out;
+}
+
+/* One of your own pieces standing between your slider and an enemy piece: move
+   it and the line opens behind it. The most invisible motif there is, because
+   the piece that does the damage never moves. */
+function findDiscoveries(cells, side) {
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p || p.color !== side || !RAYS[p.type]) continue;
+    const r0 = i / 8 | 0, c0 = i % 8;
+    for (const [dr, dc] of RAYS[p.type]) {
+      let r = r0 + dr, c = c0 + dc, screen = -1;
+      while (on(r, c)) {
+        const q = cells[at(r, c)];
+        if (q) {
+          if (screen < 0) {
+            if (q.color !== side) break;      // enemy first: a plain attack, not a discovery
+            screen = at(r, c);
+          } else {
+            if (q.color !== side && (CV[q.type] >= 3 || q.type === 'k')) {
+              out.push({ by: i, screen, target: at(r, c), check: q.type === 'k' });
+            }
+            break;
+          }
+        }
+        r += dr; c += dc;
+      }
+    }
+  }
+  return out;
+}
+
+/* Pieces that might be worth calling loose: undefended, not yet attacked, not a
+   pawn, not the king. Whether any of them is actually a weakness is settled in
+   the move loops, not here — a piece nothing can profitably come after is not a
+   weakness, it is just a piece standing somewhere. */
+function looseCandidates(cells, side) {
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p || p.color !== side || p.type === 'k') continue;
+    if (attackersOf(cells, i, side).length) continue;
+    if (attackersOf(cells, i, other(side)).length) continue;
+    out.push(i);
+  }
+  return out;
+}
+
+/* Pawns are included. They were excluded at first as noise, on the reasoning
+   that pawn advances constantly create undefended pawns — but in the opening
+   almost every pawn is defended by something on the back rank, and the ones
+   that are not are the point: 1.e4 leaves e4 undefended, which is the whole
+   reason ...Nf6 and ...d5 exist. Leaving them out was the coach deciding what
+   was worth your attention.
+
+   Three states, and the difference between them is the whole lesson.
+     hanging      — attacked now, and the exchange loses material
+     underguarded — it has defenders, but the cheapest attacker still comes out ahead
+     loose        — undefended and not yet attacked: the raw material of every
+                    future tactic, and the thing a novice never scans for
+
+   `reach` maps a square to the move that would actually win the piece on it.
+   Without that gate "undefended" fires on the back-rank rooks in the starting
+   position and the person learns to stop reading; with only a weaker "something
+   could point at it" gate it fires on a rook boxed into its own corner by a
+   knight that hangs itself getting there, which is the same problem wearing a
+   better disguise. */
+function findLoose(cells, side, reach = null) {
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p || p.color !== side || p.type === 'k') continue;
+    const def = attackersOf(cells, i, side).length;
+    const att = attackersOf(cells, i, other(side)).length;
+    if (att) {
+      const loss = see(cells, i, other(side));
+      if (loss > 0) out.push({ sq: i, kind: def ? 'underguarded' : 'hanging', loss, def, att });
+    } else if (!def && (!reach || reach.has(i))) {
+      out.push({ sq: i, kind: 'loose', loss: 0, def: 0, att: 0, via: reach ? reach.get(i) : null });
+    }
+  }
+  return out;
+}
+
+/* A defender doing two jobs. Take it off the board and count what falls: if two
+   or more of its own pieces become takeable, it is overloaded, and the tactic
+   is to make it choose which one to keep. */
+function findOverloaded(cells, side) {
+  // only pieces that are actually under attack can be dropped by a defender
+  const pressured = [];
+  for (let j = 0; j < 64; j++) {
+    const p = cells[j];
+    if (!p || p.color !== side || p.type === 'k') continue;
+    if (attackersOf(cells, j, other(side)).length) pressured.push(j);
+  }
+  if (pressured.length < 2) return [];
+
+  const out = [];
+  for (let i = 0; i < 64; i++) {
+    const d = cells[i];
+    if (!d || d.color !== side || d.type === 'k') continue;
+    const guarded = [];
+    for (const j of pressured) {
+      if (j === i) continue;
+      if (!attackersOf(cells, j, side).includes(i)) continue;
+      const before = see(cells, j, other(side));
+      const held = cells[i];
+      cells[i] = null;
+      const after = see(cells, j, other(side));
+      cells[i] = held;
+      if (after > before) guarded.push(j);
+    }
+    if (guarded.length >= 2) out.push({ sq: i, guarded });
+  }
+  return out;
+}
+
+/* King on its own back rank with its escape squares sealed by its own pawns,
+   the opponent still holding a rook or queen, and — the gate that makes it
+   worth saying — that rook or queen able to get onto the rank. */
+function backRank(cells, side, rankReachable) {
+  const kr = side === 'w' ? 7 : 0;
+  let k = -1;
+  for (let c = 0; c < 8; c++) {
+    const p = cells[at(kr, c)];
+    if (p && p.type === 'k' && p.color === side) k = at(kr, c);
+  }
+  if (k < 0 || !rankReachable) return null;
+
+  const fr = side === 'w' ? kr - 1 : kr + 1;
+  const kc = k % 8;
+  for (const dc of [-1, 0, 1]) {
+    const c = kc + dc;
+    if (!on(fr, c)) continue;
+    const p = cells[at(fr, c)];
+    if (p && p.color === side) continue;                              // own piece seals it
+    if (attackersOf(cells, at(fr, c), other(side)).length) continue;   // covered anyway
+    return null;                                                      // there is an escape
+  }
+  return { sq: k };
+}
+
+/* What a piece attacks that is actually worth attacking: something dearer than
+   itself, something undefended, or the king. This is the fork test, and it is
+   also the test for whether an attack is a threat at all. */
+function preyOf(cells, i) {
+  const p = cells[i];
+  if (!p) return [];
+  const out = [];
+  for (const j of attacksFrom(cells, i)) {
+    const q = cells[j];
+    if (!q || q.color === p.color) continue;
+    if (q.type === 'k') { out.push({ sq: j, why: 'check' }); continue; }
+    if (CV[q.type] > CV[p.type]) { out.push({ sq: j, why: 'bigger' }); continue; }
+    if (!attackersOf(cells, j, q.color).length) { out.push({ sq: j, why: 'loose' }); continue; }
+    if (see(cells, j, p.color) > 0) out.push({ sq: j, why: 'wins' });
+  }
+  return out;
+}
+
+/* Two targets is arithmetic; a fork is two targets worth having. A knight
+   hitting two pawns that are both defended is not a fork, it is a knight. */
+function isFork(cells, prey) {
+  if (prey.length < 2) return false;
+  return prey.some(x => x.why === 'check' || CV[cells[x.sq].type] >= 3);
+}
+
+/* chess.js only generates moves for the side to move, so to ask what the other
+   side is threatening we hand it the same position with the turn flipped.
+   skipValidation matters: if we are in check the flipped position is illegal,
+   and we want the move list, not a verdict. */
+function flipped(fen) {
+  const f = fen.split(' ');
+  f[1] = f[1] === 'w' ? 'b' : 'w';
+  f[3] = '-';                    // an en passant square belongs to the other turn
+  try { return new Chess(f.join(' '), { skipValidation: true }); } catch { return null; }
+}
+
+function legalFor(chess) {
+  if (!chess) return [];
+  try {
+    // in a flipped position the enemy king can be standing en prise; taking it
+    // is not a move, it is the reason the position is illegal
+    return chess.moves({ verbose: true }).filter(m => m.captured !== 'k');
+  } catch { return []; }
+}
+
+/* What a candidate move stops defending. Only pieces that go from guarded to
+   unguarded are reported here: anything they can actually capture in reply is
+   the verdict's job, and the verdict is generated from their legal moves, so it
+   knows about things this scan does not — that they are in check and have to
+   answer that first, for one. This used to report capturable pieces too and
+   would happily announce a loss the opponent had no legal way to collect. */
+function collateral(before, after, side, movedTo) {
+  const was = new Set(findLoose(before, side).filter(x => x.kind === 'loose').map(x => x.sq));
+  const out = [];
+  for (const x of findLoose(after, side)) {
+    if (x.kind !== 'loose' || x.sq === movedTo || was.has(x.sq)) continue;
+    out.push(x);
+  }
+  return out;
+}
+
+const costText = (cells, c) => `leaves the ${say(cells, c.sq)} undefended`;
+
+/* ---------- answering a move ----------
+   The answer to a move is their best capture ANYWHERE, not just on the square
+   you moved to. Scoping it to the moved piece was a real mistake: a move can be
+   perfectly safe for the piece it moves and still drop your queen on the far
+   side of the board, and a coach that says "nothing answers it" over a move
+   that hangs the queen is worse than no coach at all. So one reply list is
+   generated per listed move and two things are read off it — what the whole
+   move costs, and whether the piece that moved can be swapped away. */
+function replies(sim, after, foe, movedTo) {
+  const bySq = new Map();
+  for (const r of legalFor(sim)) {
+    if (!r.captured) continue;
+    const cur = bySq.get(r.to);
+    if (!cur || CV[r.piece] < CV[cur.piece]) bySq.set(r.to, r);
+  }
+  const movedName = sqName(movedTo);
+  let worst = null, onPiece = null;
+  for (const [sq, r] of bySq) {
+    const net = seeRaw(after, sqIndex(sq), foe);
+    if (net === -Infinity) continue;
+    if (sq === movedName) onPiece = { san: r.san, net };
+    if (net > 0 && (!worst || net > worst.net)) worst = { san: r.san, net, to: sq };
+  }
+  return { worst, onPiece, movedName };
+}
+
+/* Every listed idea carries one of these. Nothing is dropped for being bad —
+   the verdict is the teaching, and an idea that does not work is worth seeing
+   precisely so you learn why. Losing material outranks everything: if the move
+   drops something, that is the headline, whatever the idea was. */
+function verdictFor(rep, mine = true) {
+  const who = mine ? 'you' : 'them';
+  if (rep.worst) {
+    return {
+      kind: 'loses', label: `costs ${who} ${rep.worst.net}`, net: rep.worst.net,
+      san: rep.worst.san, elsewhere: rep.worst.to !== rep.movedName
+    };
+  }
+  if (rep.onPiece && rep.onPiece.net === 0) {
+    return { kind: 'traded', label: 'traded off', net: 0, san: rep.onPiece.san };
+  }
+  return { kind: 'works', label: 'nothing answers it', net: null, san: rep.onPiece ? rep.onPiece.san : null };
+}
+
+/* the narrow question, for judging whether one of THEIR ideas survives: can it
+   be punished on the square it lands on */
+/* Narrow on purpose: for one of THEIR ideas the question is whether you can
+   punish the piece where it lands, not whether you happen to have a good move
+   somewhere else on the board. The label says so, because "nothing answers it"
+   claimed more than this function ever checked. */
+function verdictOnPiece(rep, mine = true) {
+  const who = mine ? 'you' : 'them';
+  if (!rep.onPiece) return { kind: 'works', label: 'no capture answers it', net: null, san: null };
+  if (rep.onPiece.net > 0) return { kind: 'loses', label: `costs ${who} ${rep.onPiece.net}`, net: rep.onPiece.net, san: rep.onPiece.san };
+  if (rep.onPiece.net === 0) return { kind: 'traded', label: 'traded off', net: 0, san: rep.onPiece.san };
+  return { kind: 'works', label: 'taking it loses material', net: rep.onPiece.net, san: rep.onPiece.san };
+}
+
+const answerLine = (v, mine = true) =>
+  v.kind === 'loses'
+    ? `Answered by ${v.san}${v.elsewhere ? ' (elsewhere on the board)' : ''}: ${mine ? 'you lose' : 'they lose'} about ${v.net}.`
+  : v.kind === 'traded'
+    ? `Answered by ${v.san}: an even trade, but the piece comes off and the idea with it.`
+  : v.san ? `Taking with ${v.san} loses material.`
+  : 'Nothing takes anything in reply.';
+
+/* ---------- what their last move changed ----------
+   The step people skip. Not "what is their plan" but two literal questions:
+   what does that piece hit now that it did not, and what did it stop doing.
+   Both are diffs between two positions, which makes them cheap and exact. */
+function lastMoveDiff(prevFen, fen, me, lastSan) {
+  if (!prevFen || !lastSan) return [];
+  let prev, now;
+  try {
+    prev = toCells(new Chess(prevFen, { skipValidation: true }));
+    now = toCells(new Chess(fen, { skipValidation: true }));
+  } catch { return []; }
+
+  const them = other(me);
+  const out = [];
+
+  // where did their piece land? the square that gained one of their pieces
+  let to = -1;
+  for (let i = 0; i < 64; i++) {
+    const a = prev[i], b = now[i];
+    if (b && b.color === them && (!a || a.color !== them || a.type !== b.type)) { to = i; break; }
+  }
+
+  if (to >= 0) {
+    const gone = prev[to] && prev[to].color === me ? prev[to] : null;
+    if (gone) out.push({ text: `${lastSan} took your ${NAME[gone.type]} on ${sqName(to)}.`, squares: [sqName(to)] });
+
+    const hitNow = attacksFrom(now, to).filter(j => now[j] && now[j].color === me);
+    const hitBefore = new Set(attacksFrom(prev, to).filter(j => prev[j] && prev[j].color === me));
+    const fresh = hitNow.filter(j => !hitBefore.has(j));
+    if (fresh.length) {
+      out.push({
+        text: `Their ${say(now, to)} newly attacks ${listOf(now, fresh)}.`,
+        squares: [sqName(to), ...fresh.map(sqName)]
+      });
+    }
+  }
+
+  // what stopped being defended, on their side: pieces that lost a defender
+  const dropped = [];
+  for (let i = 0; i < 64; i++) {
+    const p = now[i];
+    if (!p || p.color !== them || i === to) continue;
+    if (!prev[i] || prev[i].color !== them || prev[i].type !== p.type) continue;
+    const before = attackersOf(prev, i, them).length;
+    const after = attackersOf(now, i, them).length;
+    if (after < before) dropped.push(i);
+  }
+  if (dropped.length) {
+    out.push({
+      text: `It stopped guarding ${listOf(now, dropped)}.`,
+      squares: dropped.map(sqName)
+    });
+  }
+
+  // lines that opened behind it: their sliders that now reach something of mine
+  const opened = [];
+  for (let i = 0; i < 64; i++) {
+    const p = now[i];
+    if (!p || p.color !== them || !RAYS[p.type] || i === to) continue;
+    for (const j of attacksFrom(now, i)) {
+      if (!now[j] || now[j].color !== me) continue;
+      if (attacksFrom(prev, i).includes(j)) continue;
+      opened.push({ by: i, target: j });
+    }
+  }
+  for (const o of opened.slice(0, 3)) {
+    out.push({
+      text: `It opened a line: their ${say(now, o.by)} now reaches ${say(now, o.target)}.`,
+      squares: [sqName(o.by), sqName(o.target)],
+      ray: [sqName(o.by), sqName(o.target)]
+    });
+  }
+
+  return out;
+}
+
+/* ---------- the analysis ----------
+   Nothing is filtered out. Every capture, every check, every motif and every
+   undefended piece is listed with a verdict attached, because a coach that
+   quietly drops the bad ideas is deciding for you which ideas were worth having
+   — and the ones that do not work are exactly the ones worth understanding. The
+   panel stays readable by grouping and collapsing, not by hiding. */
+
+function analyze(fen, me, opts = {}) {
+  const base = new Chess(fen, { skipValidation: true });
+  const cells = toCells(base);
+  const them = other(me);
+  const mineToMove = base.turn() === me;
+
+  let n = 0;
+  const G = new Map();
+  const push = (key, item) => {
+    if (!G.has(key)) G.set(key, []);
+    G.get(key).push({ id: 'f' + (n++), key, ...item });
+  };
+
+  /* ---- what their last move changed ---- */
+  for (const d of lastMoveDiff(opts.prevFen, fen, me, opts.lastSan)) {
+    push('changed', { side: 'them', motif: 'changed', weight: 50, head: d.text, text: '', verdict: null, squares: d.squares, ray: d.ray });
+  }
+
+  /* ---- their move list: threats, and the reach gates ---- */
+  const theirBoard = mineToMove ? flipped(fen) : new Chess(fen, { skipValidation: true });
+  const theirMoves = legalFor(theirBoard);
+  const myLoose = looseCandidates(cells, me);
+  const reach = new Map();
+  const watch = new Map();
+  let myRankReachable = false;
+  const myBackRank = me === 'w' ? 7 : 0;
+  const threats = [];
+
+  if (theirBoard) {
+    for (const m of theirMoves) {
+      let ok = true;
+      try { theirBoard.move({ from: m.from, to: m.to, promotion: m.promotion }); } catch { ok = false; }
+      if (!ok) continue;
+      const after = toCells(theirBoard);
+      const to = sqIndex(m.to);
+      if ((m.piece === 'r' || m.piece === 'q') && (to / 8 | 0) === myBackRank) myRankReachable = true;
+
+      const safe = see(after, to, me) === 0;
+      const hits = attacksFrom(after, to);
+      for (const c of myLoose) {
+        if (!hits.includes(c)) continue;
+        if (safe) {
+          if (!reach.has(c) && see(after, c, them) > 0) reach.set(c, m.san);
+        } else if (!watch.has(c)) {
+          const guards = attackersOf(after, to, me);
+          if (guards.length) {
+            const g = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
+            watch.set(c, { san: m.san, guard: say(after, g), to, piece: m.piece });
+          }
+        }
+      }
+
+      // every idea of theirs, sound or not, with what answers it
+      const prey = preyOf(after, to);
+      const forks = isFork(after, prey);
+      const grabs = m.captured && safe;
+      const mates = theirBoard.isCheckmate();
+
+      if (mates) {
+        threats.push({
+          w: 1000, san: m.san, from: m.from, to: m.to, mate: true,
+          verdict: { kind: 'works', label: 'mate', net: null, san: null },
+          why: 'is mate'
+        });
+      } else if (forks || grabs) {
+        const v = verdictOnPiece(replies(theirBoard, after, me, to), false);
+        threats.push({
+          w: (v.kind === 'works' ? 60 : 20) + (forks ? 10 : 0) + (m.captured ? CV[m.captured] : 0),
+          san: m.san, from: m.from, to: m.to, verdict: v,
+          why: forks ? `forks ${listOf(after, prey.map(x => x.sq))}`
+                     : `takes your ${NAME[m.captured]} on ${m.to}`
+        });
+      }
+      theirBoard.undo();
+    }
+  }
+
+  for (const t of threats.sort((a, b) => b.w - a.w)) {
+    push('threats', {
+      side: 'them', motif: t.mate ? 'mate' : 'threat', weight: t.w, move: t.san, verdict: t.verdict,
+      squares: [t.from, t.to], arrow: [t.from, t.to],
+      head: t.mate ? `${t.san} is mate` : `${t.san} — it ${t.why}`,
+      text: t.mate
+        ? 'If they get this move in, it is checkmate. Everything else on this list is secondary.'
+        : t.verdict.kind === 'works'
+          ? 'Nothing of yours takes it in reply.'
+          : answerLine(t.verdict, false)
+    });
+  }
+
+  /* ---- my move list: everything I can do, with the answer to each ---- */
+  const myBoard = mineToMove ? new Chess(fen, { skipValidation: true }) : flipped(fen);
+  const myMoves = legalFor(myBoard);
+  const myReach = new Map();
+  const chance = new Map();
+  const theirLoose = looseCandidates(cells, them);
+  let theirRankReachable = false;
+  const theirBackRank = them === 'w' ? 7 : 0;
+
+  if (myBoard) {
+    const pinsBefore = new Set(findPins(cells, true).map(p => `${p.kind}:${p.front}:${p.back}`));
+    const discFrom = new Map();
+    for (const d of findDiscoveries(cells, me)) {
+      if (!discFrom.has(d.screen)) discFrom.set(d.screen, []);
+      discFrom.get(d.screen).push(d);
+    }
+    const discSeen = new Map();
+    const pinSeen = new Map();
+
+    for (const m of myMoves) {
+      let ok = true;
+      try { myBoard.move({ from: m.from, to: m.to, promotion: m.promotion }); } catch { ok = false; }
+      if (!ok) continue;
+
+      const after = toCells(myBoard);
+      const to = sqIndex(m.to);
+      const from = sqIndex(m.from);
+      if ((m.piece === 'r' || m.piece === 'q') && (to / 8 | 0) === theirBackRank) theirRankReachable = true;
+
+      const hits = attacksFrom(after, to);
+      const arrivalSticks = sticks(after, to, them);
+      for (const c of theirLoose) {
+        if (!hits.includes(c)) continue;
+        if (arrivalSticks) {
+          if (!myReach.has(c) && see(after, c, me) > 0) myReach.set(c, m.san);
+        } else if (!chance.has(c)) {
+          const guards = attackersOf(after, to, them);
+          if (guards.length) {
+            const g = guards.reduce((x, y) => (CV[after[x].type] <= CV[after[y].type] ? x : y));
+            chance.set(c, { san: m.san, guard: say(after, g), guardType: after[g].type, selfGuard: g === c, to, piece: m.piece });
+          }
+        }
+      }
+
+      const mate = myBoard.isCheckmate();
+      const check = myBoard.inCheck();
+
+      /* replies() generates their whole reply list, so it is paid for only on
+         the moves that actually get listed — most moves in a position are not
+         a check, a capture or a motif, and asking how they would be answered
+         is wasted work. */
+      let _rep, _v;
+      const rep = () => (_rep === undefined ? (_rep = replies(myBoard, after, them, to)) : _rep);
+      const v = () => (_v || (_v = verdictFor(rep())));
+
+      const cost = collateral(cells, after, me, to);
+      /* the verdict already names the biggest loss, so do not say it twice */
+      const costs = () => {
+        const said = v().san || '';
+        const rest = cost.filter(c => !said.includes(sqName(c.sq)));
+        return rest.length ? ' It also ' + rest.map(c => costText(after, c)).join(', and ') + '.' : '';
+      };
+
+      if (mate) {
+        push('checks', {
+          side: 'you', motif: 'mate', weight: 1000, move: m.san,
+          verdict: { kind: 'works', label: 'mate' },
+          squares: [m.from, m.to], arrow: [m.from, m.to],
+          head: `${m.san} is mate`,
+          text: 'Checkmate in one.'
+        });
+        myBoard.undo();
+        continue;
+      }
+
+      /* every check, sound or not — the forcing-move list is only useful if it
+         is complete, and half of learning it is seeing why most of them fail */
+      if (check) {
+        push('checks', {
+          side: 'you', motif: 'check', weight: (v().kind === 'works' ? 30 : 8) + preyOf(after, to).length,
+          move: m.san, verdict: v(), squares: [m.from, m.to], arrow: [m.from, m.to],
+          head: m.san,
+          text: answerLine(v()) + costs()
+        });
+      }
+
+      /* every capture, with the exchange spelled out */
+      if (m.captured) {
+        const net = CV[m.captured] - (rep().onPiece && rep().onPiece.net > 0 ? rep().onPiece.net : 0);
+        push('captures', {
+          side: 'you', motif: 'capture', weight: (v().kind === 'works' ? 40 : 12) + CV[m.captured],
+          move: m.san, verdict: v(), squares: [m.from, m.to], arrow: [m.from, m.to],
+          head: `${m.san} takes a ${NAME[m.captured]}`,
+          text: (v().kind === 'works'
+                  ? `Nothing recaptures. Wins ${CV[m.captured]}.`
+                  : v().kind === 'traded'
+                    ? `${answerLine(v())} Even at ${CV[m.captured]} apiece.`
+                    : answerLine(v())) + costs()
+        });
+      }
+
+      /* forks */
+      const prey = preyOf(after, to);
+      if (isFork(after, prey) && prey.length > preyOf(cells, from).length) {
+        push('forks', {
+          side: 'you', motif: 'fork-available',
+          weight: (v().kind === 'works' ? 34 : v().kind === 'traded' ? 18 : 12) + prey.length,
+          move: m.san, verdict: v(),
+          squares: [m.from, m.to, ...prey.map(x => sqName(x.sq))], arrow: [m.from, m.to],
+          head: `${m.san} forks ${listOf(after, prey.map(x => x.sq))}`,
+          text: (v().kind === 'works'
+                  ? 'Nothing removes the forking piece, so only one of the two can be saved.'
+                  : v().kind === 'traded'
+                    ? answerLine(v())
+                    : answerLine(v())) + costs()
+        });
+      }
+
+      /* pins and skewers, collapsed per idea rather than per square */
+      if (RAYS[m.piece]) {
+        for (const p of findPins(after, true)) {
+          if (p.by !== to || p.kind === 'align') continue;
+          if (pinsBefore.has(`${p.kind}:${p.front}:${p.back}`)) continue;
+          const key = `${p.kind}:${p.front}:${p.back}`;
+          const score = (v().kind === 'works' ? 3 : v().kind === 'traded' ? 1 : 0) + (p.absolute ? 2 : 0);
+          const held = pinSeen.get(key);
+          if (held) { held.ways++; if (held.score >= score) continue; held.ways--; }
+          pinSeen.set(key, { p, score, v: v(), san: m.san, from: m.from, to: m.to,
+                             ways: (held ? held.ways : 0) + 1, after, costs: costs() });
+        }
+      }
+
+      /* discovered attacks */
+      for (const d of (discFrom.get(from) || [])) {
+        if (!attackersOf(after, d.target, me).includes(d.by)) continue;
+        const key = d.by + ':' + d.target;
+        const bonus = (v().kind === 'works' ? 4 : 0) + preyOf(after, to).length;
+        const held = discSeen.get(key);
+        if (held) { held.ways++; if (held.bonus >= bonus) continue; held.ways--; }
+        discSeen.set(key, { d, bonus, v: v(), san: m.san, from: m.from, to: m.to,
+                            ways: (held ? held.ways : 0) + 1,
+                            also: preyOf(after, to).filter(x => x.sq !== d.target), after, costs: costs() });
+      }
+
+      myBoard.undo();
+    }
+
+    for (const w of pinSeen.values()) {
+      const kind = w.p.kind;
+      push('pins', {
+        side: 'you', motif: kind + '-available',
+        weight: (w.v.kind === 'works' ? 20 : 8) + (w.p.absolute ? 4 : 0),
+        move: w.san, verdict: w.v,
+        squares: [w.from, w.to, sqName(w.p.front), sqName(w.p.back)],
+        arrow: [w.from, w.to], rays: [[w.to, sqName(w.p.back)]],
+        head: `${w.san} ${kind === 'pin' ? 'pins' : 'skewers'} the ${say(w.after, w.p.front)}`,
+        text: (kind === 'pin'
+          ? `Against the ${say(w.after, w.p.back)} behind it.` +
+            (w.p.absolute ? ' That is the king, so the piece is frozen — it cannot move and it cannot defend.' : '')
+          : `It is worth more than the ${say(w.after, w.p.back)} behind it, so it has to move and leave the other there.`) +
+          ' ' + answerLine(w.v) +
+          (w.ways > 1 ? ` ${w.ways} squares set this up.` : '') + w.costs
+      });
+    }
+
+    for (const w of discSeen.values()) {
+      const piece = NAME[cells[w.d.by].type];
+      /* Two things worth saying about a discovery that the geometry alone will
+         not tell you. First, whether the uncovered attack actually wins
+         anything — a rook "breaking through" onto a well-defended knight is an
+         alignment, not a threat. Second, and much more important, whether the
+         line runs both ways: if their piece at the far end is also aiming
+         through your screen at the piece behind it, then this is not a
+         discovery at all, it is a standoff, and whoever moves the piece in the
+         middle hands the other one the first capture. */
+      const wins = see(w.after, w.d.target, me) > 0;
+      const mutual = attacksFrom(w.after, w.d.target).includes(w.d.by);
+      push('discovery', {
+        side: 'you', motif: 'discovery-available',
+        weight: w.v.kind === 'loses' ? 6 : w.v.kind === 'traded' ? 12 : (w.d.check ? 30 : 22),
+        move: w.san, verdict: w.v,
+        squares: [w.from, w.to, sqName(w.d.by), sqName(w.d.target)],
+        arrow: [w.from, w.to], rays: [[sqName(w.d.by), sqName(w.d.target)]],
+        head: `${w.san} uncovers your ${piece} on ${sqName(w.d.by)}${w.d.check ? ' — with check' : ''}`,
+        text: `Stepping off that line lets the ${piece} through to the ${say(w.after, w.d.target)}. ` +
+          (w.d.check ? 'It is check, so they have to answer that first. ' : '') +
+          (mutual
+            ? `The line runs both ways: their ${say(w.after, w.d.target)} also reaches your ${piece} through that square. Whoever moves the piece in between allows the first capture, and here that is you. `
+            : !wins
+              ? `The uncovered attack wins nothing: the ${say(w.after, w.d.target)} is defended, so taking it loses material. An alignment rather than a threat. `
+              : '') +
+          answerLine(w.v) +
+          (w.ways > 1 ? ` ${w.ways} squares open the line; this one does most on arrival.` : '') +
+          (w.also.length ? ` It also hits ${listOf(w.after, w.also.map(x => x.sq))}.` : '') + w.costs
+      });
+    }
+  }
+
+  /* ---- undefended pieces: all of them, graded by how reachable they are ---- */
+  const looseRow = (i, mine) => {
+    const p = cells[i];
+    const def = attackersOf(cells, i, p.color).length;
+    const att = attackersOf(cells, i, other(p.color)).length;
+    if (att) {
+      const loss = see(cells, i, other(p.color));
+      if (loss > 0) {
+        return {
+          motif: def ? 'underguarded' : 'hanging', weight: (mine ? 40 : 22) + 2 * loss,
+          verdict: { kind: mine ? 'loses' : 'works', label: mine ? `costs you ${loss}` : `wins ${loss}` },
+          head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — ${def ? 'under-defended' : 'hanging'}`,
+          text: mine
+            ? `${def} defender${def === 1 ? '' : 's'}, but the exchange costs you about ${loss}.`
+            : `Wins about ${loss}.`
+        };
+      }
+      return null;
+    }
+    if (def || p.type === 'k') return null;
+
+    const via = mine ? reach.get(i) : myReach.get(i);
+    const soft = mine ? watch.get(i) : chance.get(i);
+    if (via) {
+      return {
+        motif: 'loose', weight: mine ? 26 : 18,
+        verdict: { kind: mine ? 'loses' : 'works', label: mine ? `${via} wins it` : `${via} wins it` },
+        head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+        text: mine
+          ? `Nothing guards it. ${via} attacks it, with no recapture.`
+          : `Nothing guards it. ${via} attacks it with a piece they cannot trade off.`
+      };
+    }
+    if (soft) {
+      return {
+        motif: 'watch', weight: 8,
+        verdict: { kind: 'latent', label: `held up by the ${soft.guard.split(' on ')[0]}` },
+        head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+        text: mine
+          ? `Nothing guards it. ${soft.san} would attack it; the ${soft.guard} answers by taking on ${sqName(soft.to)}. It is safe only while that piece stays there.`
+          : `Nothing guards it. ${soft.san} would attack it, but their ${soft.guard} covers ${sqName(soft.to)}` +
+            (soft.selfGuard ? ' — the piece you are attacking guards its own approach, so it trades itself off.' : '.')
+      };
+    }
+    return {
+      motif: 'idle', weight: 2,
+      verdict: { kind: 'idle', label: 'nothing can reach it' },
+      head: `${mine ? 'Your' : 'Their'} ${say(cells, i)} — undefended`,
+      text: 'Nothing guards it, and nothing attacks it in one move.'
+    };
+  };
+
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p) continue;
+    const row = looseRow(i, p.color === me);
+    if (row) push('loose', { side: p.color === me ? 'you' : 'them', squares: [sqName(i)], ...row });
+  }
+
+  /* ---- tactics already standing on the board ---- */
+  for (const p of findPins(cells, false)) {
+    const yours = cells[p.by].color === me;
+    push('standing', {
+      side: yours ? 'you' : 'them', motif: p.kind,
+      weight: (p.absolute ? 14 : 10) + (yours ? 0 : 2),
+      verdict: { kind: p.absolute ? 'works' : 'idle', label: p.absolute ? 'absolute' : 'relative' },
+      squares: [sqName(p.by), sqName(p.front), sqName(p.back)],
+      ray: [sqName(p.by), sqName(p.back)],
+      head: `${yours ? 'Your' : 'Their'} ${NAME[cells[p.by].type]} on ${sqName(p.by)} ${p.kind === 'pin' ? 'pins' : 'skewers'} the ${say(cells, p.front)}`,
+      text: p.kind === 'pin'
+        ? (p.absolute
+            ? `Against the king, so it cannot legally move, and cannot defend anything while it stands there.`
+            : `Against the ${say(cells, p.back)}. It can still legally move, so this holds only while the piece behind is worth more.`)
+        : `The ${say(cells, p.front)} outvalues the ${say(cells, p.back)} behind it, so moving it leaves the other one there.`
+    });
+  }
+
+  for (let i = 0; i < 64; i++) {
+    const p = cells[i];
+    if (!p) continue;
+    const prey = preyOf(cells, i);
+    if (!isFork(cells, prey)) continue;
+    const yours = p.color === me;
+    push('standing', {
+      side: yours ? 'you' : 'them', motif: 'fork', weight: 16,
+      verdict: { kind: see(cells, i, other(p.color)) > 0 ? 'loses' : 'works',
+                 label: see(cells, i, other(p.color)) > 0 ? 'but it can be taken' : 'and it is safe there' },
+      squares: [sqName(i), ...prey.map(x => sqName(x.sq))],
+      head: `${yours ? 'Your' : 'Their'} ${say(cells, i)} forks ${listOf(cells, prey.map(x => x.sq))}`,
+      text: see(cells, i, other(p.color)) > 0
+        ? 'It can be taken where it stands, so the fork does not collect.'
+        : 'It is safe where it stands, so only one of the two can be saved.'
+    });
+  }
+
+  /* ---- structural weaknesses ---- */
+  for (const [side, label] of [[me, 'you'], [them, 'them']]) {
+    for (const o of findOverloaded(cells, side)) {
+      push('weak', {
+        side: label, motif: 'overloaded', weight: label === 'you' ? 14 : 12,
+        verdict: { kind: label === 'you' ? 'loses' : 'works', label: 'doing two jobs' },
+        squares: [sqName(o.sq), ...o.guarded.map(sqName)],
+        head: `${label === 'you' ? 'Your' : 'Their'} ${say(cells, o.sq)} is the only defender of two pieces`,
+        text: `It holds ${listOf(cells, o.guarded)}. If it moves or is taken, one of those is left undefended.`
+      });
+    }
+  }
+
+  const brMe = backRank(cells, me, myRankReachable);
+  if (brMe) push('weak', {
+    side: 'you', motif: 'backrank', weight: 26, squares: [sqName(brMe.sq)],
+    verdict: { kind: 'loses', label: 'no escape square' },
+    head: 'Your king has no escape square on the back rank',
+    text: 'Own pawns in the way, nothing covering the flight squares, and they can get a rook or queen onto that rank.'
+  });
+  const brThem = backRank(cells, them, theirRankReachable);
+  if (brThem) push('weak', {
+    side: 'them', motif: 'backrank', weight: 22, squares: [sqName(brThem.sq)],
+    verdict: { kind: 'works', label: 'no escape square' },
+    head: 'Their king has no escape square on the back rank',
+    text: 'Their own pawns seal it and you can reach that rank. A rook or queen arriving there safely is mate.'
+  });
+
+  /* trapped: attacked, and nowhere safe to go */
+  if (myBoard && mineToMove) {
+    const escapes = new Map();
+    for (const m of myMoves) {
+      if (!escapes.has(m.from)) escapes.set(m.from, []);
+      escapes.get(m.from).push(m);
+    }
+    for (let i = 0; i < 64; i++) {
+      const p = cells[i];
+      if (!p || p.color !== me || p.type === 'p' || p.type === 'k') continue;
+      if (see(cells, i, them) <= 0) continue;
+      const outs = escapes.get(sqName(i)) || [];
+      if (!outs.length) continue;
+      let saved = false;
+      for (const m of outs) {
+        try { myBoard.move({ from: m.from, to: m.to, promotion: m.promotion }); } catch { continue; }
+        if (see(toCells(myBoard), sqIndex(m.to), them) === 0) saved = true;
+        myBoard.undo();
+        if (saved) break;
+      }
+      if (!saved) push('weak', {
+        side: 'you', motif: 'trapped', weight: 45, squares: [sqName(i)],
+        verdict: { kind: 'loses', label: 'no safe square' },
+        head: `Your ${say(cells, i)} has nowhere safe to go`,
+        text: 'Attacked, and every square it can reach is also attacked. Defending it, blocking, or a bigger threat elsewhere are the options.'
+      });
+    }
+  }
+
+  /* ---- assemble ---- */
+  const ORDER = [
+    ['changed',   'What their last move changed'],
+    ['threats',   'What they threaten'],
+    ['checks',    'Your checks'],
+    ['captures',  'Your captures'],
+    ['forks',     'Forks you can make'],
+    ['pins',      'Pins and skewers you can make'],
+    ['discovery', 'Discovered attacks you can make'],
+    ['standing',  'Tactics already on the board'],
+    ['loose',     'Undefended pieces'],
+    ['weak',      'Standing weaknesses']
+  ];
+
+  const groups = [];
+  const findings = [];
+  for (const [key, title] of ORDER) {
+    const items = (G.get(key) || []).sort((a, b) => b.weight - a.weight);
+    if (!items.length) continue;
+    groups.push({ key, title, count: items.length, items });
+    findings.push(...items);
+  }
+  findings.sort((a, b) => b.weight - a.weight);
+
+  return { fen, me, toMove: base.turn(), groups, findings, counts: groups.map(g => ({ key: g.key, title: g.title, count: g.count })) };
+}
+
+function draw() {
+  requestCoach();        // before drawBoard: its marks come from the last reading
+  drawBoard();
+  drawTaken();
+  drawLedger();
+  drawCoach();
+  drawCoachRays();
+  requestHint();
+  maybeAutoPlay();
+  drawStatus();          // after maybeAutoPlay, so "Thinking…" isn't a draw behind
+  drawHint();
+  drawArrow();
+  setPresence();
+  el('resignBtn').disabled = !!result || game.history().length === 0;
+  el('takebackBtn').disabled = !!result || game.history().length === 0 || (!solo && !peers.size);
+  el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
+  el('autoBtn').classList.toggle('hidden', solo);
+  el('autoLabel').classList.toggle('hidden', solo);
+  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
+  el('rematchBtn').classList.toggle('hidden', !result);
+  el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
+  el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
+  el('thinkRange').value = thinkMs;
+  el('thinkVal').textContent = fmtThink(thinkMs);
+  el('thinkRow').classList.toggle('hidden', !(hintsOn || autoPlay || solo));
+}
+
+function drawBoard() {
+  const myTurn = game.turn() === myColor && !result;
+  const targets = selected
+    ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
+    : {};
+
+  const marks = coachMarks();
+
+  const ranks = myColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+  const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
+
+  let html = '';
+
+  for (const rank of ranks) {
+    for (const file of files) {
+      const sq = file + rank;
+      const piece = game.get(sq);
+      // a1 is dark, so a square is light when file index + rank is even.
+      // h1 light, d1 light, d8 dark — queen on her own colour.
+      const isLight = (FILES.indexOf(file) + rank) % 2 === 0;
+
+      const classes = ['sq', isLight ? 'light' : 'dark'];
+      if (lastMove && (lastMove.from === sq || lastMove.to === sq)) classes.push('last');
+      if (selected === sq) classes.push('sel');
+      if (piece && piece.type === 'k' && piece.color === game.turn() && game.isCheck() && !result) {
+        classes.push('check');
+      }
+
+      const isTarget = !!targets[sq];
+      const canPick = myTurn && piece && piece.color === myColor;
+      if (isTarget || canPick) classes.push('playable');
+      if (isTarget && piece) classes.push('occupied');
+
+      let inner = '';
+      if (piece) {
+        const moved = lastMove && lastMove.to === sq ? 'moved' : '';
+        inner += pieceSVG(piece.type, piece.color, moved);
+      }
+      if (isTarget) inner += '<span class="dot"></span>';
+      if (marks.has(sq)) inner += `<span class="mark ${marks.get(sq)}"></span>`;
+      if (rank === (myColor === 'w' ? 1 : 8)) inner += `<span class="coord f">${file}</span>`;
+      if (file === (myColor === 'w' ? 'a' : 'h')) inner += `<span class="coord r">${rank}</span>`;
+
+      const tab = (isTarget || canPick) ? ' tabindex="0"' : '';
+      html += `<div class="${classes.join(' ')}" data-sq="${sq}"${tab}>${inner}</div>`;
+    }
+  }
+
+  boardEl.innerHTML = html;
+}
+
+/* which pieces of `color` have been taken off the board */
+function takenPieces(color) {
+  const onBoard = {};
+  for (const row of game.board()) {
+    for (const cell of row) {
+      if (cell && cell.color === color) onBoard[cell.type] = (onBoard[cell.type] || 0) + 1;
+    }
+  }
+  const out = [];
+  for (const type of ['q','r','b','n','p']) {
+    const gone = (START_COUNT[type] || 0) - (onBoard[type] || 0);
+    for (let i = 0; i < gone; i++) out.push(type);
+  }
+  return out;
+}
+
+function material(list) {
+  return list.reduce((sum, t) => sum + (VALUE[t] || 0), 0);
+}
+
+function drawTaken() {
+  const them = myColor === 'w' ? 'b' : 'w';
+  const iTook = takenPieces(them);      // their pieces, sitting on my side
+  const theyTook = takenPieces(myColor);
+  const edge = material(iTook) - material(theyTook);
+
+  const strip = (list, colour, lead) =>
+    list.map(t => pieceSVG(t, colour)).join('') +
+    (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
+
+  el('takenTop').innerHTML = strip(theyTook, myColor, -edge);
+  el('takenBottom').innerHTML = strip(iTook, them, edge);
+}
+
+function drawStatus() {
+  const s = el('status');
+  s.classList.remove('urgent');
+
+  if (result) {
+    if (result.type === 'resign') {
+      s.textContent = result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
+    } else if (result.type === 'checkmate') {
+      s.textContent = result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
+    } else {
+      s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
+    }
+    el('gameNote').textContent = '';
+    return;
+  }
+
+  const check = game.isCheck() ? ' You’re in check.' : '';
+  if (engineToMove() && engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) {
+    // At long budgets an idle board is indistinguishable from a crash.
+    s.textContent = engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
+    s.classList.add('urgent');
+  } else if (game.turn() === myColor) {
+    s.textContent = 'Your move.' + check;
+    s.classList.add('urgent');
+  } else {
+    s.textContent = game.isCheck() ? 'They’re in check.' : 'Their move.';
+  }
+
+  const note = el('gameNote');
+  if (engineNote) {
+    note.textContent = engineNote;
+    note.removeAttribute('title');
+    return;
+  }
+
+  if (solo) {                    // nothing to connect to, nothing to report
+    note.textContent = '';
+    note.removeAttribute('title');
+    return;
+  }
+
+  if (peers.size) {
+    note.textContent = seatClash
+      ? 'You’re both on the same side. One of you should open the link from the share button.'
+      : '';
+    note.removeAttribute('title');
+  } else {
+    const { open, total } = relayHealth();
+    if (handshakeFailed) {
+      // The relays did their job; the direct link is what failed.
+      note.textContent = 'Found them, but couldn’t open a direct connection. ' +
+        'One of you switching between wifi and mobile data usually fixes it.';
+    } else if (total && !open) {
+      note.textContent = 'Can’t reach the network at the moment. ' +
+        'A firewall, VPN or browser extension may be blocking the connection.';
+    } else {
+      note.textContent = 'Waiting for them to open the link. ' +
+        'You both need the page open for a move to cross.';
+    }
+    note.title = `${open} of ${total} relays reachable`;
+  }
+}
+
+function drawLedger() {
+  const hist = game.history();
+  const body = el('ledgerBody');
+  if (!hist.length) {
+    body.innerHTML = '<p class="empty-ledger">Nothing played yet.</p>';
+    return;
+  }
+  let html = '<div class="moves">';
+  for (let i = 0; i < hist.length; i += 2) {
+    html += `<span class="n">${i / 2 + 1}.</span>`;
+    for (const j of [i, i + 1]) {
+      const latest = j === hist.length - 1 ? ' latest' : '';
+      html += `<span class="m${latest}">${hist[j] || ''}</span>`;
+    }
+  }
+  html += '</div>';
+  body.innerHTML = html;
+  const grid = body.firstChild;
+  grid.scrollTop = grid.scrollHeight;
+}
+
+/* board coordinates in the arrow overlay's 0-100 space, orientation aware */
+function squareXY(sq) {
+  const file = FILES.indexOf(sq[0]);
+  const rank = Number(sq[1]);
+  const col = myColor === 'w' ? file : 7 - file;
+  const row = myColor === 'w' ? 8 - rank : rank - 1;
+  return { x: col * 12.5 + 6.25, y: row * 12.5 + 6.25 };
+}
+
+function drawArrow() {
+  const svg = el('arrow');
+  if (!hintsOn || !hint || !hint.from || !hint.to || result) { svg.innerHTML = ''; return; }
+
+  const a = squareXY(hint.from);
+  const b = squareXY(hint.to);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+
+  // start clear of the piece being moved, stop short of the target square's centre
+  const x1 = a.x + ux * 4.4, y1 = a.y + uy * 4.4;
+  const x2 = b.x - ux * 4.6, y2 = b.y - uy * 4.6;
+  const hx = b.x - ux * 1.2, hy = b.y - uy * 1.2;
+  const px = -uy, py = ux;
+  const head = `${hx},${hy} ${x2 + px * 3.1},${y2 + py * 3.1} ${x2 - px * 3.1},${y2 - py * 3.1}`;
+
+  svg.innerHTML =
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--brass)"
+           stroke-width="2.4" stroke-linecap="round" opacity=".9"/>` +
+    `<polygon points="${head}" fill="var(--brass)" opacity=".9"/>`;
+}
+
+function drawHint() {
+  const panel = el('hintPanel');
+  panel.classList.toggle('hidden', !hintsOn);
+  if (!hintsOn) return;
+
+  if (result) {
+    el('hintMove').textContent = '—';
+    el('hintMeta').textContent = '';
+    return;
+  }
+  if (game.turn() !== myColor) {
+    el('hintMove').textContent = 'their move';
+    el('hintMeta').textContent = '';
+    return;
+  }
+  if (!hint) {
+    el('hintMove').textContent = 'thinking…';
+    el('hintMeta').textContent = '';
+    return;
+  }
+
+  el('hintMove').textContent = hint.san;
+
+  if (hint.forced) {
+    el('hintMeta').textContent = 'only move';
+    return;                       // no search was run, so there's no score
+  }
+
+  if (hint.mate) {
+    const n = Math.ceil((100000 - Math.abs(hint.score)) / 2);
+    el('hintMeta').textContent = (hint.score > 0 ? 'mate in ' : 'mated in ') + n;
+    el('evalFill').style.width = (hint.score > 0 ? 100 : 0) + '%';
+    return;
+  }
+
+  const pawns = hint.score / 100;
+  el('hintMeta').textContent =
+    `${pawns >= 0 ? '+' : ''}${pawns.toFixed(1)} · depth ${hint.depth}`;
+  // squash the score into a bar; ±4 pawns is near the end of the scale
+  el('evalFill').style.width = (50 + 50 * Math.tanh(pawns / 4)).toFixed(1) + '%';
+}
+
+/* ---------- the coach panel ----------
+   On or off. There used to be a middle setting that showed counts without
+   detail; the collapsed panel already is that, so it was a mode for a state the
+   panel had anyway. What survives from it is the behaviour: the sections close
+   themselves when you move, so a new position opens with the section names and
+   their counts and nothing else, and you decide what to open.
+
+   The analysis lists everything — every capture, every check, every motif and
+   every undefended piece, sound or not, each with a verdict and the move that
+   answers it. That is a lot of rows in a sharp position, which is why the
+   sections collapse: nothing is hidden, nothing is shouted. */
+
+const COACH_MODES = ['off', 'on'];
+const COACH_LABEL = { off: 'Off', on: 'On' };
+
+let coachMode = store.get('table:coach') === 'off' || store.get('table:coach') == null ? 'off' : 'on';
+let peerCoach = false;
+let coachRead = null;      // {fen, groups, findings} for the position on the board
+let coachPending = null;   // fen currently being analysed
+let coachPick = null;      // id of the finding drawn on the board
+let coachReverted = false; // the sections just closed themselves after a move
+let coachOpen = new Set(); // which sections are open, this position only
+
+function announce() {
+  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay, coach: coachMode !== 'off' });
+}
+
+function setCoach(mode) {
+  coachMode = mode;
+  coachPick = null;
+  coachReverted = false;
+  store.set('table:coach', mode);
+  el('coachBtn').textContent = COACH_LABEL[mode];
+  announce();
+  draw();
+}
+
+/* The analysis is tens of milliseconds on a laptop and a few hundred on a
+   phone — not enough to worry about, but enough to see if it ran before paint.
+   So it is deferred by a tick: the board lands first, the panel fills in. */
+function requestCoach() {
+  if (coachMode === 'off' || result || game.turn() !== myColor) {
+    coachRead = null;
+    coachPending = null;
+    return;
+  }
+  const fen = game.fen();
+  if ((coachRead && coachRead.fen === fen) || coachPending === fen) return;
+
+  coachPending = fen;
+  setTimeout(() => {
+    if (coachPending !== fen || game.fen() !== fen) return;
+    const hist = game.history({ verbose: true });
+    const last = hist.at(-1);
+    try {
+      coachRead = analyze(fen, myColor, {
+        prevFen: last ? last.before : null,
+        lastSan: last ? last.san : null
+      });
+    } catch (e) {
+      console.warn('coach failed', e);
+      coachRead = { fen, groups: [], findings: [], failed: true };
+    }
+    coachPending = null;
+    drawCoach();
+    drawBoard();
+    drawCoachRays();
+  }, 0);
+}
+
+/* With nothing picked the board shows the state of the material — your soft
+   spots ringed in red, theirs in brass, the merely latent ones dotted. Pick a
+   row and it shows only that one. */
+function coachMarks() {
+  const marks = new Map();
+  if (coachMode === 'off' || !coachRead) return marks;
+
+  const set = (sq, cls) => { if (!marks.has(sq)) marks.set(sq, cls); };
+
+  if (inspectLive()) {
+    const cells = toCells(game);
+    const i = sqIndex(inspectSq);
+    const p = cells[i];
+    if (inspectSq !== selected) set(inspectSq, 'focus');
+    for (const a of attackersOf(cells, i, p ? p.color : 'w')) set(sqName(a), p ? 'good' : 'good');
+    for (const a of attackersOf(cells, i, p ? other(p.color) : 'b')) set(sqName(a), 'warn');
+    return marks;
+  }
+
+  if (coachPick) {
+    const f = coachRead.findings.find(x => x.id === coachPick);
+    if (f) for (const sq of f.squares || []) set(sq, f.side === 'you' ? 'good' : 'warn');
+    return marks;
+  }
+
+  for (const f of coachRead.findings) {
+    if (f.key !== 'loose' && f.motif !== 'trapped') continue;
+    const live = f.verdict && (f.verdict.kind === 'works' || f.verdict.kind === 'loses');
+    const latent = f.verdict && f.verdict.kind === 'latent';
+    if (f.side === 'you' && live) set(f.squares[0], 'warn');
+    else if (f.side === 'you' && latent) set(f.squares[0], 'watch');
+    else if (f.side === 'them' && live) set(f.squares[0], 'good');
+    else if (f.side === 'them' && latent) set(f.squares[0], 'chance');
+  }
+  return marks;
+}
+
+function drawCoachRays() {
+  const svg = el('coachSvg');
+  if (!svg) return;
+  if (coachMode === 'off' || !coachRead || !coachPick) { svg.innerHTML = ''; return; }
+
+  const f = coachRead.findings.find(x => x.id === coachPick);
+  if (!f) { svg.innerHTML = ''; return; }
+
+  const tone = f.side === 'you' ? 'var(--brass)' : 'var(--danger)';
+  let out = '';
+
+  for (const [a, b] of (f.rays || (f.ray ? [f.ray] : []))) {
+    const p = squareXY(a), q = squareXY(b);
+    out += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="${tone}"
+                  stroke-width="1.6" stroke-dasharray="3 2.4" opacity=".8"/>`;
+  }
+
+  if (f.arrow) {
+    const a = squareXY(f.arrow[0]), b = squareXY(f.arrow[1]);
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const x1 = a.x + ux * 4.4, y1 = a.y + uy * 4.4;
+    const x2 = b.x - ux * 4.6, y2 = b.y - uy * 4.6;
+    const px = -uy, py = ux;
+    out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tone}"
+                  stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round" opacity=".85"/>` +
+           `<polygon points="${b.x - ux * 1.4},${b.y - uy * 1.4} ${x2 + px * 2.7},${y2 + py * 2.7} ${x2 - px * 2.7},${y2 - py * 2.7}"
+                     fill="${tone}" opacity=".85"/>`;
+  }
+
+  svg.innerHTML = out;
+}
+
+/* ---------- inspecting a square ----------
+   The coach's silence is ambiguous. When a piece is not listed as undefended
+   you cannot tell whether it is genuinely defended or whether the scan skipped
+   it, and the only way to settle that was to ask someone. One tap should do it:
+   who defends this, who attacks it, and what happens if they take. */
+
+let inspectSq = null;
+let inspectFen = null;
+
+function inspect(sq) {
+  if (coachMode === 'off') return false;
+  inspectSq = (inspectSq === sq && inspectFen === game.fen()) ? null : sq;
+  inspectFen = game.fen();
+  coachPick = null;
+  return true;
+}
+
+const inspectLive = () => inspectSq && inspectFen === game.fen();
+
+function inspectHTML() {
+  if (!inspectLive()) return '';
+  const cells = toCells(game);
+  const i = sqIndex(inspectSq);
+  const p = cells[i];
+  const names = list => (list.length ? list.map(a => say(cells, a)).join(', ') : 'nothing');
+  const row = (k, v) => `<div class="irow"><span>${k}</span><b>${esc(v)}</b></div>`;
+
+  if (!p) {
+    return `<div class="inspect"><div class="ihead">${inspectSq} — empty</div>` +
+      row('White attacks it with', names(attackersOf(cells, i, 'w'))) +
+      row('Black attacks it with', names(attackersOf(cells, i, 'b'))) +
+      `<p class="iverdict">An empty square: who controls it decides who can use it.</p></div>`;
+  }
+
+  const mine = p.color === myColor;
+  const def = attackersOf(cells, i, p.color);
+  const att = attackersOf(cells, i, other(p.color));
+  const loss = att.length ? see(cells, i, other(p.color)) : 0;
+
+  const guards = [];
+  for (let j = 0; j < 64; j++) {
+    const q = cells[j];
+    if (!q || q.color !== p.color || j === i || q.type === 'k') continue;
+    if (attackersOf(cells, j, p.color).includes(i)) guards.push(j);
+  }
+
+  const verdict = !att.length
+    ? (def.length ? 'Not attacked.' : 'Undefended, and nothing attacks it.')
+    : loss > 0 ? `Taking it wins about ${loss} for ${mine ? 'them' : 'you'}.`
+    : 'The exchange holds — nothing is won there.';
+
+  return `<div class="inspect"><div class="ihead">${inspectSq} — ${mine ? 'your' : 'their'} ${NAME[p.type]}</div>` +
+    row('Defended by', names(def)) +
+    row('Attacked by', names(att)) +
+    (guards.length ? row('It guards', guards.map(j => say(cells, j)).join(', ')) : '') +
+    `<p class="iverdict">${esc(verdict)}</p></div>`;
+}
+
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* bright means it happens, muted means it does not — regardless of whose it is */
+function chipClass(f) {
+  if (!f.verdict) return '';
+  const k = f.verdict.kind;
+  if (k === 'works' || k === 'loses') {
+    const bad = (f.side === 'them' && k === 'works') || (f.side === 'you' && k === 'loses');
+    return bad ? 'v-bad' : 'v-good';
+  }
+  return 'v-dim';
+}
+
+function rowHTML(f) {
+  const chip = f.verdict
+    ? `<span class="verdict ${chipClass(f)}">${esc(f.verdict.label)}</span>` : '';
+  return `<button class="find ${f.side === 'them' ? 'them' : ''} ${coachPick === f.id ? 'on' : ''}" data-find="${f.id}">
+      <span class="head">${esc(f.head)}</span>${chip}
+      ${f.text ? `<span class="why">${esc(f.text)}</span>` : ''}
+    </button>`;
+}
+
+function drawCoach() {
+  const panel = el('coachPanel');
+  const body = el('coachBody');
+  const sum = el('coachSummary');
+
+  el('coachBtn').textContent = COACH_LABEL[coachMode];
+  el('coachState').textContent = '';
+
+  panel.classList.toggle('hidden', coachMode === 'off');
+  if (coachMode === 'off') { body.innerHTML = ''; return; }
+
+  if (result) {
+    sum.textContent = 'Game over';
+    body.innerHTML = '';
+    return;
+  }
+  if (game.turn() !== myColor) {
+    sum.textContent = 'Their move';
+    body.innerHTML = inspectHTML() +
+      '<p class="coach-note">The coach reads the position on your turn. You can still tap a square to inspect it.</p>';
+    return;
+  }
+  if (!coachRead) { sum.textContent = 'Reading the position…'; body.innerHTML = ''; return; }
+  if (coachRead.failed) {
+    sum.textContent = 'Could not read this position';
+    body.innerHTML = '<p class="coach-note">Something went wrong in the scan. The game is unaffected.</p>';
+    return;
+  }
+
+  const groups = coachRead.groups;
+  const total = coachRead.findings.length;
+
+  if (!total) {
+    sum.textContent = 'Nothing to flag';
+    body.innerHTML = inspectHTML() +
+      '<p class="coach-note">No captures, no checks, nothing loose either way, and nothing they win next move.</p>';
+    return;
+  }
+
+  sum.textContent = `${total} thing${total === 1 ? '' : 's'} across ${groups.length} section${groups.length === 1 ? '' : 's'}`;
+
+  body.innerHTML = inspectHTML() + groups.map(g => `
+    <details class="grp" data-g="${g.key}"${coachOpen.has(g.key) ? ' open' : ''}>
+      <summary><span class="gtitle">${esc(g.title)}</span><span class="gcount">${g.count}</span></summary>
+      <div class="gitems">${g.items.map(rowHTML).join('')}</div>
+    </details>`).join('') +
+    '<p class="coach-more">Tap a row to show it on the board. Tap any square for what attacks and defends it.</p>';
+}
+
+el('coachBtn').onclick = () => {
+  setCoach(coachMode === 'off' ? 'on' : 'off');
+};
+
+el('coachBody').addEventListener('click', e => {
+  const btn = e.target.closest('[data-find]');
+  if (!btn) return;
+  const id = btn.dataset.find;
+  coachPick = coachPick === id ? null : id;
+  drawCoach();
+  drawBoard();
+  drawCoachRays();
+});
+
+/* open sections survive a redraw within a position, and close on your move */
+el('coachBody').addEventListener('toggle', e => {
+  const d = e.target.closest('details[data-g]');
+  if (!d) return;
+  if (d.open) coachOpen.add(d.dataset.g); else coachOpen.delete(d.dataset.g);
+}, true);
+
+function setLink() {
+  if (solo) {
+    document.body.dataset.link = 'live';
+    el('linkState').textContent = 'practice';
+    el('invite').classList.add('hidden');
+    el('peerHint').classList.add('hidden');
+    return;
+  }
+  const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
+  document.body.dataset.link = state;
+  el('linkState').textContent =
+    state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
+  el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
+  const tell = peerAuto
+    ? 'They’re letting the engine play their moves.'
+    : peerHints ? 'They have hints switched on.'
+    : peerCoach ? 'They have the tactics coach switched on.' : '';
+  el('peerHint').textContent = tell;
+  el('peerHint').classList.toggle('hidden', !(tell && peers.size));
+  if (!el('game').classList.contains('hidden')) drawStatus();
+}
+
+/* ---------- interaction ---------- */
+function pick(sq) {
+  if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
+
+  if (selected) {
+    const moves = game.moves({ square: selected, verbose: true }).filter(m => m.to === sq);
+    if (moves.length) {
+      if (moves.some(m => m.promotion)) { askPromotion(selected, sq); return; }
+      const from = selected;
+      selected = null;
+      localMove(from, sq);
+      return;
+    }
+  }
+
+  /* Every tap inspects the square. Selecting a piece and reading it are not
+     alternatives — a tap on your own piece does both, so the move dots and the
+     readout come up together and the second tap still plays the move. Only a
+     tap that actually plays a move skips the readout, and that one clears it. */
+  const piece = game.get(sq);
+  selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
+  inspect(sq);
+  drawBoard();
+  drawCoach();
+  drawCoachRays();
+}
+
+boardEl.addEventListener('click', e => {
+  const cell = e.target.closest('.sq');
+  if (cell) pick(cell.dataset.sq);
+});
+
+boardEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const cell = e.target.closest('.sq');
+  if (!cell) return;
+  e.preventDefault();
+  pick(cell.dataset.sq);
+});
+
+function askPromotion(from, to) {
+  const overlay = document.createElement('div');
+  overlay.className = 'promo';
+  overlay.innerHTML =
+    '<div class="promo-box"><p>Promote to</p><div class="promo-row">' +
+    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, myColor)}</button>`).join('') +
+    '</div></div>';
+  overlay.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    overlay.remove();
+    selected = null;
+    localMove(from, to, b.dataset.t);
+  });
+  document.body.appendChild(overlay);
+  overlay.querySelector('button').focus();
+}
+
+/* ---------- diagnostics ----------
+   The point is that whoever is stuck can send this to whoever isn't. It names
+   the build, which of the two failure modes is happening, and what the relays
+   and the engine are doing. */
+let debugTimer = null;
+
+function diagnostics() {
+  const { open, total } = relayHealth();
+  const link = document.body.dataset.link;
+  const eng = !engine ? 'not started'
+    : engineJob ? `busy (${engineJob.mode}, depth ${engineJob.depth || '-'})`
+    : 'ready';
+
+  return [
+    `Table ${VERSION}`,
+    `${new Date().toISOString()}`,
+    ``,
+    `room        ${code || '(none)'}`,
+    `you         ${myColor === 'w' ? 'white' : 'black'}`,
+    `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
+    `peers       ${peers.size}`,
+    `relays      ${open}/${total} open`,
+    `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
+    `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
+    ``,
+    `engine      ${eng}`,
+    `think       ${fmtThink(thinkMs)}`,
+    `hints       ${hintsOn ? 'on' : 'off'}   autoplay ${autoPlay ? 'on' : 'off'}`,
+    `coach       ${coachMode}${coachRead ? ` (${coachRead.findings.length} findings)` : ''}`,
+    engineNote ? `note        ${engineNote}` : ``,
+    ``,
+    `url         ${location.href}`,
+    `agent       ${navigator.userAgent}`,
+    ``,
+    `--- log ---`,
+    ...logBuf.slice(-40)
+  ].filter(l => l !== ``).join('\n');
+}
+
+function drawDebug() {
+  el('debugText').textContent = diagnostics();
+}
+
+function toggleDebug() {
+  const panel = el('debugPanel');
+  const showing = panel.classList.toggle('hidden');
+  clearInterval(debugTimer);
+  debugTimer = null;
+  if (!showing) {
+    drawDebug();
+    debugTimer = setInterval(drawDebug, 1000);
+  }
+}
+
+el('verBtn').textContent = VERSION;
+el('verBtn').onclick = toggleDebug;
+
+el('copyDiagBtn').onclick = async () => {
+  const text = diagnostics();
+  try {
+    await navigator.clipboard.writeText(text);
+    el('copyDiagBtn').textContent = 'Copied';
+    setTimeout(() => el('copyDiagBtn').textContent = 'Copy report', 1600);
+  } catch {
+    prompt('Diagnostics:', text);
+  }
+};
+
+// Bypasses the CDN and the browser cache, which is the usual reason two people
+// are looking at different builds.
+el('reloadBtn').onclick = () => {
+  const u = new URL(location.href);
+  u.searchParams.set('v', Date.now().toString(36));
+  location.replace(u.toString());
+};
+
+// ?debug or #...&debug opens it straight away, for someone who can't be talked
+// through tapping a version number.
+if (/[?&#]debug\b/.test(location.href)) toggleDebug();
+
+/* ---------- buttons ---------- */
+el('soloBtn').onclick = () => {
+  const choice = document.querySelector('input[name=side]:checked').value;
+  const mine = choice === 'r'
+    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
+    : choice;
+  solo = true;
+  code = 'solo';
+  myColor = mine;
+  setHash(mine);
+  begin();
+};
+
+el('startBtn').onclick = () => {
+  const choice = document.querySelector('input[name=side]:checked').value;
+  const mine = choice === 'r'
+    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
+    : choice;
+  code = makeCode();
+  myColor = mine;
+  setHash(mine);
+  begin();
+};
+
+function inviteUrl() {
+  return `${location.origin}${location.pathname}#r=${code}&c=${myColor === 'w' ? 'b' : 'w'}`;
+}
+
+el('waBtn').onclick = () => {
+  const text = `Game of chess? Your board is here — you're ${myColor === 'w' ? 'black' : 'white'}: ${inviteUrl()}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+};
+
+el('copyBtn').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(inviteUrl());
+    el('copyBtn').textContent = 'Copied';
+    setTimeout(() => el('copyBtn').textContent = 'Copy link', 1600);
+  } catch {
+    prompt('Copy this link:', inviteUrl());
+  }
+};
+
+el('resignBtn').onclick = () => {
+  if (!confirm('Resign this game?')) return;
+  result = { type: 'resign', winner: myColor === 'w' ? 'b' : 'w' };
+  broadcast({ t: 'resign', by: myColor });
+  persist();
+  draw();
+};
+
+el('rematchBtn').onclick = () => {
+  const next = myColor === 'w' ? 'b' : 'w';
+  broadcast({ t: 'rematch', yourColor: myColor });
+  startFresh(next);
+};
+
+el('takebackBtn').onclick = () => {
+  if (!game.history().length || result) return;
+
+  if (solo) {                    // no one to ask
+    const hist = game.history();
+    const drop = Math.min(game.turn() === myColor ? 2 : 1, hist.length);
+    adopt(hist.slice(0, hist.length - drop), null, true);
+    return;
+  }
+
+  takebackAsked = true;
+  broadcast({ t: 'tb', color: myColor });
+  draw();
+};
+
+el('soundBtn').onclick = () => {
+  soundOn = !soundOn;
+  store.set('table:sound', soundOn);
+  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
+  if (soundOn) blip();          // confirm it actually works
+};
+
+function fmtThink(ms) {
+  return ms >= 10000 ? Math.round(ms / 1000) + 's' : (ms / 1000).toFixed(0) + 's';
+}
+
+el('thinkRange').oninput = e => {
+  thinkMs = Number(e.target.value);
+  el('thinkVal').textContent = fmtThink(thinkMs);
+  store.set('table:think', thinkMs);
+  // a longer think should apply to the position on the board now
+  hintFen = null;
+  engineJob = null;
+  hint = null;
+  draw();
+};
+
+el('autoBtn').onclick = () => {
+  autoPlay = !autoPlay;
+  engineJob = null;
+  announce();
+  draw();
+};
+
+el('hintBtn').onclick = () => {
+  hintsOn = !hintsOn;
+  el('hintBtn').textContent = hintsOn ? 'On' : 'Off';
+  hint = null;
+  hintFen = null;
+  announce();
+  draw();
+};
+
+el('pgnBtn').onclick = async () => {
+  const pgn = game.pgn() || '(no moves yet)';
+  try {
+    await navigator.clipboard.writeText(pgn);
+    el('pgnBtn').textContent = 'Copied';
+    setTimeout(() => el('pgnBtn').textContent = 'PGN', 1600);
+  } catch {
+    prompt('Game notation:', pgn);
+  }
+};
+
+el('setBtn').onclick = () => {
+  pieceSet = pieceSet === 'bauhaus' ? 'staunton' : 'bauhaus';
+  store.set('table:set', pieceSet);
+  draw();
+};
+
+/* ---------- boot ---------- */
+function begin() {
+  el('lobby').classList.add('hidden');
+  el('game').classList.remove('hidden');
+  restore();
+  if (!solo) {
+    connect();
+    el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
+  }
+  draw();
+  setLink();
+}
+
+const { r, c, solo: soloHash } = parseHash();
+if (soloHash) {
+  solo = true;
+  code = 'solo';
+  myColor = c === 'b' ? 'b' : 'w';
+  begin();
+} else if (r) {
+  code = r;
+  myColor = c === 'b' ? 'b' : 'w';
+  begin();
+} else {
+  setLink();
+}
+
+window.addEventListener('hashchange', () => {
+  if (navigating) { navigating = false; return; }
+  location.reload();
+});
+</script>
+</body>
+</html>
