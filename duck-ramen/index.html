@@ -1,0 +1,414 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Duck Breast Ramen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow kitchen column — adults control, ingredients, steps with timers, then a quiet end section; running timers pinned to the bottom */
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --ink: #1b2129;
+  --muted: #5b6573;
+  --line: #d8dde4;
+  --accent: #2c4a7c;
+  --accent-soft: #e3e9f3;
+  --on-accent: #ffffff;
+  --alarm: #b3261e;
+  --alarm-soft: #fbe4e2;
+  --done: #8a929d;
+  --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+    --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+    --alarm: #ff8a80; --alarm-soft: #3a1d1c; --done: #6b7583;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+  --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+  --alarm: #ff8a80; --alarm-soft: #3a1d1c; --done: #6b7583;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 680px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 120px; display: flex; flex-direction: column; gap: 36px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; font-weight: 800; line-height: 1.15; }
+h2 { font-size: 1.35rem; font-weight: 800; }
+.sub { color: var(--muted); margin: 6px 0 0; }
+.label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+.control { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-size: 1.4rem; width: 48px; height: 48px; cursor: pointer; font-family: var(--body); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stepper input { width: 64px; height: 48px; border: 0; text-align: center; font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink); font-family: var(--body); -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.control-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.control-text strong { font-size: 1.05rem; }
+.control-text span { color: var(--muted); font-size: 0.9rem; }
+
+section { display: flex; flex-direction: column; gap: 14px; }
+.ing { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.ing li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ing .amt { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.ing .name { min-width: 0; }
+.ing .opt { color: var(--muted); font-weight: 400; }
+.ing .note { display: block; color: var(--muted); font-size: 0.88rem; }
+.group { margin-top: 10px; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; scroll-margin-top: 16px; scroll-margin-bottom: 110px; }
+.steps input[type="checkbox"] { width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--accent); cursor: pointer; }
+.steps .body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps .head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.steps .head strong { font-size: 1.02rem; }
+.steps .time { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.steps p { margin: 0; }
+.steps li.done .body p, .steps li.done .head { color: var(--done); }
+.steps li.done .head strong { text-decoration: line-through; }
+.b { font-weight: 600; color: var(--accent); }
+.steps li.done .b { color: var(--done); }
+
+.timers { display: flex; flex-wrap: wrap; gap: 8px; }
+.timer { display: flex; align-items: stretch; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; }
+.timer .go { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-family: var(--body); font-size: 0.95rem; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.timer .go .clock { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.timer .go .what { font-size: 0.85rem; }
+.timer .reset { appearance: none; border: 0; border-left: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-family: var(--body); font-size: 0.8rem; padding: 0 10px; cursor: pointer; }
+.timer.running .go { background: var(--accent); color: var(--on-accent); }
+.timer.ringing { border-color: var(--alarm); }
+.timer.ringing .go { background: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
+.timer.ringing .reset { border-left-color: var(--alarm); color: var(--alarm); }
+@keyframes pulse { 50% { opacity: 0.65; } }
+
+.tips { margin: 0; padding-left: 1.1rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+
+.end { border-top: 1px dashed var(--line); padding-top: 28px; margin-top: 24px; gap: 10px; }
+.end p { margin: 0; color: var(--muted); font-size: 0.92rem; max-width: 60ch; }
+.toggle { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; cursor: pointer; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+.banner { background: var(--accent-soft); color: var(--ink); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; }
+
+.dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 16px rgba(0,0,0,0.08); }
+.dock-inner { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; overflow-x: auto; }
+.chip { appearance: none; flex: 0 0 auto; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 6px 12px; font-family: var(--body); font-size: 0.88rem; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.chip .clock { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip.paused { opacity: 0.7; }
+.chip.ringing { background: var(--alarm); border-color: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) { .timer.ringing .go, .chip.ringing { animation: none; } }
+@media (max-width: 420px) {
+  h1 { font-size: 1.8rem; }
+  .ing li { grid-template-columns: 6.2rem 1fr; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">Umami stack · alcohol-free</div>
+    <h1>Duck Breast Ramen</h1>
+    <p class="sub">Seared duck, soy broth with the duck fat kept in, ramen noodles, soft egg. One whole duck breast per person.</p>
+  </header>
+
+  <div class="control">
+    <div class="control-text">
+      <strong>Number of adults</strong>
+      <span>Every amount below updates.</span>
+    </div>
+    <div class="stepper">
+      <button type="button" id="minus" aria-label="One fewer adult">−</button>
+      <input id="adults" type="number" min="1" max="20" value="2" inputmode="numeric" aria-label="Number of adults">
+      <button type="button" id="plus" aria-label="One more adult">+</button>
+    </div>
+  </div>
+
+  <div class="banner" id="altBanner" hidden>Showing the sake and mirin version. Turn it off at the bottom of the page.</div>
+
+  <section>
+    <h2>Ingredients</h2>
+    <div>
+      <div class="label">Duck, noodles, eggs</div>
+      <ul class="ing" id="ingMain"></ul>
+    </div>
+    <div class="group">
+      <div class="label">Broth</div>
+      <ul class="ing" id="ingBroth"></ul>
+    </div>
+    <div class="group">
+      <div class="label">To finish</div>
+      <ul class="ing" id="ingFinish"></ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <p class="sub" style="margin:0">Tap a timer to start it, tap again to pause. Running timers stay pinned to the bottom of the screen.</p>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <section>
+    <h2>Notes</h2>
+    <ul class="tips" id="tips"></ul>
+  </section>
+
+  <section class="end">
+    <div class="label">Version with alcohol</div>
+    <p>This uses sake and mirin in place of the rice malt syrup and rice vinegar. It resets to alcohol-free every time the page is opened.</p>
+    <label class="toggle"><input type="checkbox" id="alcohol"> Use the sake and mirin version</label>
+  </section>
+</div>
+
+<div class="dock" id="dock" hidden><div class="dock-inner" id="dockInner"></div></div>
+
+<script>
+(function () {
+  const adultsEl = document.getElementById('adults');
+  const alcEl = document.getElementById('alcohol');
+
+  // ---------- Timers ----------
+  const timers = {
+    soak:   { label: 'Shiitake soak', what: 'Soak', secs: 25 * 60, step: 0 },
+    rest:   { label: 'Duck rest', what: 'Room temp', secs: 15 * 60, step: 1 },
+    egg:    { label: 'Eggs', what: 'Boil', secs: 6 * 60 + 45, step: 2 },
+    skin:   { label: 'Duck skin side', what: 'Skin side', secs: 8 * 60, step: 3 },
+    flip:   { label: 'Duck flipped', what: 'After flip', secs: 3 * 60 + 30, step: 3 },
+    simmer: { label: 'Broth simmer', what: 'Simmer', secs: 15 * 60, step: 4 },
+    noodle: { label: 'Noodles', what: 'Fresh noodles', secs: 60, step: 6 }
+  };
+  for (const k in timers) Object.assign(timers[k], { remaining: timers[k].secs, endAt: 0, running: false, ringing: false, started: false });
+
+  let audio = null;
+  function ensureAudio() {
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+    } catch (e) { audio = null; }
+  }
+  function beep() {
+    if (!audio) return;
+    try {
+      const t0 = audio.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0 + i * 0.35);
+        g.gain.exponentialRampToValueAtTime(0.4, t0 + i * 0.35 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.35 + 0.25);
+        o.connect(g).connect(audio.destination);
+        o.start(t0 + i * 0.35); o.stop(t0 + i * 0.35 + 0.3);
+      }
+    } catch (e) {}
+  }
+  function buzz() { try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
+
+  function fmt(s) {
+    s = Math.max(0, Math.ceil(s));
+    const m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function left(t) { return t.running ? (t.endAt - Date.now()) / 1000 : t.remaining; }
+
+  function toggleTimer(id) {
+    ensureAudio();
+    const t = timers[id];
+    if (t.ringing) { resetTimer(id); return; }
+    if (t.running) { t.remaining = left(t); t.running = false; }
+    else { t.endAt = Date.now() + t.remaining * 1000; t.running = true; t.started = true; keepAwake(); }
+    paint();
+  }
+  function resetTimer(id) {
+    const t = timers[id];
+    Object.assign(t, { remaining: t.secs, running: false, ringing: false, started: false });
+    paint();
+  }
+
+  let lastRing = 0;
+  function tick() {
+    const now = Date.now();
+    let anyRinging = false;
+    for (const k in timers) {
+      const t = timers[k];
+      if (t.running && t.endAt <= now) { t.running = false; t.remaining = 0; t.ringing = true; lastRing = 0; }
+      if (t.ringing) anyRinging = true;
+    }
+    if (anyRinging && now - lastRing > 4000) { lastRing = now; beep(); buzz(); }
+    paint();
+  }
+
+  function paint() {
+    document.querySelectorAll('.timer').forEach(el => {
+      const t = timers[el.dataset.timer];
+      el.classList.toggle('running', t.running);
+      el.classList.toggle('ringing', t.ringing);
+      el.querySelector('.clock').textContent = t.ringing ? 'Done' : fmt(left(t));
+      el.querySelector('.go').setAttribute('aria-label',
+        t.label + ': ' + (t.ringing ? 'done, tap to stop' : t.running ? 'running, tap to pause' : 'tap to start'));
+    });
+    const active = Object.entries(timers).filter(([, t]) => t.started || t.ringing);
+    const dock = document.getElementById('dock');
+    dock.hidden = active.length === 0;
+    document.getElementById('dockInner').innerHTML = active.map(([k, t]) =>
+      '<button type="button" class="chip' + (t.ringing ? ' ringing' : t.running ? '' : ' paused') + '" data-chip="' + k + '">' +
+      '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
+  }
+
+  document.getElementById('dockInner').addEventListener('click', e => {
+    const chip = e.target.closest('[data-chip]');
+    if (!chip) return;
+    const t = timers[chip.dataset.chip];
+    if (t.ringing) { resetTimer(chip.dataset.chip); return; }
+    const li = document.querySelectorAll('#steps > li')[t.step];
+    if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ---------- Amounts ----------
+  function frac(x) {
+    const q = Math.round(x * 4) / 4;
+    if (q <= 0) return '¼';
+    const whole = Math.floor(q);
+    const rem = q - whole;
+    const f = rem === 0.25 ? '¼' : rem === 0.5 ? '½' : rem === 0.75 ? '¾' : '';
+    if (whole === 0) return f;
+    return whole + (f ? ' ' + f : '');
+  }
+  function halfUp(x) { return frac(Math.max(0.5, Math.round(x * 2) / 2)); }
+  function whole(x) { return Math.max(1, Math.round(x)); }
+  function ml(x) { return Math.round(x / 25) * 25; }
+  function cups(x) { return frac(x / 250); }
+  function spoons(tsp) { return tsp >= 3 ? frac(tsp / 3) + ' tbsp' : frac(tsp) + ' tsp'; }
+
+  function render() {
+    let n = parseInt(adultsEl.value, 10);
+    if (!Number.isFinite(n) || n < 1) n = 1;
+    if (n > 20) n = 20;
+    const alc = alcEl.checked;
+    document.getElementById('altBanner').hidden = !alc;
+
+    const stock = ml(375 * n);
+    const soak = ml(Math.max(125, 60 * n));
+    const pans = n <= 2 ? 'one pan' : 'batches of 2 breasts (or two pans)';
+
+    // [amount, name, optional?, note]
+    const main = [
+      [whole(n), 'duck breasts', false, ''],
+      [Math.round(150 * n) + ' g', 'fresh ramen noodles', false, 'or ' + Math.round(100 * n) + ' g dried'],
+      [whole(n), 'eggs', false, ''],
+      ['', 'salt and white pepper', false, 'a good pinch of each per breast']
+    ];
+    const broth = [
+      [stock + ' ml', 'unseasoned chicken or dashi stock', false, 'about ' + cups(stock) + ' cups. Plain, not seasoned or bone broth.'],
+      [spoons(3.75 * n), 'tamari or soy sauce', false, 'check the label: choose one with no alcohol listed']
+    ];
+    if (alc) {
+      broth.push([spoons(3 * n), 'mirin', false, '']);
+      broth.push([spoons(2.25 * n), 'sake (or dry sherry)', false, '']);
+    } else {
+      broth.push([spoons(1.4 * n), 'rice malt syrup', false, 'or ' + spoons(1.125 * n) + ' white sugar']);
+      broth.push([spoons(0.25 * n), 'rice wine vinegar', false, 'or the same amount of fresh lime juice']);
+    }
+    broth.push(
+      [spoons(0.25 * n), 'fish sauce', false, ''],
+      [halfUp(0.25 * n), 'thumb-sized pieces of ginger', false, 'thinly sliced'],
+      [halfUp(0.75 * n), 'garlic cloves', false, 'smashed'],
+      [halfUp(1.5 * n), 'dried shiitake mushrooms', true, 'plus ' + soak + ' ml warm water or stock to soak them in'],
+      [spoons(0.5 * n), 'powdered gelatin', true, 'gives a silky mouthfeel']
+    );
+    const finish = [
+      [spoons(0.375 * n), 'sesame oil', false, ''],
+      [whole(n), 'spring onions', false, 'sold as "shallots" at Coles. Sliced thin, white and green parts.'],
+      ['', 'extras', true, 'nori, chilli oil, toasted sesame seeds, blanched pak choi']
+    ];
+
+    function fill(id, rows) {
+      document.getElementById(id).innerHTML = rows.map(r =>
+        '<li><span class="amt">' + r[0] + '</span><span class="name">' + r[1] +
+        (r[2] ? ' <span class="opt">(optional)</span>' : '') +
+        (r[3] ? '<span class="note">' + r[3] + '</span>' : '') + '</span></li>').join('');
+    }
+    fill('ingMain', main); fill('ingBroth', broth); fill('ingFinish', finish);
+
+    const b = s => '<span class="b">' + s + '</span>';
+    const seasonAdd = alc
+      ? 'the ' + b('tamari') + ', ' + b('mirin') + ', ' + b('sake') + ' and ' + b('fish sauce')
+      : 'the ' + b('tamari') + ', ' + b('rice malt syrup') + ' and ' + b('fish sauce') + '. Stir until the syrup dissolves';
+    const finishAcid = alc ? '' : ' Stir in the ' + b('rice wine vinegar') + ' (or lime juice).';
+
+    // [title, time label, text, timer ids]
+    const steps = [
+      ['Soak the shiitake (optional)', '25 min',
+        'Skip this step if you are not using shiitake. Put the ' + b('dried shiitake') + ' in a bowl with ' + soak + ' ml warm water or stock. Soak until soft. Squeeze them gently over the bowl, cut off the stems, and keep the soaking liquid.',
+        ['soak']],
+      ['Score and season the duck', '15 min',
+        'Pat the ' + b('duck breasts') + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Season both sides with salt and white pepper. Leave at room temperature for 15 minutes.',
+        ['rest']],
+      ['Boil the eggs', '6¾ min',
+        'Lower the ' + b('eggs') + ' into boiling water and start the timer. When it goes off, move them straight into iced water. Peel and halve when cool. You can do this hours ahead.',
+        ['egg']],
+      ['Render the duck', '8 + 3½ min',
+        'Use ' + pans + '. Put the duck skin-side down in a cold stainless pan, turn the heat to medium, and start the skin-side timer. Do not move it. When it goes off the skin should be golden; flip and start the second timer (medium, pink inside). Rest the duck on a board. Pour all the fat into a jug. For another batch, reset both timers.',
+        ['skin', 'flip']],
+      ['Build the broth', '15 min',
+        'Put about 2 tbsp of the duck fat in your biggest pot over medium heat. Fry the ' + b('ginger') + ' and ' + b('garlic') + ' for 1 minute. Add the ' + b('stock') + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using ' + b('gelatin') + ', sprinkle it over and stir until dissolved. Simmer gently for 15 minutes.' + finishAcid,
+        ['simmer']],
+      ['Add the duck fat and taste', '',
+        'Add the rest of the duck fat a little at a time, tasting as you go. Stop if it pools oily on the surface; keep any leftover fat for roast potatoes. Too salty: add a splash of stock or water. Flat: add a little more tamari. Strain out the ginger and garlic. If using shiitake, lift them out and slice them. Stir in the ' + b('sesame oil') + ' and keep the broth at a simmer.',
+        []],
+      ['Cook the noodles in the broth', '1 min',
+        'Slice each duck breast across the grain and have the bowls ready. Drop the ' + b('ramen noodles') + ' straight into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.',
+        ['noodle']],
+      ['Assemble', '',
+        'Lift the noodles into the bowls with tongs and ladle the broth over. Lay one whole sliced duck breast on each bowl. Add two egg halves, the sliced shiitake if using, and scatter the ' + b('spring onions') + ' on top.',
+        []]
+    ];
+    const prev = Array.from(document.querySelectorAll('#steps input')).map(c => c.checked);
+    document.getElementById('steps').innerHTML = steps.map((s, i) =>
+      '<li' + (prev[i] ? ' class="done"' : '') + '><input type="checkbox" id="step' + i + '" aria-label="Mark step done: ' + s[0] + '"' + (prev[i] ? ' checked' : '') + '>' +
+      '<div class="body"><div class="head"><strong>' + (i + 1) + '. ' + s[0] + '</strong>' +
+      (s[1] ? '<span class="time">' + s[1] + '</span>' : '') + '</div><p>' + s[2] + '</p>' +
+      (s[3].length ? '<div class="timers">' + s[3].map(id =>
+        '<div class="timer" data-timer="' + id + '"><button type="button" class="go"><span class="clock"></span><span class="what">' + timers[id].what + '</span></button>' +
+        '<button type="button" class="reset" aria-label="Reset ' + timers[id].label + ' timer">Reset</button></div>').join('') + '</div>' : '') +
+      '</div></li>').join('');
+
+    const tips = [
+      'Not gluten free (ramen noodles). For gluten free, use rice noodles with tamari.',
+      'Homegrown dried shiitake give a deeper, smokier broth than shop-bought ones.',
+      'Timers keep counting if you switch apps, but the alarm only sounds while this page is open. Your phone must not be on silent to hear it.',
+      alc ? 'Let the sake bubble in the pot for 30–60 seconds before the stock goes in, to cook off the harsh edge.' : 'Rice wine vinegar and rice vinegar are the same product. Do not confuse it with "rice wine" or Shaoxing wine, which are alcohol and sit on the same shelf.'
+    ];
+    document.getElementById('tips').innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
+    paint();
+  }
+
+  document.getElementById('steps').addEventListener('click', e => {
+    const tEl = e.target.closest('.timer');
+    if (!tEl) return;
+    if (e.target.closest('.reset')) resetTimer(tEl.dataset.timer);
+    else if (e.target.closest('.go')) toggleTimer(tEl.dataset.timer);
+  });
+  document.getElementById('steps').addEventListener('change', e => {
+    if (e.target.matches('input[type="checkbox"]')) e.target.closest('li').classList.toggle('done', e.target.checked);
+  });
+  document.getElementById('minus').addEventListener('click', () => { adultsEl.value = Math.max(1, (parseInt(adultsEl.value, 10) || 1) - 1); render(); });
+  document.getElementById('plus').addEventListener('click', () => { adultsEl.value = Math.min(20, (parseInt(adultsEl.value, 10) || 1) + 1); render(); });
+  adultsEl.addEventListener('input', render);
+  alcEl.checked = false;
+  alcEl.addEventListener('change', render);
+
+  // Keep the screen awake while cooking, if the browser allows it
+  function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); tick(); } });
+  keepAwake();
+
+  render();
+  setInterval(tick, 250);
+})();
+</script>
+
+</body></html>
