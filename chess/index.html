@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- the page is already dark: tells Android browsers not to repaint it in dark mode -->
+<meta name="color-scheme" content="dark">
 <title>Table (fast engine) — a private chess board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
+    color-scheme: dark;
     --ground: #15181b;
     --panel: #1d2226;
     --edge: #2b3238;
@@ -336,6 +339,33 @@
     border: 3px solid var(--danger);
   }
   .sq.playable { cursor: pointer; }
+
+  /* dragging. Only squares holding a piece you can move right now refuse to
+     scroll the page, so a swipe that starts anywhere else on the board still
+     scrolls. The piece in the hand is a copy on the page, not in the grid:
+     the board is rebuilt on every redraw and would take it with it. */
+  .sq.mine { touch-action: none; -webkit-touch-callout: none; }
+  .sq.lifted svg.pc { opacity: .28; }
+  .sq.over { outline: 3px solid var(--brass); outline-offset: -3px; }
+  .board.dragging, .board.dragging .sq { cursor: grabbing; }
+  .dragpiece {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .dragpiece svg {
+    width: 96%;
+    height: 96%;
+    display: block;
+    filter: drop-shadow(0 5px 6px rgba(0,0,0,.45));
+  }
+  .dragpiece svg.bauhaus { width: 88%; height: 88%; }
 
   .sq svg.pc {
     position: relative;
@@ -2455,7 +2485,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-11.1-review';
+const VERSION = '2026-10-11.3-drag';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2598,6 +2628,7 @@ let myColor = 'w';
 let code = null;
 let result = null;
 let selected = null;
+let drag = null;          // a piece being dragged: see "dragging" under interaction
 let lastMove = null;
 let senders = [];
 let peers = new Set();
@@ -5008,6 +5039,9 @@ function drawBoard() {
       const isTarget = !!targets[sq];
       const canPick = myTurn && piece && piece.color === myColor;
       if (isTarget || canPick) classes.push('playable');
+      if (canPick) classes.push('mine');
+      if (drag && drag.active && drag.from === sq) classes.push('lifted');
+      if (drag && drag.active && drag.over === sq && isTarget) classes.push('over');
       if (isTarget && piece) classes.push('occupied');
 
       let inner = '';
@@ -6931,6 +6965,129 @@ boardEl.addEventListener('click', e => {
   const cell = e.target.closest('.sq');
   if (cell) pick(cell.dataset.sq);
 });
+
+/* ---------- dragging ----------
+   A second way to make the same move, not a second code path: a drag ends in
+   the same game.moves / localMove / askPromotion calls as two taps. A press
+   that never travels further than the slop is not a drag at all and is left
+   to the click handler above, so tapping behaves exactly as it did. */
+let dragEndedAt = 0;
+
+function squareAt(x, y) {
+  const r = boardEl.getBoundingClientRect();
+  if (x < r.left || x >= r.right || y < r.top || y >= r.bottom) return null;
+  const col = Math.min(7, Math.floor((x - r.left) / r.width * 8));
+  const row = Math.min(7, Math.floor((y - r.top) / r.height * 8));
+  const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
+  return files[col] + (myColor === 'w' ? 8 - row : row + 1);
+}
+
+function dragPlace(x, y) {
+  // under a finger the piece would be hidden, so it rides above it; the ring
+  // on the square shows where it will land
+  const lift = drag.touch ? drag.cell * 0.6 : 0;
+  drag.ghost.style.transform =
+    `translate(${x - drag.size / 2}px, ${y - drag.size / 2 - lift}px)`;
+  const over = squareAt(x, y);
+  if (over !== drag.from) drag.left = true;
+  if (over === drag.over) return;
+  const was = boardEl.querySelector('.sq.over');
+  if (was) was.classList.remove('over');
+  drag.over = over;
+  if (over && drag.targets.has(over)) {
+    const cell = boardEl.querySelector(`.sq[data-sq="${over}"]`);
+    if (cell) cell.classList.add('over');
+  }
+}
+
+function dragStart(e) {
+  const piece = game.get(drag.from);
+  if (!piece || piece.color !== myColor) { drag = null; return false; }
+  drag.active = true;
+  drag.touch = e.pointerType === 'touch';
+  drag.targets = new Set(game.moves({ square: drag.from, verbose: true }).map(m => m.to));
+  drag.cell = boardEl.getBoundingClientRect().width / 8;
+  drag.size = drag.cell * (drag.touch ? 1.5 : 1.1);
+  drag.ghost = document.createElement('div');
+  drag.ghost.className = 'dragpiece';
+  drag.ghost.style.width = drag.ghost.style.height = drag.size + 'px';
+  drag.ghost.innerHTML = pieceSVG(piece.type, piece.color);
+  document.body.appendChild(drag.ghost);
+  // the square under the press is about to be rebuilt; hold the pointer on the
+  // board itself, which is not
+  try { boardEl.setPointerCapture(drag.id); } catch {}
+  boardEl.classList.add('dragging');
+  drag.wasSelected = selected;
+  selected = drag.from;
+  drawBoard();
+  return true;
+}
+
+function dragEnd(e) {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  const d = drag;
+  drag = null;
+  if (!d.active) return;                      // a tap; the click handler has it
+  d.ghost.remove();
+  boardEl.classList.remove('dragging');
+  try { boardEl.releasePointerCapture(d.id); } catch {}
+  dragEndedAt = performance.now();
+
+  const to = e && e.type === 'pointerup' ? squareAt(e.clientX, e.clientY) : null;
+  const live = viewPly == null && !result && game.turn() === myColor;
+  if (live && to && to !== d.from) {
+    const moves = game.moves({ square: d.from, verbose: true }).filter(m => m.to === to);
+    if (moves.length) {
+      if (moves.some(m => m.promotion)) { drawBoard(); askPromotion(d.from, to); return; }
+      selected = null;
+      if (!localMove(d.from, to)) drawBoard();
+      return;
+    }
+  }
+  // a press that wobbled but never left its square was a tap
+  if (live && to === d.from && !d.left) { selected = d.wasSelected; pick(d.from); return; }
+  // dropped back home, off the board or somewhere it cannot go: it goes home
+  // and stays selected, so a tap on a target still plays the move
+  if (!live) selected = null;
+  drawBoard();
+}
+
+boardEl.addEventListener('pointerdown', e => {
+  if (drag && drag.active) return;
+  drag = null;
+  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const cell = e.target.closest('.sq.mine');
+  if (!cell) return;
+  drag = {
+    from: cell.dataset.sq, id: e.pointerId, x0: e.clientX, y0: e.clientY,
+    slop: Math.min(12, cell.getBoundingClientRect().width / 6),
+    active: false, over: null
+  };
+});
+
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (e.pointerType === 'mouse' && !(e.buttons & 1)) { dragEnd(null); return; }   // released out of sight
+  if (!drag.active) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < drag.slop) return;
+    if (!dragStart(e)) return;
+  }
+  dragPlace(e.clientX, e.clientY);
+});
+document.addEventListener('pointerup', dragEnd);
+document.addEventListener('pointercancel', dragEnd);
+boardEl.addEventListener('lostpointercapture', e => { if (e.target === boardEl && drag && drag.active) dragEnd(e); });
+window.addEventListener('blur', () => dragEnd(null));
+boardEl.addEventListener('contextmenu', e => { if (drag) e.preventDefault(); });
+
+/* A drag that ends on a square can be followed by the browser's own click for
+   the same press. The move has been dealt with; that click must not be read
+   as a fresh tap. */
+boardEl.addEventListener('click', e => {
+  if (performance.now() - dragEndedAt > 400) return;
+  dragEndedAt = 0;
+  e.stopImmediatePropagation();
+}, true);
 
 boardEl.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
