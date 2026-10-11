@@ -964,6 +964,10 @@
   .obody b { color: var(--text); font-weight: 500; }
   .oreason { color: var(--text); }
   .onext { color: var(--brass); }
+  .onext .omv { display: inline-block; white-space: nowrap; margin-right: 12px; }
+  .onext .omv b { color: var(--brass); font-weight: 600; }
+  .onext .omv i { color: var(--muted); font-style: normal; }
+  .oseq.onext { font-size: 11.5px; line-height: 1.75; margin-top: 3px; }
 
   .hidden { display: none !important; }
 
@@ -2458,7 +2462,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-11.6-badgefix';
+const VERSION = '2026-10-12.1-moves';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2996,6 +3000,7 @@ function startFresh(colorForMe) {
   sfNewGame = true;
   gate = null;
   oppHold = null;
+  anRestarts = 0;
   revPick = null;
   viewPly = null;
   clearTimeout(forcedTimer); forcedTimer = null; forcedFen = null;
@@ -5278,9 +5283,8 @@ let anReady = false;
 let anQ = [];
 let anBroken = false;
 let anNote = '';
-let anJob = null;            // {key, at, stopping}
+let anJob = null;            // {key, ran, stopping}
 let anTodo = [];             // entries wanted, oldest first; the last is the board
-let anTimer = null;
 const anCache = new Map();   // position key -> entry
 const reviews = new Map();   // move id -> grade
 let gate = null;             // {fen, id, at, opened, readyAt}
@@ -5362,13 +5366,18 @@ function anStart() {
   return true;
 }
 
-function anFail(message) {
-  console.warn('analysis:', message);
-  clearTimeout(anTimer);
+function anDrop() {
   try { an && an.terminate(); } catch {}
   an = null;
   anReady = false;
+  anQ = [];
   anJob = null;
+  anQuiet = 0;
+}
+
+function anFail(message) {
+  console.warn('analysis:', message);
+  anDrop();
   anBroken = true;
   anNote = message;
   // Nothing may wait on a worker that is gone.
@@ -5377,17 +5386,54 @@ function anFail(message) {
   if (code) draw();
 }
 
-function anArm() {
-  clearTimeout(anTimer);
-  anTimer = setTimeout(function check() {
-    if (!anJob) return;
-    if (document.hidden) { anTimer = setTimeout(check, 5000); return; }
+/* The heartbeat. In a lopsided position one more ply of depth can take the
+   engine longer than all the plies before it, and it says nothing while it
+   works on it: twenty seconds of silence at depth 22 is ordinary. Two things
+   follow, and both used to go wrong there.
+
+   The time limits are applied here, on the beat. They used to be checked only
+   when a new depth arrived, so "deep enough after 3.5 seconds" could not fire
+   during a slow ply — the badge and the reply waiting on it sat there until
+   they gave up — and "stop after 20 seconds" let a search run for 35.
+
+   Silence is counted here, in beats while the page is showing, and not read
+   off the clock, so the time a phone keeps the page frozen in the background
+   is not taken for a dead worker. With the 20-second limit applied on time no
+   live search can be silent for AN_QUIET_MS. A worker that goes quiet anyway
+   is replaced once; only a second failure in the same game switches the
+   review off. */
+const AN_BEAT_MS = 250;
+const AN_QUIET_MS = 30000;
+let anQuiet = 0;             // ms since the worker last said anything, page showing
+let anRestarts = 0;
+
+function anArm() { anQuiet = 0; }
+
+function anBeat() {
+  if (!anJob || document.hidden) return;
+  anJob.ran += AN_BEAT_MS;
+  anQuiet += AN_BEAT_MS;
+  if (anQuiet >= (anReady ? AN_QUIET_MS : 3 * AN_QUIET_MS)) {   // the first search also waits for the download
+    if (anRestarts++ < 1) {
+      console.warn('analysis: silent for too long; starting a fresh worker');
+      anDrop();
+      anPump();
+      return;
+    }
     anFail('The analysis engine stopped responding. Reload to try again.');
-  }, anReady ? 30000 : 90000);
+    return;
+  }
+  if (anJob.stopping) return;
+  const e = anCache.get(anJob.key);
+  if (!e || e.done || e.depth < AN_MIN) return;
+  const ran = e.msBase + anJob.ran;
+  const last = anTodo.at(-1);
+  if ((!anSatisfied(e) && ran >= AN_GRADE_MS) || (last && last.key === e.key && ran >= AN_DEEP_MS)) anTick(e);
 }
+setInterval(anBeat, AN_BEAT_MS);
 
 function anGo(e) {
-  anJob = { key: e.key, at: Date.now(), stopping: false };
+  anJob = { key: e.key, ran: 0, stopping: false };    // ran: ms searched, counted in beats
   e.msBase = e.ms;
   anSend('position fen ' + e.fen);
   anSend('go depth 60');                  // never reached: the limits below stop it
@@ -5453,13 +5499,12 @@ function anLine(line) {
   }
 
   if (line.startsWith('bestmove')) {
-    clearTimeout(anTimer);
     const job = anJob;
     anJob = null;
     if (job) {
       const e = anCache.get(job.key);
       if (e) {
-        e.ms = e.msBase + (Date.now() - job.at);
+        e.ms = e.msBase + job.ran;
         if (!job.stopping) e.done = true;   // it finished on its own
       }
     }
@@ -5470,7 +5515,7 @@ function anLine(line) {
 }
 
 function anTick(e) {
-  e.ms = e.msBase + (Date.now() - anJob.at);
+  e.ms = e.msBase + anJob.ran;
   const last = anTodo.at(-1);
   if (!anJob.stopping) {
     if (last && e.key === last.key) {
@@ -5997,7 +6042,7 @@ el('reviewBtn').onclick = () => {
   reviewOn = !reviewOn;
   store.set('table:review', reviewOn);
   if (!reviewOn) { viewPly = null; revPick = null; }
-  if (anBroken && reviewOn) { anBroken = false; anNote = ''; }   // a second chance
+  if (anBroken && reviewOn) { anBroken = false; anNote = ''; anRestarts = 0; }   // a second chance
   announce();
   draw();
 };
@@ -6042,208 +6087,208 @@ const FAMILIES = [
   /* ---- White's choices ---- */
   { id: 'italian', name: 'Italian Game', side: 'w', main: 'e4 e5 Nf3 Nc6 Bc4', prefixes: ['Italian Game'],
     about: {
-      idea: 'The bishop goes to c4 and aims at f7, the softest point in Black’s camp because only the king defends it. Fast development, early castling, a fight for the centre — the classical principles in their plainest form.',
-      plans: 'The slow way is c3 and d3, castle, then manoeuvre (Nbd2–f1–g3, a4, h3) and prepare d4. The sharp way is c3 and d4 straight away to take the whole centre. The Evans Gambit (4.b4 after 3...Bc5) offers a pawn to get there faster.',
-      watch: 'After 3...Nf6 (the Two Knights) 4.Ng5 hits f7, but 4...d5 5.exd5 Na5 is a real fight. If Black recaptures 5...Nxd5 instead, 6.Nxf7 — the Fried Liver — is very dangerous for Black.',
-      avoid: 'Black decides. 1...c5, 1...e6 or 1...c6 rule it out at once; 2...d6 (Philidor) and 2...Nf6 (Petrov) do it a move later.'
+      idea: 'White’s bishop on c4 attacks f7. That is the weakest square in Black’s position at the start, because only the king defends it. White aims to castle by move 5 or 6.',
+      plans: 'Quiet plan: after 3...Bc5 play 4.c3 and 5.d3, castle, play Re1, then move the b1 knight to g3 with Nbd2, Nf1 and Ng3. Play d4 after that. Sharp plan: 4.c3 and 5.d4 immediately. The Evans Gambit, 4.b4, gives up the b-pawn so that c3 and d4 come with gain of time.',
+      watch: 'After 3...Nf6, the move 4.Ng5 attacks f7 twice. Black must reply 4...d5, and after 5.exd5 must play 5...Na5. Black must not recapture with 5...Nxd5: White sacrifices with 6.Nxf7 Kxf7 7.Qf3+ (the Fried Liver Attack), and the king has to step forward to e6 to keep the d5 knight defended.',
+      avoid: 'Black decides whether it happens. 1...c5, 1...e6 and 1...c6 rule it out on move 1. 2...d6 (the Philidor) and 2...Nf6 (the Petrov) rule it out on move 2. White then has to choose 3.Bc4.'
     } },
   { id: 'ruy', name: 'Ruy Lopez', side: 'w', main: 'e4 e5 Nf3 Nc6 Bb5', prefixes: ['Ruy Lopez'],
     about: {
-      idea: 'The bishop pressures the knight that defends e5. It isn’t a threat yet — after 3...a6 4.Bxc6 dxc6 5.Nxe5? Qd4 Black wins the pawn back — but the pressure on Black’s centre lasts for most of the game. The main line at the top level for centuries.',
-      plans: 'Castle, Re1, c3 and d4 for a big centre. After ...a6 and ...b5 the bishop drops back to a4 and b3, where it eyes f7. The knight often travels b1–d2–f1–g3.',
-      watch: 'The Berlin (3...Nf6 4.O-O Nxe4) heads for a quiet, early queen trade. Don’t grab e5 too early: the Qd4 trick above regains it. In the closed lines Black has gambits like the Marshall (...d5) to know about.',
-      avoid: 'Needs 1...e5 and 2...Nc6 from Black. 3.Bc4 or 3.d4 instead are White’s own choice to go elsewhere.'
+      idea: 'White’s bishop attacks the c6 knight, and that knight defends the e5 pawn. This does not win the pawn yet. If White takes the knight and then the pawn (3...a6 4.Bxc6 dxc6 5.Nxe5), Black plays 5...Qd4, which attacks the knight and the e4 pawn together, and wins the pawn back. The bishop move is still worth playing, because Black has to keep e5 defended for many moves.',
+      plans: 'White: castle, then Re1, c3 and d4. When Black plays ...a6, retreat the bishop to a4. When Black plays ...b5, retreat it to b3, where it attacks f7. Later move the b1 knight to g3 with Nbd2, Nf1 and Ng3. Black: 3...a6, 4...Nf6, 5...Be7, then ...b5, ...d6 and castle.',
+      watch: 'White: do not capture on e5 while Black can answer ...Qd4. In the Exchange line (3...a6 4.Bxc6 dxc6) play 5.O-O first. After that Nxe5 is a real threat: ...Qd4 no longer works, because after Nf3 and ...Qxe4, Re1 pins the queen to the king. In the Berlin (3...Nf6 4.O-O Nxe4) play 5.d4; the queens usually come off by move 8. In the main line after 7...O-O 8.c3, Black can give up a pawn for an attack with 8...d5 (the Marshall); 8.a4 or 8.h3 avoids it.',
+      avoid: 'Black has to play 1...e5 and 2...Nc6. White then has to choose 3.Bb5. 3.Bc4 is the Italian Game and 3.d4 is the Scotch Game.'
     } },
   { id: 'scotch', name: 'Scotch Game', side: 'w', main: 'e4 e5 Nf3 Nc6 d4', prefixes: ['Scotch Game'],
     about: {
-      idea: 'Open the centre at once. After 3...exd4 4.Nxd4 White has a knight in the middle and easy development. Direct, and far less theory than the Ruy Lopez.',
-      plans: 'Nc3, Be3 or Bc4, Qd2, castle on either side and use the extra space. Black’s main answers are 4...Nf6 (5.Nxc6 bxc6 6.e5) and 4...Bc5.',
-      watch: 'The knight on d4 becomes a target: ...Bc5 and ...Qf6 hit it and f2 together. Know how you are going to defend it before it happens.',
-      avoid: 'Needs 1...e5 and 2...Nc6.'
+      idea: 'White opens the centre on move 3. After 3...exd4 4.Nxd4 White has a knight on d4 and open diagonals for both bishops. There is less to memorise than in the Ruy Lopez.',
+      plans: 'White: Nc3, then Be3 or Bc4, Qd2, and castle on either side. Against 4...Nf6 play 5.Nxc6 bxc6 6.e5, which attacks the knight. Against 4...Bc5 play 5.Be3, or move the knight with 5.Nb3 or 5.Nxc6.',
+      watch: 'Black attacks the d4 knight. 4...Bc5 attacks it once, and ...Qf6 next attacks it again and lines up on f2. Answer 4...Bc5 with 5.Be3. If Black adds 5...Qf6, play 6.c3: the knight then has three defenders against three attackers. Never leave it with fewer defenders than attackers.',
+      avoid: 'Black has to play 1...e5 and 2...Nc6. White then chooses 3.d4.'
     } },
   { id: 'vienna', name: 'Vienna Game', side: 'w', main: 'e4 e5 Nc3', prefixes: ['Vienna Game', 'Vienna Gambit'],
     about: {
-      idea: 'Develop the queen’s knight first and keep f2–f4 in reserve: a King’s Gambit with better preparation, or a quiet game if you prefer.',
-      plans: 'f4 to attack e5 (the Vienna Gambit), or g3 and Bg2, or Bc4. After 2...Nf6 3.f4, Black’s best is 3...d5!, striking back in the centre.',
-      watch: 'After 2...Nf6 3.Bc4, the “fork trick” 3...Nxe4! 4.Nxe4 d5 gives Black the piece back with a good game.',
-      avoid: 'Needs 1...e5 from Black.'
+      idea: 'White develops the queen’s knight first and leaves the f-pawn free to advance. f4 attacks e5 as in the King’s Gambit, but with the knight already on c3.',
+      plans: 'Choose one set-up on move 3: 3.f4 (the Vienna Gambit), 3.g3 with Bg2, or 3.Bc4. After 2...Nf6 3.f4 Black’s correct reply is 3...d5. Black must not take with 3...exf4: 4.e5 attacks the knight, and it has to go back to g8.',
+      watch: 'After 2...Nf6 3.Bc4 Black can capture 3...Nxe4. If White recaptures 4.Nxe4, then 4...d5 attacks the bishop and the knight at once and Black wins a piece back. White’s stronger reply is 4.Qh5, which threatens Qxf7 mate and attacks e5. Black must answer 4...Nd6, defending f7 and attacking the bishop.',
+      avoid: 'Black has to play 1...e5. White then chooses 2.Nc3 over 2.Nf3.'
     } },
   { id: 'kg', name: 'King’s Gambit', side: 'w', main: 'e4 e5 f4', prefixes: ["King's Gambit"],
     about: {
-      idea: 'Offer the f-pawn to pull Black’s e-pawn away, open the f-file, and take the centre with d4. Romantic, sharp and risky — it teaches attacking chess fast.',
-      plans: 'After 2...exf4: Nf3 (which stops ...Qh4+), d4, Bc4 or Bxf4, castle and attack f7 down the open file.',
-      watch: 'Your own king is draughty: ...Qh4+ ideas and the e1–h4 diagonal. Black can decline with 2...Bc5 (which stops you castling for a while) or hit back with 2...d5 (the Falkbeer).',
-      avoid: 'Needs 1...e5 from Black.'
+      idea: 'White offers the f-pawn. If Black takes it, Black’s e-pawn has left the centre, White can play d4, and the f-file opens for White’s rook. The cost: White’s king has lost the f-pawn’s cover, so the e1–h4 diagonal is open.',
+      plans: 'After 2...exf4 play 3.Nf3 first, because it stops ...Qh4+. Then d4 and Bc4, win the pawn back with Bxf4, castle kingside and attack f7 along the f-file.',
+      watch: 'White: check for ...Qh4+ before every move in the opening. After 2...Bc5 do not take on e5: 3.fxe5 Qh4+ wins at once (4.g3 Qxe4+ wins the h1 rook, and 4.Ke2 Qxe4 is mate). Play 3.Nf3. After 2...d5 (the Falkbeer) play 3.exd5.',
+      avoid: 'Black has to play 1...e5. White then chooses 2.f4.'
     } },
   { id: 'qg', name: 'Queen’s Gambit', side: 'w', main: 'd4 d5 c4', prefixes: ["Queen's Gambit", 'Slav Defense', 'Semi-Slav Defense', 'Tarrasch Defense'],
     about: {
-      idea: 'Offer the c-pawn to pull Black’s d-pawn off the centre. Not really a gambit: if Black takes, e3 and Bxc4 wins it back and White gets e4 in.',
-      plans: 'Nc3, Nf3, Bg5 or Bf4, e3. Pressure on d5. In the Carlsbad structure (after cxd5 exd5) the minority attack — b4 and b5 — gives Black a weak pawn on c6.',
-      watch: 'Black’s three main answers are the Declined (2...e6), the Slav (2...c6) and the Accepted (2...dxc4). In the Accepted, don’t chase the pawn at any cost; quiet development wins it back.',
-      avoid: 'Black can avoid ...d5 altogether with 1...Nf6 (the Indian defences) or 1...f5 (the Dutch).'
+      idea: 'White offers the c-pawn to pull Black’s d-pawn away from the centre. White gets the pawn back if Black takes it: after 2...dxc4 3.e3 the f1 bishop attacks c4, and Bxc4 follows. With Black’s d-pawn gone, White can also play e4.',
+      plans: 'Develop in this order: Nc3, Nf3, then Bg5 or Bf4, then e3. The bishop comes out before e3, or the pawn shuts it in. If the pawns are exchanged with cxd5 exd5, advance the b-pawn to b4 and b5 (the minority attack) and exchange on c6, leaving Black a weak pawn there.',
+      watch: 'Black has three main replies: 2...e6 (the Declined), 2...c6 (the Slav) and 2...dxc4 (the Accepted). In the Accepted, if Black defends the pawn with ...b5, attack the b5 pawn with a4. After 2...dxc4 3.e3 b5 4.a4 c6 5.axb5 cxb5, the move 6.Qf3 attacks the a8 rook and wins a piece.',
+      avoid: 'Black avoids it by not playing 1...d5. 1...Nf6 leads to the Indian defences and 1...f5 is the Dutch. White has to play 2.c4.'
     } },
   { id: 'catalan', name: 'Catalan', side: 'w', main: 'd4 Nf6 c4 e6 g3', prefixes: ['Catalan Opening'],
     about: {
-      idea: 'A Queen’s Gambit with the bishop fianchettoed on g2, pointing down the long diagonal at Black’s queenside. Quiet, long-term positional pressure.',
-      plans: 'Bg2, Nf3, O-O, then Qc2 or Qa4. If Black takes on c4, win the pawn back with the queen and let the g2 bishop dominate the long diagonal.',
-      watch: 'Black often takes on c4 and tries to hold the pawn with ...b5; a4 undermines that. Black’s ...c5 and ...Nc6 can make the diagonal less useful.',
-      avoid: 'Needs Black to play ...Nf6 and ...e6 (or ...d5 and ...e6). 2...g6 or 2...c5 go elsewhere.'
+      idea: 'A Queen’s Gambit in which White’s f1 bishop goes to g2. From g2 it attacks along the long diagonal: d5, c6 and b7.',
+      plans: '3...d5 4.Bg2, then Nf3, castle, and Qc2. If Black takes on c4, do not defend the pawn in advance: win it back with the queen. After 4...dxc4, 5.Qa4+ and 6.Qxc4 regains it immediately.',
+      watch: 'Black can take later and try to keep the pawn with ...a6 and ...b5. In the main line 4...Be7 5.Nf3 O-O 6.O-O dxc4 7.Qc2 a6, play 8.a4: it stops ...b5, and Qxc4 comes next move. If Black is allowed ...b5, the pawn stays and ...Bb7 blocks the g2 bishop’s diagonal.',
+      avoid: 'Black has to play ...Nf6, ...e6 and ...d5. 2...g6 and 2...c5 lead elsewhere. White has to play 3.g3.'
     } },
   { id: 'english', name: 'English Opening', side: 'w', main: 'c4', prefixes: ['English Opening'],
     about: {
-      idea: 'Control d5 from the side rather than occupying the centre. Very flexible, and it often transposes into d4 openings.',
-      plans: 'Nc3, g3, Bg2, then e4, d4, or queenside expansion with Rb1 and b4.',
-      watch: 'Against 1...e5 it is a Sicilian with colours reversed and an extra move for you. 1...c5 (the Symmetrical) leads to slow manoeuvring games.',
-      avoid: 'It is White’s first move, so only White can avoid it. Black chooses the variation.'
+      idea: 'The c-pawn controls d5 from the side, and White holds the d- and e-pawns back for now. If White plays d4 later, the game often becomes a 1.d4 opening.',
+      plans: 'Nc3, g3 and Bg2. Then pick one: e4 with Nge2, or d4, or Rb1 followed by b4 to gain space on the queenside.',
+      watch: 'After 1...e5 the position is a Sicilian Defence with colours reversed and White a move ahead. If Black opens it with 2.Nc3 Nf6 3.g3 d5, capture 4.cxd5 Nxd5 and play 5.Bg2, attacking the knight. After 1...c5 both sides usually play Nc3, g3 and Bg2; the game opens when White plays d4 or Black plays ...d5.',
+      avoid: 'It is White’s first move, so Black cannot prevent it. Black chooses the type of game with 1...e5, 1...c5 or 1...Nf6.'
     } },
   { id: 'reti', name: 'Réti Opening', side: 'w', main: 'Nf3 d5 c4', prefixes: ['Réti Opening'],
     about: {
-      idea: 'Hypermodern: attack Black’s centre from the flanks instead of occupying it with pawns, and strike later.',
-      plans: 'g3, Bg2, O-O, often b3 and Bb2 for a double fianchetto, then d4 or e4 when the time is right.',
-      watch: '2...d4 grabs space; answer with e3 or b4. 2...dxc4 is fine for White — e3 or Qa4+ wins it back.',
-      avoid: 'Black can avoid ...d5 with 1...Nf6 or 1...c5. 2.c4 is White’s own choice.'
+      idea: 'White attacks the d5 pawn from the side with c4 and holds back the centre pawns. They advance later, after White has castled.',
+      plans: 'g3, Bg2 and castle. Often b3 and Bb2 as well, so that both bishops are on long diagonals. Then d3 and e4, or d4.',
+      watch: 'If Black advances 2...d4, attack the pawn with 3.e3 or take queenside space with 3.b4. If Black takes 2...dxc4, win the pawn back with 3.e3 and Bxc4, or with 3.Qa4+ and Qxc4.',
+      avoid: 'Black avoids it by not playing 1...d5, for example 1...Nf6 or 1...c5. White has to play 2.c4. 2.d4 is a Queen’s Pawn game, and 2.g3 heads for the King’s Indian Attack.'
     } },
   { id: 'london', name: 'London System', side: 'w', kind: 'setup',
     core: ['d2d4', 'c1f4', 'e2e3', 'g1f3', 'c2c3'], coreSan: ['d4', 'Bf4', 'e3', 'Nf3', 'c3'],
     extras: ['f1d3', 'b1d2', 'h2h3', 'e1g1', 'f1e2', 'f4g3', 'f4h2', 'd1c2', 'd1b3', 'f3e5'],
     order: [['c1f4', 'e2e3', 'e3 came before Bf4, which shuts the dark-squared bishop in behind its own pawn.']],
     about: {
-      idea: 'A set-up you can play against almost anything: a solid pawn triangle c3–d4–e3, with the dark-squared bishop out on f4 first. Very little theory.',
-      plans: 'Bd3, Nbd2, O-O, then either Ne5 and f4 for a kingside attack, or the e4 break.',
-      watch: 'Get Bf4 in before e3. ...c5 and ...Qb6 hit b2, which the bishop has left — have Qb3 or Qc2 ready. ...Nh5 hunts the f4 bishop; h3 or a retreat to g3 keeps it.',
-      avoid: 'Your opponent can’t stop it — only your own moves can leave it.'
+      idea: 'One set-up for White against almost any defence: pawns on d4, e3 and c3, bishop on f4, knight on f3. The order matters in one place: play Bf4 before e3.',
+      plans: 'Bd3, Nbd2 and castle. Then choose: put the f3 knight on e5 and support it with f4, or play Re1 and push e4.',
+      watch: 'Play Bf4 before e3, or the bishop is shut in behind the pawn. If Black plays ...c5 and ...Qb6, the queen attacks b2: defend it with Qb3 or Qc1. If Black plays ...Nh5 to exchange the f4 bishop, the bishop needs a retreat: play h3 beforehand so it can drop back to h2, or retreat to g3.',
+      avoid: 'Black cannot prevent it. White leaves it only by playing a move from outside the set-up.'
     } },
   { id: 'kia', name: 'King’s Indian Attack', side: 'w', kind: 'setup',
     core: ['g1f3', 'g2g3', 'f1g2', 'e1g1', 'd2d3'], coreSan: ['Nf3', 'g3', 'Bg2', 'O-O', 'd3'],
     extras: ['b1d2', 'e2e4', 'f1e1', 'c2c3', 'h2h3', 'e4e5', 'd1e2', 'a2a4'],
     about: {
-      idea: 'Black’s King’s Indian set-up played with White and an extra move: a compact, fianchettoed king and e4 later. Works well against ...d5 and ...e6 set-ups.',
-      plans: 'Nbd2, e4, Re1, then e5 to cramp Black, and a kingside attack with h4, Nf1–h2 and Ng4.',
-      watch: 'Black gets space on the queenside with ...c5, ...b5 and ...b4. You have to be quicker on the other wing.',
-      avoid: 'Your opponent can’t stop it. The order is flexible; only your own moves can leave it.'
+      idea: 'White plays the King’s Indian set-up with an extra move: Nf3, g3, Bg2, castle, d3, and then e4. It works best when Black has pawns on d5 and e6.',
+      plans: 'Nbd2, e4 and Re1. Then push e5 to drive the f6 knight away from the king. After that attack on the kingside: h4, Nf1, N1h2, Ng4 and Bf4.',
+      watch: 'Black attacks on the queenside with ...c5, ...b5 and ...b4. Do not match it move for move there. Make a queenside move only to stop a direct threat, and spend the rest on the kingside attack. Keep the e5 pawn defended with Re1 and Bf4: it is the pawn that keeps Black’s pieces away from the king.',
+      avoid: 'Black cannot prevent it. White can play the five moves in almost any order.'
     } },
 
   /* ---- Black's answers to 1.e4 ---- */
   { id: 'opengame', name: 'Open Game (1...e5)', side: 'b', vs: 'e4', main: 'e4 e5', prefixes: OPEN_GAME_NAMES,
     about: {
-      idea: 'Meet e4 with e5 and claim an equal share of the centre. It leads into the Italian, the Ruy Lopez, the Scotch and the gambits — learning them teaches the classical principles better than anything.',
-      plans: '...Nc6, ...Nf6 or ...Bc5, castle, and keep e5 defended. Strike with ...d5 when White allows it.',
-      watch: 'Early attacks on f7 (Bc4 with Qh5 or Qf3 — the Scholar’s mate pattern). The Ruy Lopez is the main test.',
-      avoid: 'Needs White to open 1.e4.'
+      idea: 'Black answers 1.e4 with 1...e5 and takes an equal share of the centre. White then chooses the opening: the Italian, the Ruy Lopez, the Scotch, the Vienna or the King’s Gambit.',
+      plans: 'Answer 2.Nf3 with 2...Nc6, which defends e5. Then ...Nf6 or ...Bc5, and castle. Before each move check that e5 is still defended. Play ...d5 when it does not lose the e5 pawn.',
+      watch: 'White’s early queen attacks on f7. After 2.Bc4 Nc6 3.Qh5 White threatens Qxf7 mate. Play 3...g6. After 4.Qf3 the threat is back, and 4...Nf6 blocks it. Do not play 3...Nf6: it allows 4.Qxf7 mate.',
+      avoid: 'White has to open 1.e4.'
     } },
   { id: 'sicilian', name: 'Sicilian Defence', side: 'b', vs: 'e4', main: 'e4 c5', prefixes: ['Sicilian Defense'],
     about: {
-      idea: 'Fight for d4 with a flank pawn. The position is unbalanced from move one: Black usually gets queenside play on the half-open c-file while White attacks the king. The most popular answer to 1.e4.',
-      plans: 'In the Open Sicilian (2.Nf3, 3.d4 cxd4 4.Nxd4) Black develops with ...Nf6, ...d6 or ...e6, ...a6, then ...b5 and a rook to c8. Najdorf, Dragon, Scheveningen and Taimanov are the big systems.',
-      watch: 'A huge amount of theory, and White has many sidelines: 2.c3 (Alapin), 2.Nc3 (Closed), 2.f4 (Grand Prix), 3.Bb5. While learning, keep a solid set-up with ...e6 and ...d6.',
-      avoid: 'Only exists after 1.e4. Against 1.d4 you need something else.'
+      idea: 'Black’s c-pawn attacks d4. When White plays d4 and Black captures ...cxd4, Black has exchanged a side pawn for a centre pawn and gets the half-open c-file. White gets faster development and usually attacks the king.',
+      plans: 'In the Open Sicilian (2.Nf3, 3.d4 cxd4 4.Nxd4) play 4...Nf6, which attacks e4 and makes White play 5.Nc3. Then ...d6 or ...e6, ...a6, ...b5, and a rook to c8. The systems are named by Black’s move after 2...d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3: 5...a6 is the Najdorf, 5...g6 the Dragon, 5...e6 the Scheveningen.',
+      watch: 'White can avoid the Open Sicilian: 2.c3 (the Alapin), 2.Nc3 (the Closed), 2.f4 (the Grand Prix), or Bb5 on move 3. Against 2.c3 play 2...Nf6 or 2...d5. While learning, use one set-up against everything: ...e6, ...d6, ...Nf6, ...a6, ...Be7, then castle.',
+      avoid: 'White has to open 1.e4. Against 1.d4 Black needs a different defence.'
     } },
   { id: 'french', name: 'French Defence', side: 'b', vs: 'e4', main: 'e4 e6 d4 d5', prefixes: ['French Defense'],
     about: {
-      idea: 'Solid: challenge e4 with ...d5, backed by e6. The price is the c8 bishop, shut in behind its own pawn.',
-      plans: 'Attack White’s pawn chain at its base: ...c5 against d4, and ...f6 against e5. In the Advance (3.e5), ...c5, ...Qb6 and ...Nc6 all pile on d4.',
-      watch: 'The bad light-squared bishop — get it out (...b6 and ...Ba6, or ...Bd7–e8–h5) or trade it. Positions can be cramped. The Winawer (3.Nc3 Bb4) is very sharp.',
-      avoid: 'Needs 1.e4; 1.d4 e6 2.e4 transposes into it.'
+      idea: 'Black attacks e4 with ...d5, and the e6 pawn supports it. The cost is the c8 bishop: the e6 pawn blocks it.',
+      plans: 'Attack White’s pawn chain at its base. Play ...c5 against the d4 pawn. If White has a pawn on e5, play ...f6 against it. In the Advance Variation (3.e5) play 3...c5, 4...Nc6 and 5...Qb6: all three attack d4.',
+      watch: 'Solve the c8 bishop: exchange it with ...b6 and ...Ba6, or develop it with ...Bd7. In the Advance after 3.e5 c5 4.c3 Nc6 5.Nf3 Qb6 6.Bd3 cxd4 7.cxd4, do not take the d4 pawn: 7...Nxd4 8.Nxd4 Qxd4 9.Bb5+ wins the queen. Play 7...Bd7 first; then the pawn really is attacked. The Winawer (3.Nc3 Bb4) needs exact preparation; 3.Nc3 Nf6 is the simpler choice.',
+      avoid: 'White has to open 1.e4. 1.d4 e6 2.e4 d5 reaches the same position.'
     } },
   { id: 'caro', name: 'Caro-Kann Defence', side: 'b', vs: 'e4', main: 'e4 c6 d4 d5', prefixes: ['Caro-Kann Defense'],
     about: {
-      idea: 'Like the French, but the c8 bishop gets out (...Bf5 or ...Bg4) before ...e6 closes it in. One of the most solid answers to 1.e4.',
-      plans: 'Classical: 3.Nc3 dxe4 4.Nxe4 Bf5. Against the Advance (3.e5): ...Bf5, ...e6, then ...c5 to hit the centre.',
-      watch: 'It can drift into passivity. In the Advance, White grabs kingside space with g4 to hunt the f5 bishop.',
-      avoid: 'Needs 1.e4.'
+      idea: 'Black attacks e4 with ...d5, supported by the c6 pawn. Unlike the French, the c8 bishop is not blocked: it comes out to f5 or g4 before Black plays ...e6.',
+      plans: 'Main line: 3.Nc3 dxe4 4.Nxe4 Bf5 5.Ng3 Bg6, then ...Nd7, ...Ngf6 and ...e6. Against the Advance (3.e5): 3...Bf5, then ...e6 and ...c5. The order rule in both: bishop out first, ...e6 second.',
+      watch: 'In the main line after 5.Ng3 Bg6, White’s 6.h4 threatens h5, when the bishop has no safe square. Play 6...h6 at once so it can retreat to h7. In the Advance, if White chases the f5 bishop with g4, retreat it to g6.',
+      avoid: 'White has to open 1.e4.'
     } },
   { id: 'scandi', name: 'Scandinavian Defence', side: 'b', vs: 'e4', main: 'e4 d5', prefixes: ['Scandinavian Defense'],
     about: {
-      idea: 'Hit e4 at once. After 2.exd5 Qxd5 3.Nc3 the queen has to move again, so Black loses time, but gets a simple structure that is easy to learn.',
-      plans: '...Qa5 (or ...Qd6), ...Nf6, ...c6, ...Bf5 or ...Bg4, ...e6: a solid Caro-Kann-like set-up. 2...Nf6, recapturing later, is the alternative.',
-      watch: 'The queen is out early: don’t let it get trapped, and expect White to gain time against it with Nc3, Bd2 and Nd5 ideas.',
-      avoid: 'Needs 1.e4.'
+      idea: 'Black attacks e4 on move 1. After 2.exd5 Qxd5 3.Nc3 the queen is attacked and has to move again, so Black loses a move. In return Black gets a pawn structure with no weaknesses.',
+      plans: 'After 3.Nc3 play 3...Qa5. Then ...Nf6, ...c6, ...Bf5 or ...Bg4, and ...e6. Play ...c6 by move 5: it gives the queen a way back to c7 or d8. The other system is 2...Nf6, recapturing on d5 with the knight.',
+      watch: 'With the queen on a5, White plays Bd2 and then moves the c3 knight (Nd5 or Ne4), which uncovers the bishop’s attack on the queen. Have ...c6 played before that happens, and answer by retreating the queen to d8 or c7.',
+      avoid: 'White has to open 1.e4. White can decline to capture with 2.e5 or 2.Nc3, which gives a different game.'
     } },
   { id: 'pirc', name: 'Pirc Defence', side: 'b', vs: 'e4', main: 'e4 d6 d4 Nf6 Nc3 g6', prefixes: ['Pirc Defense'],
     about: {
-      idea: 'Let White build a big centre and attack it later. The bishop on g7 bears down on d4. Hypermodern and flexible.',
-      plans: '...Bg7, ...O-O, then break with ...c5 or ...e5. Queenside play with ...c6 and ...b5.',
-      watch: 'The Austrian Attack (f4) and the 150 Attack (Be3, Qd2, Bh6, h4) are aggressive. Don’t let the centre roll you over.',
-      avoid: 'Needs 1.e4. White can also skip 3.Nc3.'
+      idea: 'Black lets White put pawns on e4 and d4 and attacks them afterwards. The g7 bishop is aimed at d4.',
+      plans: '...Bg7 and castle. Then attack the centre with ...e5 or ...c5. If White castles queenside, advance ...c6 and ...b5 against the king.',
+      watch: 'The Austrian Attack is 4.f4. Reply 4...Bg7 5.Nf3 and then 5...c5 or 5...O-O, so that the centre is under attack before White plays e5. The 150 Attack is Be3, Qd2 and Bh6, exchanging the g7 bishop, followed by h4 and h5. Against it, delay castling and play ...c6 and ...b5 first: 4.Be3 c6 5.Qd2 b5.',
+      avoid: 'White has to open 1.e4 and play 3.Nc3. 3.Bd3 and 3.f3 lead to other set-ups.'
     } },
   { id: 'alekhine', name: 'Alekhine Defence', side: 'b', vs: 'e4', main: 'e4 Nf6', prefixes: ['Alekhine Defense'],
     about: {
-      idea: 'Provoke e5. The knight gets chased about, White’s pawns overextend, and Black attacks them later.',
-      plans: '2.e5 Nd5 3.d4 d6, then ...Bg4, ...dxe5 and pressure on e5 and d4.',
-      watch: 'The Four Pawns Attack (c4, d4, e5, f4) is very sharp, and the knight can run out of squares.',
-      avoid: 'Needs 1.e4.'
+      idea: 'Black attacks e4 with the knight and invites 2.e5. The knight moves again and White’s pawns advance. Black then attacks those pawns, starting with ...d6.',
+      plans: '2.e5 Nd5 3.d4 d6 4.Nf3 Bg4, pinning the knight that defends e5. Then ...e6, ...Be7 and castle.',
+      watch: 'After 2.e5 the knight goes to d5, and after 3.c4 it goes to b6. In the Four Pawns Attack (3.c4 Nb6 4.d4 d6 5.f4) exchange first with 5...dxe5 6.fxe5, then attack d4 with 6...Nc6 and ...Bf5. Hit the pawn centre immediately there: a slow move lets White finish developing behind it.',
+      avoid: 'White has to open 1.e4. White can decline to advance with 2.Nc3; then 2...e5 is a Vienna Game and 2...d5 is the usual Alekhine reply.'
     } },
   { id: 'petrov', name: 'Petrov’s Defence', side: 'b', vs: 'e4', main: 'e4 e5 Nf3 Nf6', prefixes: ["Petrov's Defense"],
     about: {
-      idea: 'Counterattack e4 instead of defending e5. Symmetrical and very solid.',
-      plans: 'After 3.Nxe5, first 3...d6!, kicking the knight, then ...Nxe4.',
-      watch: 'The trap: 3.Nxe5 Nxe4?? 4.Qe2! — if the knight moves, Nc6+ uncovers check on the queen. Always 3...d6 first.',
-      avoid: 'Needs 1.e4 e5 2.Nf3. 2.Nc3, 2.Bc4 or 2.f4 avoid it.'
+      idea: 'Black does not defend e5. Black attacks e4 instead. The position stays symmetrical and pieces are often exchanged early.',
+      plans: 'After 3.Nxe5 play 3...d6 first, which drives the knight back, and only then 4...Nxe4. Main line: 3.Nxe5 d6 4.Nf3 Nxe4 5.d4 d5, then ...Be7 or ...Bd6 and castle.',
+      watch: 'Do not play 3...Nxe4 at once. After 3.Nxe5 Nxe4 4.Qe2 the knight is attacked, and if it moves away, 5.Nc6+ is a discovered check that wins the queen. The best Black has is 4...Qe7 5.Qxe4 d6, which loses a pawn.',
+      avoid: 'White has to play 1.e4 and 2.Nf3. 2.Nc3, 2.Bc4 and 2.f4 avoid it.'
     } },
 
   /* ---- Black's answers to 1.d4 ---- */
   { id: 'qgd', name: 'Queen’s Gambit Declined', side: 'b', vs: 'd4', main: 'd4 d5 c4 e6', prefixes: ["Queen's Gambit Declined"],
     about: {
-      idea: 'Hold d5 with ...e6. Rock solid and classical.',
-      plans: '...Nf6, ...Be7, ...O-O, then free the game with ...c5, or ...dxc4 followed by ...c5, or ...e5.',
-      watch: 'The c8 bishop is the problem piece. The Exchange Variation (cxd5 exd5) brings the minority attack; Bg5 pins the f6 knight.',
-      avoid: 'Needs 2.c4 from White. 2.Nf3 or a London set-up go elsewhere.'
+      idea: 'Black defends d5 with the e-pawn and keeps a pawn in the centre. The cost is the c8 bishop: the e6 pawn blocks it.',
+      plans: '...Nf6, ...Be7 and castle. Then free the position with ...c5. A common way: wait until White’s f1 bishop has moved, capture ...dxc4 so the bishop has to move a second time, and then play ...c5.',
+      watch: 'Bg5 pins the f6 knight to the queen: break the pin with ...Be7. One trap works for Black. After 3.Nc3 Nf6 4.Bg5 Nbd7 5.cxd5 exd5, White cannot win the d5 pawn: 6.Nxd5 Nxd5 7.Bxd8 Bb4+ 8.Qd2 Bxd2+ 9.Kxd2 Kxd8 leaves Black a piece up. After cxd5 exd5 the c8 bishop is free again, and White will advance b4 and b5 against the c6 pawn.',
+      avoid: 'White has to play 2.c4. 2.Nf3 without c4, or 2.Bf4 (the London), is a different opening.'
     } },
   { id: 'slav', name: 'Slav Defence', side: 'b', vs: 'd4', main: 'd4 d5 c4 c6', prefixes: ['Slav Defense', 'Semi-Slav Defense'],
     about: {
-      idea: 'Support d5 with ...c6 and keep the c8 bishop free to come out to f5 or g4. With ...e6 as well it becomes the Semi-Slav.',
-      plans: '...Nf6, then ...dxc4 and ...b5 or ...Bf5; or ...e6 for the Semi-Slav.',
-      watch: 'In the main line after ...dxc4, White plays a4 to stop ...b5. The Exchange Slav is symmetrical and drawish.',
-      avoid: 'Needs 2.c4.'
+      idea: 'Black defends d5 with the c-pawn, so the c8 bishop stays free to come out to f5 or g4. If Black plays ...e6 as well, it is the Semi-Slav.',
+      plans: 'Main line: 3.Nf3 Nf6 4.Nc3 dxc4 5.a4 Bf5, then ...e6, ...Bb4 and castle. Take on c4 first and develop the bishop second.',
+      watch: 'Do not develop the bishop a move early. After 3.Nf3 Nf6 4.Nc3 Bf5, White plays 5.cxd5 cxd5 6.Qb3, attacking b7 and d5 together. After 4...dxc4 White plays 5.a4 to stop ...b5, and that is the moment for 5...Bf5. The Exchange Slav (3.cxd5 cxd5) is symmetrical: develop with ...Nc6, ...Nf6 and ...Bf5.',
+      avoid: 'White has to play 2.c4.'
     } },
   { id: 'qga', name: 'Queen’s Gambit Accepted', side: 'b', vs: 'd4', main: 'd4 d5 c4 dxc4', prefixes: ["Queen's Gambit Accepted"],
     about: {
-      idea: 'Take the pawn, give it back, and use the time to develop and hit the centre with ...c5 and ...e6.',
-      plans: '...Nf6, ...e6, ...c5, often ...a6 and ...b5.',
-      watch: 'Don’t try to keep the pawn with an early ...b5: a4 and the queenside falls apart. White may build a big e4–d4 centre.',
-      avoid: 'Needs 2.c4.'
+      idea: 'Black takes the c4 pawn and does not try to keep it. While White spends moves winning it back, Black develops and attacks d4 with ...c5.',
+      plans: 'Main line: 3.Nf3 Nf6 4.e3 e6 5.Bxc4 c5 6.O-O a6. Then ...b5 gains a move by attacking the c4 bishop, and ...Bb7 follows.',
+      watch: 'Do not defend the c4 pawn with an early ...b5. After 3.e3 b5 4.a4 c6 5.axb5 cxb5 6.Qf3 the a8 rook is attacked and Black loses a piece. If White plays 3.e4, attack the centre at once with 3...e5 or 3...Nf6.',
+      avoid: 'White has to play 2.c4.'
     } },
   { id: 'kid', name: 'King’s Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 g6 Nc3 Bg7', prefixes: ["King's Indian Defense"],
     about: {
-      idea: 'Let White take the centre, then hit it with ...e5 (or ...c5) and attack on the kingside with ...f5. Dynamic and double-edged.',
-      plans: '...O-O, ...d6, ...e5. When White closes the centre with d5: ...Ne8 or ...Nh5, then ...f5, ...f4 and ...g5 — a kingside storm while White attacks on the queenside.',
-      watch: 'These are races, so count moves. The Sämisch (f3) and the Four Pawns (f4) are aggressive tries against it.',
-      avoid: 'White can avoid c4 and Nc3 (a London, a Trompowsky). 3...d5 instead is a Grünfeld.'
+      idea: 'Black lets White put pawns on c4, d4 and e4, then attacks that centre with ...e5. If White closes the centre with d5, Black attacks on the kingside with ...f5.',
+      plans: 'Main line: 4.e4 d6 5.Nf3 O-O 6.Be2 e5. If White then plays d5, move the f6 knight out of the f-pawn’s way (...Ne8, ...Nd7 or ...Nh5) and play ...f5, then ...f4 and ...g5.',
+      watch: 'Castle before playing ...e5. The early 5...e5 loses a pawn and the right to castle: 6.dxe5 dxe5 7.Qxd8+ Kxd8 8.Nxe5. After castling, 6...e5 does not lose a pawn: 7.dxe5 dxe5 8.Qxd8 Rxd8 9.Nxe5 Nxe4 wins it back. Against the Four Pawns Attack (5.f4) play ...c5 instead: 5...O-O 6.Nf3 c5. Once the centre is closed, spend every free move on ...f5, ...f4 and ...g5.',
+      avoid: 'White avoids it by not playing c4 and Nc3, for example 2.Bf4 (the London) or 2.Bg5 (the Trompowsky). If Black plays 3...d5 instead of 3...Bg7, it is the Grünfeld.'
     } },
   { id: 'nimzo', name: 'Nimzo-Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 e6 Nc3 Bb4', prefixes: ['Nimzo-Indian Defense'],
     about: {
-      idea: 'Pin the knight that wants to support e4, and be willing to give up the bishop pair to double White’s c-pawns.',
-      plans: '...O-O, then ...d5, or ...b6 and ...Bb7, and ...c5. Doubled c-pawns become targets.',
-      watch: '4.Qc2 avoids the doubled pawns; 4.e3 (the Rubinstein) is solid.',
-      avoid: 'White’s 3.Nf3 instead of 3.Nc3 avoids it — then the Queen’s Indian is the natural answer.'
+      idea: 'The bishop pins the c3 knight, so the knight no longer supports e4. Black is prepared to play ...Bxc3+, giving up bishop for knight, to leave White with doubled c-pawns.',
+      plans: 'Castle next. Then choose a pawn set-up: ...d5, or ...c5, or ...b6 with ...Bb7. If White has doubled pawns on c3 and c4, attack the c4 pawn, which no pawn can defend: ...b6, ...Ba6, ...Nc6, ...Na5 and ...Rc8.',
+      watch: 'Capture on c3 when White has spent a move on a3, or when the recapture doubles the pawns. Against 4.Qc2 the queen recaptures and nothing is doubled: play 4...O-O, and after 5.a3 Bxc3+ 6.Qxc3 develop quickly with ...b6 and ...Bb7. Against 4.e3 play 4...O-O, then ...d5 and ...c5.',
+      avoid: 'White avoids it with 3.Nf3 instead of 3.Nc3. Then play 3...b6 (the Queen’s Indian) or 3...d5.'
     } },
   { id: 'qid', name: 'Queen’s Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 e6 Nf3 b6', prefixes: ["Queen's Indian Defense"],
     about: {
-      idea: 'The answer to 3.Nf3: fianchetto on b7 to control e4 and d5 from a distance. Solid.',
-      plans: '...Bb7 (or ...Ba6, hitting c4), ...Be7, ...O-O, then ...d5 or ...c5.',
-      watch: 'The Petrosian (4.a3) stops ...Bb4 checks and keeps options open.',
-      avoid: 'Needs 3.Nf3; after 3.Nc3 the Nimzo-Indian is the natural choice.'
+      idea: 'Black’s reply when White plays 3.Nf3 to avoid the Nimzo-Indian. The bishop goes to b7 and controls e4 and d5, so White cannot easily play e4.',
+      plans: '...Bb7, ...Be7 and castle, then ...d5 or ...c5. Against 4.g3 there is a second option, 4...Ba6: it attacks the c4 pawn and makes White spend a move defending it with 5.b3.',
+      watch: 'Keep control of e4. If White plays e4 with the centre intact, the b7 bishop is blocked. Stop it with ...d5, or with ...Ne4 followed by ...f5. After 4.a3, which prevents ...Bb4, play 4...Bb7 5.Nc3 d5.',
+      avoid: 'White has to play 3.Nf3. After 3.Nc3 play 3...Bb4, the Nimzo-Indian.'
     } },
   { id: 'grunfeld', name: 'Grünfeld Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 g6 Nc3 d5', prefixes: ['Grünfeld Defense'],
     about: {
-      idea: 'Invite White to take the centre (cxd5 Nxd5, e4 Nxc3, bxc3), then attack it with ...Bg7, ...c5, ...Nc6 and ...Bg4.',
-      plans: 'Pile pressure on d4 and keep it there.',
-      watch: 'The Exchange Variation gives White a big centre, and the d5 push. Precise theory matters here.',
-      avoid: 'Needs both 2.c4 and 3.Nc3.'
+      idea: 'Black lets White build a full pawn centre and then attacks the d4 pawn. Main line: 4.cxd5 Nxd5 5.e4 Nxc3 6.bxc3 Bg7.',
+      plans: 'After 6...Bg7 aim every piece at d4: ...c5, ...Nc6, ...Bg4 (pinning the f3 knight, a defender of d4), ...Qa5 and castle.',
+      watch: 'After 5.e4 capture 5...Nxc3, and after 6.bxc3 Bg7 play 7...c5 on the next move. The plan depends on both. If White advances d4–d5, the g7 bishop’s diagonal is open: check whether the c3 pawn can be captured.',
+      avoid: 'White has to play 2.c4 and 3.Nc3. Black has to play 3...d5; 3...Bg7 is the King’s Indian.'
     } },
   { id: 'dutch', name: 'Dutch Defence', side: 'b', vs: 'd4', main: 'd4 f5', prefixes: ['Dutch Defense'],
     about: {
-      idea: 'Control e4 with the f-pawn and play for the kingside. Unbalanced from the start.',
-      plans: 'The Leningrad (...g6, ...Bg7, ...d6), the Stonewall (...e6, ...d5, ...c6) or the Classical (...e6, ...Be7, ...d6). ...Qe8–h5 is a typical attacking manoeuvre.',
-      watch: 'The weakened e8–h5 diagonal and the e6 square. Anti-Dutch tries: 2.Bg5, and the Staunton Gambit 2.e4.',
-      avoid: 'Needs 1.d4 — against 1.e4, ...f5 is bad.'
+      idea: 'The f-pawn controls e4 and Black plans to attack on the kingside. The cost: the f-pawn no longer covers the king, so the e8–h5 diagonal is open.',
+      plans: 'Pick one pawn set-up. Leningrad: ...Nf6, ...g6, ...Bg7, ...d6, castle. Stonewall: ...e6, ...d5, ...c6, with the bishop on d6. Classical: ...e6, ...Be7, ...d6, castle. In all three, the queen often goes to h5 by ...Qe8 and ...Qh5.',
+      watch: 'Play ...Nf6 early: it stops Qh5+. Against 2.Bg5 do not chase the bishop. After 2...h6 3.Bh4 g5 4.e3 White threatens Qh5 mate, and 4...gxh4 5.Qh5 is mate. Play 2...g6. Against the Staunton Gambit (2.e4 fxe4 3.Nc3 Nf6 4.Bg5) do not defend the e4 pawn with 4...d5: 5.Bxf6 exf6 6.Qh5+ g6 7.Qxd5 wins it back with the better position. Play 4...Nc6.',
+      avoid: 'White has to open 1.d4. Do not play 1...f5 against 1.e4: 2.exf5 wins a pawn.'
     } },
   { id: 'benoni', name: 'Benoni Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 c5 d5', prefixes: ['Benoni Defense'],
     about: {
-      idea: 'Give White a space advantage in return for a queenside pawn majority, a strong bishop on g7 and active piece play.',
-      plans: '...e6 and ...exd5, ...d6, ...g6, ...Bg7, ...O-O, ...Re8, then ...a6 and ...b5.',
-      watch: 'White’s e4–e5 break, and the Taimanov (f4 and Bb5+), which is dangerous.',
-      avoid: 'Needs 2.c4 and 3.d5. 3.Nf3 keeps things in other channels.'
+      idea: 'Black gives White more space in the centre. In return Black gets three queenside pawns against two, a bishop on g7 on the long diagonal, and the half-open e-file.',
+      plans: '3...e6 4.Nc3 exd5 5.cxd5 d6 6.e4 g6. Then ...Bg7, castle, ...Re8 to attack e4, and ...a6 with ...b5 to advance the queenside pawns.',
+      watch: 'White’s main plan is the advance e4–e5: before each move count how many times e5 is covered. The most dangerous line is the Taimanov, 7.f4 Bg7 8.Bb5+. Block the check with 8...Nfd7. After 8...Nbd7 or 8...Bd7, White plays 9.e5, the f6 knight is driven to the edge, and White is clearly better.',
+      avoid: 'White has to play 2.c4 and 3.d5. After 3.Nf3 Black plays 3...cxd4 4.Nxd4, which is a different opening.'
     } }
 ];
 const FAM = Object.fromEntries(FAMILIES.map(f => [f.id, f]));
@@ -6308,7 +6353,7 @@ function buildBook(lines) {
   const nodes = new Map();
   const node = k => {
     let n = nodes.get(k);
-    if (!n) { n = { fams: new Set(), name: null, eco: null, next: new Map(), count: 0 }; nodes.set(k, n); }
+    if (!n) { n = { fams: new Set(), name: null, eco: null, next: new Map(), count: 0, only: null }; nodes.set(k, n); }
     return n;
   };
   const famsOf = name => FAMILIES.filter(f => f.kind === 'book' && f.prefixes.some(p => name.startsWith(p))).map(f => f.id);
@@ -6317,6 +6362,7 @@ function buildBook(lines) {
     const fams = famsOf(name);
     let n = node(bookKeyOf(pos));
     n.count++;
+    n.only = n.count === 1 ? name : null;
     for (const id of fams) n.fams.add(id);
     for (const u of ucis.split(' ')) {
       bookApply(pos, u);
@@ -6324,6 +6370,7 @@ function buildBook(lines) {
       n.next.set(u, k);
       n = node(k);
       n.count++;
+      n.only = n.count === 1 ? name : null;    // the one line through here, while it is the only one
       for (const id of fams) n.fams.add(id);
     }
     if (!n.name) { n.name = name; n.eco = eco; }
@@ -6408,6 +6455,50 @@ function familyMoves(f, key) {
     if (c && c.fams.has(f.id)) out.push({ u, k, count: c.count });
   }
   return out.sort((a, b) => b.count - a.count);
+}
+
+/* What a book move is called, as briefly as the family allows: the family's
+   own name is dropped, and so is whatever the position on the board is already
+   called, so after the Advance Variation a reply reads "Botvinnik-Carls
+   Defence" and not the whole title again. A move with no name of its own that
+   only one named line runs through is shown with where it leads. */
+function moveName(f, child, here) {
+  const full = child.name || child.only;
+  if (!full) return '';
+  const base = f.prefixes[0];
+  if (full === base) return child.name ? 'main line' : '';
+  const strip = x => x && x.startsWith(base + ': ') ? x.slice(base.length + 2) : x;
+  let s = strip(full);
+  const h = strip(here);
+  if (h && h !== here) {
+    if (s === h) return '';
+    if (s.startsWith(h + ', ')) s = s.slice(h.length + 2);
+  }
+  s = niceName(s).replace(/ Variation\b/g, '');
+  return child.name ? s : '\u2192 ' + s;
+}
+
+/* Every move from the position on the board that stays inside family f, the
+   ones more named lines run through first. This is the concrete guidance: the
+   two or three moves that define a family say nothing about move 3, and this
+   list is move 3. It makes no claim that a move is good, only that it has a
+   name and belongs here. Returns '' when the family has no say in this
+   position, and a plain statement when the book simply stops. */
+function nextMoves(f, st, hist) {
+  if (f.kind !== 'book' || !book || result) return '';
+  if (st.state !== 'open' && st.state !== 'in') return '';
+  const opts = familyMoves(f, bookKey(game.fen()));
+  if (!opts.length) return st.state === 'in' ? 'No named line of it continues from this position.' : '';
+  let here = null;
+  for (const k of gameKeys(hist)) { const n = book.nodes.get(k); if (n && n.name) here = n.name; }
+  const ply = hist.length;
+  const num = `${Math.floor(ply / 2) + 1}${ply % 2 ? '...' : '.'}`;
+  const who = game.turn() === myColor ? 'Your move' : 'Their move';
+  const list = opts.map(x => {
+    const nm = moveName(f, book.nodes.get(x.k), here);
+    return `<span class="omv"><b>${esc(sanOf(game.fen(), x.u))}</b>${nm ? ` <i>${esc(nm)}</i>` : ''}</span>`;
+  }).join(' ');
+  return `${who} to stay in it, ${esc(num)} ${list}`;
 }
 
 function reasonText(f, st, hist) {
@@ -6498,18 +6589,15 @@ function seqHTML(f, st, hist) {
 }
 
 function nextHTML(f, st, hist) {
-  if (st.state !== 'open') return '';
   if (f.kind === 'setup') {
+    if (st.state !== 'open') return '';
     const done = st.done || new Set();
     const rest = f.coreSan.filter((s, j) => !done.has(f.core[j]));
     if (!rest.length) return '';
     return `<p class="onext">Still to play${f.side === myColor ? '' : ' (them)'}: ${esc(rest.join(', '))}.</p>`;
   }
-  const opts = familyMoves(f, bookKey(game.fen())).slice(0, 3);
-  if (!opts.length) return '';
-  const mineNext = game.turn() === myColor;
-  const list = opts.map(x => moveLabel(hist.length, sanOf(game.fen(), x.u))).join(' or ');
-  return `<p class="onext">${mineNext ? 'Your move' : 'Their move'} to stay in it: ${esc(list)}.</p>`;
+  const html = nextMoves(f, st, hist);
+  return html ? `<p class="onext">${html}</p>` : '';
 }
 
 function famRow(f, st, hist) {
@@ -6519,12 +6607,15 @@ function famRow(f, st, hist) {
   if (st.state === 'out') tag = `out at ${moveLabel(st.ply, hist[st.ply].san)}`;
   const a = f.about;
   const reason = st.state === 'out' ? `<p class="oreason">${esc(reasonText(f, st, hist))}</p>` : '';
+  // The most specific family the game is in carries its move list on the row
+  // itself: it is what you look at between moves, and should not need a tap.
+  const lead = f.id === openLead ? nextMoves(f, st, hist) : '';
   const yourFault = st.state === 'out' && hist[st.ply] && hist[st.ply].color === myColor && f.id === openPick
     ? '<p class="onext">You left the line. Takeback to try it again.</p>' : '';
   return `<details class="ofam st-${st.state}${f.id === openPick ? ' picked' : ''}" data-f="${f.id}"${open ? ' open' : ''}>
     <summary><span class="oname">${esc(f.name)}</span><span class="otag">${esc(tag)}</span>
-      <span class="oseq">${seqHTML(f, st, hist)}</span></summary>
-    <div class="obody">${reason}${yourFault}${nextHTML(f, st, hist)}
+      <span class="oseq">${seqHTML(f, st, hist)}</span>${lead ? `<span class="oseq onext">${lead}</span>` : ''}</summary>
+    <div class="obody">${reason}${yourFault}${lead ? '' : nextHTML(f, st, hist)}
       <p><b>The idea.</b> ${esc(a.idea)}</p>
       <p><b>Plans.</b> ${esc(a.plans)}</p>
       <p><b>Watch for.</b> ${esc(a.watch)}</p>
@@ -6532,6 +6623,7 @@ function famRow(f, st, hist) {
     </div></details>`;
 }
 
+let openLead = null;          // the most specific family the game is in
 let openSelectColour = null;
 function fillOpenSelect() {
   if (openSelectColour === myColor) return;
@@ -6588,6 +6680,7 @@ function drawOpenings() {
   const rows = FAMILIES.map(f => ({ f, st: familyStatus(f, hist, keys) }));
   const pickFirst = (a, b) => (b.f.id === openPick) - (a.f.id === openPick);
   const inGame = rows.filter(r => r.st.state === 'in');
+  openLead = inGame.filter(r => r.f.kind === 'book').reduce((a, r) => !a || r.f.anchor > a.anchor ? r.f : a, null)?.id || null;
   const open = rows.filter(r => r.st.state === 'open').sort(pickFirst);
   const out = rows.filter(r => r.st.state === 'out').sort((a, b) => pickFirst(a, b) || b.st.ply - a.st.ply);
 
