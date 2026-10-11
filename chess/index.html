@@ -627,11 +627,12 @@
     .status    { order: -1; margin: 20px 0 12px; }
     .boardcol  { order: 0; }
     .hintpanel { order: 1; }
-    .coachblock { order: 2; }
+    .coachblock, .reviewblock { order: 2; }
     .ledger    { order: 3; }
     .controls  { order: 4; }
-    .setrow    { order: 5; }
-    #peerHint, #gameNote { order: 6; }
+    .openblock { order: 5; }
+    .setrow    { order: 6; }
+    #peerHint, #gameNote { order: 7; }
   }
 
   /* ---- desktop: board beside the rail ---- */
@@ -786,6 +787,181 @@
   }
   button.linkish:hover:not(:disabled) { color: var(--brass); }
 
+  /* ---- review: eval bar, badges, the panel ----
+     Grade colours sit on :root so the board badges, the ledger, the panel and
+     the arrows all agree. Kept apart from brass (yours) and the danger red
+     (check), which the board already uses for other things. */
+  :root {
+    --g-brilliant: #1fa39a;
+    --g-great: #4f86c6;
+    --g-best: #6f9e3c;
+    --g-excellent: #7fa94e;
+    --g-good: #8c9a80;
+    --g-book: #a07f5a;
+    --g-forced: #7c858c;
+    --g-inaccuracy: #d2a634;
+    --g-mistake: #dd8530;
+    --g-miss: #d4673c;
+    --g-blunder: #c63b31;
+  }
+  .boardrow { display: flex; gap: 10px; align-items: stretch; }
+  .boardrow .boardwrap { flex: 1; min-width: 0; }
+  .boardcol.withbar .taken { margin-left: 26px; }
+  .vbar {
+    position: relative;
+    width: 16px;
+    flex: none;
+    background: #262b2f;
+    outline: 1px solid var(--brass-dim);
+    outline-offset: 3px;
+    overflow: hidden;
+  }
+  .vfill {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 50%;
+    background: #e8e6e1;
+    transition: height .45s ease;
+  }
+  .vbar.flip .vfill { bottom: auto; top: 0; }
+  .vnum {
+    position: absolute;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: -.03em;
+    line-height: 1;
+  }
+  .vnum.bot { bottom: 4px; }
+  .vnum.top { top: 4px; }
+  .vnum.onwhite { color: #1d2226; }
+  .vnum.onblack { color: #e8e6e1; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    font-family: var(--mono);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.06em;
+    background: var(--g-good);
+    box-shadow: 0 1px 3px rgba(0,0,0,.45);
+    flex: none;
+  }
+  .badge.g-brilliant { background: var(--g-brilliant); }
+  .badge.g-great { background: var(--g-great); }
+  .badge.g-best { background: var(--g-best); }
+  .badge.g-excellent { background: var(--g-excellent); }
+  .badge.g-good { background: var(--g-good); }
+  .badge.g-book { background: var(--g-book); }
+  .badge.g-forced { background: var(--g-forced); }
+  .badge.g-inaccuracy { background: var(--g-inaccuracy); }
+  .badge.g-mistake { background: var(--g-mistake); }
+  .badge.g-miss { background: var(--g-miss); }
+  .badge.g-blunder { background: var(--g-blunder); }
+  .badge.g-pending { background: var(--edge); color: var(--muted); box-shadow: none; }
+  .sq .badge {
+    position: absolute;
+    top: -7%;
+    right: -7%;
+    width: 40%;
+    height: 40%;
+    font-size: clamp(9px, 2.5vw, 14px);
+    z-index: 4;
+    pointer-events: none;
+    animation: pop .25s ease-out;
+  }
+  .sq .badge.two { font-size: clamp(8px, 2.1vw, 12px); }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .moves .m { cursor: pointer; border: 0; background: none; padding: 0; text-align: left;
+              font: inherit; letter-spacing: 0; display: inline-flex; align-items: center; gap: 5px; }
+  .moves .m:hover { color: var(--brass); }
+  .moves .m.picked { color: var(--brass); text-decoration: underline; text-underline-offset: 3px; }
+  .moves .badge { width: 15px; height: 15px; font-size: 8.5px; box-shadow: none; }
+
+  .reviewblock { margin-top: 18px; }
+  .reviewblock .setrow { margin-top: 0; }
+  .reviewblock .state { color: var(--brass); letter-spacing: .04em; text-transform: none; }
+  #reviewBody { margin-top: 10px; }
+  .revrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 0;
+    border: 0;
+    border-bottom: 1px solid var(--edge);
+    background: none;
+    font-size: 12px;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+  .revrow:first-child { border-top: 1px solid var(--edge); }
+  .revrow:hover:not(:disabled), .revrow.on { color: var(--text); border-color: var(--edge); }
+  .revrow .badge { width: 20px; height: 20px; font-size: 10px; }
+  .revrow .rwho { width: 34px; flex: none; }
+  .revrow .rsan { color: var(--text); min-width: 64px; }
+  .revrow .rlab { flex: 1; }
+  .revrow.on .rlab { color: var(--brass); }
+  .revexp { font-size: 12px; line-height: 1.65; color: var(--muted); padding: 10px 0 12px; border-bottom: 1px solid var(--edge); }
+  .revexp p { margin: 0 0 8px; }
+  .revexp b { color: var(--text); font-weight: 500; }
+  .revexp .rhead { display: flex; align-items: center; gap: 8px; color: var(--text); }
+  .revexp .rhead .badge { width: 20px; height: 20px; font-size: 10px; }
+  .revexp .rline { display: block; color: var(--muted); opacity: .8; font-size: 11px; }
+  .revexp .rmeta { font-size: 10.5px; opacity: .6; }
+  .revshow { padding: 7px 12px; font-size: 11px; letter-spacing: .08em; }
+  .revtally { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .revtally .tally { display: inline-flex; align-items: center; gap: 6px; }
+  .revtally .badge { width: 15px; height: 15px; font-size: 8px; box-shadow: none; }
+
+  /* ---- openings ---- */
+  .openblock { margin-top: 18px; }
+  .openblock .setrow { margin-top: 0; }
+  .openblock select.opp { min-width: 150px; }
+  .oforce { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; letter-spacing: .02em; font-size: 11.5px; }
+  .oforce input { accent-color: var(--brass); margin: 0; }
+  .oforce:has(input:disabled) { opacity: .4; cursor: default; }
+  .onow { font-size: 12px; color: var(--text); margin: 12px 0 10px; line-height: 1.5; }
+  .oleft { display: block; color: var(--muted); font-size: 11px; }
+  .osec { border-top: 1px solid var(--edge); }
+  .osec:last-child { border-bottom: 1px solid var(--edge); }
+  .osec > summary {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 9px 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); list-style: none; cursor: pointer;
+  }
+  .osec > summary::-webkit-details-marker { display: none; }
+  .osec > summary:hover { color: var(--brass); }
+  .osub { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-dim); margin: 6px 0 4px; }
+  .ofam { border-left: 2px solid var(--edge); margin: 0 0 4px; }
+  .ofam.st-in { border-left-color: var(--brass); }
+  .ofam.st-out { border-left-color: rgba(192,90,74,.45); }
+  .ofam.picked { background: rgba(200,163,91,.06); }
+  .ofam > summary {
+    list-style: none; cursor: pointer; padding: 7px 0 7px 10px;
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 12px;
+  }
+  .ofam > summary::-webkit-details-marker { display: none; }
+  .ofam > summary:hover .oname { color: var(--brass); }
+  .oname { color: var(--text); }
+  .otag { color: var(--muted); font-size: 10.5px; text-align: right; }
+  .ofam.st-out .otag { color: var(--danger); }
+  .oseq { grid-column: 1 / 3; font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .oseq .mv.me { color: var(--brass-dim); }
+  .oseq .mv.done { color: var(--text); }
+  .oseq .mv.me.done { color: var(--brass); }
+  .obody { padding: 2px 4px 10px 10px; font-size: 11.5px; line-height: 1.65; color: var(--muted); }
+  .obody p { margin: 0 0 7px; }
+  .obody b { color: var(--text); font-weight: 500; }
+  .oreason { color: var(--text); }
+  .onext { color: var(--brass); }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -856,12 +1032,15 @@
   <!-- GAME -->
   <section class="game hidden" id="game">
     <div class="game-grid">
-      <div class="boardcol">
+      <div class="boardcol" id="boardcol">
         <div class="taken" id="takenTop"></div>
-        <div class="boardwrap">
-          <div class="board" id="board"></div>
-          <svg class="coachlayer" id="coachSvg" viewBox="0 0 100 100" aria-hidden="true"></svg>
-          <svg class="arrow" id="arrow" viewBox="0 0 100 100" aria-hidden="true"></svg>
+        <div class="boardrow">
+          <div class="vbar hidden" id="vbar" aria-hidden="true"><div class="vfill" id="vfill"></div><span class="vnum" id="vnum"></span></div>
+          <div class="boardwrap">
+            <div class="board" id="board"></div>
+            <svg class="coachlayer" id="coachSvg" viewBox="0 0 100 100" aria-hidden="true"></svg>
+            <svg class="arrow" id="arrow" viewBox="0 0 100 100" aria-hidden="true"></svg>
+          </div>
         </div>
         <div class="taken" id="takenBottom"></div>
       </div>
@@ -876,7 +1055,25 @@
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
         </div>
-        <section class="coachblock" id="coachBlock">
+        <section class="reviewblock" id="reviewBlock">
+          <div class="setrow">
+            <span>Review</span>
+            <button id="reviewBtn">On</button>
+            <span class="state" id="reviewState"></span>
+          </div>
+          <div id="reviewBody"></div>
+        </section>
+        <section class="openblock hidden" id="openBlock">
+          <div class="setrow">
+            <span>Openings</span>
+            <select class="opp" id="openPick" aria-label="Opening to practise"></select>
+            <label class="oforce"><input type="checkbox" id="openForce"> Opponent plays along</label>
+          </div>
+          <div id="openBody"></div>
+        </section>
+        <!-- The old tactics coach. Its code is still below and still tested;
+             it is just no longer shown. Remove `hidden` to bring it back. -->
+        <section class="coachblock hidden" id="coachBlock">
           <div class="setrow coachrow">
             <span>Coach</span>
             <button id="coachBtn">Off</button>
@@ -2258,7 +2455,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-09-25.1-games';
+const VERSION = '2026-10-11.1-review';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2672,7 +2869,9 @@ function handleMessage(msg) {
     peerHints = !!msg.on;
     peerAuto = !!msg.auto;
     peerCoach = !!msg.coach;
+    peerReview = !!msg.review;
     setLink();
+    if (code) draw();
     return;
   }
 
@@ -2727,6 +2926,9 @@ function adopt(history, remoteResult, force = false) {
   const verbose = game.history({ verbose: true });
   lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
   result = remoteResult || null;
+  viewPly = null;
+  oppHold = null;
+  clearTimeout(forcedTimer); forcedTimer = null; forcedFen = null;
   checkEnd();
   persist();
   draw();
@@ -2754,6 +2956,8 @@ function afterLocalMove(m) {
   coachReverted = true;
   coachPick = null;
   inspectSq = null;
+  viewPly = null;
+  setGate(m);
   broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
   checkEnd();
   if (result) sendState();
@@ -2787,6 +2991,11 @@ function startFresh(colorForMe) {
   plyAt = Date.now();
   plyAway = document.hidden;
   sfNewGame = true;
+  gate = null;
+  oppHold = null;
+  revPick = null;
+  viewPly = null;
+  clearTimeout(forcedTimer); forcedTimer = null; forcedFen = null;
   persist();
   draw();
 }
@@ -2891,6 +3100,8 @@ function recordGame() {
   if (same < rec.moves.length) {
     rec.takebacks++;
     rec.moves.length = rec.times.length = rec.notes.length = same;
+    if (rec.marks && rec.marks.length > same) rec.marks.length = same;
+    if (rec.evals && rec.evals.length > same) rec.evals.length = same;
   }
 
   const now = Date.now();
@@ -2994,11 +3205,19 @@ function pgnFor(rec) {
   if (avg != null) tags.push(['AvgThinkSeconds', avg.toFixed(1)]);
 
   const tokens = [];
+  // Review grades become standard annotation glyphs, evals the [%eval] Lichess reads.
+  const NAG = { brilliant: '$3', great: '$1', inaccuracy: '$6', mistake: '$2', miss: '$2', blunder: '$4' };
+  const evalTag = s => Math.abs(s) >= MATE_S / 2
+    ? `[%eval #${s > 0 ? '' : '-'}${Math.max(1, MATE_S - Math.abs(s))}]` : `[%eval ${(s / 100).toFixed(2)}]`;
   rec.moves.forEach((san, i) => {
     if (i % 2 === 0) tokens.push(`${i / 2 + 1}.`);
     tokens.push(san);
+    const mark = rec.marks && rec.marks[i];
+    if (mark && NAG[mark]) tokens.push(NAG[mark]);
     const parts = [];
+    if (rec.evals && rec.evals[i] != null && !(Math.abs(rec.evals[i]) === MATE_S)) parts.push(evalTag(rec.evals[i]));
     if (rec.times[i] != null) parts.push(emt(rec.times[i]));
+    if (mark && GRADES[mark]) parts.push(GRADES[mark].label.toLowerCase());
     if (rec.notes[i]) parts.push(rec.notes[i].split(' ').map(w => NOTE_WORDS[w] || w).join(', '));
     if (parts.length) tokens.push(`{${parts.join(' ')}}`);
   });
@@ -3251,14 +3470,16 @@ function ensureEngine() {
 
       if (mode === 'play') {
         if (!engineToMove()) return;
-        if (!e.data.from || !localMove(e.data.from, e.data.to, e.data.promotion)) {
+        const played = !!e.data.from && (solo
+          ? playOpponent(fen, e.data.from, e.data.to, e.data.promotion)
+          : localMove(e.data.from, e.data.to, e.data.promotion));
+        if (!played) {
           // An unplayable suggestion would otherwise loop forever.
           if (solo) engineFailed('The engine returned a move that can’t be played.');
           else { autoPlay = false; draw(); }
           return;
         }
-        if (solo) blip();          // it's the opponent moving, same as a peer
-        return;
+        return;                    // playOpponent sounds the move when it lands
       }
 
       if (!hintsOn) return;
@@ -3369,7 +3590,14 @@ function engineToMove() {
 }
 
 function maybeAutoPlay() {
-  if (engineToMove()) askEngine('play');
+  if (!engineToMove()) return;
+  if (solo) {
+    // their reply is already chosen and waiting for your badge
+    if (oppHold && oppHold.fen === game.fen()) return;
+    const u = forcedReply();
+    if (u) { scheduleForced(u); return; }
+  }
+  askEngine('play');
 }
 
 /* ---------- opponents: the table engine, or Stockfish ----------
@@ -3573,11 +3801,10 @@ function sfLine(line) {
 
   const uci = line.split(/\s+/)[1] || '';
   if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci) ||
-      !localMove(uci.slice(0, 2), uci.slice(2, 4), uci[4])) {
+      !playOpponent(job.fen, uci.slice(0, 2), uci.slice(2, 4), uci[4])) {
     sfFail('Stockfish returned a move that can’t be played.');
     return;
   }
-  blip();
 }
 
 /* ---------- rendering ---------- */
@@ -4715,11 +4942,16 @@ function draw() {
   drawLedger();
   drawCoach();
   drawCoachRays();
+  drawReviewArrows();
   requestHint();
   maybeAutoPlay();
+  anSync();
   drawStatus();          // after maybeAutoPlay, so "Thinking…" isn't a draw behind
   drawHint();
   drawArrow();
+  drawEvalBar();
+  drawReview();
+  drawOpenings();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('takebackBtn').disabled = !!result || game.history().length === 0 || (!solo && !peers.size);
@@ -4741,12 +4973,17 @@ function draw() {
 }
 
 function drawBoard() {
-  const myTurn = game.turn() === myColor && !result;
-  const targets = selected
+  // Showing an earlier position from the review: no moves, no badges, no marks.
+  const viewing = viewPly != null && game.history()[viewPly] != null;
+  const pos = viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
+  const shownLast = viewing ? null : lastMove;
+  const myTurn = !viewing && game.turn() === myColor && !result;
+  const targets = selected && !viewing
     ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
     : {};
 
-  const marks = coachMarks();
+  const marks = viewing ? new Map() : coachMarks();
+  const badges = boardBadges();
 
   const ranks = myColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
   const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
@@ -4756,15 +4993,15 @@ function drawBoard() {
   for (const rank of ranks) {
     for (const file of files) {
       const sq = file + rank;
-      const piece = game.get(sq);
+      const piece = pos.get(sq);
       // a1 is dark, so a square is light when file index + rank is even.
       // h1 light, d1 light, d8 dark — queen on her own colour.
       const isLight = (FILES.indexOf(file) + rank) % 2 === 0;
 
       const classes = ['sq', isLight ? 'light' : 'dark'];
-      if (lastMove && (lastMove.from === sq || lastMove.to === sq)) classes.push('last');
-      if (selected === sq) classes.push('sel');
-      if (piece && piece.type === 'k' && piece.color === game.turn() && game.isCheck() && !result) {
+      if (shownLast && (shownLast.from === sq || shownLast.to === sq)) classes.push('last');
+      if (selected === sq && !viewing) classes.push('sel');
+      if (piece && piece.type === 'k' && piece.color === pos.turn() && pos.isCheck() && (viewing || !result)) {
         classes.push('check');
       }
 
@@ -4775,11 +5012,12 @@ function drawBoard() {
 
       let inner = '';
       if (piece) {
-        const moved = lastMove && lastMove.to === sq ? 'moved' : '';
+        const moved = shownLast && shownLast.to === sq ? 'moved' : '';
         inner += pieceSVG(piece.type, piece.color, moved);
       }
       if (isTarget) inner += '<span class="dot"></span>';
       if (marks.has(sq)) inner += `<span class="mark ${marks.get(sq)}"></span>`;
+      if (badges.has(sq)) inner += badgeHTML(badges.get(sq));
       if (rank === (myColor === 'w' ? 1 : 8)) inner += `<span class="coord f">${file}</span>`;
       if (file === (myColor === 'w' ? 'a' : 'h')) inner += `<span class="coord r">${rank}</span>`;
 
@@ -4841,11 +5079,18 @@ function drawStatus() {
     return;
   }
 
+  if (viewPly != null && game.history()[viewPly]) {
+    s.textContent = `Before ${moveLabel(viewPly, game.history()[viewPly])}`;
+    s.classList.add('urgent');
+    return;
+  }
+
   const check = game.isCheck() ? ' You’re in check.' : '';
-  if (engineToMove() && engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) {
+  if (engineToMove() && ((engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) ||
+      (oppHold && oppHold.fen === game.fen()) || forcedTimer)) {
     // At long budgets an idle board is indistinguishable from a crash.
-    s.textContent = engineJob.sf && !sfReady ? 'Loading Stockfish…'
-      : engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
+    s.textContent = engineJob && engineJob.sf && !sfReady ? 'Loading Stockfish…'
+      : engineJob && engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
@@ -4899,9 +5144,13 @@ function drawLedger() {
   let html = '<div class="moves">';
   for (let i = 0; i < hist.length; i += 2) {
     html += `<span class="n">${i / 2 + 1}.</span>`;
+    const verbose = game.history({ verbose: true });
     for (const j of [i, i + 1]) {
+      if (!hist[j]) { html += '<span></span>'; continue; }
       const latest = j === hist.length - 1 ? ' latest' : '';
-      html += `<span class="m${latest}">${hist[j] || ''}</span>`;
+      const picked = j === revPick ? ' picked' : '';
+      const r = reviewActive() ? reviews.get(moveId(verbose[j])) : null;
+      html += `<button class="m${latest}${picked}" data-ply="${j}">${hist[j]}${r ? badgeHTML(r.cls) : ''}</button>`;
     }
   }
   html += '</div>';
@@ -4984,6 +5233,1356 @@ function drawHint() {
   el('evalFill').style.width = (50 + 50 * Math.tanh(pawns / 4)).toFixed(1) + '%';
 }
 
+/* ================= review: the eval bar and the move badges =================
+   A second Stockfish, always at full strength, that never plays a move. It
+   reads every position the game passes through, and from two readings — the
+   position before a move and the one after it — says how much that move cost.
+
+   The arithmetic is the one Lichess publishes: an evaluation becomes a winning
+   chance (0–100%) through a logistic curve, and a move is graded by how much
+   winning chance the mover gave up compared with the best move available. A
+   pawn matters a great deal in a level position and hardly at all when someone
+   is already a rook up, and the curve is what captures that.
+
+   Timing, which is the point of the whole thing:
+     - while you think, it is already reading your position (that also drives
+       the bar), so when you move, half the grading is done;
+     - when you move, your opponent starts on its reply in its own worker while
+       this one reads the position you left them;
+     - their reply is held until your badge is up, and then for at least
+       AN_GATE_MS more, so the verdict always lands before the next move does.
+
+   It runs against the computer always, and in a game against a person only if
+   both of you switch it on — otherwise it is simply engine help. */
+
+const AN_MIN = 12;            // never grade from a search shallower than this
+const AN_GRADE = 18;          // depth a position needs before moves into or out of it are graded
+const AN_GRADE_MS = 3500;     // ...or this long searching, if it gets to AN_MIN first
+const AN_DEEP = 24;           // the position on the board keeps going to here, for the bar
+const AN_DEEP_MS = 20000;
+const AN_GATE_MS = 250;       // your badge stays up at least this long before their reply lands
+const AN_GIVEUP_MS = 12000;   // if grading takes longer than this, let the game go on anyway
+const MATE_S = 100000;
+
+let reviewOn = store.get('table:review') !== false;
+let peerReview = false;
+let an = null;               // the analysis worker
+let anReady = false;
+let anQ = [];
+let anBroken = false;
+let anNote = '';
+let anJob = null;            // {key, at, stopping}
+let anTodo = [];             // entries wanted, oldest first; the last is the board
+let anTimer = null;
+const anCache = new Map();   // position key -> entry
+const reviews = new Map();   // move id -> grade
+let gate = null;             // {fen, id, at, opened, readyAt}
+let oppHold = null;          // {fen, from, to, promotion}: their reply, waiting for your badge
+let revPick = null;          // ply whose explanation is open
+let viewPly = null;          // ply whose starting position is being shown on the board
+
+const reviewActive = () => !!code && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
+const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
+const uciOf = m => m.from + m.to + (m.promotion || '');
+const moveId = m => posKey(m.before) + '|' + uciOf(m);
+
+/* winning chance, 0-100, for White, from a White-relative score */
+const winPct = s => s >= MATE_S / 2 ? 100 : s <= -MATE_S / 2 ? 0
+  : 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * s)) - 1);
+
+const GRADES = {
+  brilliant:  { sym: '!!', label: 'Brilliant' },
+  great:      { sym: '!',  label: 'Great move' },
+  best:       { sym: '★',  label: 'Best move' },
+  excellent:  { sym: '✓',  label: 'Excellent' },
+  good:       { sym: '✓',  label: 'Good' },
+  book:       { sym: '≡',  label: 'Book' },
+  forced:     { sym: '□',  label: 'Only move' },
+  inaccuracy: { sym: '?!', label: 'Inaccuracy' },
+  mistake:    { sym: '?',  label: 'Mistake' },
+  miss:       { sym: '✕',  label: 'Miss' },
+  blunder:    { sym: '??', label: 'Blunder' }
+};
+const GRADE_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'forced', 'inaccuracy', 'miss', 'mistake', 'blunder'];
+const badgeHTML = (cls, tag = 'span', extra = '') =>
+  `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${GRADES[cls].sym}</${tag}>`;
+
+/* ---------- the analysis worker ---------- */
+function anEntry(fen) {
+  const key = posKey(fen);
+  let e = anCache.get(key);
+  if (e) return e;
+  e = { key, fen, depth: 0, score: 0, lines: [], shallow: [], ms: 0, msBase: 0, done: false };
+  try {
+    const c = new Chess(fen);
+    if (c.isGameOver()) {
+      e.done = true;
+      e.depth = 99;
+      e.terminal = true;
+      e.score = c.isCheckmate() ? (c.turn() === 'w' ? -MATE_S : MATE_S) : 0;
+    }
+  } catch {}
+  anCache.set(key, e);
+  if (anCache.size > 600) {               // a long session; drop the oldest readings
+    for (const k of anCache.keys()) { if (anCache.size <= 500) break; if (!anTodo.some(t => t.key === k)) anCache.delete(k); }
+  }
+  return e;
+}
+
+const anSatisfied = e => e.done || e.depth >= AN_GRADE || (e.depth >= AN_MIN && e.ms >= AN_GRADE_MS);
+
+function anSend(cmd) {
+  if (!an) return;
+  if (anReady) an.postMessage(cmd); else anQ.push(cmd);
+}
+
+function anStart() {
+  if (an) return true;
+  if (anBroken) return false;
+  try { an = new Worker(SF_PATH); } catch (e) { anFail('The analysis engine couldn’t start in this browser.'); return false; }
+  anReady = false;
+  anQ = [];
+  an.onmessage = e => anLine(String(e.data));
+  an.onerror = e => {
+    e.preventDefault && e.preventDefault();
+    anFail('The eval bar needs the stockfish folder beside this page, opened over http(s).');
+  };
+  an.postMessage('uci');
+  anSend('setoption name MultiPV value 2');
+  anSend('setoption name UCI_LimitStrength value false');
+  return true;
+}
+
+function anFail(message) {
+  console.warn('analysis:', message);
+  clearTimeout(anTimer);
+  try { an && an.terminate(); } catch {}
+  an = null;
+  anReady = false;
+  anJob = null;
+  anBroken = true;
+  anNote = message;
+  // Nothing may wait on a worker that is gone.
+  if (gate) { gate.opened = true; gate.readyAt = 0; }
+  releaseHold();
+  if (code) draw();
+}
+
+function anArm() {
+  clearTimeout(anTimer);
+  anTimer = setTimeout(function check() {
+    if (!anJob) return;
+    if (document.hidden) { anTimer = setTimeout(check, 5000); return; }
+    anFail('The analysis engine stopped responding. Reload to try again.');
+  }, anReady ? 30000 : 90000);
+}
+
+function anGo(e) {
+  anJob = { key: e.key, at: Date.now(), stopping: false };
+  e.msBase = e.ms;
+  anSend('position fen ' + e.fen);
+  anSend('go depth 60');                  // never reached: the limits below stop it
+  anArm();
+}
+
+function anStopJob() {
+  if (anJob && !anJob.stopping) { anJob.stopping = true; anSend('stop'); }
+}
+
+/* What should the worker be reading right now: the oldest position that is
+   still needed and not yet good enough, else the board. A position is left
+   only once it has reached AN_MIN, unless nothing wants it any more. */
+function anPump() {
+  if (!anTodo.length) { anStopJob(); return; }
+  if (!anStart()) return;
+  const last = anTodo.at(-1);
+  const want = anTodo.find(e => !e.done && (e === last || !anSatisfied(e)));
+  if (anJob) {
+    if (anJob.stopping) return;           // its bestmove will call back here
+    if (want && anJob.key === want.key) return;
+    const je = anCache.get(anJob.key);
+    const wanted = anTodo.some(e => e.key === anJob.key);
+    if (wanted && je && !je.done && je.depth < AN_MIN) return;
+    anStopJob();
+    return;
+  }
+  if (want) anGo(want);
+}
+
+function anLine(line) {
+  if (line === 'uciok') {
+    anReady = true;
+    const q = anQ;
+    anQ = [];
+    for (const cmd of q) an.postMessage(cmd);
+    return;
+  }
+
+  if (line.startsWith('info ') && anJob) {
+    anArm();
+    const pvAt = line.indexOf(' pv ');
+    if (pvAt < 0 || / (lower|upper)bound/.test(line)) return;
+    const sm = / score (cp|mate) (-?\d+)/.exec(line);
+    if (!sm) return;
+    const e = anCache.get(anJob.key);
+    if (!e || e.done) return;
+    const d = Number((/ depth (\d+)/.exec(line) || [])[1] || 0);
+    const k = Number((/ multipv (\d+)/.exec(line) || [0, 1])[1]);
+    const pv = line.slice(pvAt + 4).trim().split(/\s+/);
+    let s = sm[1] === 'cp' ? Number(sm[2])
+      : Number(sm[2]) > 0 ? MATE_S - Number(sm[2]) : -MATE_S - Number(sm[2]);
+    if (e.fen.split(' ')[1] === 'b') s = -s;     // keep everything from White's side
+
+    if (k === 1 && d <= 6) e.shallow.push(pv[0]); // what a quick look prefers
+    if (d < e.depth || (d === e.depth && k === 1 && e.lines[0] && e.lines[0].depth > d)) return;
+    e.lines[k - 1] = { uci: pv[0], score: s, pv, depth: d };
+    if (k !== 1) return;
+    e.depth = d;
+    e.score = s;
+    anTick(e);
+    return;
+  }
+
+  if (line.startsWith('bestmove')) {
+    clearTimeout(anTimer);
+    const job = anJob;
+    anJob = null;
+    if (job) {
+      const e = anCache.get(job.key);
+      if (e) {
+        e.ms = e.msBase + (Date.now() - job.at);
+        if (!job.stopping) e.done = true;   // it finished on its own
+      }
+    }
+    anPump();
+    reviewPending();
+    drawEvalBar();
+  }
+}
+
+function anTick(e) {
+  e.ms = e.msBase + (Date.now() - anJob.at);
+  const last = anTodo.at(-1);
+  if (!anJob.stopping) {
+    if (last && e.key === last.key) {
+      if (e.depth >= AN_DEEP || e.ms >= AN_DEEP_MS) { e.done = true; anStopJob(); }
+    } else {
+      anPump();
+    }
+  }
+  reviewPending();
+  drawEvalBar();
+  drawReviewState();
+}
+
+/* Called from draw(): which positions matter now. The two moves on the board
+   need the positions either side of them, and the board itself is read
+   deeply for the bar and for the move you are about to make. */
+function anSync() {
+  if (!reviewActive()) { anTodo = []; anStopJob(); return; }
+  const hist = game.history({ verbose: true });
+  const todo = [];
+  for (const m of hist.slice(-4)) {
+    const e = anEntry(m.before);
+    if (!anSatisfied(e) && !todo.includes(e)) todo.push(e);
+  }
+  const cur = anEntry(game.fen());
+  const i = todo.indexOf(cur);
+  if (i >= 0) todo.splice(i, 1);
+  todo.push(cur);
+  anTodo = todo;
+  anPump();
+  reviewPending();
+}
+
+/* ---------- grading ---------- */
+function balance(chess, color) {
+  let s = 0;
+  for (const row of chess.board()) for (const p of row) {
+    if (p && p.type !== 'k') s += (p.color === color ? 1 : -1) * VALUE[p.type];
+  }
+  return s;
+}
+
+/* Material for `color` once the engine's line has settled: play it forward,
+   and take the balance at the last point where the next move is not a capture,
+   so an exchange half-way through doesn't count as a loss. */
+function settle(fen, pv, color, plies = 8) {
+  let c;
+  try { c = new Chess(fen); } catch { return { start: 0, end: 0, played: [] }; }
+  const start = balance(c, color);
+  let end = start;
+  const played = [];
+  const moves = (pv || []).slice(0, plies);
+  for (let j = 0; j < moves.length; j++) {
+    const u = moves[j];
+    let m;
+    try { m = c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { break; }
+    if (!m) break;
+    played.push(m);
+    const next = moves[j + 1];
+    let nextCaptures = false;
+    if (next) {
+      const victim = c.get(next.slice(2, 4));
+      nextCaptures = !!victim || (c.get(next.slice(0, 2)) || {}).type === 'p' && next[0] !== next[2];
+    }
+    if (!nextCaptures) end = balance(c, color);
+  }
+  return { start, end, played };
+}
+
+function inBook(fen) {
+  return !!(book && book.nodes.has(bookKey(fen)));
+}
+
+function grade(m, b, a, i, hist) {
+  const sign = m.color === 'w' ? 1 : -1;
+  const uci = uciOf(m);
+  const best = b.lines[0], second = b.lines[1];
+  const after = a.score * sign;                    // the mover's side of things
+  const top = best ? Math.max(best.score * sign, best.uci === uci ? after : -Infinity) : after;
+  const wTop = winPct(top), wAfter = winPct(after);
+  const loss = Math.max(0, wTop - wAfter);
+  const isBest = !!best && best.uci === uci;
+  let legal = 2;
+  try { legal = new Chess(m.before).moves().length; } catch {}
+  const prevMove = i > 0 ? hist[i - 1] : null;
+  const prev = prevMove ? reviews.get(moveId(prevMove)) : null;
+
+  // material actually given up, once the engine's best reply has played out
+  const s = settle(m.after, a.lines[0] && a.lines[0].pv, m.color);
+  const before = balance(new Chess(m.before), m.color);
+  const sac = before - s.end;
+
+  let cls;
+  if (legal === 1) cls = 'forced';
+  else if (i < 30 && loss < 5 && inBook(m.after)) cls = 'book';
+  else if (isBest || loss < 2) {
+    cls = isBest ? 'best' : 'excellent';
+    const obvious = b.shallow.includes(uci);
+    const recapture = prevMove && prevMove.captured && m.captured && prevMove.to === m.to;
+    const wSecond = second ? winPct(second.score * sign) : null;
+    // taking something that is simply loose is the best move, not a great one
+    const grab = !!m.captured && -sac >= 2;
+    if (sac >= 2 && !obvious && wAfter >= 45 && wTop < 97) cls = 'brilliant';
+    else if (isBest && wSecond != null && wTop - wSecond >= 15 && wTop < 97 && !recapture && !grab &&
+             !(new Chess(m.before)).isCheck()) cls = 'great';
+  }
+  else if (loss < 5) cls = 'good';
+  else if (loss < 10) cls = 'inaccuracy';
+  else if (loss < 20) cls = 'mistake';
+  else cls = 'blunder';
+
+  // They had just gone wrong, and this let them off.
+  if ((cls === 'inaccuracy' || cls === 'mistake') && prev && (prev.cls === 'mistake' || prev.cls === 'blunder')) cls = 'miss';
+
+  return {
+    cls, ply: i, color: m.color, san: m.san, uci, before: m.before, after: m.after,
+    loss, wTop, wAfter, scoreAfterW: a.score, top,
+    best: best ? best.uci : null, bestPv: best ? best.pv : [], bestScoreW: best ? best.score : null,
+    second: second ? second.uci : null, secondScoreW: second ? second.score : null,
+    replyPv: a.lines[0] ? a.lines[0].pv : [], replyScoreW: a.score,
+    sac, depth: Math.min(b.depth, a.depth)
+  };
+}
+
+function reviewPending() {
+  if (!reviewActive()) { checkGate(); return; }
+  const hist = game.history({ verbose: true });
+  let changed = false;
+  for (let i = Math.max(0, hist.length - 4); i < hist.length; i++) {
+    const m = hist[i];
+    const id = moveId(m);
+    if (reviews.has(id)) continue;
+    const b = anCache.get(posKey(m.before)), a = anCache.get(posKey(m.after));
+    if (!b || !a || !anSatisfied(b) || !anSatisfied(a) || !b.lines.length) continue;
+    let r;
+    try { r = grade(m, b, a, i, hist); } catch (err) { console.warn('grading failed', err); continue; }
+    reviews.set(id, r);
+    markRecord(i, r);
+    changed = true;
+  }
+  if (changed) { drawBoard(); drawReviewArrows(); drawLedger(); drawReview(); }
+  checkGate();
+}
+
+/* ---------- holding their reply until your badge is up ---------- */
+function setGate(m) {
+  if (!solo || !reviewActive() || m.color !== myColor) { gate = null; return; }
+  gate = { fen: game.fen(), id: moveId(m), at: Date.now(), opened: false, readyAt: 0 };
+  setTimeout(checkGate, AN_GIVEUP_MS + 20);
+}
+
+function checkGate() {
+  if (!gate || gate.opened) return;
+  if (reviews.has(gate.id) || !reviewActive() || Date.now() - gate.at >= AN_GIVEUP_MS) {
+    gate.opened = true;
+    gate.readyAt = Date.now() + AN_GATE_MS;
+    setTimeout(releaseHold, AN_GATE_MS + 5);
+  }
+}
+
+const gateHolding = () => solo && !!gate && gate.fen === game.fen() &&
+  !(gate.opened && Date.now() >= gate.readyAt);
+
+/* Every opponent move in a game against the computer comes through here,
+   whether the table engine, Stockfish or the opening book chose it. */
+function playOpponent(fen, from, to, promotion) {
+  if (fen !== game.fen()) return true;              // stale; nothing to do
+  const ok = game.moves({ verbose: true }).some(m =>
+    m.from === from && m.to === to && (!promotion || m.promotion === promotion));
+  if (!ok) return false;
+  if (gateHolding()) {
+    oppHold = { fen, from, to, promotion };
+    drawStatus();
+    return true;
+  }
+  oppHold = null;
+  if (localMove(from, to, promotion)) { blip(); return true; }
+  return false;
+}
+
+function releaseHold() {
+  const h = oppHold;
+  if (!h) return;
+  if (h.fen !== game.fen()) { oppHold = null; return; }
+  if (gateHolding()) return;
+  oppHold = null;
+  if (localMove(h.from, h.to, h.promotion)) blip();
+}
+
+/* ---------- the record: grades and evals go into the saved game ---------- */
+function markRecord(i, r) {
+  if (!gameId) return;
+  const list = loadGames();
+  const rec = list.find(g => g.id === gameId);
+  if (!rec || rec.moves[i] !== r.san) return;
+  (rec.marks ||= [])[i] = r.cls;
+  (rec.evals ||= [])[i] = r.scoreAfterW;
+  saveGames(list);
+}
+
+/* ---------- words ---------- */
+const PIECE_WORD = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+
+function fmtScore(sW, signed = true) {
+  if (sW == null) return '';
+  if (Math.abs(sW) >= MATE_S / 2) {
+    const n = MATE_S - Math.abs(sW);
+    return n === 0 ? '#' : `${sW > 0 ? '' : '-'}M${n}`;
+  }
+  const p = sW / 100;
+  return (signed && p > 0 ? '+' : '') + p.toFixed(1);
+}
+
+function materialWords(n) {
+  if (n >= 9) return 'the queen’s worth of material';
+  if (n >= 5) return n === 5 ? 'a rook' : 'a rook’s worth and more';
+  if (n >= 3) return n === 3 ? 'a piece' : 'a piece and more';
+  if (n === 2) return 'two pawns (or the exchange)';
+  return 'a pawn';
+}
+
+function lineText(fen, pv, n = 5) {
+  let c;
+  try { c = new Chess(fen); } catch { return ''; }
+  const out = [];
+  for (const u of (pv || []).slice(0, n)) {
+    const black = c.turn() === 'b';
+    const num = c.moveNumber();
+    let m;
+    try { m = c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { break; }
+    if (!m) break;
+    out.push(!black ? `${num}.${m.san}` : out.length ? m.san : `${num}...${m.san}`);
+  }
+  return out.join(' ');
+}
+
+const sanOf = (fen, uci) => {
+  try { return new Chess(fen).move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] }).san; }
+  catch { return uci; }
+};
+
+function moveLabel(ply, san) {
+  const n = Math.floor(ply / 2) + 1;
+  return ply % 2 === 0 ? `${n}.${san}` : `${n}...${san}`;
+}
+
+/* What a line does for `color`: forces mate, wins material, or neither. */
+function lineEffect(fen, pv, color, scoreW) {
+  const sign = color === 'w' ? 1 : -1;
+  if (scoreW != null && scoreW * sign >= MATE_S / 2) {
+    const n = MATE_S - Math.abs(scoreW);
+    return n ? `forces mate in ${n}` : 'is mate';
+  }
+  const s = settle(fen, pv, color, 6);
+  const d = s.end - s.start;
+  if (d >= 1) return `wins ${materialWords(d)}`;
+  return '';
+}
+
+/* pieces of `color` that the other side now wins outright, which were safe before */
+function newlyLoose(beforeFen, afterFen, color) {
+  try {
+    const foe = color === 'w' ? 'b' : 'w';
+    const b = toCells(new Chess(beforeFen)), a = toCells(new Chess(afterFen));
+    const out = [];
+    for (let i = 0; i < 64; i++) {
+      const p = a[i];
+      if (!p || p.color !== color || p.type === 'k' || p.type === 'p') continue;
+      if (see(a, i, foe) < 2) continue;
+      // the same piece, on the same square, already hanging before the move doesn't count
+      if (b[i] && b[i].type === p.type && b[i].color === color && see(b, i, foe) >= 2) continue;
+      out.push(say(a, i));
+    }
+    return out;
+  } catch { return []; }
+}
+
+function explainHTML(r) {
+  const mine = r.color === myColor;
+  const who = mine ? 'your' : 'their';
+  const Who = mine ? 'Your' : 'Their';
+  const g = GRADES[r.cls];
+  const foe = r.color === 'w' ? 'b' : 'w';
+  const pct = x => Math.round(x) + '%';
+  // scores read from the mover's side, so they agree with the percentages
+  const sgn = r.color === 'w' ? 1 : -1;
+  const sc = sW => fmtScore(sW == null ? null : sW * sgn);
+  const parts = [];
+
+  parts.push(`<p class="rhead">${badgeHTML(r.cls)} <b>${esc(moveLabel(r.ply, r.san))}</b> — ${esc(g.label)}</p>`);
+
+  if (r.cls === 'forced') {
+    parts.push('<p>It was the only legal move.</p>');
+  } else if (r.cls === 'book') {
+    const n = book && book.nodes.get(bookKey(r.after));
+    const name = n && lastNameAt(r.after);
+    parts.push(`<p>A known opening move${name ? ` — ${esc(name)}` : ''}. ${Who} winning chances: ${pct(r.wAfter)}.</p>`);
+  } else if (r.loss >= 5) {
+    parts.push(`<p>${Who} winning chances went from <b>${pct(r.wTop)}</b> to <b>${pct(r.wAfter)}</b> (${esc(sc(r.bestScoreW))} → ${esc(sc(r.scoreAfterW))}).</p>`);
+  } else {
+    parts.push(`<p>${Who} winning chances: <b>${pct(r.wAfter)}</b> (${esc(sc(r.scoreAfterW))}).</p>`);
+  }
+
+  if (r.cls === 'brilliant') {
+    parts.push(`<p>A sound sacrifice: it gives up ${esc(materialWords(r.sac))}, and the engine still rates it the best move. A quick look wouldn’t have found it.</p>`);
+  }
+  if (r.cls === 'great' && r.second) {
+    parts.push(`<p>The only good move here. The next best, <b>${esc(sanOf(r.before, r.second))}</b>, would have left ${who} chances at ${pct(winPct(r.secondScoreW * (r.color === 'w' ? 1 : -1)))}.</p>`);
+  }
+  if (r.cls === 'miss') {
+    const prevSan = game.history()[r.ply - 1];
+    parts.push(`<p>${mine ? 'They' : 'You'} had just gone wrong with ${esc(moveLabel(r.ply - 1, prevSan || '…'))}, and this let ${mine ? 'them' : 'you'} off.</p>`);
+  }
+
+  if (r.best && r.best !== r.uci && r.cls !== 'book' && r.cls !== 'forced') {
+    const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
+    parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}. <span class="rline">${esc(lineText(r.before, r.bestPv))}</span></p>`);
+  }
+
+  if (r.loss >= 5 && r.replyPv && r.replyPv.length) {
+    const reply = sanOf(r.after, r.replyPv[0]);
+    const eff = lineEffect(r.after, r.replyPv, foe, r.replyScoreW);
+    const loose = newlyLoose(r.before, r.after, r.color);
+    let t = `${mine ? 'Their' : 'Your'} best answer is <b>${esc(reply)}</b>${eff ? `, which ${esc(eff)}` : ''}.`;
+    if (loose.length) t += ` The move left ${who} ${esc(loose.join(' and '))} where it can be won.`;
+    parts.push(`<p>${t} <span class="rline">${esc(lineText(r.after, r.replyPv))}</span></p>`);
+  }
+
+  parts.push(`<p class="rmeta">Engine depth ${r.depth}.</p>`);
+  return parts.join('');
+}
+
+/* ---------- drawing ---------- */
+function drawEvalBar() {
+  const bar = el('vbar');
+  const on = reviewActive();
+  bar.classList.toggle('hidden', !on);
+  el('boardcol').classList.toggle('withbar', on);
+  if (!on) return;
+  bar.classList.toggle('flip', myColor === 'b');
+  const fen = viewPly != null ? (game.history({ verbose: true })[viewPly] || {}).before : game.fen();
+  const e = fen && anCache.get(posKey(fen));
+  if (!e || !e.depth) { el('vnum').textContent = ''; bar.title = 'Reading the position…'; return; }
+  const w = winPct(e.score);
+  el('vfill').style.height = w.toFixed(1) + '%';
+  const num = el('vnum');
+  num.textContent = fmtScore(e.score, false).replace(/^-/, '');
+  // the number sits at the end of the side that's ahead, as it does on chess.com
+  const whiteAhead = e.score >= 0;
+  const atBottom = (myColor === 'w') === whiteAhead;
+  num.className = 'vnum ' + (atBottom ? 'bot' : 'top') + (whiteAhead ? ' onwhite' : ' onblack');
+  bar.title = `${fmtScore(e.score)} · depth ${e.terminal ? '—' : e.depth}`;
+}
+
+/* badges on the board: the last two moves, on the squares they landed on */
+function boardBadges() {
+  const out = new Map();
+  if (!reviewActive() || viewPly != null) return out;
+  const hist = game.history({ verbose: true });
+  for (let i = hist.length - 1; i >= Math.max(0, hist.length - 2); i--) {
+    const r = reviews.get(moveId(hist[i]));
+    if (r && !out.has(hist[i].to)) out.set(hist[i].to, r.cls);
+  }
+  return out;
+}
+
+function drawReviewArrows() {
+  const svg = el('coachSvg');
+  if (viewPly == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
+  const hist = game.history({ verbose: true });
+  const m = hist[viewPly];
+  const r = m && reviews.get(moveId(m));
+  if (!m) { svg.innerHTML = ''; return; }
+  const arrow = (from, to, colour, dashed) => {
+    const a = squareXY(from), b = squareXY(to);
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const x1 = a.x + ux * 4.4, y1 = a.y + uy * 4.4;
+    const x2 = b.x - ux * 4.6, y2 = b.y - uy * 4.6;
+    const px = -uy, py = ux;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colour}" stroke-width="2.4"
+              stroke-linecap="round" ${dashed ? 'stroke-dasharray="3.5 2.6"' : ''} opacity=".92"/>` +
+      `<polygon points="${b.x - ux * 1.2},${b.y - uy * 1.2} ${x2 + px * 3.1},${y2 + py * 3.1} ${x2 - px * 3.1},${y2 - py * 3.1}"
+                fill="${colour}" opacity=".92"/>`;
+  };
+  let out = '';
+  const playedColour = r ? `var(--g-${r.cls})` : 'var(--text)';
+  if (r && r.best && r.best !== r.uci) out += arrow(r.best.slice(0, 2), r.best.slice(2, 4), 'var(--g-best)', false);
+  out += arrow(m.from, m.to, playedColour, !!(r && r.best && r.best !== r.uci));
+  svg.innerHTML = out;
+}
+
+function drawReviewState() {
+  const st = el('reviewState');
+  if (!st) return;
+  if (anBroken) { st.textContent = 'unavailable'; return; }
+  if (!reviewOn) { st.textContent = ''; return; }
+  if (!solo && !peerReview) { st.textContent = 'waiting for them to switch it on too'; return; }
+  const e = anCache.get(posKey(game.fen()));
+  st.textContent = e && e.depth && !e.terminal ? `depth ${e.depth}` : '';
+}
+
+function drawReview() {
+  const blk = el('reviewBlock');
+  el('reviewBtn').textContent = reviewOn ? 'On' : 'Off';
+  drawReviewState();
+  const body = el('reviewBody');
+  if (anBroken) { body.innerHTML = `<p class="coach-note">${esc(anNote)}</p>`; return; }
+  if (!reviewActive()) {
+    body.innerHTML = !reviewOn ? ''
+      : '<p class="coach-note">Against a person, the eval bar and the move badges only show when you both switch them on — otherwise they’re engine help.</p>';
+    return;
+  }
+  const hist = game.history({ verbose: true });
+  if (revPick != null && revPick >= hist.length) { revPick = null; viewPly = null; }
+
+  const row = i => {
+    const m = hist[i];
+    const r = reviews.get(moveId(m));
+    const mine = m.color === myColor;
+    const badge = r ? badgeHTML(r.cls) : '<span class="badge g-pending">…</span>';
+    const label = r ? GRADES[r.cls].label : 'checking…';
+    return `<button class="revrow${revPick === i ? ' on' : ''}" data-ply="${i}">${badge}
+      <span class="rwho">${mine ? 'You' : 'They'}</span>
+      <span class="rsan">${esc(moveLabel(i, m.san))}</span>
+      <span class="rlab">${esc(label)}</span></button>`;
+  };
+
+  let html = '';
+  if (!hist.length) {
+    html = '<p class="coach-note">Make a move. Each one gets a badge on its square as soon as the engine has judged it, and theirs do too. Tap a move here or in the list for what was better.</p>';
+  } else {
+    const shown = [];
+    for (let i = hist.length - 1; i >= Math.max(0, hist.length - 2); i--) shown.push(i);
+    if (revPick != null && !shown.includes(revPick)) shown.push(revPick);
+    html += shown.map(row).join('');
+  }
+
+  if (revPick != null) {
+    const r = reviews.get(moveId(hist[revPick]));
+    if (r) {
+      html += `<div class="revexp">${explainHTML(r)}
+        <button class="revshow" id="revShow">${viewPly === revPick ? 'Back to the game' : 'Show on the board'}</button></div>`;
+    } else {
+      html += '<div class="revexp"><p>This move hasn’t been judged. Only moves made with the review on get a verdict.</p></div>';
+    }
+  }
+
+  // how your moves have gone this game
+  const tally = {};
+  for (const m of hist) {
+    if (m.color !== myColor) continue;
+    const r = reviews.get(moveId(m));
+    if (r) tally[r.cls] = (tally[r.cls] || 0) + 1;
+  }
+  const chips = GRADE_ORDER.filter(k => tally[k]).map(k =>
+    `<span class="tally">${badgeHTML(k)} ${tally[k]} ${esc(GRADES[k].label.toLowerCase())}</span>`).join('');
+  if (chips) html += `<div class="revtally">${chips}</div>`;
+  body.innerHTML = html;
+}
+
+function openReview(ply) {
+  revPick = revPick === ply ? null : ply;
+  if (viewPly != null && viewPly !== revPick) viewPly = null;
+  draw();
+}
+
+el('reviewBody').addEventListener('click', e => {
+  const row = e.target.closest('[data-ply]');
+  if (row) { openReview(Number(row.dataset.ply)); return; }
+  if (e.target.closest('#revShow')) {
+    viewPly = viewPly === revPick ? null : revPick;
+    selected = null;
+    draw();
+  }
+});
+
+el('ledgerBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-ply]');
+  if (b && reviewActive()) openReview(Number(b.dataset.ply));
+});
+
+el('reviewBtn').onclick = () => {
+  reviewOn = !reviewOn;
+  store.set('table:review', reviewOn);
+  if (!reviewOn) { viewPly = null; revPick = null; }
+  if (anBroken && reviewOn) { anBroken = false; anNote = ''; }   // a second chance
+  announce();
+  draw();
+};
+
+/* ================= openings =================
+   Two sources. The book is Lichess's openings list (CC0): 3,865 named lines,
+   loaded from openings/book.json and indexed by position, so a different move
+   order that arrives at the same position is recognised as the same thing.
+   The families are the ~30 openings worth learning by name, each with a
+   defining line and a short account of what it is for.
+
+   A family is IN your game once the game reaches its defining depth and the
+   position carries its name. It is STILL POSSIBLE while the position on the
+   board is one that some line of that family passes through. It is RULED OUT
+   at the first move that takes the game off every one of its lines — and that
+   move is kept, with who played it and what the family would have needed, so
+   the lesson doesn't vanish with it.
+
+   System openings (the London, the King's Indian Attack) are set-ups rather
+   than move sequences, so they are tracked by the set-up: your own moves must
+   all belong to it, and the opponent is free. */
+
+const BOOK_PATH = 'openings/book.json';
+let book = null;              // {nodes: Map(key -> node)}
+let bookState = 'idle';       // 'loading' | 'ready' | 'failed'
+let openPick = store.get('table:openPick') || '';
+let openForce = store.get('table:openForce') === true;
+const openOpen = new Set();   // family rows the user has opened
+const openSecShut = new Set(store.get('table:openShut') || []);
+let forcedTimer = null;
+let forcedFen = null;
+
+const OPEN_GAME_NAMES = ["King's Pawn Game", "King's Knight Opening", 'Italian Game', 'Ruy Lopez', 'Scotch Game',
+  "Petrov's Defense", 'Vienna Game', 'Vienna Gambit', "King's Gambit", 'Philidor Defense', 'Four Knights Game',
+  'Three Knights Opening', "Bishop's Opening", 'Center Game', 'Danish Gambit', 'Ponziani Opening', 'Latvian Gambit',
+  'Elephant Gambit', 'Portuguese Opening', 'Napoleon Attack', 'Alapin Opening', 'Konstantinopolsky Opening',
+  'Lopez Opening', 'Scotch Gambit', 'Greek Gambit', 'Rousseau Gambit', 'Hungarian Defense'];
+
+/* side: who chooses it. vs: what it answers, for grouping. main: the defining
+   line (book kind) or the set-up, shown move by move. */
+const FAMILIES = [
+  /* ---- White's choices ---- */
+  { id: 'italian', name: 'Italian Game', side: 'w', main: 'e4 e5 Nf3 Nc6 Bc4', prefixes: ['Italian Game'],
+    about: {
+      idea: 'The bishop goes to c4 and aims at f7, the softest point in Black’s camp because only the king defends it. Fast development, early castling, a fight for the centre — the classical principles in their plainest form.',
+      plans: 'The slow way is c3 and d3, castle, then manoeuvre (Nbd2–f1–g3, a4, h3) and prepare d4. The sharp way is c3 and d4 straight away to take the whole centre. The Evans Gambit (4.b4 after 3...Bc5) offers a pawn to get there faster.',
+      watch: 'After 3...Nf6 (the Two Knights) 4.Ng5 hits f7, but 4...d5 5.exd5 Na5 is a real fight. If Black recaptures 5...Nxd5 instead, 6.Nxf7 — the Fried Liver — is very dangerous for Black.',
+      avoid: 'Black decides. 1...c5, 1...e6 or 1...c6 rule it out at once; 2...d6 (Philidor) and 2...Nf6 (Petrov) do it a move later.'
+    } },
+  { id: 'ruy', name: 'Ruy Lopez', side: 'w', main: 'e4 e5 Nf3 Nc6 Bb5', prefixes: ['Ruy Lopez'],
+    about: {
+      idea: 'The bishop pressures the knight that defends e5. It isn’t a threat yet — after 3...a6 4.Bxc6 dxc6 5.Nxe5? Qd4 Black wins the pawn back — but the pressure on Black’s centre lasts for most of the game. The main line at the top level for centuries.',
+      plans: 'Castle, Re1, c3 and d4 for a big centre. After ...a6 and ...b5 the bishop drops back to a4 and b3, where it eyes f7. The knight often travels b1–d2–f1–g3.',
+      watch: 'The Berlin (3...Nf6 4.O-O Nxe4) heads for a quiet, early queen trade. Don’t grab e5 too early: the Qd4 trick above regains it. In the closed lines Black has gambits like the Marshall (...d5) to know about.',
+      avoid: 'Needs 1...e5 and 2...Nc6 from Black. 3.Bc4 or 3.d4 instead are White’s own choice to go elsewhere.'
+    } },
+  { id: 'scotch', name: 'Scotch Game', side: 'w', main: 'e4 e5 Nf3 Nc6 d4', prefixes: ['Scotch Game'],
+    about: {
+      idea: 'Open the centre at once. After 3...exd4 4.Nxd4 White has a knight in the middle and easy development. Direct, and far less theory than the Ruy Lopez.',
+      plans: 'Nc3, Be3 or Bc4, Qd2, castle on either side and use the extra space. Black’s main answers are 4...Nf6 (5.Nxc6 bxc6 6.e5) and 4...Bc5.',
+      watch: 'The knight on d4 becomes a target: ...Bc5 and ...Qf6 hit it and f2 together. Know how you are going to defend it before it happens.',
+      avoid: 'Needs 1...e5 and 2...Nc6.'
+    } },
+  { id: 'vienna', name: 'Vienna Game', side: 'w', main: 'e4 e5 Nc3', prefixes: ['Vienna Game', 'Vienna Gambit'],
+    about: {
+      idea: 'Develop the queen’s knight first and keep f2–f4 in reserve: a King’s Gambit with better preparation, or a quiet game if you prefer.',
+      plans: 'f4 to attack e5 (the Vienna Gambit), or g3 and Bg2, or Bc4. After 2...Nf6 3.f4, Black’s best is 3...d5!, striking back in the centre.',
+      watch: 'After 2...Nf6 3.Bc4, the “fork trick” 3...Nxe4! 4.Nxe4 d5 gives Black the piece back with a good game.',
+      avoid: 'Needs 1...e5 from Black.'
+    } },
+  { id: 'kg', name: 'King’s Gambit', side: 'w', main: 'e4 e5 f4', prefixes: ["King's Gambit"],
+    about: {
+      idea: 'Offer the f-pawn to pull Black’s e-pawn away, open the f-file, and take the centre with d4. Romantic, sharp and risky — it teaches attacking chess fast.',
+      plans: 'After 2...exf4: Nf3 (which stops ...Qh4+), d4, Bc4 or Bxf4, castle and attack f7 down the open file.',
+      watch: 'Your own king is draughty: ...Qh4+ ideas and the e1–h4 diagonal. Black can decline with 2...Bc5 (which stops you castling for a while) or hit back with 2...d5 (the Falkbeer).',
+      avoid: 'Needs 1...e5 from Black.'
+    } },
+  { id: 'qg', name: 'Queen’s Gambit', side: 'w', main: 'd4 d5 c4', prefixes: ["Queen's Gambit", 'Slav Defense', 'Semi-Slav Defense', 'Tarrasch Defense'],
+    about: {
+      idea: 'Offer the c-pawn to pull Black’s d-pawn off the centre. Not really a gambit: if Black takes, e3 and Bxc4 wins it back and White gets e4 in.',
+      plans: 'Nc3, Nf3, Bg5 or Bf4, e3. Pressure on d5. In the Carlsbad structure (after cxd5 exd5) the minority attack — b4 and b5 — gives Black a weak pawn on c6.',
+      watch: 'Black’s three main answers are the Declined (2...e6), the Slav (2...c6) and the Accepted (2...dxc4). In the Accepted, don’t chase the pawn at any cost; quiet development wins it back.',
+      avoid: 'Black can avoid ...d5 altogether with 1...Nf6 (the Indian defences) or 1...f5 (the Dutch).'
+    } },
+  { id: 'catalan', name: 'Catalan', side: 'w', main: 'd4 Nf6 c4 e6 g3', prefixes: ['Catalan Opening'],
+    about: {
+      idea: 'A Queen’s Gambit with the bishop fianchettoed on g2, pointing down the long diagonal at Black’s queenside. Quiet, long-term positional pressure.',
+      plans: 'Bg2, Nf3, O-O, then Qc2 or Qa4. If Black takes on c4, win the pawn back with the queen and let the g2 bishop dominate the long diagonal.',
+      watch: 'Black often takes on c4 and tries to hold the pawn with ...b5; a4 undermines that. Black’s ...c5 and ...Nc6 can make the diagonal less useful.',
+      avoid: 'Needs Black to play ...Nf6 and ...e6 (or ...d5 and ...e6). 2...g6 or 2...c5 go elsewhere.'
+    } },
+  { id: 'english', name: 'English Opening', side: 'w', main: 'c4', prefixes: ['English Opening'],
+    about: {
+      idea: 'Control d5 from the side rather than occupying the centre. Very flexible, and it often transposes into d4 openings.',
+      plans: 'Nc3, g3, Bg2, then e4, d4, or queenside expansion with Rb1 and b4.',
+      watch: 'Against 1...e5 it is a Sicilian with colours reversed and an extra move for you. 1...c5 (the Symmetrical) leads to slow manoeuvring games.',
+      avoid: 'It is White’s first move, so only White can avoid it. Black chooses the variation.'
+    } },
+  { id: 'reti', name: 'Réti Opening', side: 'w', main: 'Nf3 d5 c4', prefixes: ['Réti Opening'],
+    about: {
+      idea: 'Hypermodern: attack Black’s centre from the flanks instead of occupying it with pawns, and strike later.',
+      plans: 'g3, Bg2, O-O, often b3 and Bb2 for a double fianchetto, then d4 or e4 when the time is right.',
+      watch: '2...d4 grabs space; answer with e3 or b4. 2...dxc4 is fine for White — e3 or Qa4+ wins it back.',
+      avoid: 'Black can avoid ...d5 with 1...Nf6 or 1...c5. 2.c4 is White’s own choice.'
+    } },
+  { id: 'london', name: 'London System', side: 'w', kind: 'setup',
+    core: ['d2d4', 'c1f4', 'e2e3', 'g1f3', 'c2c3'], coreSan: ['d4', 'Bf4', 'e3', 'Nf3', 'c3'],
+    extras: ['f1d3', 'b1d2', 'h2h3', 'e1g1', 'f1e2', 'f4g3', 'f4h2', 'd1c2', 'd1b3', 'f3e5'],
+    order: [['c1f4', 'e2e3', 'e3 came before Bf4, which shuts the dark-squared bishop in behind its own pawn.']],
+    about: {
+      idea: 'A set-up you can play against almost anything: a solid pawn triangle c3–d4–e3, with the dark-squared bishop out on f4 first. Very little theory.',
+      plans: 'Bd3, Nbd2, O-O, then either Ne5 and f4 for a kingside attack, or the e4 break.',
+      watch: 'Get Bf4 in before e3. ...c5 and ...Qb6 hit b2, which the bishop has left — have Qb3 or Qc2 ready. ...Nh5 hunts the f4 bishop; h3 or a retreat to g3 keeps it.',
+      avoid: 'Your opponent can’t stop it — only your own moves can leave it.'
+    } },
+  { id: 'kia', name: 'King’s Indian Attack', side: 'w', kind: 'setup',
+    core: ['g1f3', 'g2g3', 'f1g2', 'e1g1', 'd2d3'], coreSan: ['Nf3', 'g3', 'Bg2', 'O-O', 'd3'],
+    extras: ['b1d2', 'e2e4', 'f1e1', 'c2c3', 'h2h3', 'e4e5', 'd1e2', 'a2a4'],
+    about: {
+      idea: 'Black’s King’s Indian set-up played with White and an extra move: a compact, fianchettoed king and e4 later. Works well against ...d5 and ...e6 set-ups.',
+      plans: 'Nbd2, e4, Re1, then e5 to cramp Black, and a kingside attack with h4, Nf1–h2 and Ng4.',
+      watch: 'Black gets space on the queenside with ...c5, ...b5 and ...b4. You have to be quicker on the other wing.',
+      avoid: 'Your opponent can’t stop it. The order is flexible; only your own moves can leave it.'
+    } },
+
+  /* ---- Black's answers to 1.e4 ---- */
+  { id: 'opengame', name: 'Open Game (1...e5)', side: 'b', vs: 'e4', main: 'e4 e5', prefixes: OPEN_GAME_NAMES,
+    about: {
+      idea: 'Meet e4 with e5 and claim an equal share of the centre. It leads into the Italian, the Ruy Lopez, the Scotch and the gambits — learning them teaches the classical principles better than anything.',
+      plans: '...Nc6, ...Nf6 or ...Bc5, castle, and keep e5 defended. Strike with ...d5 when White allows it.',
+      watch: 'Early attacks on f7 (Bc4 with Qh5 or Qf3 — the Scholar’s mate pattern). The Ruy Lopez is the main test.',
+      avoid: 'Needs White to open 1.e4.'
+    } },
+  { id: 'sicilian', name: 'Sicilian Defence', side: 'b', vs: 'e4', main: 'e4 c5', prefixes: ['Sicilian Defense'],
+    about: {
+      idea: 'Fight for d4 with a flank pawn. The position is unbalanced from move one: Black usually gets queenside play on the half-open c-file while White attacks the king. The most popular answer to 1.e4.',
+      plans: 'In the Open Sicilian (2.Nf3, 3.d4 cxd4 4.Nxd4) Black develops with ...Nf6, ...d6 or ...e6, ...a6, then ...b5 and a rook to c8. Najdorf, Dragon, Scheveningen and Taimanov are the big systems.',
+      watch: 'A huge amount of theory, and White has many sidelines: 2.c3 (Alapin), 2.Nc3 (Closed), 2.f4 (Grand Prix), 3.Bb5. While learning, keep a solid set-up with ...e6 and ...d6.',
+      avoid: 'Only exists after 1.e4. Against 1.d4 you need something else.'
+    } },
+  { id: 'french', name: 'French Defence', side: 'b', vs: 'e4', main: 'e4 e6 d4 d5', prefixes: ['French Defense'],
+    about: {
+      idea: 'Solid: challenge e4 with ...d5, backed by e6. The price is the c8 bishop, shut in behind its own pawn.',
+      plans: 'Attack White’s pawn chain at its base: ...c5 against d4, and ...f6 against e5. In the Advance (3.e5), ...c5, ...Qb6 and ...Nc6 all pile on d4.',
+      watch: 'The bad light-squared bishop — get it out (...b6 and ...Ba6, or ...Bd7–e8–h5) or trade it. Positions can be cramped. The Winawer (3.Nc3 Bb4) is very sharp.',
+      avoid: 'Needs 1.e4; 1.d4 e6 2.e4 transposes into it.'
+    } },
+  { id: 'caro', name: 'Caro-Kann Defence', side: 'b', vs: 'e4', main: 'e4 c6 d4 d5', prefixes: ['Caro-Kann Defense'],
+    about: {
+      idea: 'Like the French, but the c8 bishop gets out (...Bf5 or ...Bg4) before ...e6 closes it in. One of the most solid answers to 1.e4.',
+      plans: 'Classical: 3.Nc3 dxe4 4.Nxe4 Bf5. Against the Advance (3.e5): ...Bf5, ...e6, then ...c5 to hit the centre.',
+      watch: 'It can drift into passivity. In the Advance, White grabs kingside space with g4 to hunt the f5 bishop.',
+      avoid: 'Needs 1.e4.'
+    } },
+  { id: 'scandi', name: 'Scandinavian Defence', side: 'b', vs: 'e4', main: 'e4 d5', prefixes: ['Scandinavian Defense'],
+    about: {
+      idea: 'Hit e4 at once. After 2.exd5 Qxd5 3.Nc3 the queen has to move again, so Black loses time, but gets a simple structure that is easy to learn.',
+      plans: '...Qa5 (or ...Qd6), ...Nf6, ...c6, ...Bf5 or ...Bg4, ...e6: a solid Caro-Kann-like set-up. 2...Nf6, recapturing later, is the alternative.',
+      watch: 'The queen is out early: don’t let it get trapped, and expect White to gain time against it with Nc3, Bd2 and Nd5 ideas.',
+      avoid: 'Needs 1.e4.'
+    } },
+  { id: 'pirc', name: 'Pirc Defence', side: 'b', vs: 'e4', main: 'e4 d6 d4 Nf6 Nc3 g6', prefixes: ['Pirc Defense'],
+    about: {
+      idea: 'Let White build a big centre and attack it later. The bishop on g7 bears down on d4. Hypermodern and flexible.',
+      plans: '...Bg7, ...O-O, then break with ...c5 or ...e5. Queenside play with ...c6 and ...b5.',
+      watch: 'The Austrian Attack (f4) and the 150 Attack (Be3, Qd2, Bh6, h4) are aggressive. Don’t let the centre roll you over.',
+      avoid: 'Needs 1.e4. White can also skip 3.Nc3.'
+    } },
+  { id: 'alekhine', name: 'Alekhine Defence', side: 'b', vs: 'e4', main: 'e4 Nf6', prefixes: ['Alekhine Defense'],
+    about: {
+      idea: 'Provoke e5. The knight gets chased about, White’s pawns overextend, and Black attacks them later.',
+      plans: '2.e5 Nd5 3.d4 d6, then ...Bg4, ...dxe5 and pressure on e5 and d4.',
+      watch: 'The Four Pawns Attack (c4, d4, e5, f4) is very sharp, and the knight can run out of squares.',
+      avoid: 'Needs 1.e4.'
+    } },
+  { id: 'petrov', name: 'Petrov’s Defence', side: 'b', vs: 'e4', main: 'e4 e5 Nf3 Nf6', prefixes: ["Petrov's Defense"],
+    about: {
+      idea: 'Counterattack e4 instead of defending e5. Symmetrical and very solid.',
+      plans: 'After 3.Nxe5, first 3...d6!, kicking the knight, then ...Nxe4.',
+      watch: 'The trap: 3.Nxe5 Nxe4?? 4.Qe2! — if the knight moves, Nc6+ uncovers check on the queen. Always 3...d6 first.',
+      avoid: 'Needs 1.e4 e5 2.Nf3. 2.Nc3, 2.Bc4 or 2.f4 avoid it.'
+    } },
+
+  /* ---- Black's answers to 1.d4 ---- */
+  { id: 'qgd', name: 'Queen’s Gambit Declined', side: 'b', vs: 'd4', main: 'd4 d5 c4 e6', prefixes: ["Queen's Gambit Declined"],
+    about: {
+      idea: 'Hold d5 with ...e6. Rock solid and classical.',
+      plans: '...Nf6, ...Be7, ...O-O, then free the game with ...c5, or ...dxc4 followed by ...c5, or ...e5.',
+      watch: 'The c8 bishop is the problem piece. The Exchange Variation (cxd5 exd5) brings the minority attack; Bg5 pins the f6 knight.',
+      avoid: 'Needs 2.c4 from White. 2.Nf3 or a London set-up go elsewhere.'
+    } },
+  { id: 'slav', name: 'Slav Defence', side: 'b', vs: 'd4', main: 'd4 d5 c4 c6', prefixes: ['Slav Defense', 'Semi-Slav Defense'],
+    about: {
+      idea: 'Support d5 with ...c6 and keep the c8 bishop free to come out to f5 or g4. With ...e6 as well it becomes the Semi-Slav.',
+      plans: '...Nf6, then ...dxc4 and ...b5 or ...Bf5; or ...e6 for the Semi-Slav.',
+      watch: 'In the main line after ...dxc4, White plays a4 to stop ...b5. The Exchange Slav is symmetrical and drawish.',
+      avoid: 'Needs 2.c4.'
+    } },
+  { id: 'qga', name: 'Queen’s Gambit Accepted', side: 'b', vs: 'd4', main: 'd4 d5 c4 dxc4', prefixes: ["Queen's Gambit Accepted"],
+    about: {
+      idea: 'Take the pawn, give it back, and use the time to develop and hit the centre with ...c5 and ...e6.',
+      plans: '...Nf6, ...e6, ...c5, often ...a6 and ...b5.',
+      watch: 'Don’t try to keep the pawn with an early ...b5: a4 and the queenside falls apart. White may build a big e4–d4 centre.',
+      avoid: 'Needs 2.c4.'
+    } },
+  { id: 'kid', name: 'King’s Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 g6 Nc3 Bg7', prefixes: ["King's Indian Defense"],
+    about: {
+      idea: 'Let White take the centre, then hit it with ...e5 (or ...c5) and attack on the kingside with ...f5. Dynamic and double-edged.',
+      plans: '...O-O, ...d6, ...e5. When White closes the centre with d5: ...Ne8 or ...Nh5, then ...f5, ...f4 and ...g5 — a kingside storm while White attacks on the queenside.',
+      watch: 'These are races, so count moves. The Sämisch (f3) and the Four Pawns (f4) are aggressive tries against it.',
+      avoid: 'White can avoid c4 and Nc3 (a London, a Trompowsky). 3...d5 instead is a Grünfeld.'
+    } },
+  { id: 'nimzo', name: 'Nimzo-Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 e6 Nc3 Bb4', prefixes: ['Nimzo-Indian Defense'],
+    about: {
+      idea: 'Pin the knight that wants to support e4, and be willing to give up the bishop pair to double White’s c-pawns.',
+      plans: '...O-O, then ...d5, or ...b6 and ...Bb7, and ...c5. Doubled c-pawns become targets.',
+      watch: '4.Qc2 avoids the doubled pawns; 4.e3 (the Rubinstein) is solid.',
+      avoid: 'White’s 3.Nf3 instead of 3.Nc3 avoids it — then the Queen’s Indian is the natural answer.'
+    } },
+  { id: 'qid', name: 'Queen’s Indian Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 e6 Nf3 b6', prefixes: ["Queen's Indian Defense"],
+    about: {
+      idea: 'The answer to 3.Nf3: fianchetto on b7 to control e4 and d5 from a distance. Solid.',
+      plans: '...Bb7 (or ...Ba6, hitting c4), ...Be7, ...O-O, then ...d5 or ...c5.',
+      watch: 'The Petrosian (4.a3) stops ...Bb4 checks and keeps options open.',
+      avoid: 'Needs 3.Nf3; after 3.Nc3 the Nimzo-Indian is the natural choice.'
+    } },
+  { id: 'grunfeld', name: 'Grünfeld Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 g6 Nc3 d5', prefixes: ['Grünfeld Defense'],
+    about: {
+      idea: 'Invite White to take the centre (cxd5 Nxd5, e4 Nxc3, bxc3), then attack it with ...Bg7, ...c5, ...Nc6 and ...Bg4.',
+      plans: 'Pile pressure on d4 and keep it there.',
+      watch: 'The Exchange Variation gives White a big centre, and the d5 push. Precise theory matters here.',
+      avoid: 'Needs both 2.c4 and 3.Nc3.'
+    } },
+  { id: 'dutch', name: 'Dutch Defence', side: 'b', vs: 'd4', main: 'd4 f5', prefixes: ['Dutch Defense'],
+    about: {
+      idea: 'Control e4 with the f-pawn and play for the kingside. Unbalanced from the start.',
+      plans: 'The Leningrad (...g6, ...Bg7, ...d6), the Stonewall (...e6, ...d5, ...c6) or the Classical (...e6, ...Be7, ...d6). ...Qe8–h5 is a typical attacking manoeuvre.',
+      watch: 'The weakened e8–h5 diagonal and the e6 square. Anti-Dutch tries: 2.Bg5, and the Staunton Gambit 2.e4.',
+      avoid: 'Needs 1.d4 — against 1.e4, ...f5 is bad.'
+    } },
+  { id: 'benoni', name: 'Benoni Defence', side: 'b', vs: 'd4', main: 'd4 Nf6 c4 c5 d5', prefixes: ['Benoni Defense'],
+    about: {
+      idea: 'Give White a space advantage in return for a queenside pawn majority, a strong bishop on g7 and active piece play.',
+      plans: '...e6 and ...exd5, ...d6, ...g6, ...Bg7, ...O-O, ...Re8, then ...a6 and ...b5.',
+      watch: 'White’s e4–e5 break, and the Taimanov (f4 and Bb5+), which is dangerous.',
+      avoid: 'Needs 2.c4 and 3.d5. 3.Nf3 keeps things in other channels.'
+    } }
+];
+const FAM = Object.fromEntries(FAMILIES.map(f => [f.id, f]));
+
+/* the defining line, in moves you can check against the game */
+for (const f of FAMILIES) {
+  f.kind ||= 'book';
+  if (f.kind !== 'book') { f.anchor = f.core.length; continue; }
+  const c = new Chess();
+  f.mainSan = f.main.split(' ');
+  f.mainUci = f.mainSan.map(s => uciOf(c.move(s)));
+  f.anchor = f.mainSan.length;
+}
+
+/* ---------- the book ---------- */
+const bookKey = fen => fen.split(' ').slice(0, 3).join(' ');
+
+/* A tiny board, only good for replaying known-legal moves: the book is played
+   through 40,000 moves at load, which chess.js would take seconds over. */
+function bookStart() {
+  const b = [];
+  for (const row of 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'.split('/')) {
+    for (const ch of row) { if (/\d/.test(ch)) for (let i = 0; i < +ch; i++) b.push(null); else b.push(ch); }
+  }
+  return { b, turn: 'w', castle: 'KQkq' };
+}
+const bIdx = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);
+function bookApply(pos, u) {
+  const f = bIdx(u.slice(0, 2)), t = bIdx(u.slice(2, 4));
+  const p = pos.b[f];
+  const lower = p.toLowerCase();
+  if (lower === 'p' && f % 8 !== t % 8 && !pos.b[t]) pos.b[f - (f % 8) + (t % 8)] = null;   // en passant
+  pos.b[t] = u[4] ? (pos.turn === 'w' ? u[4].toUpperCase() : u[4]) : p;
+  pos.b[f] = null;
+  if (lower === 'k' && Math.abs((f % 8) - (t % 8)) === 2) {
+    const kingside = t % 8 === 6;
+    const rf = kingside ? t + 1 : t - 2, rt = kingside ? t - 1 : t + 1;
+    pos.b[rt] = pos.b[rf];
+    pos.b[rf] = null;
+  }
+  const lose = { 60: 'KQ', 63: 'K', 56: 'Q', 4: 'kq', 7: 'k', 0: 'q' };
+  for (const sq of [f, t]) if (lose[sq]) pos.castle = [...pos.castle].filter(ch => !lose[sq].includes(ch)).join('');
+  pos.turn = pos.turn === 'w' ? 'b' : 'w';
+}
+function bookKeyOf(pos) {
+  let s = '';
+  for (let r = 0; r < 8; r++) {
+    let empty = 0;
+    for (let c = 0; c < 8; c++) {
+      const p = pos.b[r * 8 + c];
+      if (!p) { empty++; continue; }
+      if (empty) { s += empty; empty = 0; }
+      s += p;
+    }
+    if (empty) s += empty;
+    if (r < 7) s += '/';
+  }
+  return `${s} ${pos.turn} ${pos.castle || '-'}`;
+}
+
+function buildBook(lines) {
+  const nodes = new Map();
+  const node = k => {
+    let n = nodes.get(k);
+    if (!n) { n = { fams: new Set(), name: null, eco: null, next: new Map(), count: 0 }; nodes.set(k, n); }
+    return n;
+  };
+  const famsOf = name => FAMILIES.filter(f => f.kind === 'book' && f.prefixes.some(p => name.startsWith(p))).map(f => f.id);
+  for (const [eco, name, ucis] of lines) {
+    const pos = bookStart();
+    const fams = famsOf(name);
+    let n = node(bookKeyOf(pos));
+    n.count++;
+    for (const id of fams) n.fams.add(id);
+    for (const u of ucis.split(' ')) {
+      bookApply(pos, u);
+      const k = bookKeyOf(pos);
+      n.next.set(u, k);
+      n = node(k);
+      n.count++;
+      for (const id of fams) n.fams.add(id);
+    }
+    if (!n.name) { n.name = name; n.eco = eco; }
+  }
+  return { nodes };
+}
+
+function ensureBook() {
+  if (bookState !== 'idle') return;
+  bookState = 'loading';
+  fetch(BOOK_PATH).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => {
+      book = buildBook(data.lines);
+      bookState = 'ready';
+      if (code) draw();
+    })
+    .catch(err => {
+      console.warn('opening book', err);
+      bookState = 'failed';
+      if (code) drawOpenings();
+    });
+}
+
+const niceName = n => String(n).replace(/Defense/g, 'Defence');
+
+/* the name of the line a position belongs to: the last named position on the
+   way to it, within the game being played */
+function lastNameAt(fen) {
+  if (!book) return null;
+  const hist = game.history({ verbose: true });
+  const keys = [hist.length ? hist[0].before : game.fen(), ...hist.map(m => m.after)].map(bookKey);
+  const stop = keys.indexOf(bookKey(fen));
+  let name = null;
+  for (let i = 0; i <= (stop < 0 ? keys.length - 1 : stop); i++) {
+    const n = book.nodes.get(keys[i]);
+    if (n && n.name) name = `${niceName(n.name)} (${n.eco})`;
+  }
+  return name;
+}
+
+/* ---------- where each family stands in this game ---------- */
+function gameKeys(hist) {
+  return [hist.length ? hist[0].before : game.fen(), ...hist.map(m => m.after)].map(bookKey);
+}
+
+function familyStatus(f, hist, keys) {
+  if (f.kind === 'setup') {
+    const allowed = new Set([...f.core, ...f.extras]);
+    const done = new Set();
+    for (let i = 0; i < hist.length; i++) {
+      const m = hist[i];
+      if (m.color !== f.side) continue;
+      const u = uciOf(m);
+      if (!allowed.has(u)) return { state: 'out', ply: i, done };
+      for (const [first, second, text] of f.order || []) {
+        if (u === second && !done.has(first)) return { state: 'out', ply: i, why: text, order: true, done };
+      }
+      done.add(u);
+      if (f.core.every(c => done.has(c))) return { state: 'in', ply: i, done };
+    }
+    return { state: 'open', done };
+  }
+  if (!book) return { state: 'open' };
+  let name = null;
+  for (let i = 0; i < keys.length; i++) {
+    const n = book.nodes.get(keys[i]);
+    if (n && n.name) name = n.name;
+    if (i >= f.anchor && name && f.prefixes.some(p => name.startsWith(p))) return { state: 'in', ply: i - 1 };
+    if (!n || !n.fams.has(f.id)) return { state: 'out', ply: i - 1, left: !n };
+  }
+  return { state: 'open' };
+}
+
+/* the moves from a position that stay inside family f */
+function familyMoves(f, key) {
+  if (!book) return [];
+  const n = book.nodes.get(key);
+  if (!n) return [];
+  const out = [];
+  for (const [u, k] of n.next) {
+    const c = book.nodes.get(k);
+    if (c && c.fams.has(f.id)) out.push({ u, k, count: c.count });
+  }
+  return out.sort((a, b) => b.count - a.count);
+}
+
+function reasonText(f, st, hist) {
+  const m = hist[st.ply];
+  if (!m) return '';
+  const mine = m.color === myColor;
+  const who = mine ? 'You' : 'They';
+  const label = moveLabel(st.ply, m.san);
+  if (f.kind === 'setup') {
+    if (st.order) return `${who} played ${label}: ${st.why}`;
+    return `${who} played ${label}, which isn’t part of the ${f.name}. It wants ${f.coreSan.join(', ')}.`;
+  }
+  const prevKey = bookKey(m.before);
+  const alts = familyMoves(f, prevKey).slice(0, 3).map(x => moveLabel(st.ply, sanOf(m.before, x.u)));
+  if (st.left && !alts.length) return `${who} played ${label}, which left known opening theory.`;
+  return `${who} played ${label}${st.left ? ', which left known opening theory' : ''}. ` +
+    (alts.length ? `The ${f.name} needed ${alts.join(' or ')}.` : `No line of the ${f.name} passes through here.`);
+}
+
+/* ---------- the opponent plays along ---------- */
+function forcedReply() {
+  if (!solo || !openForce || !openPick || result || !FAM[openPick]) return null;
+  if (game.turn() === myColor) return null;
+  const hist = game.history({ verbose: true });
+  if (hist.length > 30) return null;
+  const f = FAM[openPick];
+  const st = familyStatus(f, hist, gameKeys(hist));
+  // once the opening is on the board the cooperation is done; the engine plays on
+  if (st.state !== 'open') return null;
+  const legal = new Set(game.moves({ verbose: true }).map(uciOf));
+
+  if (f.kind === 'setup') {
+    if (f.side === myColor) return null;          // your set-up; they are free
+    if (st.state === 'in') return null;
+    const played = st.done || new Set();
+    for (const u of f.core) if (!played.has(u) && legal.has(u)) {
+      // respect the order rules for their set-up too
+      if ((f.order || []).some(([first, second]) => u === second && !played.has(first))) continue;
+      return u;
+    }
+    return null;
+  }
+
+  const opts = familyMoves(f, bookKey(game.fen())).filter(x => legal.has(x.u));
+  if (!opts.length) return null;
+  if (st.state !== 'in') {
+    // on the way in, follow the defining line where the game still matches it
+    const sans = game.history();
+    const onMain = sans.every((s, j) => s === f.mainSan[j]);
+    const next = f.mainUci[hist.length];
+    if (onMain && next && opts.some(x => x.u === next)) return next;
+  }
+  // otherwise a known line of the family, the well-trodden ones much more often
+  // (a branch's weight is how many named lines run through it, squared)
+  const total = opts.reduce((s, x) => s + x.count * x.count, 0);
+  let r = Math.random() * total;
+  for (const x of opts) { r -= x.count * x.count; if (r <= 0) return x.u; }
+  return opts[0].u;
+}
+
+function scheduleForced(u) {
+  const fen = game.fen();
+  if (forcedFen === fen && forcedTimer) return;
+  clearTimeout(forcedTimer);
+  forcedFen = fen;
+  forcedTimer = setTimeout(() => {
+    forcedTimer = null;
+    forcedFen = null;
+    if (game.fen() !== fen || !engineToMove()) return;
+    if (!playOpponent(fen, u.slice(0, 2), u.slice(2, 4), u[4])) draw();
+  }, 450);
+}
+
+/* ---------- the panel ---------- */
+function seqHTML(f, st, hist) {
+  if (f.kind === 'setup') {
+    const done = st.done || new Set();
+    return f.coreSan.map((s, j) => `<span class="mv ${f.side === myColor ? 'me' : 'them'}${done.has(f.core[j]) ? ' done' : ''}">${esc(s)}</span>`).join(' ');
+  }
+  const sans = game.history();
+  let matching = true;
+  return f.mainSan.map((s, j) => {
+    matching = matching && sans[j] === s;
+    const side = j % 2 === 0 ? 'w' : 'b';
+    const num = j % 2 === 0 ? `${j / 2 + 1}.` : '';
+    return `<span class="mv ${side === myColor ? 'me' : 'them'}${matching ? ' done' : ''}">${num}${esc(s)}</span>`;
+  }).join(' ');
+}
+
+function nextHTML(f, st, hist) {
+  if (st.state !== 'open') return '';
+  if (f.kind === 'setup') {
+    const done = st.done || new Set();
+    const rest = f.coreSan.filter((s, j) => !done.has(f.core[j]));
+    if (!rest.length) return '';
+    return `<p class="onext">Still to play${f.side === myColor ? '' : ' (them)'}: ${esc(rest.join(', '))}.</p>`;
+  }
+  const opts = familyMoves(f, bookKey(game.fen())).slice(0, 3);
+  if (!opts.length) return '';
+  const mineNext = game.turn() === myColor;
+  const list = opts.map(x => moveLabel(hist.length, sanOf(game.fen(), x.u))).join(' or ');
+  return `<p class="onext">${mineNext ? 'Your move' : 'Their move'} to stay in it: ${esc(list)}.</p>`;
+}
+
+function famRow(f, st, hist) {
+  const yours = f.side === myColor;
+  const open = openOpen.has(f.id) || (f.id === openPick && st.state !== 'in' && !openOpen.has('!' + f.id));
+  let tag = yours ? 'your choice' : 'their choice';
+  if (st.state === 'out') tag = `out at ${moveLabel(st.ply, hist[st.ply].san)}`;
+  const a = f.about;
+  const reason = st.state === 'out' ? `<p class="oreason">${esc(reasonText(f, st, hist))}</p>` : '';
+  const yourFault = st.state === 'out' && hist[st.ply] && hist[st.ply].color === myColor && f.id === openPick
+    ? '<p class="onext">You left the line. Takeback to try it again.</p>' : '';
+  return `<details class="ofam st-${st.state}${f.id === openPick ? ' picked' : ''}" data-f="${f.id}"${open ? ' open' : ''}>
+    <summary><span class="oname">${esc(f.name)}</span><span class="otag">${esc(tag)}</span>
+      <span class="oseq">${seqHTML(f, st, hist)}</span></summary>
+    <div class="obody">${reason}${yourFault}${nextHTML(f, st, hist)}
+      <p><b>The idea.</b> ${esc(a.idea)}</p>
+      <p><b>Plans.</b> ${esc(a.plans)}</p>
+      <p><b>Watch for.</b> ${esc(a.watch)}</p>
+      <p><b>How it gets avoided.</b> ${esc(a.avoid)}</p>
+    </div></details>`;
+}
+
+let openSelectColour = null;
+function fillOpenSelect() {
+  if (openSelectColour === myColor) return;
+  openSelectColour = myColor;
+  const opt = f => `<option value="${f.id}">${esc(f.name)}</option>`;
+  const yours = FAMILIES.filter(f => f.side === myColor), theirs = FAMILIES.filter(f => f.side !== myColor);
+  el('openPick').innerHTML = '<option value="">Just watch</option>' +
+    `<optgroup label="You choose">${yours.map(opt).join('')}</optgroup>` +
+    `<optgroup label="They choose">${theirs.map(opt).join('')}</optgroup>`;
+  el('openPick').value = FAM[openPick] ? openPick : '';
+}
+
+function drawOpenings() {
+  const blk = el('openBlock');
+  const show = solo && !!code;
+  blk.classList.toggle('hidden', !show);
+  if (!show) return;
+  ensureBook();
+  fillOpenSelect();
+  el('openPick').value = FAM[openPick] ? openPick : '';
+  el('openForce').checked = openForce && !!FAM[openPick];
+  el('openForce').disabled = !FAM[openPick];
+
+  const body = el('openBody');
+  const hist = game.history({ verbose: true });
+  const keys = gameKeys(hist);
+  let html = '';
+
+  // the name of the line on the board
+  if (bookState === 'failed') {
+    html += '<p class="coach-note">The opening book couldn’t load — it needs the openings folder beside this page. Set-ups like the London still work.</p>';
+  } else if (bookState !== 'ready') {
+    html += '<p class="coach-note">Loading the opening book…</p>';
+  } else {
+    // A game can leave the book and come back by transposition, so the name is
+    // the last named position anywhere on the way, and "out of the book" is
+    // only said when the position on the board is not in it.
+    let name = null, leftAt = null, lastIn = -1;
+    for (let i = 0; i < keys.length; i++) {
+      const n = book.nodes.get(keys[i]);
+      if (!n) continue;
+      lastIn = i;
+      if (n.name) name = `${niceName(n.name)} · ${n.eco}`;
+    }
+    if (lastIn < keys.length - 1) leftAt = lastIn;
+    html += `<p class="onow">${name ? esc(name) : 'Starting position'}${leftAt != null && hist[leftAt]
+      ? `<span class="oleft">out of the book since ${esc(moveLabel(leftAt, hist[leftAt].san))}</span>` : ''}</p>`;
+  }
+
+  const rows = FAMILIES.map(f => ({ f, st: familyStatus(f, hist, keys) }));
+  const pickFirst = (a, b) => (b.f.id === openPick) - (a.f.id === openPick);
+  const inGame = rows.filter(r => r.st.state === 'in');
+  const open = rows.filter(r => r.st.state === 'open').sort(pickFirst);
+  const out = rows.filter(r => r.st.state === 'out').sort((a, b) => pickFirst(a, b) || b.st.ply - a.st.ply);
+
+  const section = (key, title, list, sub) => {
+    if (!list.length) return '';
+    const shut = openSecShut.has(key);
+    return `<details class="osec" data-sec="${key}"${shut ? '' : ' open'}>
+      <summary><span class="gtitle">${esc(title)}</span><span class="gcount">${list.length}</span></summary>
+      ${sub ? sub(list) : list.map(r => famRow(r.f, r.st, hist)).join('')}</details>`;
+  };
+  const bySide = list => {
+    const yours = list.filter(r => r.f.side === myColor), theirs = list.filter(r => r.f.side !== myColor);
+    return (yours.length ? `<p class="osub">You choose</p>${yours.map(r => famRow(r.f, r.st, hist)).join('')}` : '') +
+      (theirs.length ? `<p class="osub">They choose</p>${theirs.map(r => famRow(r.f, r.st, hist)).join('')}` : '');
+  };
+
+  html += section('in', 'In this game', inGame);
+  html += section('open', 'Still possible', open, bySide);
+  html += section('out', 'No longer possible', out);
+  body.innerHTML = html;
+}
+
+el('openPick').onchange = e => {
+  openPick = e.target.value;
+  store.set('table:openPick', openPick);
+  openOpen.delete('!' + openPick);
+  draw();
+};
+el('openForce').onchange = e => {
+  openForce = e.target.checked;
+  store.set('table:openForce', openForce);
+  draw();
+};
+el('openBody').addEventListener('toggle', e => {
+  const sec = e.target.closest('details.osec');
+  if (sec && e.target === sec) {
+    if (sec.open) openSecShut.delete(sec.dataset.sec); else openSecShut.add(sec.dataset.sec);
+    store.set('table:openShut', [...openSecShut]);
+    return;
+  }
+  const d = e.target.closest('details.ofam');
+  if (!d || e.target !== d) return;
+  const id = d.dataset.f;
+  if (d.open) { openOpen.add(id); openOpen.delete('!' + id); }
+  else { openOpen.delete(id); if (id === openPick) openOpen.add('!' + id); }
+}, true);
+
 /* ---------- the coach panel ----------
    On or off. There used to be a middle setting that showed counts without
    detail; the collapsed panel already is that, so it was a mode for a state the
@@ -4999,7 +6598,8 @@ function drawHint() {
 const COACH_MODES = ['off', 'on'];
 const COACH_LABEL = { off: 'Off', on: 'On' };
 
-let coachMode = store.get('table:coach') === 'off' || store.get('table:coach') == null ? 'off' : 'on';
+// The coach is retired from the screen (the review took its place), so it stays off.
+let coachMode = 'off';
 let peerCoach = false;
 let coachRead = null;      // {fen, groups, findings} for the position on the board
 let coachPending = null;   // fen currently being analysed
@@ -5008,7 +6608,7 @@ let coachReverted = false; // the sections just closed themselves after a move
 let coachOpen = new Set(); // which sections are open, this position only
 
 function announce() {
-  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay, coach: coachMode !== 'off' });
+  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay, coach: coachMode !== 'off', review: reviewOn });
 }
 
 function setCoach(mode) {
@@ -5291,7 +6891,9 @@ function setLink() {
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
     : peerHints ? 'They have hints switched on.'
-    : peerCoach ? 'They have the tactics coach switched on.' : '';
+    : peerCoach ? 'They have the tactics coach switched on.'
+    : peerReview && !reviewOn ? 'They’ve switched the review on. It shows for both of you only if you switch it on too.'
+    : peerReview && reviewOn ? 'The review is on for both of you.' : '';
   el('peerHint').textContent = tell;
   el('peerHint').classList.toggle('hidden', !(tell && peers.size));
   if (!el('game').classList.contains('hidden')) drawStatus();
@@ -5299,6 +6901,7 @@ function setLink() {
 
 /* ---------- interaction ---------- */
 function pick(sq) {
+  if (viewPly != null) { viewPly = null; draw(); return; }   // any tap returns to the game
   if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
 
   if (selected) {
@@ -5386,7 +6989,8 @@ function diagnostics() {
       ? ` (stockfish ${sfBroken ? 'failed' : !sf ? 'not loaded' : !sfReady ? 'loading' : sfBusy ? 'searching' : 'ready'})` : ''}`,
     `games kept  ${loadGames().length}${historyFull ? ' (storage full, oldest dropped)' : ''}`,
     `hints       ${hintsOn ? 'on' : 'off'}   autoplay ${autoPlay ? 'on' : 'off'}`,
-    `coach       ${coachMode}${coachRead ? ` (${coachRead.findings.length} findings)` : ''}`,
+    `review      ${reviewActive() ? 'on' : reviewOn ? 'on, inactive' : 'off'} (analysis ${anBroken ? 'failed' : !an ? 'not loaded' : !anReady ? 'loading' : anJob ? 'searching' : 'idle'}, ${reviews.size} graded)`,
+    `openings    book ${bookState}${openPick ? `, practising ${openPick}${openForce ? ' (forced)' : ''}` : ''}`,
     engineNote ? `note        ${engineNote}` : ``,
     ``,
     `url         ${location.href}`,
