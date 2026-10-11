@@ -2458,7 +2458,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-11.5-openings';
+const VERSION = '2026-10-11.6-badgefix';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -5862,9 +5862,16 @@ function boardBadges() {
   const out = new Map();
   if (!reviewActive() || viewPly != null) return out;
   const hist = game.history({ verbose: true });
+  // Newest first, and a square belongs to the newest move that landed on it
+  // whether or not that move is graded yet: after a recapture the badge of the
+  // move before would otherwise sit on the new piece and read as its verdict.
+  const claimed = new Set();
   for (let i = hist.length - 1; i >= Math.max(0, hist.length - 2); i--) {
+    const to = hist[i].to;
+    if (claimed.has(to)) continue;
+    claimed.add(to);
     const r = reviews.get(moveId(hist[i]));
-    if (r && !out.has(hist[i].to)) out.set(hist[i].to, r.cls);
+    if (r) out.set(to, r.cls);
   }
   return out;
 }
