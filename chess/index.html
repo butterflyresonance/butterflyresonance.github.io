@@ -340,33 +340,6 @@
   }
   .sq.playable { cursor: pointer; }
 
-  /* dragging. Only squares holding a piece you can move right now refuse to
-     scroll the page, so a swipe that starts anywhere else on the board still
-     scrolls. The piece in the hand is a copy on the page, not in the grid:
-     the board is rebuilt on every redraw and would take it with it. */
-  .sq.mine { touch-action: none; -webkit-touch-callout: none; }
-  .sq.lifted svg.pc { opacity: .28; }
-  .sq.over { outline: 3px solid var(--brass); outline-offset: -3px; }
-  .board.dragging, .board.dragging .sq { cursor: grabbing; }
-  .dragpiece {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    will-change: transform;
-  }
-  .dragpiece svg {
-    width: 96%;
-    height: 96%;
-    display: block;
-    filter: drop-shadow(0 5px 6px rgba(0,0,0,.45));
-  }
-  .dragpiece svg.bauhaus { width: 88%; height: 88%; }
-
   .sq svg.pc {
     position: relative;
     width: 96%;
@@ -2485,7 +2458,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-11.3-drag';
+const VERSION = '2026-10-11.4-badges';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -2628,7 +2601,6 @@ let myColor = 'w';
 let code = null;
 let result = null;
 let selected = null;
-let drag = null;          // a piece being dragged: see "dragging" under interaction
 let lastMove = null;
 let senders = [];
 let peers = new Set();
@@ -3623,7 +3595,7 @@ function engineToMove() {
 function maybeAutoPlay() {
   if (!engineToMove()) return;
   if (solo) {
-    // their reply is already chosen and waiting for your badge
+    // their reply is already chosen and waiting for the badges
     if (oppHold && oppHold.fen === game.fen()) return;
     const u = forcedReply();
     if (u) { scheduleForced(u); return; }
@@ -5039,9 +5011,6 @@ function drawBoard() {
       const isTarget = !!targets[sq];
       const canPick = myTurn && piece && piece.color === myColor;
       if (isTarget || canPick) classes.push('playable');
-      if (canPick) classes.push('mine');
-      if (drag && drag.active && drag.from === sq) classes.push('lifted');
-      if (drag && drag.active && drag.over === sq && isTarget) classes.push('over');
       if (isTarget && piece) classes.push('occupied');
 
       let inner = '';
@@ -5284,7 +5253,10 @@ function drawHint() {
      - when you move, your opponent starts on its reply in its own worker while
        this one reads the position you left them;
      - their reply is held until your badge is up, and then for at least
-       AN_GATE_MS more, so the verdict always lands before the next move does.
+       AN_GATE_MS more, so the verdict always lands before the next move does;
+     - once their reply is chosen it is still not shown: this worker reads the
+       position it leads to first, so their move and its badge land together
+       instead of the badge trailing the move by a few seconds.
 
    It runs against the computer always, and in a game against a person only if
    both of you switch it on — otherwise it is simply engine help. */
@@ -5296,6 +5268,7 @@ const AN_DEEP = 24;           // the position on the board keeps going to here, 
 const AN_DEEP_MS = 20000;
 const AN_GATE_MS = 250;       // your badge stays up at least this long before their reply lands
 const AN_GIVEUP_MS = 12000;   // if grading takes longer than this, let the game go on anyway
+const AN_HOLD_MS = 8000;      // the most their chosen reply waits for its own badge
 const MATE_S = 100000;
 
 let reviewOn = store.get('table:review') !== false;
@@ -5311,7 +5284,9 @@ let anTimer = null;
 const anCache = new Map();   // position key -> entry
 const reviews = new Map();   // move id -> grade
 let gate = null;             // {fen, id, at, opened, readyAt}
-let oppHold = null;          // {fen, from, to, promotion}: their reply, waiting for your badge
+let oppHold = null;          // {fen, from, to, promotion, after, at}: their reply, chosen
+                             // but not shown until your badge and its own are ready
+let holdTimer = null;
 let revPick = null;          // ply whose explanation is open
 let viewPly = null;          // ply whose starting position is being shown on the board
 
@@ -5513,7 +5488,7 @@ function anTick(e) {
    need the positions either side of them, and the board itself is read
    deeply for the bar and for the move you are about to make. */
 function anSync() {
-  if (!reviewActive()) { anTodo = []; anStopJob(); return; }
+  if (!reviewActive()) { anTodo = []; anStopJob(); checkGate(); pokeHold(); return; }
   const hist = game.history({ verbose: true });
   const todo = [];
   for (const m of hist.slice(-4)) {
@@ -5524,6 +5499,14 @@ function anSync() {
   const i = todo.indexOf(cur);
   if (i >= 0) todo.splice(i, 1);
   todo.push(cur);
+  // Their reply is chosen but not on the board yet: read where it leads, after
+  // everything the badges already on the way still need.
+  if (oppHold && oppHold.fen === game.fen() && oppHold.after) {
+    const next = anEntry(oppHold.after);
+    const j = todo.indexOf(next);
+    if (j >= 0) todo.splice(j, 1);
+    todo.push(next);
+  }
   anTodo = todo;
   anPump();
   reviewPending();
@@ -5621,7 +5604,7 @@ function grade(m, b, a, i, hist) {
 }
 
 function reviewPending() {
-  if (!reviewActive()) { checkGate(); return; }
+  if (!reviewActive()) { checkGate(); pokeHold(); return; }
   const hist = game.history({ verbose: true });
   let changed = false;
   for (let i = Math.max(0, hist.length - 4); i < hist.length; i++) {
@@ -5638,9 +5621,10 @@ function reviewPending() {
   }
   if (changed) { drawBoard(); drawReviewArrows(); drawLedger(); drawReview(); }
   checkGate();
+  pokeHold();
 }
 
-/* ---------- holding their reply until your badge is up ---------- */
+/* ---------- holding their reply until your badge and its own are ready ---------- */
 function setGate(m) {
   if (!solo || !reviewActive() || m.color !== myColor) { gate = null; return; }
   gate = { fen: game.fen(), id: moveId(m), at: Date.now(), opened: false, readyAt: 0 };
@@ -5666,9 +5650,14 @@ function playOpponent(fen, from, to, promotion) {
   const ok = game.moves({ verbose: true }).some(m =>
     m.from === from && m.to === to && (!promotion || m.promotion === promotion));
   if (!ok) return false;
-  if (gateHolding()) {
-    oppHold = { fen, from, to, promotion };
+  let after = null;
+  try { const c = new Chess(fen); c.move({ from, to, promotion }); after = c.fen(); } catch {}
+  const h = { fen, from, to, promotion, after, at: Date.now() };
+  if (!holdReady(h)) {
+    oppHold = h;
+    anSync();                    // start reading the position their reply leads to
     drawStatus();
+    setTimeout(releaseHold, AN_HOLD_MS + 20);
     return true;
   }
   oppHold = null;
@@ -5676,13 +5665,31 @@ function playOpponent(fen, from, to, promotion) {
   return false;
 }
 
+/* Their reply can be shown once your badge has had its moment and the two
+   positions either side of the reply have been read, which is all its own
+   badge needs: playing it then grades it in the same draw. */
+function holdReady(h) {
+  if (gateHolding()) return false;
+  if (!solo || !reviewActive() || !h.after) return true;
+  if (Date.now() - h.at >= AN_HOLD_MS) return true;      // a slow machine: let the game go on
+  const b = anCache.get(posKey(h.fen)), a = anCache.get(posKey(h.after));
+  return !!(b && a && b.lines.length && anSatisfied(b) && anSatisfied(a));
+}
+
 function releaseHold() {
   const h = oppHold;
   if (!h) return;
   if (h.fen !== game.fen()) { oppHold = null; return; }
-  if (gateHolding()) return;
+  if (!holdReady(h)) return;
   oppHold = null;
   if (localMove(h.from, h.to, h.promotion)) blip();
+}
+
+/* Asked from inside the analysis and drawing code, so the move is played on
+   the next turn of the event loop rather than in the middle of a draw. */
+function pokeHold() {
+  if (!oppHold || holdTimer) return;
+  holdTimer = setTimeout(() => { holdTimer = null; releaseHold(); }, 0);
 }
 
 /* ---------- the record: grades and evals go into the saved game ---------- */
@@ -6965,129 +6972,6 @@ boardEl.addEventListener('click', e => {
   const cell = e.target.closest('.sq');
   if (cell) pick(cell.dataset.sq);
 });
-
-/* ---------- dragging ----------
-   A second way to make the same move, not a second code path: a drag ends in
-   the same game.moves / localMove / askPromotion calls as two taps. A press
-   that never travels further than the slop is not a drag at all and is left
-   to the click handler above, so tapping behaves exactly as it did. */
-let dragEndedAt = 0;
-
-function squareAt(x, y) {
-  const r = boardEl.getBoundingClientRect();
-  if (x < r.left || x >= r.right || y < r.top || y >= r.bottom) return null;
-  const col = Math.min(7, Math.floor((x - r.left) / r.width * 8));
-  const row = Math.min(7, Math.floor((y - r.top) / r.height * 8));
-  const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
-  return files[col] + (myColor === 'w' ? 8 - row : row + 1);
-}
-
-function dragPlace(x, y) {
-  // under a finger the piece would be hidden, so it rides above it; the ring
-  // on the square shows where it will land
-  const lift = drag.touch ? drag.cell * 0.6 : 0;
-  drag.ghost.style.transform =
-    `translate(${x - drag.size / 2}px, ${y - drag.size / 2 - lift}px)`;
-  const over = squareAt(x, y);
-  if (over !== drag.from) drag.left = true;
-  if (over === drag.over) return;
-  const was = boardEl.querySelector('.sq.over');
-  if (was) was.classList.remove('over');
-  drag.over = over;
-  if (over && drag.targets.has(over)) {
-    const cell = boardEl.querySelector(`.sq[data-sq="${over}"]`);
-    if (cell) cell.classList.add('over');
-  }
-}
-
-function dragStart(e) {
-  const piece = game.get(drag.from);
-  if (!piece || piece.color !== myColor) { drag = null; return false; }
-  drag.active = true;
-  drag.touch = e.pointerType === 'touch';
-  drag.targets = new Set(game.moves({ square: drag.from, verbose: true }).map(m => m.to));
-  drag.cell = boardEl.getBoundingClientRect().width / 8;
-  drag.size = drag.cell * (drag.touch ? 1.5 : 1.1);
-  drag.ghost = document.createElement('div');
-  drag.ghost.className = 'dragpiece';
-  drag.ghost.style.width = drag.ghost.style.height = drag.size + 'px';
-  drag.ghost.innerHTML = pieceSVG(piece.type, piece.color);
-  document.body.appendChild(drag.ghost);
-  // the square under the press is about to be rebuilt; hold the pointer on the
-  // board itself, which is not
-  try { boardEl.setPointerCapture(drag.id); } catch {}
-  boardEl.classList.add('dragging');
-  drag.wasSelected = selected;
-  selected = drag.from;
-  drawBoard();
-  return true;
-}
-
-function dragEnd(e) {
-  if (!drag || (e && e.pointerId !== drag.id)) return;
-  const d = drag;
-  drag = null;
-  if (!d.active) return;                      // a tap; the click handler has it
-  d.ghost.remove();
-  boardEl.classList.remove('dragging');
-  try { boardEl.releasePointerCapture(d.id); } catch {}
-  dragEndedAt = performance.now();
-
-  const to = e && e.type === 'pointerup' ? squareAt(e.clientX, e.clientY) : null;
-  const live = viewPly == null && !result && game.turn() === myColor;
-  if (live && to && to !== d.from) {
-    const moves = game.moves({ square: d.from, verbose: true }).filter(m => m.to === to);
-    if (moves.length) {
-      if (moves.some(m => m.promotion)) { drawBoard(); askPromotion(d.from, to); return; }
-      selected = null;
-      if (!localMove(d.from, to)) drawBoard();
-      return;
-    }
-  }
-  // a press that wobbled but never left its square was a tap
-  if (live && to === d.from && !d.left) { selected = d.wasSelected; pick(d.from); return; }
-  // dropped back home, off the board or somewhere it cannot go: it goes home
-  // and stays selected, so a tap on a target still plays the move
-  if (!live) selected = null;
-  drawBoard();
-}
-
-boardEl.addEventListener('pointerdown', e => {
-  if (drag && drag.active) return;
-  drag = null;
-  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
-  const cell = e.target.closest('.sq.mine');
-  if (!cell) return;
-  drag = {
-    from: cell.dataset.sq, id: e.pointerId, x0: e.clientX, y0: e.clientY,
-    slop: Math.min(12, cell.getBoundingClientRect().width / 6),
-    active: false, over: null
-  };
-});
-
-document.addEventListener('pointermove', e => {
-  if (!drag || e.pointerId !== drag.id) return;
-  if (e.pointerType === 'mouse' && !(e.buttons & 1)) { dragEnd(null); return; }   // released out of sight
-  if (!drag.active) {
-    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < drag.slop) return;
-    if (!dragStart(e)) return;
-  }
-  dragPlace(e.clientX, e.clientY);
-});
-document.addEventListener('pointerup', dragEnd);
-document.addEventListener('pointercancel', dragEnd);
-boardEl.addEventListener('lostpointercapture', e => { if (e.target === boardEl && drag && drag.active) dragEnd(e); });
-window.addEventListener('blur', () => dragEnd(null));
-boardEl.addEventListener('contextmenu', e => { if (drag) e.preventDefault(); });
-
-/* A drag that ends on a square can be followed by the browser's own click for
-   the same press. The move has been dealt with; that click must not be read
-   as a fresh tap. */
-boardEl.addEventListener('click', e => {
-  if (performance.now() - dragEndedAt > 400) return;
-  dragEndedAt = 0;
-  e.stopImmediatePropagation();
-}, true);
 
 boardEl.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
