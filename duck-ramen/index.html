@@ -336,37 +336,56 @@ section { display: flex; flex-direction: column; gap: 14px; }
     }
     fill('ingMain', main); fill('ingBroth', broth); fill('ingFinish', finish);
 
+    // Amounts reused in the method text
+    const A = {
+      duck: whole(n) + (whole(n) === 1 ? ' duck breast' : ' duck breasts'),
+      egg: whole(n) + (whole(n) === 1 ? ' egg' : ' eggs'),
+      noodles: Math.round(150 * n) + ' g fresh ramen noodles (or ' + Math.round(100 * n) + ' g dried)',
+      stock: stock + ' ml stock',
+      shiitake: halfUp(1.5 * n) + ' dried shiitake',
+      tamari: spoons(3.75 * n) + ' tamari',
+      malt: spoons(1.4 * n) + ' rice malt syrup (or ' + spoons(1.125 * n) + ' sugar)',
+      vinegar: spoons(0.25 * n) + ' rice wine vinegar (or lime juice)',
+      mirin: spoons(3 * n) + ' mirin',
+      sake: spoons(2.25 * n) + ' sake',
+      fish: spoons(0.25 * n) + ' fish sauce',
+      ginger: halfUp(0.25 * n) + ' thumb' + (0.25 * n > 1.25 ? 's' : '') + ' of ginger, sliced',
+      garlic: halfUp(0.75 * n) + ' garlic clove' + (0.75 * n > 1.25 ? 's' : '') + ', smashed',
+      gelatin: spoons(0.5 * n) + ' gelatin',
+      sesame: spoons(0.375 * n) + ' sesame oil',
+      spring: whole(n) + ' spring onion' + (whole(n) === 1 ? '' : 's') + ', sliced'
+    };
     const b = s => '<span class="b">' + s + '</span>';
     const seasonAdd = alc
-      ? 'the ' + b('tamari') + ', ' + b('mirin') + ', ' + b('sake') + ' and ' + b('fish sauce')
-      : 'the ' + b('tamari') + ', ' + b('rice malt syrup') + ' and ' + b('fish sauce') + '. Stir until the syrup dissolves';
-    const finishAcid = alc ? '' : ' Stir in the ' + b('rice wine vinegar') + ' (or lime juice).';
+      ? b(A.tamari) + ', ' + b(A.mirin) + ', ' + b(A.sake) + ' and ' + b(A.fish)
+      : b(A.tamari) + ', ' + b(A.malt) + ' and ' + b(A.fish) + '. Stir until the syrup dissolves';
+    const finishAcid = alc ? '' : ' Stir in the ' + b(A.vinegar) + '.';
 
     // [title, time label, text, timer ids]
     const steps = [
       ['Soak the shiitake (optional)', '25 min',
-        'Skip this step if you are not using shiitake. Put the ' + b('dried shiitake') + ' in a bowl with ' + soak + ' ml warm water or stock. Soak until soft. Squeeze them gently over the bowl, cut off the stems, and keep the soaking liquid.',
+        'Skip this step if you are not using shiitake. Put ' + b(A.shiitake) + ' in a bowl with ' + soak + ' ml warm water or stock. Soak until soft. Squeeze them gently over the bowl, cut off the stems, and keep the soaking liquid.',
         ['soak']],
       ['Score and season the duck', '15 min',
-        'Pat the ' + b('duck breasts') + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Season both sides with salt and white pepper. Leave at room temperature for 15 minutes.',
+        'Pat ' + b(A.duck) + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Season both sides with salt and white pepper. Leave at room temperature for 15 minutes.',
         ['rest']],
       ['Boil the eggs', '6¾ min',
-        'Lower the ' + b('eggs') + ' into boiling water and start the timer. When it goes off, move them straight into iced water. Peel and halve when cool. You can do this hours ahead.',
+        'Lower ' + b(A.egg) + ' into boiling water and start the timer. When it goes off, move them straight into iced water. Peel and halve when cool. You can do this hours ahead.',
         ['egg']],
       ['Render the duck', '8 + 3½ min',
         'Use ' + pans + '. Put the duck skin-side down in a cold stainless pan, turn the heat to medium, and start the skin-side timer. Do not move it. When it goes off the skin should be golden; flip and start the second timer (medium, pink inside). Rest the duck on a board. Pour all the fat into a jug. For another batch, reset both timers.',
         ['skin', 'flip']],
       ['Build the broth', '15 min',
-        'Put about 2 tbsp of the duck fat in your biggest pot over medium heat. Fry the ' + b('ginger') + ' and ' + b('garlic') + ' for 1 minute. Add the ' + b('stock') + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using ' + b('gelatin') + ', sprinkle it over and stir until dissolved. Simmer gently for 15 minutes.' + finishAcid,
+        'Put about 2 tbsp of the duck fat in your biggest pot over medium heat. Fry ' + b(A.ginger) + ' and ' + b(A.garlic) + ' for 1 minute. Add ' + b(A.stock) + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using gelatin, sprinkle ' + b(A.gelatin) + ' it over and stir until dissolved. Simmer gently for 15 minutes.' + finishAcid,
         ['simmer']],
       ['Add the duck fat and taste', '',
-        'Add the rest of the duck fat a little at a time, tasting as you go. Stop if it pools oily on the surface; keep any leftover fat for roast potatoes. Too salty: add a splash of stock or water. Flat: add a little more tamari. Strain out the ginger and garlic. If using shiitake, lift them out and slice them. Stir in the ' + b('sesame oil') + ' and keep the broth at a simmer.',
+        'Add the rest of the duck fat a little at a time, tasting as you go. Stop if it pools oily on the surface; keep any leftover fat for roast potatoes. Too salty: add a splash of stock or water. Flat: add a little more tamari. Strain out the ginger and garlic. If using shiitake, lift them out and slice them. Stir in ' + b(A.sesame) + ' and keep the broth at a simmer.',
         []],
       ['Cook the noodles in the broth', '1 min',
-        'Slice each duck breast across the grain and have the bowls ready. Drop the ' + b('ramen noodles') + ' straight into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.',
+        'Slice each duck breast across the grain and have the bowls ready. Drop ' + b(A.noodles) + ' straight into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.',
         ['noodle']],
       ['Assemble', '',
-        'Lift the noodles into the bowls with tongs and ladle the broth over. Lay one whole sliced duck breast on each bowl. Add two egg halves, the sliced shiitake if using, and scatter the ' + b('spring onions') + ' on top.',
+        'Lift the noodles into the bowls with tongs and ladle the broth over. Lay one whole sliced duck breast on each bowl. Add two egg halves, the sliced shiitake if using, and scatter ' + b(A.spring) + ' on top.',
         []]
     ];
     const prev = Array.from(document.querySelectorAll('#steps input')).map(c => c.checked);
