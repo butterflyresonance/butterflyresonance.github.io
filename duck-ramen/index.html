@@ -84,7 +84,9 @@ section { display: flex; flex-direction: column; gap: 14px; }
 .timer.running .go { background: var(--accent); color: var(--on-accent); }
 .timer.ringing { border-color: var(--alarm); }
 .timer.ringing .go { background: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
-.timer.ringing .reset { border-left-color: var(--alarm); color: var(--alarm); }
+.timer.ringing { cursor: pointer; }
+.timer.ringing .go { padding-inline: 16px; }
+.timer.ringing .reset { display: none; }
 @keyframes pulse { 50% { opacity: 0.65; } }
 
 .tips { margin: 0; padding-left: 1.1rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
@@ -247,6 +249,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
       el.classList.toggle('running', t.running);
       el.classList.toggle('ringing', t.ringing);
       el.querySelector('.clock').textContent = t.ringing ? 'Done' : fmt(left(t));
+      el.querySelector('.what').textContent = t.ringing ? 'tap to stop' : t.what;
       el.querySelector('.go').setAttribute('aria-label',
         t.label + ': ' + (t.ringing ? 'done, tap to stop' : t.running ? 'running, tap to pause' : 'tap to start'));
     });
@@ -255,7 +258,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
     dock.hidden = active.length === 0;
     document.getElementById('dockInner').innerHTML = active.map(([k, t]) =>
       '<button type="button" class="chip' + (t.ringing ? ' ringing' : t.running ? '' : ' paused') + '" data-chip="' + k + '">' +
-      '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
+      '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done · tap to stop' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
   }
 
   document.getElementById('dockInner').addEventListener('click', e => {
@@ -389,7 +392,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
   document.getElementById('steps').addEventListener('click', e => {
     const tEl = e.target.closest('.timer');
     if (!tEl) return;
-    if (e.target.closest('.reset')) resetTimer(tEl.dataset.timer);
+    if (timers[tEl.dataset.timer].ringing || e.target.closest('.reset')) resetTimer(tEl.dataset.timer);
     else if (e.target.closest('.go')) toggleTimer(tEl.dataset.timer);
   });
   document.getElementById('steps').addEventListener('change', e => {
