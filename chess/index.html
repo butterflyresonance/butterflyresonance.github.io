@@ -626,33 +626,77 @@
   /* ---- phone: the status line belongs above the board, not under it.
          display:contents lifts the rail's children into the same flex flow so
          they can be ordered independently. ---- */
-  @media (max-width: 819px) {
-    .game-grid { display: flex; flex-direction: column; }
-    .rail { display: contents; }
-    .status    { order: -1; margin: 20px 0 12px; }
-    .boardcol  { order: 0; }
-    .hintpanel { order: 1; }
-    .coachblock, .reviewblock { order: 2; }
-    .ledger    { order: 3; }
-    .controls  { order: 4; }
-    .openblock { order: 5; }
-    .setrow    { order: 6; }
-    #peerHint, #gameNote { order: 7; }
-  }
+  /* ---- the game screen ----
+     The page itself never scrolls during a game: the screen is split into the
+     board (fixed) and the panel (scrolls on its own). Portrait stacks them;
+     landscape and wide screens put them side by side. */
+  body.ingame { height: 100dvh; overflow: hidden; padding-bottom: 0; }
+  body.ingame .wrap { height: 100dvh; display: flex; flex-direction: column; max-width: 560px; }
+  body.ingame .thread { margin-bottom: 6px; flex: none; }
+  body.ingame header, body.ingame .lobby { display: none; }
+  body.ingame .game { flex: 1; min-height: 0; }
+  .game-grid { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 
-  /* ---- desktop: board beside the rail ---- */
-  @media (min-width: 820px) {
-    .wrap { max-width: 900px; }
+  .topbar { display: flex; align-items: center; gap: 10px; min-height: 40px; flex: none; }
+  .backbtn {
+    flex: none; width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1;
+    border: 1px solid var(--edge); background: none; color: var(--muted);
+  }
+  .backbtn:hover { color: var(--brass); border-color: var(--brass-dim); }
+  .topbar .status { flex: 1; min-width: 0; margin: 0; font-size: 19px; line-height: 1.2; min-height: 0; }
+  .topstate { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  body[data-link="live"] .topstate { color: var(--brass); }
+
+  /* The board is as wide as the screen allows, but never so tall that the
+     panel underneath shrinks to nothing on a short phone. */
+  .boardcol { --barw: 0px; flex: none; width: min(100%, calc(100dvh - 330px + var(--barw))); margin: 0 auto; }
+  .boardcol.withbar { --barw: 26px; }
+  .taken { height: 20px; margin: 2px 0; }
+  .taken svg { width: 16px; height: 16px; }
+
+  .side { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .side .hintpanel { margin-top: 6px; flex: none; }
+  .side .controls { margin-top: 8px; flex: none; }
+  .side .controls button { padding-top: 8px; padding-bottom: 8px; }
+  .gnote { margin: 6px 0 0; flex: none; }
+  .gnote:empty { display: none; }
+  /* the invite card shrinks and scrolls rather than pushing the tabs off a short screen */
+  .invite-slot { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+  .invite-slot .invite { margin-top: 10px; }
+  .invite-slot .invite .code { font-size: 26px; margin: 4px 0 10px; }
+  .invite-slot .invite .note { margin-top: 8px; }
+
+  .tabs { display: flex; flex: none; margin-top: 10px; border-bottom: 1px solid var(--edge); }
+  .tabs button {
+    flex: 1; border: 0; border-bottom: 2px solid transparent; background: none;
+    padding: 9px 2px 7px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  .tabs button[aria-selected="true"] { color: var(--brass); border-bottom-color: var(--brass); }
+  .panes { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 0 24px; }
+  .pane { display: none; }
+  .pane.on { display: block; }
+  .pane > :first-child, .pane > :first-child > .setrow:first-child { margin-top: 10px; }
+  .pane .ledger { margin-top: 10px; }
+  .pane .moves { max-height: none; overflow: visible; }
+  .pane .setrow:first-child { margin-top: 12px; }
+  .diag-slot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--edge); }
+  .diag-slot .verstamp { margin: 0; }
+
+  /* landscape phones, tablets and desktops: board left, everything else right */
+  @media (orientation: landscape) and (min-width: 560px), (min-width: 820px) and (min-height: 700px) {
+    body.ingame .wrap { max-width: 1100px; }
     .game-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 300px;
-      gap: 40px;
-      align-items: start;
+      grid-template-columns: auto minmax(260px, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      column-gap: 22px;
     }
-    .status { margin-top: 0; font-size: 26px; }
-    .rail { padding-top: 4px; }
-    .ledger { margin-top: 26px; }
-    .moves { max-height: 300px; }
+    .boardcol {
+      grid-column: 1; grid-row: 1 / 3; align-self: start; margin: 0;
+      width: min(calc(100dvh - 58px + var(--barw)), calc(100vw - 340px), 680px);
+    }
+    .topbar { grid-column: 2; grid-row: 1; }
+    .side { grid-column: 2; grid-row: 2; }
   }
 
   /* ---- promotion ---- */
@@ -1043,8 +1087,6 @@
     <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
-  <button class="linkish backbtn hidden" id="backBtn">← Back to the start screen</button>
-
   <!-- INVITE -->
   <section class="invite hidden" id="invite">
     <div class="label">Table</div>
@@ -1056,9 +1098,16 @@
     <p class="note">Send this once. After that the link is the table — either of you can reopen it any time.</p>
   </section>
 
-  <!-- GAME -->
+  <!-- GAME
+       The board stays put; everything else lives in the tabbed panel under it
+       (beside it in landscape), which scrolls on its own. -->
   <section class="game hidden" id="game">
     <div class="game-grid">
+      <div class="topbar">
+        <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen">←</button>
+        <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
+        <span class="topstate" id="topState"></span>
+      </div>
       <div class="boardcol" id="boardcol">
         <div class="taken" id="takenTop"></div>
         <div class="boardrow">
@@ -1071,52 +1120,7 @@
         </div>
         <div class="taken" id="takenBottom"></div>
       </div>
-      <div class="rail">
-        <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
-        <div class="ledger">
-          <h2>Moves</h2>
-          <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
-        </div>
-        <div class="controls">
-          <button id="takebackBtn">Takeback</button>
-          <button id="resignBtn">Resign</button>
-          <button id="rematchBtn">Rematch</button>
-        </div>
-        <section class="reviewblock" id="reviewBlock">
-          <div class="setrow">
-            <span>Review</span>
-            <button id="reviewBtn">On</button>
-            <span class="state" id="reviewState"></span>
-          </div>
-          <div class="setrow revopts" id="revOpts">
-            <span>Eval bar</span>
-            <button id="revBarBtn">On</button>
-            <span>Their badges</span>
-            <button id="revTheirsBtn">On</button>
-          </div>
-          <div id="reviewBody"></div>
-        </section>
-        <section class="openblock hidden" id="openBlock">
-          <div class="setrow">
-            <span>Openings</span>
-            <select class="opp" id="openPick" aria-label="Opening to practise"></select>
-            <label class="oforce"><input type="checkbox" id="openForce"> Opponent plays along</label>
-          </div>
-          <div id="openBody"></div>
-        </section>
-        <!-- The old tactics coach. Its code is still below and still tested;
-             it is just no longer shown. Remove `hidden` to bring it back. -->
-        <section class="coachblock hidden" id="coachBlock">
-          <div class="setrow coachrow">
-            <span>Coach</span>
-            <button id="coachBtn">Off</button>
-            <span class="state" id="coachState"></span>
-          </div>
-          <details class="coach hidden" id="coachPanel">
-            <summary><span id="coachSummary">Reading the position…</span></summary>
-            <div class="coach-body" id="coachBody"></div>
-          </details>
-        </section>
+      <div class="side">
         <div class="hintpanel hidden" id="hintPanel">
           <div class="evalbar"><span id="evalFill"></span></div>
           <div class="hintline">
@@ -1124,43 +1128,105 @@
             <span id="hintMeta"></span>
           </div>
         </div>
-        <div class="setrow">
-          <span>Hints</span>
-          <button id="hintBtn">Off</button>
-          <span id="autoLabel">Engine plays</span>
-          <button id="autoBtn">Off</button>
+        <div class="controls">
+          <button id="takebackBtn">Takeback</button>
+          <button id="resignBtn">Resign</button>
+          <button id="rematchBtn">Rematch</button>
         </div>
-        <div class="setrow hidden" id="oppRow">
-          <span>Opponent</span>
-          <select class="opp" id="oppGame" aria-label="Opponent"></select>
+        <p class="note gnote hidden" id="peerHint">They have hints switched on.</p>
+        <p class="note gnote" id="gameNote"></p>
+        <div class="invite-slot" id="inviteSlot"></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="open">Openings</button>
+          <button role="tab" data-tab="review">Review</button>
+          <button role="tab" data-tab="moves">Moves</button>
+          <button role="tab" data-tab="set">Settings</button>
         </div>
-        <div class="setrow hidden" id="onlyRow">
-          <span>Moves only</span>
-          <select class="opp" id="oppOnly" aria-label="The computer may move only">
-            <option value="k">the king</option>
-            <option value="q">the queen</option>
-            <option value="r">rooks</option>
-            <option value="b">bishops</option>
-            <option value="n">knights</option>
-            <option value="p">pawns</option>
-          </select>
+        <div class="panes" id="panes">
+          <div class="pane" data-pane="open">
+            <section class="openblock hidden" id="openBlock">
+              <div class="setrow">
+                <span>Openings</span>
+                <select class="opp" id="openPick" aria-label="Opening to practise"></select>
+                <label class="oforce"><input type="checkbox" id="openForce"> Opponent plays along</label>
+              </div>
+              <div id="openBody"></div>
+            </section>
+          </div>
+          <div class="pane" data-pane="review">
+            <section class="reviewblock" id="reviewBlock">
+              <div class="setrow">
+                <span>Review</span>
+                <button id="reviewBtn">On</button>
+                <span class="state" id="reviewState"></span>
+              </div>
+              <div class="setrow revopts" id="revOpts">
+                <span>Eval bar</span>
+                <button id="revBarBtn">On</button>
+                <span>Their badges</span>
+                <button id="revTheirsBtn">On</button>
+              </div>
+              <div id="reviewBody"></div>
+            </section>
+            <!-- The old tactics coach. Its code is still below and still tested;
+                 it is just no longer shown. Remove `hidden` to bring it back. -->
+            <section class="coachblock hidden" id="coachBlock">
+              <div class="setrow coachrow">
+                <span>Coach</span>
+                <button id="coachBtn">Off</button>
+                <span class="state" id="coachState"></span>
+              </div>
+              <details class="coach hidden" id="coachPanel">
+                <summary><span id="coachSummary">Reading the position…</span></summary>
+                <div class="coach-body" id="coachBody"></div>
+              </details>
+            </section>
+          </div>
+          <div class="pane" data-pane="moves">
+            <div class="ledger">
+              <h2>Moves</h2>
+              <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+            </div>
+          </div>
+          <div class="pane" data-pane="set">
+            <div class="setrow">
+              <span>Hints</span>
+              <button id="hintBtn">Off</button>
+              <span id="autoLabel">Engine plays</span>
+              <button id="autoBtn">Off</button>
+            </div>
+            <div class="setrow hidden" id="oppRow">
+              <span>Opponent</span>
+              <select class="opp" id="oppGame" aria-label="Opponent"></select>
+            </div>
+            <div class="setrow hidden" id="onlyRow">
+              <span>Moves only</span>
+              <select class="opp" id="oppOnly" aria-label="The computer may move only">
+                <option value="k">the king</option>
+                <option value="q">the queen</option>
+                <option value="r">rooks</option>
+                <option value="b">bishops</option>
+                <option value="n">knights</option>
+                <option value="p">pawns</option>
+              </select>
+            </div>
+            <p class="coach-note hidden" id="onlyNote">Played by your Table engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
+            <div class="setrow thinkrow hidden" id="thinkRow">
+              <span>Think</span>
+              <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
+                     aria-label="Engine thinking time">
+              <span class="thinkval" id="thinkVal">1.5s</span>
+            </div>
+            <div class="setrow">
+              <span>Pieces</span>
+              <button id="setBtn">Staunton</button>
+              <span>Sound</span>
+              <button id="soundBtn">On</button>
+              <button id="pgnBtn">Games</button>
+            </div>
+            <div class="diag-slot" id="diagSlot"></div>
+          </div>
         </div>
-        <p class="coach-note hidden" id="onlyNote">Played by your Table engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
-        <div class="setrow thinkrow hidden" id="thinkRow">
-          <span>Think</span>
-          <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
-                 aria-label="Engine thinking time">
-          <span class="thinkval" id="thinkVal">1.5s</span>
-        </div>
-        <div class="setrow">
-          <span>Pieces</span>
-          <button id="setBtn">Staunton</button>
-          <span>Sound</span>
-          <button id="soundBtn">On</button>
-          <button id="pgnBtn">Games</button>
-        </div>
-        <p class="note hidden" id="peerHint">They have hints switched on.</p>
-        <p class="note" id="gameNote"></p>
       </div>
     </div>
   </section>
@@ -2780,7 +2846,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-14.6-title';
+const VERSION = '2026-10-15.1-layout';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -5559,8 +5625,8 @@ function drawLedger() {
   }
   html += '</div>';
   body.innerHTML = html;
-  const grid = body.firstChild;
-  grid.scrollTop = grid.scrollHeight;
+  // the newest move in view, when the move list is the tab being looked at
+  if (activeTab === 'moves') el('panes').scrollTop = el('panes').scrollHeight;
 }
 
 /* board coordinates in the arrow overlay's 0-100 space, orientation aware */
@@ -6503,7 +6569,7 @@ let bookState = 'idle';       // 'loading' | 'ready' | 'failed'
 let openPick = store.get('table:openPick') || '';
 let openForce = store.get('table:openForce') === true;
 const openOpen = new Set();   // family rows the user has opened
-const openSecShut = new Set(store.get('table:openShut') || []);
+const openSecShut = new Set(store.get('table:openShut') ?? ['out']);   // "No longer possible" starts closed
 let forcedTimer = null;
 let forcedFen = null;
 
@@ -7076,12 +7142,13 @@ function drawOpenings() {
   const show = !!code;
   blk.classList.toggle('hidden', !show);
   if (!show) return;
-  el('openForce').closest('label').classList.toggle('hidden', !solo);
   ensureBook();
   fillOpenSelect();
   el('openPick').value = FAM[openPick] ? openPick : '';
   el('openForce').checked = openForce && !!FAM[openPick];
   el('openForce').disabled = !FAM[openPick] || onlyActive();
+  // only worth showing once an opening is chosen, and only the computer can play along
+  el('openForce').closest('label').classList.toggle('hidden', !solo || !FAM[openPick] || onlyActive());
 
   const body = el('openBody');
   const hist = game.history({ verbose: true });
@@ -7455,14 +7522,14 @@ el('coachBody').addEventListener('toggle', e => {
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
-    el('linkState').textContent = onePiece ? 'one-piece' : 'practice';
+    el('topState').textContent = el('linkState').textContent = onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
     return;
   }
   const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
   document.body.dataset.link = state;
-  el('linkState').textContent =
+  el('topState').textContent = el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
   const tell = peerAuto
@@ -7786,10 +7853,30 @@ el('setBtn').onclick = () => {
 };
 
 /* ---------- boot ---------- */
+/* ---------- the tabbed panel ---------- */
+const TABS = ['open', 'review', 'moves', 'set'];
+let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
+function showTab(t) {
+  activeTab = TABS.includes(t) ? t : 'open';
+  store.set('table:tab', activeTab);
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === activeTab));
+  for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.dataset.pane === activeTab);
+  el('panes').scrollTop = activeTab === 'moves' ? el('panes').scrollHeight : 0;
+}
+document.querySelector('.tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]');
+  if (b) showTab(b.dataset.tab);
+});
+
 function begin() {
   el('lobby').classList.add('hidden');
   el('game').classList.remove('hidden');
-  el('backBtn').classList.remove('hidden');
+  document.body.classList.add('ingame');
+  // the invite card, the version stamp and diagnostics move into the game layout
+  el('inviteSlot').appendChild(el('invite'));
+  el('diagSlot').appendChild(el('verBtn'));
+  el('diagSlot').appendChild(el('debugPanel'));
+  showTab(activeTab);
   restore();
   if (!solo) {
     connect();
