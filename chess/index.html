@@ -1133,7 +1133,7 @@
       </select>
     </div>
     <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
-    <p class="note">A party trick, played by your Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
+    <p class="note">A party trick, played by the Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
     <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
@@ -1260,7 +1260,7 @@
                 <option value="p">pawns</option>
               </select>
             </div>
-            <p class="coach-note hidden" id="onlyNote">Played by your Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
+            <p class="coach-note hidden" id="onlyNote">Played by the Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
             <div class="setrow thinkrow hidden" id="thinkRow">
               <span>Think</span>
               <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.10-bar';
+const VERSION = '2026-10-15.11-wording';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4203,7 +4203,7 @@ function oppNoteText() {
 
 function fillOppSelects() {
   const html =
-    '<optgroup label="Your engine"><option value="table">Étude engine</option></optgroup>' +
+    '<optgroup label="Étude"><option value="table">Étude engine</option></optgroup>' +
     '<optgroup label="Stockfish, rated">' +
       SF_TIERS.map(e => `<option value="sf${e}">Stockfish ${e}</option>`).join('') +
     '</optgroup>' +
