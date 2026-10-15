@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.8-linehold';
+const VERSION = '2026-10-15.9-close';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -5669,7 +5669,11 @@ function drawStatus() {
   if (ls) {
     const moved = game.history().length > lineView.at ? ' · they’ve moved'
       : oppHold && oppHold.fen === game.fen() ? ' · their move is waiting' : '';
-    s.textContent = `Stockfish line · ${ls.idx ? `${ls.idx} of ${ls.n}` : 'start'}${moved}`;
+    const mv = moveLabel(lineView.ply, game.history()[lineView.ply]);
+    s.textContent = ls.idx ? `Stockfish line · ${ls.idx} of ${ls.n}${moved}`
+      : lineView.which === 'best'
+        ? `Before ${mv} · ${ls.r.best !== ls.r.uci ? `${ls.r.color === myColor ? 'yours' : 'theirs'} dashed, best solid` : 'the line starts here'}${moved}`
+        : `After ${mv} · the line starts here${moved}`;
     s.classList.add('urgent');
     el('gameNote').textContent = '';
     return;
@@ -6486,6 +6490,7 @@ function lineState() {
     const mv = chess.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
     last = { from: mv.from, to: mv.to };
   }
+  if (!last && lineView.which === 'reply') { const m = game.history({ verbose: true })[lineView.ply]; last = { from: m.from, to: m.to }; }
   return { r, L, n, idx: lineView.idx, chess, fen: chess.fen(), last };
 }
 
@@ -6618,6 +6623,10 @@ function explainHTML(r) {
   if (r.best && r.best !== r.uci && r.cls !== 'book' && r.cls !== 'forced') {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
     let why = '';
+    if (r.loss < 5) {
+      const n = Math.round(r.loss);
+      parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}, but ${who} move was ${n < 1 ? 'less than 1%' : `only ${n}%`} worse. Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+    } else {
     if (!eff) {
       const d = lineGain(r.before, r.bestPv, r.color);
       why = d <= -1 ? ` Its line gives up ${materialWords(-d)}, and Stockfish still rates it best: the return is in the position, not material.`
@@ -6625,6 +6634,7 @@ function explainHTML(r) {
         : ' No material changes hands in its line, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.';
     }
     parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}.${why} Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+    }
   }
 
   // the best move gets its reason too: the line Stockfish expects after it
@@ -6634,6 +6644,11 @@ function explainHTML(r) {
       ? ' It gives up material, and Stockfish still rates it best: the return is in the position.'
       : ' No material changes hands in its line, so its value is positional.';
     parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}.${why} The line it expects: ${lineHTML(r, 'best')}</p>`);
+  }
+
+  if (r.loss < 5 && r.best && r.best !== r.uci && r.replyPv && r.replyPv.length &&
+      r.cls !== 'book' && r.cls !== 'forced') {
+    parts.push(`<p>After ${who} move, Stockfish expects: ${lineHTML(r, 'reply')}</p>`);
   }
 
   if (r.loss >= 5 && r.replyPv && r.replyPv.length) {
@@ -6696,10 +6711,12 @@ function boardBadges() {
 
 function drawReviewArrows() {
   const svg = el('coachSvg');
-  if (lineState()) { svg.innerHTML = ''; return; }
-  if (viewPly == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
+  const ls = lineState();
+  if (ls && !(ls.idx === 0 && lineView.which === 'best')) { svg.innerHTML = ''; return; }
+  const at = ls ? lineView.ply : viewPly;
+  if (at == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
   const hist = game.history({ verbose: true });
-  const m = hist[viewPly];
+  const m = hist[at];
   const r = m && reviews.get(moveId(m));
   if (!m) { svg.innerHTML = ''; return; }
   const arrow = (from, to, colour, dashed) => {
@@ -6780,7 +6797,7 @@ function drawReview() {
     const r = reviews.get(moveId(hist[revPick]));
     if (r) {
       html += `<div class="revexp">${explainHTML(r)}
-        <button class="revshow" id="revShow">${viewPly === revPick ? 'Back to the game' : 'Show on the board'}</button></div>`;
+</div>`;
     } else {
       html += '<div class="revexp"><p>This move hasn’t been judged. Only moves made with the review on get a verdict.</p></div>';
     }
@@ -6812,7 +6829,7 @@ el('reviewBody').addEventListener('click', e => {
   if (row) { openReview(Number(row.dataset.ply)); return; }
   const ln = e.target.closest('[data-line]');
   if (ln && revPick != null) {
-    lineView = { ply: revPick, which: ln.dataset.line, idx: 1, at: game.history().length,
+    lineView = { ply: revPick, which: ln.dataset.line, idx: 0, at: game.history().length,
       id: moveId(game.history({ verbose: true })[revPick]) };
     viewPly = null;
     selected = null;
