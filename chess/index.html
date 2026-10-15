@@ -719,8 +719,14 @@
   .panes { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 0 24px; }
   .pane { display: none; }
   body:not(.puzzlemode) .tabs [data-tab="puzzle"] { display: none; }
-  body.puzzlemode .tabs [data-tab="open"], body.puzzlemode .tabs [data-tab="review"],
-  body.puzzlemode .controls, body.puzzlemode #hintRow, body.puzzlemode #hintPanel { display: none; }
+  /* Puzzles need the board, the puzzle controls and the look-and-sound settings:
+     no tabs, no move list, no engine choices, no game buttons. */
+  body.puzzlemode .tabs, body.puzzlemode .controls, body.puzzlemode #hintPanel,
+  body.puzzlemode .pane[data-pane="open"], body.puzzlemode .pane[data-pane="review"], body.puzzlemode .pane[data-pane="moves"],
+  body.puzzlemode #hintRow, body.puzzlemode #oppRow, body.puzzlemode #onlyRow, body.puzzlemode #onlyNote,
+  body.puzzlemode #thinkRow, body.puzzlemode #pgnBtn { display: none !important; }
+  body.puzzlemode .pane[data-pane="puzzle"], body.puzzlemode .pane[data-pane="set"] { display: block; }
+  body.puzzlemode .pane[data-pane="set"] { border-top: 1px solid var(--edge); margin-top: 14px; padding-top: 4px; }
   .pzbtns { display: flex; gap: 8px; margin: 10px 0 4px; }
   .pzbtns button { flex: 1; padding: 10px 6px; }
   .pzbtns button.primary { width: auto; }
@@ -2944,7 +2950,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.13-puzzles';
+const VERSION = '2026-10-15.14-puzzlelean';
 const LOG_MAX = 120;
 const logBuf = [];
 
