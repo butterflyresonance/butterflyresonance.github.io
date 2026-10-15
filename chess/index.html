@@ -718,6 +718,8 @@
   .tabs button[aria-selected="true"] { color: var(--brass); border-bottom-color: var(--brass); }
   .panes { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 0 24px; }
   .pane { display: none; }
+  /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
+  body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body:not(.puzzlemode) .tabs [data-tab="puzzle"] { display: none; }
   /* Puzzles need the board, the puzzle controls and the look-and-sound settings:
      no tabs, no move list, no engine choices, no game buttons. */
@@ -2952,7 +2954,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.1-pzteach';
+const VERSION = '2026-10-16.3-pzline';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -5723,7 +5725,7 @@ function drawStatus() {
 
   if (code === 'puzzle') {
     const lsp = lineState();
-    const [t, hi] = lsp ? [`Stockfish line · ${lsp.idx ? `${lsp.idx} of ${lsp.n}` : 'start'}`, true] : pzStatus();
+    const [t, hi] = lsp ? [`Stockfish line ${lsp.idx ? `${lsp.idx}/${lsp.n}` : 'start'}`, true] : pzStatus();
     s.textContent = t;
     s.classList.toggle('urgent', hi);
     el('gameNote').textContent = '';
@@ -8441,9 +8443,10 @@ async function pzNext() {
   pzLoad(pz.queue.shift());
 }
 
-/* Set up a puzzle: the game up to the opponent's last move, then that move, played in front of you. */
+/* Set up a puzzle: the game up to and including the opponent's last move, which
+   is marked on the board (from and to squares) rather than played out in front of you. */
 function pzLoad(p) {
-  const gen = ++pz.gen;
+  ++pz.gen;
   pz.cur = p;
   pz.step = 0;
   pz.failed = false;
@@ -8457,26 +8460,16 @@ function pzLoad(p) {
   pzSave();
   const sans = p.game.pgn.trim().split(/\s+/).slice(0, p.puzzle.initialPly + 1);
   const g = new Chess();
-  for (const san of sans.slice(0, -1)) { try { g.move(san); } catch { break; } }
+  for (const san of sans) { try { g.move(san); } catch { break; } }
   game = g;
   result = null;
   selected = null;
   const hist = g.history({ verbose: true });
   lastMove = hist.length ? { from: hist.at(-1).from, to: hist.at(-1).to } : null;
-  // you play the side to move once their last move is on the board
-  myColor = g.turn() === 'w' ? 'b' : 'w';
-  pz.startFen = null;
-  try { const s2 = new Chess(g.fen()); s2.move(sans.at(-1)); pz.startFen = s2.fen(); } catch {}
-  pz.phase = 'intro';
+  myColor = g.turn();                      // you play the side to move
+  pz.startFen = g.fen();
+  pz.phase = 'solve';
   draw();
-  setTimeout(() => {
-    if (gen !== pz.gen) return;
-    let m = null;
-    try { m = game.move(sans.at(-1)); } catch {}
-    if (m) { lastMove = { from: m.from, to: m.to }; blip(); }
-    pz.phase = 'solve';
-    draw();
-  }, 650);
 }
 
 /* Your move, from a tap or the promotion picker. */
@@ -8699,12 +8692,11 @@ function pzStatus() {
   switch (pz.phase) {
     case 'loading': return ['Fetching puzzles…', false];
     case 'error': return ['No puzzle', true];
-    case 'intro': return ['Watch their move.', false];
-    case 'solve': return [pz.step ? 'Good. Keep going.' : `Find the best move for ${side}.`, false];
+    case 'solve': return [pz.step ? 'Good. Keep going.' : `${side} to move.`, false];
     case 'reply': return ['Good.', false];
     case 'wrong': return ['Not that one.', true];
     case 'showing': return ['The solution', false];
-    case 'done': return [!pz.failed && !pz.helped ? 'Solved.' : pz.failed ? 'Done, with a wrong try.' : 'Done, with help.', !pz.failed && !pz.helped];
+    case 'done': return [!pz.failed && !pz.helped ? 'Solved.' : pz.failed ? 'Not solved.' : 'Solved with help.', !pz.failed && !pz.helped];
     default: return ['Puzzles', false];
   }
 }
