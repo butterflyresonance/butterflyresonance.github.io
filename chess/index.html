@@ -720,7 +720,11 @@
   .pane { display: none; }
   /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
   body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body:not(.puzzlemode) .tabs [data-tab="puzzle"] { display: none; }
+  body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
+  .pzdelta { font-weight: 600; }
+  .pzstakes { margin: 4px 0 8px !important; }
+  .pzdelta.up { color: var(--g-best, #81b64c); }
+  .pzdelta.down { color: var(--danger); }
   /* Puzzles need the board, the puzzle controls and the look-and-sound settings:
      no tabs, no move list, no engine choices, no game buttons. */
   body.puzzlemode .tabs, body.puzzlemode .controls, body.puzzlemode #hintPanel,
@@ -1262,7 +1266,7 @@
                 <button id="pzNextBtn">Skip</button>
               </div>
               <div class="pzbody" id="pzBody"></div>
-              <p class="pzcredit">Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Difficulty is pitched at a 1500-rated player, from easiest to hardest.</p>
+              <p class="pzcredit">Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Your rating starts at 1500 (marked ? until 10 puzzles) and is kept on this device. Easiest to Hardest are fixed bands, about 700–1000 up to 1900–2200.</p>
             </section>
           </div>
           <div class="pane" data-pane="open">
@@ -1342,6 +1346,10 @@
             <div class="setrow">
               <span>Theme</span>
               <button id="themeBtn">Dark</button>
+            </div>
+            <div class="setrow" id="pzResetRow">
+              <span>Puzzle stats</span>
+              <button id="pzResetBtn">Reset</button>
             </div>
             <div class="setrow">
               <span>Pieces</span>
@@ -2972,7 +2980,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.6-light';
+const VERSION = '2026-10-16.8-pzk';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8376,7 +8384,38 @@ document.querySelector('.tabs').addEventListener('click', e => {
    Nothing else in the page runs here: no engine, no review, no hints, no
    saved game. Only this module's own state is kept, under table:pz. */
 const PZ_THEMES = [["Mixed", [["mix", "Healthy mix", "A bit of everything. You don't know what to expect, so be ready for anything! Just like in real games."]]], ["Tactics", [["fork", "Fork", "A move where a piece attacks two or more opposing pieces simultaneously."], ["pin", "Pin", "A tactic involving pins, where a piece is unable to move without revealing an attack on a higher value piece."], ["skewer", "Skewer", "A motif involving a high value piece being attacked, moving out the way, and allowing a lower value piece behind it to be captured or attacked, the inverse of a pin."], ["discoveredAttack", "Discovered attack", "Moving a piece (such as a knight), that previously blocked an attack by a long range piece (such as a rook), out of the way of that piece."], ["discoveredCheck", "Discovered check", "Move a piece to reveal a check from a hidden attacking piece, which often leads to a decisive advantage."], ["doubleCheck", "Double check", "Checking with two pieces at once, as a result of a discovered attack where both the moving piece and the unveiled piece attack the opponent's king."], ["hangingPiece", "Hanging piece", "A tactic involving an opponent piece being undefended or insufficiently defended and free to capture."], ["trappedPiece", "Trapped piece", "A piece is unable to escape capture as it has limited moves."], ["sacrifice", "Sacrifice", "A tactic involving giving up material in the short-term, to gain an advantage again after a forced sequence of moves."], ["deflection", "Deflection", "A move that distracts an opposing piece from another duty that it performs, such as guarding a key square. Sometimes also called \"overloading\"."], ["attraction", "Attraction", "An exchange or sacrifice encouraging or forcing an opponent piece to a square that allows a follow-up tactic."], ["clearance", "Clearance", "A move, often with tempo, that clears a square, file or diagonal for a follow-up tactical idea."], ["interference", "Interference", "Moving a piece between two opponent pieces to leave one or both opponent pieces undefended, such as a knight on a defended square between two rooks."], ["intermezzo", "Intermezzo", "Instead of playing the expected move, first interpose another move posing an immediate threat that the opponent must answer. Also known as \"Zwischenzug\" or \"In between\"."], ["capturingDefender", "Capture the defender", "Removing a piece that is critical to defence of another piece, allowing the now undefended piece to be captured on a following move."], ["xRayAttack", "X-Ray attack", "A piece attacks or defends a square, through an enemy piece."], ["quietMove", "Quiet move", "A move that does not check, capture, or create an immediate threat to capture. Instead, it prepares a hidden and unavoidable threat for a later move."], ["defensiveMove", "Defensive move", "A precise move or sequence of moves that is needed to avoid losing material or another advantage."], ["zugzwang", "Zugzwang", "The opponent is limited in the moves they can make, and all moves worsen their position."], ["exposedKing", "Exposed king", "A tactic involving a king with few defenders around it, often leading to checkmate."], ["kingsideAttack", "Kingside attack", "An attack of the opponent's king, after they castled on the king side."], ["queensideAttack", "Queenside attack", "An attack of the opponent's king, after they castled on the queen side."], ["attackingF2F7", "Attacking f2 or f7", "An attack focusing on the f2 or f7 pawn, such as in the fried liver opening."], ["advancedPawn", "Advanced pawn", "One of your pawns is deep into the opponent position, maybe threatening to promote."], ["promotion", "Promotion", ""], ["underPromotion", "Underpromotion", "Promotion to a knight, bishop, or rook."], ["enPassant", "En passant", "A tactic involving the en passant rule, where a pawn can capture an opposing pawn that has just moved next to it with its initial two-square move."], ["castling", "Castling", "Bring the king to safety, and deploy the rook for attack."]]], ["Checkmates", [["mate", "Checkmate", "Win the game with style."], ["mateIn1", "Mate in 1", "Deliver checkmate in one move."], ["mateIn2", "Mate in 2", "Deliver checkmate in two moves."], ["mateIn3", "Mate in 3", "Deliver checkmate in three moves."], ["mateIn4", "Mate in 4", "Deliver checkmate in four moves."], ["mateIn5", "Mate in 5 or more", "Figure out a long mating sequence."], ["backRankMate", "Back rank mate", "Checkmate the king on the home rank, when it is trapped there by its own pieces."], ["smotheredMate", "Smothered mate", "A checkmate delivered by a knight in which the mated king is unable to move because it is surrounded (or smothered) by its own pieces."], ["anastasiaMate", "Anastasia's mate", "A knight and rook or queen team up to trap the opposing king between the side of the board and a friendly piece."], ["arabianMate", "Arabian mate", "A knight and a rook team up to trap the opposing king on a corner of the board."], ["bodenMate", "Boden's mate", "Two attacking bishops on criss-crossing diagonals deliver mate to a king obstructed by friendly pieces."], ["doubleBishopMate", "Double bishop mate", "Two attacking bishops on adjacent diagonals deliver mate to a king obstructed by friendly pieces."], ["dovetailMate", "Dovetail mate", "A queen delivers mate to an adjacent king, whose only two escape squares are obstructed by friendly pieces."], ["hookMate", "Hook mate", "Checkmate using a rook, knight, and pawn, where an opposing pawn blocks the king's escape."], ["epauletteMate", "Epaulette mate", "Two adjacent escape squares for a checked king are occupied by other pieces."], ["cornerMate", "Corner mate", ""], ["killBoxMate", "Kill box mate", "A rook is next to the enemy king and supported by a queen that also blocks the king's escape squares. The rook and the queen catch the enemy king in a 3 by 3 \"kill box\"."], ["morphysMate", "Morphy's mate", ""], ["operaMate", "Opera mate", "Check the king with a rook and use a bishop to defend the rook."], ["pillsburysMate", "Pillsbury's mate", ""], ["swallowstailMate", "Swallow's tail mate", "A checkmate pattern that visually resembles the appearance of a swallow’s tail, similar to a V shape."], ["triangleMate", "Triangle mate", "The queen and rook, one square away from the enemy king, are on the same rank or file, separated by one square, forming a triangle."], ["vukovicMate", "Vuković mate", "A rook and knight team up to mate the king. The rook delivers mate while supported by a third piece, and the knight is used to block the king's escape squares."], ["balestraMate", "Balestra mate", "A bishop delivers the checkmate, while a queen blocks the remaining escape squares"], ["blindSwineMate", "Blind Swine mate", "Two rooks team up to mate the king in an area of 2 by 2 squares."]]], ["Phase", [["opening", "Opening", "A tactic during the first phase of the game."], ["middlegame", "Middlegame", "A tactic during the second phase of the game."], ["endgame", "Endgame", "A tactic during the last phase of the game."], ["pawnEndgame", "Pawn endgame", "An endgame with only pawns."], ["rookEndgame", "Rook endgame", "An endgame with only rooks and pawns."], ["bishopEndgame", "Bishop endgame", "An endgame with only bishops and pawns."], ["knightEndgame", "Knight endgame", "An endgame with only knights and pawns."], ["queenEndgame", "Queen endgame", "An endgame with only queens and pawns."], ["queenRookEndgame", "Queen and Rook", "An endgame with only queens, rooks and pawns."]]], ["Length", [["oneMove", "One-move puzzle", "A puzzle that is only one move long."], ["short", "Short puzzle", "Two moves to win."], ["long", "Long puzzle", "Three moves to win."], ["veryLong", "Very long puzzle", "Four moves or more to win."]]], ["Goal", [["equality", "Equality", "Come back from a losing position, and secure a draw or a balanced position. (eval ≤ 200cp)"], ["advantage", "Advantage", "Seize your chance to get a decisive advantage. (200cp ≤ eval ≤ 600cp)"], ["crushing", "Crushing", "Spot the opponent blunder to obtain a crushing advantage. (eval ≥ 600cp)"]]]];
-const PZ_DIFFS = [['easiest', 'Easiest'], ['easier', 'Easier'], ['normal', 'Normal'], ['harder', 'Harder'], ['hardest', 'Hardest']];
+const PZ_DIFFS = [['auto', 'Matches your rating'], ['easiest', 'Easiest'], ['easier', 'Easier'], ['normal', 'Normal'], ['harder', 'Harder'], ['hardest', 'Hardest']];
+/* Lichess's anonymous difficulty bands: for the big themes it picks puzzles rated
+   1300-1600 shifted by -600/-300/0/+300/+600 (lila PuzzleAnon, PuzzleDifficulty).
+   Small themes get a wider spread. The middle of each band: */
+const PZ_BANDS = [['easiest', 850], ['easier', 1150], ['normal', 1450], ['harder', 1750], ['hardest', 2050]];
+/* Your puzzle rating: Elo against each puzzle's Lichess rating, which is a
+   decaying average: every result moves it a fixed share of the way, so older
+   results fade and roughly the last 20-30 puzzles decide it. It never settles:
+   K stays 32 for good. The first 10 puzzles use 60, to find your level quickly,
+   and so do the 10 after a break of a week or more, to find it again.
+   A hint, a wrong try, the solution or a skip all count as a miss, as on Lichess. */
+const PZ_START = 1500;
+const PZ_BREAK_MS = 7 * 24 * 3600 * 1000;
+const pzOnBreak = () => !!pz.stats.lastAt && Date.now() - pz.stats.lastAt > PZ_BREAK_MS;
+const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 : 32;
+const pzExpected = () => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || pz.stats.rating) - pz.stats.rating) / 400));
+/* what this puzzle is worth: [points for solving it, points for missing it] */
+const pzStakes = () => { const k = pzK(), e = pzExpected(); return [Math.round(k * (1 - e)), Math.round(k * e)]; };
+function pzRate(win) {
+  if (pzOnBreak()) pz.stats.boost = 10;
+  const [up, down] = pzStakes();
+  const d = win ? up : -down;
+  if (pz.stats.boost > 0 && pz.stats.rated >= 10) pz.stats.boost--;
+  pz.stats.rating = Math.max(400, pz.stats.rating + d);
+  pz.stats.rated++;
+  pz.stats.last = d;
+  pz.stats.lastAt = Date.now();
+}
+/* the Lichess band to ask for: the chosen one, or the one nearest your rating */
+const pzBand = () => pz.diff !== 'auto' ? pz.diff
+  : PZ_BANDS.reduce((a, b) => Math.abs(b[1] - pz.stats.rating) < Math.abs(a[1] - pz.stats.rating) ? b : a)[0];
+const pzRatingText = () => `${pz.stats.rating}${pz.stats.rated < 10 ? '?' : ''}`;
 const PZ_BATCH = 30;
 const PZ_SEEN_MAX = 4000;
 const pzThemeInfo = k => { for (const [, list] of PZ_THEMES) for (const t of list) if (t[0] === k) return t; return [k, k, '']; };
@@ -8388,7 +8427,9 @@ const pzName = k => PZ_EXTRA[k] || pzThemeInfo(k)[1];
 const pzSaved = store.get('table:pz') || {};
 const pz = {
   theme: pzSaved.theme || 'mix',
-  diff: PZ_DIFFS.some(d => d[0] === pzSaved.diff) ? pzSaved.diff : 'easier',
+  // adaptive by default, including for anyone whose save predates the rating
+  diff: pzSaved.stats && pzSaved.stats.rating != null && PZ_DIFFS.some(d => d[0] === pzSaved.diff) ? pzSaved.diff : 'auto',
+  qBand: pzSaved.qBand || null,
   queue: Array.isArray(pzSaved.queue) ? pzSaved.queue : [],
   cur: pzSaved.cur || null,
   stats: pzSaved.stats || { solved: 0, missed: 0, streak: 0, best: 0 },
@@ -8405,9 +8446,10 @@ const pz = {
   gen: 0              // bumps on every load, so stale timers do nothing
 };
 const pzSeen = new Set(store.get('table:pzSeen') || []);
+if (pz.stats.rating == null) { pz.stats.rating = PZ_START; pz.stats.rated = 0; pz.stats.last = null; }
 
 function pzSave() {
-  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, cur: pz.cur, stats: pz.stats });
+  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, qBand: pz.qBand, cur: pz.cur, stats: pz.stats });
 }
 function pzMarkSeen(id) {
   pzSeen.add(id);
@@ -8421,7 +8463,7 @@ const uciMove = u => ({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] 
 
 async function pzFetch() {
   if (navigator.onLine === false) throw new Error('offline');
-  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(pz.theme)}?nb=${PZ_BATCH}&difficulty=${pz.diff}`;
+  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(pz.theme)}?nb=${PZ_BATCH}&difficulty=${pzBand()}`;
   const r = await fetch(url, { headers: { Accept: 'application/json' } });
   if (r.status === 429) throw new Error('busy');
   if (!r.ok) throw new Error('http ' + r.status);
@@ -8431,6 +8473,8 @@ async function pzFetch() {
 
 async function pzNext() {
   const gen = ++pz.gen;
+  // your rating has moved into another band: what's queued is now the wrong level
+  if (pz.qBand !== pzBand()) pz.queue = [];
   pz.queue = pz.queue.filter(p => !pzSeen.has(p.puzzle.id));
   if (!pz.queue.length) {
     pz.phase = 'loading';
@@ -8441,6 +8485,7 @@ async function pzNext() {
       if (gen !== pz.gen) return;
       const fresh = got.filter(p => !pzSeen.has(p.puzzle.id));
       pz.queue = fresh.length ? fresh : got;          // all seen before: repeats beat nothing
+      pz.qBand = pzBand();
     } catch (err) {
       if (gen !== pz.gen) return;
       const m = String(err && err.message || err);
@@ -8458,7 +8503,13 @@ async function pzNext() {
       return;
     }
   }
-  pzLoad(pz.queue.shift());
+  // adaptive: the queued puzzle rated nearest to you
+  let i = 0;
+  if (pz.diff === 'auto') {
+    let gap = Infinity;
+    pz.queue.forEach((q, j) => { const g = Math.abs((q.puzzle.rating || 1500) - pz.stats.rating); if (g < gap) { gap = g; i = j; } });
+  }
+  pzLoad(pz.queue.splice(i, 1)[0]);
 }
 
 /* Set up a puzzle: the game up to and including the opponent's last move, which
@@ -8652,6 +8703,7 @@ function pzFinish() {
     pz.stats.missed++;
     pz.stats.streak = 0;
   }
+  pzRate(clean);
   pzMarkSeen(pz.cur.puzzle.id);
   pzSave();
   draw();
@@ -8734,7 +8786,9 @@ function drawPuzzle() {
   el('pzTheme').value = pz.theme;
   el('pzDiff').value = pz.diff;
   const info = pzThemeInfo(pz.theme);
-  el('pzAbout').textContent = info[2] || '';
+  const band = PZ_BANDS.find(b => b[0] === pzBand());
+  el('pzAbout').textContent = (info[2] ? info[2] + ' ' : '') +
+    (pz.diff === 'auto' ? `Difficulty follows your rating: puzzles around ${band[1] - 150}–${band[1] + 150}.` : '');
   const done = pz.phase === 'done';
   el('pzHintBtn').disabled = !(pzCanMove() || pz.phase === 'wrong') || pz.hints >= 3;
   el('pzHintBtn').textContent = pz.hints ? (pz.hints >= 3 ? 'Hints used' : 'Next hint') : 'Hint';
@@ -8745,6 +8799,10 @@ function drawPuzzle() {
 
   pzLines.length = 0;
   let html = '';
+  if (pz.cur && !done && pz.phase !== 'loading' && pz.phase !== 'error') {
+    const [up, down] = pzStakes();
+    html += `<p class="pzstakes">Solve <span class="pzdelta up">+${up}</span> · Miss <span class="pzdelta down">−${down}</span></p>`;
+  }
   if (pz.phase === 'error') html += `<p class="pzerr">${esc(pz.error)}</p>`;
   if (pz.cur && pz.hints >= 1 && !done) {
     const stage = ['', '', ' The piece to move is outlined.', ' The piece and its square are outlined.'][pz.hints];
@@ -8767,7 +8825,8 @@ function drawPuzzle() {
       `<a href="https://lichess.org/${encodeURIComponent(g.id)}/${myColor === 'w' ? 'white' : 'black'}#${p.initialPly + 1}" target="_blank" rel="noopener">See the game on Lichess</a>.</p>`;
   }
   const s = pz.stats;
-  html += `<p class="pzstats">Solved ${s.solved}, missed ${s.missed}. Streak ${s.streak}${s.best ? `, best ${s.best}` : ''}.</p>`;
+  const change = done && s.last != null ? ` <span class="pzdelta ${s.last >= 0 ? 'up' : 'down'}">${s.last >= 0 ? '+' : '−'}${Math.abs(s.last)}</span>` : '';
+  html += `<p class="pzstats">Your puzzle rating <b>${pzRatingText()}</b>${change}. Solved ${s.solved}, missed ${s.missed}. Streak ${s.streak}${s.best ? `, best ${s.best}` : ''}.</p>`;
   el('pzBody').innerHTML = html;
 }
 
@@ -8809,6 +8868,7 @@ el('pzNextBtn').onclick = () => {
   if (pz.cur && pz.phase !== 'done' && pz.phase !== 'error' && pz.phase !== 'loading') {
     pz.stats.missed++;
     pz.stats.streak = 0;
+    pzRate(false);
     pzMarkSeen(pz.cur.puzzle.id);
   }
   pz.cur = null;
@@ -8816,6 +8876,15 @@ el('pzNextBtn').onclick = () => {
   pzNext();
 };
 fillPzPickers();
+el('pzResetBtn').onclick = async () => {
+  const ok = await confirmModal('Reset puzzle stats?',
+    `Your puzzle rating goes back to ${PZ_START}, and solved, missed and streaks go back to zero. Puzzles you’ve already done still won’t come up again.`,
+    'Reset', { danger: true });
+  if (!ok) return;
+  pz.stats = { solved: 0, missed: 0, streak: 0, best: 0, rating: PZ_START, rated: 0, last: null, boost: 0, lastAt: 0 };
+  pzSave();
+  draw();
+};
 
 /* Entering puzzle mode: everything that would give the answer away is off. */
 function pzStart() {
