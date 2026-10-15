@@ -730,7 +730,8 @@
   body.puzzlemode .pane[data-pane="puzzle"], body.puzzlemode .pane[data-pane="set"] { display: block; }
   body.puzzlemode .pane[data-pane="set"] { border-top: 1px solid var(--edge); margin-top: 14px; padding-top: 4px; }
   .pzbtns { display: flex; gap: 8px; margin: 10px 0 4px; }
-  .pzbtns button { flex: 1; padding: 10px 6px; }
+  .pzbtns button { flex: 1; min-width: 0; padding: 10px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 350px) { .pzbtns button { letter-spacing: 0; font-size: 11.5px; } }
   .pzbtns button.primary { width: auto; }
   .pzbody { font-size: 12px; line-height: 1.65; color: var(--muted); padding-top: 6px; }
   .pzbody p { margin: 6px 0; }
@@ -2971,7 +2972,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.5-lobby';
+const VERSION = '2026-10-16.6-light';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8736,7 +8737,7 @@ function drawPuzzle() {
   el('pzAbout').textContent = info[2] || '';
   const done = pz.phase === 'done';
   el('pzHintBtn').disabled = !(pzCanMove() || pz.phase === 'wrong') || pz.hints >= 3;
-  el('pzHintBtn').textContent = pz.hints ? (pz.hints >= 3 ? 'No more hints' : 'More hint') : 'Hint';
+  el('pzHintBtn').textContent = pz.hints ? (pz.hints >= 3 ? 'Hints used' : 'Next hint') : 'Hint';
   el('pzSolBtn').disabled = !pz.cur || done || pz.phase === 'showing' || pz.phase === 'loading' || pz.phase === 'intro';
   el('pzNextBtn').textContent = done || pz.phase === 'error' ? 'Next puzzle' : 'Skip';
   el('pzNextBtn').classList.toggle('primary', done);
