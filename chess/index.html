@@ -4,8 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- the page is already dark: tells Android browsers not to repaint it in dark mode -->
-<meta name="color-scheme" content="dark">
-<title>Table — a private chess board</title>
+<meta name="color-scheme" content="dark" id="metaScheme">
+<script>
+  /* Light or dark, chosen in Settings; dark unless light was picked. Set
+     before the page paints so it never flashes the wrong one. "only light"
+     also tells Android browsers not to repaint the light theme dark. */
+  (function () {
+    var t = null;
+    try { t = JSON.parse(localStorage.getItem('table:theme')); } catch (e) {}
+    if (t === 'light') {
+      document.documentElement.dataset.theme = 'light';
+      document.getElementById('metaScheme').content = 'only light';
+    }
+  })();
+</script>
+<!-- installable as its own app: manifest.json and sw.js live in this folder, so
+     the app's scope is /chess/ and nothing else on the site is touched -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15181b" id="metaTheme">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Étude">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Étude — chess practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -24,6 +46,22 @@
     --danger: #c05a4a;
     --display: "Bodoni Moda", Georgia, serif;
     --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --scrim: rgba(10,12,14,.88);
+  }
+  /* Light: warm paper. The board squares keep their mid tones, which were
+     chosen so both piece colours read on either square, so the board looks
+     the same in both themes. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --ground: #f3efe7;
+    --panel: #e9e3d8;
+    --edge: #d3cbbd;
+    --brass: #8a672a;
+    --brass-dim: #b89a62;
+    --text: #22262a;
+    --muted: #666c73;
+    --danger: #ad4334;
+    --scrim: rgba(243,239,231,.9);
   }
 
   * { box-sizing: border-box; }
@@ -703,7 +741,7 @@
   .promo {
     position: fixed;
     inset: 0;
-    background: rgba(10,12,14,.88);
+    background: var(--scrim);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -739,7 +777,7 @@
     overflow: auto;
     font-family: var(--mono);
   }
-  dialog.modal::backdrop { background: rgba(10,12,14,.88); }
+  dialog.modal::backdrop { background: var(--scrim); }
   .modal h3 {
     font-family: var(--display);
     font-weight: 400;
@@ -1032,7 +1070,7 @@
   <div class="thread"></div>
 
   <header>
-    <h1>Table</h1>
+    <h1>Étude</h1>
     <div class="link-state" id="linkState">no game</div>
   </header>
   <button class="verstamp" id="verBtn" title="Build version — tap for diagnostics"></button>
@@ -1083,13 +1121,13 @@
       </select>
     </div>
     <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
-    <p class="note">A party trick, played by your Table engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
+    <p class="note">A party trick, played by your Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
     <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
   <!-- INVITE -->
   <section class="invite hidden" id="invite">
-    <div class="label">Table</div>
+    <div class="label">Your table</div>
     <div class="code" id="codeText">— — —</div>
     <div class="invite-actions">
       <button id="waBtn">Send on WhatsApp</button>
@@ -1210,12 +1248,16 @@
                 <option value="p">pawns</option>
               </select>
             </div>
-            <p class="coach-note hidden" id="onlyNote">Played by your Table engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
+            <p class="coach-note hidden" id="onlyNote">Played by your Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
             <div class="setrow thinkrow hidden" id="thinkRow">
               <span>Think</span>
               <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
                      aria-label="Engine thinking time">
               <span class="thinkval" id="thinkVal">1.5s</span>
+            </div>
+            <div class="setrow">
+              <span>Theme</span>
+              <button id="themeBtn">Dark</button>
             </div>
             <div class="setrow">
               <span>Pieces</span>
@@ -2846,7 +2888,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.1-layout';
+const VERSION = '2026-10-15.4-etude';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3577,7 +3619,7 @@ function pgnFor(rec) {
   const avg = known.length ? known.reduce((a, b) => a + b, 0) / known.length / 1000 : null;
 
   const tags = [
-    ['Event', rec.mode === 'engine' ? 'Table: practice against an engine' : 'Table: online game'],
+    ['Event', rec.mode === 'engine' ? 'Étude: practice against an engine' : 'Étude: online game'],
     ['Site', location.origin + location.pathname],
     ['Date', `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`],
     ['Round', '-'],
@@ -3808,7 +3850,7 @@ function setFavicon(active) {
 
 function setPresence() {
   const yours = !!code && !result && game.turn() === myColor;
-  document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Table';
+  document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Étude';
   setFavicon(yours);
 }
 
@@ -4044,7 +4086,47 @@ const SF_TIERS = [1320, 1450, 1600, 1750, 1900, 2050, 2200, 2400, 2600, 2800, 30
 const SF_TIER_MS = 1500;
 
 const sfElo = id => /^sf\d+$/.test(id) ? Number(id.slice(2)) : null;
-const validOpp = v => v === 'table' || v === 'sfmax' || SF_TIERS.includes(sfElo(v)) ? v : 'table';
+const validOpp = v => v === 'table' || v === 'sfmax' || v === 'sfadapt' || SF_TIERS.includes(sfElo(v)) ? v : 'table';
+const sfFull = id => id === 'sfmax' || id === 'sfadapt';     // no strength limit, uses the Think slider
+
+/* ---------- the adaptive opponent ----------
+   Full-strength Stockfish scores every legal move (up to 40), and the move is
+   chosen to steer the game back towards level rather than to win:
+     - level, or it is behind: it plays its best move;
+     - you have just blundered (its best is 1.5 pawns or more better than it
+       expected after its own last move): it plays its best move, so the
+       mistake costs you;
+     - otherwise, ahead: of the moves within 1.5 pawns and 5 points of winning
+       chance of its best, the one that leaves the evaluation nearest a small
+       edge in its favour (ADAPT_TARGET). Never a move that walks into mate.
+   So it gives back a lead a little at a time, through moves that are slightly
+   worse rather than through gifts, and plays properly once the game is level.
+   Scores are centipawns from its own side. */
+const ADAPT_TARGET = 40;
+const ADAPT_PUNISH = 150;
+const ADAPT_MAX_CP = 150;
+const ADAPT_MAX_WIN = 5;
+const ADAPT_MPV = 40;
+let adapt = null;            // {ply, score}: its last move, and what it expected after it
+
+const adaptWin = cp => 100 / (1 + Math.exp(-0.00368208 * cp));
+
+function adaptivePick(cands, prev) {
+  // cands: [{uci, s}] from the engine's side; prev: its expectation after its last move, or null
+  if (!cands.length) return null;
+  const sorted = [...cands].sort((a, b) => b.s - a.s);
+  const best = sorted[0];
+  if (best.s <= ADAPT_TARGET) return { uci: best.uci, s: best.s, why: 'level' };
+  if (prev != null && best.s - prev >= ADAPT_PUNISH) return { uci: best.uci, s: best.s, why: 'punish' };
+  const ok = sorted.filter(c => c.s > -2000 && best.s - c.s <= ADAPT_MAX_CP &&
+                                adaptWin(best.s) - adaptWin(c.s) <= ADAPT_MAX_WIN);
+  let pick = best;
+  for (const c of ok) {
+    const d = Math.abs(c.s - ADAPT_TARGET), dp = Math.abs(pick.s - ADAPT_TARGET);
+    if (d < dp || (d === dp && c.s > pick.s)) pick = c;
+  }
+  return { uci: pick.uci, s: pick.s, why: pick === best ? 'best' : 'ease' };
+}
 
 let opponent = validOpp(store.get('table:opp'));
 let sf = null;           // the Stockfish worker
@@ -4087,25 +4169,27 @@ function onlyBoard() {
 const usingSF = () => solo && opponent !== 'table' && oppOnly === 'any';   // one-piece games are the table engine's
 
 function oppLabel(id = opponent) {
-  if (oppOnly !== 'any' && id === opponent) return `Table engine (${fmtThink(thinkMs)}/move, ${ONLY_WORD[oppOnly]} moves only)`;
-  if (id === 'table') return `Table engine (${fmtThink(thinkMs)}/move)`;
+  if (oppOnly !== 'any' && id === opponent) return `Étude engine (${fmtThink(thinkMs)}/move, ${ONLY_WORD[oppOnly]} moves only)`;
+  if (id === 'table') return `Étude engine (${fmtThink(thinkMs)}/move)`;
   if (id === 'sfmax') return `Stockfish 19 full strength (${fmtThink(thinkMs)}/move)`;
+  if (id === 'sfadapt') return `Stockfish 19, adaptive (${fmtThink(thinkMs)}/move)`;
   return `Stockfish 19 at ${sfElo(id)}`;
 }
 
 function oppNoteText() {
-  if (opponent === 'table') return 'No link and nobody to wait for. The table engine gets stronger the longer you let it think.';
+  if (opponent === 'table') return 'No link and nobody to wait for. The Étude engine gets stronger the longer you let it think.';
   if (opponent === 'sfmax') return 'Stockfish with nothing held back. It downloads about 2 MB the first time.';
+  if (opponent === 'sfadapt') return 'Full-strength Stockfish that steers towards a level game. It takes what your mistakes give it, then hands the lead back a little at a time through slightly weaker moves, and plays properly once the game is level.';
   return `Stockfish held to about ${sfElo(opponent)}. Its ratings come from engine rating lists, not human ones, so use them as rungs on a ladder.`;
 }
 
 function fillOppSelects() {
   const html =
-    '<optgroup label="Your engine"><option value="table">Table engine</option></optgroup>' +
+    '<optgroup label="Your engine"><option value="table">Étude engine</option></optgroup>' +
     '<optgroup label="Stockfish, rated">' +
       SF_TIERS.map(e => `<option value="sf${e}">Stockfish ${e}</option>`).join('') +
     '</optgroup>' +
-    '<optgroup label="Stockfish"><option value="sfmax">Stockfish, full strength</option></optgroup>';
+    '<optgroup label="Stockfish"><option value="sfadapt">Stockfish, adaptive</option><option value="sfmax">Stockfish, full strength</option></optgroup>';
   for (const id of ['oppLobby', 'oppGame']) {
     el(id).innerHTML = html;
     el(id).value = opponent;
@@ -4196,7 +4280,7 @@ function sfArm(ms) {
 function sfGo(fen) {
   const want = opponent;
   if (sfStrength !== want) {
-    if (want === 'sfmax') {
+    if (sfFull(want)) {
       sfSend('setoption name UCI_LimitStrength value false');
     } else {
       sfSend('setoption name UCI_LimitStrength value true');
@@ -4204,9 +4288,13 @@ function sfGo(fen) {
     }
     sfStrength = want;
   }
-  if (sfNewGame) { sfSend('ucinewgame'); sfNewGame = false; }
-  const ms = want === 'sfmax' ? thinkMs : SF_TIER_MS;
-  sfBusy = { fen, opp: want, stopped: false };
+  if (sfNewGame) { sfSend('ucinewgame'); sfNewGame = false; adapt = null; }
+  const ms = sfFull(want) ? thinkMs : SF_TIER_MS;
+  // the adaptive opponent needs a score for every move, not just the best
+  const nLegal = new Chess(fen).moves().length;
+  const mpv = want === 'sfadapt' ? Math.max(1, Math.min(ADAPT_MPV, nLegal)) : 1;
+  sfSend(`setoption name MultiPV value ${mpv}`);
+  sfBusy = { fen, opp: want, stopped: false, mpv, lines: new Map() };
   sfSend(`position fen ${fen}`);
   sfSend(`go movetime ${ms}`);
   // Generous: the first search also waits for the download.
@@ -4238,6 +4326,17 @@ function sfLine(line) {
   }
 
   if (line.startsWith('info ') && sfBusy && !sfBusy.stopped) {
+    if (sfBusy.mpv > 1 && !/ (lower|upper)bound/.test(line)) {
+      const k = / multipv (\d+)/.exec(line), sc = / score (cp|mate) (-?\d+)/.exec(line),
+            pv = / pv (\S+)/.exec(line), d = / depth (\d+)/.exec(line);
+      if (k && sc && pv && d) {
+        const n = Number(sc[2]);
+        const v = sc[1] === 'cp' ? n : n > 0 ? 2500 - n : -2500 - n;
+        const depth = Number(d[1]);
+        if (!sfBusy.lines.has(depth)) sfBusy.lines.set(depth, new Map());
+        sfBusy.lines.get(depth).set(pv[1], v);
+      }
+    }
     const m = / depth (\d+)/.exec(line);
     if (m && engineJob && engineJob.sf && engineJob.fen === sfBusy.fen) {
       const depth = Number(m[1]);
@@ -4263,7 +4362,17 @@ function sfLine(line) {
   if (engineJob && engineJob.sf && engineJob.fen === job.fen) engineJob = null;
   engineNote = '';
 
-  const uci = line.split(/\s+/)[1] || '';
+  let uci = line.split(/\s+/)[1] || '';
+  if (job.mpv > 1) {
+    // the deepest iteration that scored every move; failing that, each move's deepest score
+    const depths = [...job.lines.keys()].sort((a, b) => b - a);
+    let scores = depths.map(d => job.lines.get(d)).find(m => m.size >= job.mpv);
+    if (!scores) { scores = new Map(); for (const d of [...depths].reverse()) for (const [u, v] of job.lines.get(d)) scores.set(u, v); }
+    const ply = game.history().length;
+    const prev = adapt && adapt.ply === ply - 1 ? adapt.score : null;
+    const pick = adaptivePick([...scores].map(([u, s]) => ({ uci: u, s })), prev);
+    if (pick) { uci = pick.uci; adapt = { ply: ply + 1, score: pick.s, why: pick.why }; }
+  }
   if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci) ||
       !playOpponent(job.fen, uci.slice(0, 2), uci.slice(2, 4), uci[4])) {
     sfFail('Stockfish returned a move that can’t be played.');
@@ -5436,7 +5545,7 @@ function draw() {
   el('onlyRow').classList.toggle('hidden', !onePiece);
   el('oppOnly').value = oppOnly;
   el('onlyNote').classList.toggle('hidden', !onePiece);
-  const sliderMatters = (hintsOn && anBroken) || autoPlay || (solo && (!usingSF() || opponent === 'sfmax'));
+  const sliderMatters = (hintsOn && anBroken) || autoPlay || (solo && (!usingSF() || sfFull(opponent)));
   el('thinkRow').classList.toggle('hidden', !sliderMatters);
 }
 
@@ -7616,7 +7725,7 @@ function diagnostics() {
     : 'ready';
 
   return [
-    `Table ${VERSION}`,
+    `Étude ${VERSION}`,
     `${new Date().toISOString()}`,
     ``,
     `room        ${code || '(none)'}`,
@@ -7838,6 +7947,21 @@ el('hintBtn').onclick = () => {
   draw();
 };
 
+function applyTheme(t) {
+  const light = t === 'light';
+  if (light) document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+  el('metaScheme').content = light ? 'only light' : 'dark';
+  el('metaTheme').content = light ? '#f3efe7' : '#15181b';
+  el('themeBtn').textContent = light ? 'Light' : 'Dark';
+}
+applyTheme(store.get('table:theme'));
+el('themeBtn').onclick = () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  store.set('table:theme', next);
+  applyTheme(next);
+};
+
 el('pgnBtn').onclick = () => showGames();
 el('gamesLobbyBtn').onclick = () => showGames();
 
@@ -7908,6 +8032,16 @@ window.addEventListener('hashchange', () => {
   if (navigating) { navigating = false; return; }
   location.reload();
 });
+
+/* The service worker (sw.js, beside this page): installable app, and computer
+   games offline. Not over file://, where browsers refuse it anyway. */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' })
+      .then(reg => reg.update())
+      .catch(err => console.warn('service worker', err));
+  });
+}
 </script>
 </body>
 </html>

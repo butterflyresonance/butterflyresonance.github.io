@@ -2,7 +2,9 @@
   "name": "Attune - Conversation Card Game",
   "short_name": "Attune",
   "description": "A beautiful conversation card game to deepen connections and spark meaningful discussions",
-  "start_url": "https://butterflyresonance.github.io/attune",
+  "id": "/attune",
+  "start_url": "https://butterflyresonance.github.io/attune/",
+  "scope": "/attune/",
   "display": "fullscreen",
   "orientation": "portrait-primary",
   "theme_color": "#7dd3c7",
@@ -33,20 +35,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "social", "lifestyle"],
-  "lang": "en",
-  "screenshots": [
-    {
-      "src": "https://butterflyresonance.github.io/screenshot-narrow.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "https://butterflyresonance.github.io/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ]
+  "categories": [
+    "games",
+    "social",
+    "lifestyle"
+  ],
+  "lang": "en"
 }
