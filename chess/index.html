@@ -2954,7 +2954,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.3-pzline';
+const VERSION = '2026-10-16.4-pzwords';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8453,6 +8453,7 @@ function pzLoad(p) {
   pz.helped = false;
   pz.hintSq = null;
   pz.hints = 0;
+  pz.shown = false;
   pz.wrong = null;
   pz.badge = null;
   pz.error = '';
@@ -8656,6 +8657,7 @@ const pzHintSquares = () => {
 function pzShowSolution() {
   if (!pz.cur || pz.phase === 'done' || pz.phase === 'showing') return;
   pz.helped = true;
+  pz.shown = true;
   pz.hintSq = null;
   pz.badge = null;
   if (pz.phase === 'wrong') { game.undo(); lastMove = pz.before; pz.wrong = null; }
@@ -8696,7 +8698,9 @@ function pzStatus() {
     case 'reply': return ['Good.', false];
     case 'wrong': return ['Not that one.', true];
     case 'showing': return ['The solution', false];
-    case 'done': return [!pz.failed && !pz.helped ? 'Solved.' : pz.failed ? 'Not solved.' : 'Solved with help.', !pz.failed && !pz.helped];
+    // you finished it yourself unless Solution played it out; only a clean solve counts towards the streak
+    case 'done': return [pz.shown ? 'Solution shown.' : pz.hints ? 'Solved with a hint.' : pz.failed ? 'Solved on a retry.' : 'Solved.',
+      !pz.failed && !pz.helped];
     default: return ['Puzzles', false];
   }
 }
