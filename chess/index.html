@@ -892,6 +892,12 @@
     text-transform: none;
   }
   .lobby .opp-wrap { margin: 22px 0 8px; }
+  /* the start screen: one section per way to play */
+  .lsec { border-top: 1px solid var(--edge); padding: 18px 0 6px; }
+  .lhead { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass); margin: 0 0 14px; }
+  .lsec .label { display: block; }
+  .lsec select.opp { margin-bottom: 10px; }
+  .lsec .how { margin: 14px 0 6px; border-bottom: 0; }
   button.linkish {
     border: 0;
     padding: 6px 0;
@@ -1127,31 +1133,45 @@
 
   <!-- LOBBY -->
   <section class="lobby" id="lobby">
-    <p class="lede">Play chess with one other person. Pick a side, send them the link, and you’re both looking at the same board.</p>
-    <details class="how">
-      <summary>How this works</summary>
-      <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
-      <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
-      <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
-    </details>
+    <p class="lede">Chess practice: play the computer or a friend, solve puzzles, and see why each move was good or bad.</p>
     <fieldset>
-      <legend>You play</legend>
+      <legend>You play (in games)</legend>
       <div class="choices">
         <label><input type="radio" name="side" value="w" checked><span>White</span></label>
         <label><input type="radio" name="side" value="b"><span>Black</span></label>
         <label><input type="radio" name="side" value="r"><span>Toss</span></label>
       </div>
     </fieldset>
-    <button class="primary" id="startBtn">Open a table</button>
-    <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
-    <div class="opp-wrap">
-      <label class="label" for="oppLobby">Opponent, if you play an engine</label>
+
+    <div class="lsec">
+      <h2 class="lhead">Computer</h2>
+      <label class="label" for="oppLobby">Opponent</label>
       <select class="opp" id="oppLobby"></select>
+      <button class="primary" id="soloBtn">Play the computer</button>
+      <p class="note" id="oppNote"></p>
     </div>
-    <button class="primary alt" id="soloBtn">Play the engine</button>
-    <p class="note" id="oppNote">No link and nobody to wait for.</p>
-    <div class="opp-wrap onepiece-wrap">
-      <label class="label" for="onlyLobby">One-piece challenge: the computer may move only</label>
+
+    <div class="lsec">
+      <h2 class="lhead">Puzzles</h2>
+      <button class="primary alt" id="pzBtn">Solve puzzles</button>
+      <p class="note">Positions from real games on Lichess where one move wins. Pick a theme and a difficulty. Needs an internet connection.</p>
+    </div>
+
+    <div class="lsec">
+      <h2 class="lhead">Friend</h2>
+      <button class="primary alt" id="startBtn">Open a table</button>
+      <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+      <details class="how">
+        <summary>How this works</summary>
+        <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+        <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
+        <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+      </details>
+    </div>
+
+    <div class="lsec">
+      <h2 class="lhead">One-piece challenge</h2>
+      <label class="label" for="onlyLobby">The computer may move only</label>
       <select class="opp" id="onlyLobby">
         <option value="k">the king</option>
         <option value="q">the queen</option>
@@ -1160,13 +1180,10 @@
         <option value="n">knights</option>
         <option value="p">pawns</option>
       </select>
+      <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
+      <p class="note">A party trick, played by the Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
     </div>
-    <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
-    <p class="note">A party trick, played by the Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
-    <div class="opp-wrap onepiece-wrap">
-      <button class="primary alt" id="pzBtn">Puzzles</button>
-      <p class="note">Positions from real games on Lichess where one move wins. Pick a theme and a difficulty. Needs an internet connection.</p>
-    </div>
+
     <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
@@ -2954,7 +2971,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.4-pzwords';
+const VERSION = '2026-10-16.5-lobby';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4202,7 +4219,7 @@ function adaptivePick(cands, prev) {
   return { uci: pick.uci, s: pick.s, why: pick === best ? 'best' : 'ease' };
 }
 
-let opponent = validOpp(store.get('table:opp'));
+let opponent = store.get('table:opp') == null ? 'sfadapt' : validOpp(store.get('table:opp'));   // first visit: close games, not a beating
 let sf = null;           // the Stockfish worker
 let sfReady = false;     // uciok received
 let sfQueue = [];        // commands sent before it was ready
