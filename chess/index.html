@@ -266,7 +266,6 @@
   .invite-actions { display: flex; gap: 8px; }
   .invite-actions button { flex: 1; }
   .onepiece-wrap { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--edge); }
-  .backbtn { display: block; margin: 14px 0 0; padding: 4px 0; }
   .note {
     font-size: 12px;
     line-height: 1.6;
@@ -677,7 +676,8 @@
 
   .topbar { display: flex; align-items: center; gap: 10px; min-height: 40px; flex: none; }
   .backbtn {
-    flex: none; width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1;
+    flex: none; width: 34px; height: 34px; padding: 0; margin: 0;
+    display: grid; place-items: center;
     border: 1px solid var(--edge); background: none; color: var(--muted);
   }
   .backbtn:hover { color: var(--brass); border-color: var(--brass-dim); }
@@ -1154,7 +1154,7 @@
   <section class="game hidden" id="game">
     <div class="game-grid">
       <div class="topbar">
-        <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen">←</button>
+        <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
         <span class="topstate" id="topState"></span>
       </div>
@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.11-wording';
+const VERSION = '2026-10-15.12-back';
 const LOG_MAX = 120;
 const logBuf = [];
 
