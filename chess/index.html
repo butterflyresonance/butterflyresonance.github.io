@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.7-why';
+const VERSION = '2026-10-15.8-linehold';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -5527,6 +5527,7 @@ function analyze(fen, me, opts = {}) {
 }
 
 function draw() {
+  if (!lineView && oppHold) pokeHold();   // a reply held back while a line was open
   requestCoach();        // before drawBoard: its marks come from the last reading
   drawBoard();
   drawTaken();
@@ -5666,7 +5667,9 @@ function drawStatus() {
 
   const ls = lineState();
   if (ls) {
-    s.textContent = `Stockfish line · ${ls.idx ? `${ls.idx} of ${ls.n}` : 'start'}`;
+    const moved = game.history().length > lineView.at ? ' · they’ve moved'
+      : oppHold && oppHold.fen === game.fen() ? ' · their move is waiting' : '';
+    s.textContent = `Stockfish line · ${ls.idx ? `${ls.idx} of ${ls.n}` : 'start'}${moved}`;
     s.classList.add('urgent');
     el('gameNote').textContent = '';
     return;
@@ -5900,8 +5903,10 @@ let holdTimer = null;
 let revPick = null;          // ply whose explanation is open
 let viewPly = null;          // ply whose starting position is being shown on the board
 /* Stepping through Stockfish's line for a reviewed move. `at` is the game's
-   length when it was opened: any move, takeback or new game closes it. */
-let lineView = null;         // { ply, which: 'best' | 'reply', idx, at }
+   length when it was opened, `id` the move's: a takeback past it or a new game
+   closes it. Against the computer its reply waits until the line is closed;
+   a person's move just arrives underneath it. */
+let lineView = null;         // { ply, which: 'best' | 'reply', idx, at, id }
 
 const reviewActive = () => !!code && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
 const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
@@ -6331,6 +6336,7 @@ function playOpponent(fen, from, to, promotion) {
    badge needs: playing it then grades it in the same draw. */
 function holdReady(h) {
   if (gateHolding()) return false;
+  if (lineState()) return false;          // you're looking at a line: the reply waits until you close it
   if (!solo || !reviewActive() || !h.after || !revTheirs) return true;
   if (Date.now() - h.at >= AN_HOLD_MS) return true;      // a slow machine: let the game go on
   const b = anCache.get(posKey(h.fen)), a = anCache.get(posKey(h.after));
@@ -6468,7 +6474,7 @@ function lineState() {
   if (!lineView) return null;
   const hist = game.history({ verbose: true });
   const m = hist[lineView.ply];
-  const r = m && hist.length === lineView.at && reviews.get(moveId(m));
+  const r = m && hist.length >= lineView.at && moveId(m) === lineView.id && reviews.get(moveId(m));
   if (!r) { lineView = null; return null; }
   const L = lineOf(r, lineView.which);
   const n = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color)).length;
@@ -6496,7 +6502,7 @@ function lineHTML(r, which) {
   const L = lineOf(r, which);
   const sans = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color));
   if (!sans.length) return '';
-  const on = lineView && lineView.ply === r.ply && lineView.which === which && lineView.at === game.history().length;
+  const on = !!lineView && lineView.ply === r.ply && lineView.which === which;
   if (!on) return `<button class="rline" data-line="${which}" title="Step through it on the board">${esc(sans.join(' '))}</button>`;
   const moves = sans.map((t, i) =>
     `<button class="lm${i + 1 === lineView.idx ? ' on' : ''}" data-li="${i + 1}">${esc(t)}</button>`).join(' ');
@@ -6806,7 +6812,8 @@ el('reviewBody').addEventListener('click', e => {
   if (row) { openReview(Number(row.dataset.ply)); return; }
   const ln = e.target.closest('[data-line]');
   if (ln && revPick != null) {
-    lineView = { ply: revPick, which: ln.dataset.line, idx: 1, at: game.history().length };
+    lineView = { ply: revPick, which: ln.dataset.line, idx: 1, at: game.history().length,
+      id: moveId(game.history({ verbose: true })[revPick]) };
     viewPly = null;
     selected = null;
     draw();
