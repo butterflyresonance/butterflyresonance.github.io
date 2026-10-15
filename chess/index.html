@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.9-close';
+const VERSION = '2026-10-15.10-bar';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6681,7 +6681,9 @@ function drawEvalBar() {
   const w = winPct(e.score);
   el('vfill').style.height = w.toFixed(1) + '%';
   const num = el('vnum');
-  num.textContent = fmtScore(e.score, false).replace(/^-/, '');
+  // the bar is narrow: from 10 pawns up the tenths go, so '22' rather than a clipped '22.0'
+  const big = Math.abs(e.score) >= 1000 && Math.abs(e.score) < MATE_S / 2;
+  num.textContent = big ? String(Math.round(Math.abs(e.score) / 100)) : fmtScore(e.score, false).replace(/^-/, '');
   // the number sits at the end of the side that's ahead, as it does on chess.com
   const whiteAhead = e.score >= 0;
   const atBottom = (myColor === 'w') === whiteAhead;
