@@ -1003,7 +1003,19 @@
   .revexp b { color: var(--text); font-weight: 500; }
   .revexp .rhead { display: flex; align-items: center; gap: 8px; color: var(--text); }
   .revexp .rhead .badge { width: 20px; height: 20px; font-size: 10px; }
-  .revexp .rline { display: block; color: var(--muted); opacity: .8; font-size: 11px; }
+  .revexp button.rline {
+    display: block; width: 100%; margin-top: 4px; padding: 6px 0; border: 0; background: none;
+    font-size: 11.5px; letter-spacing: .02em; line-height: 1.6; text-align: left; color: var(--muted);
+    text-decoration: underline dotted; text-underline-offset: 4px;
+  }
+  .revexp button.rline:hover { color: var(--text); }
+  .revexp .lstrip { display: block; margin-top: 6px; }
+  .revexp .lnav { display: flex; gap: 6px; margin-bottom: 6px; }
+  .revexp .lnav button { padding: 7px 0; width: 48px; font-size: 12px; }
+  .revexp .lmoves { display: block; font-size: 11.5px; line-height: 1.9; }
+  .revexp button.lm { padding: 2px 3px; border: 0; background: none; font-size: 11.5px; letter-spacing: .02em; color: var(--muted); }
+  .revexp button.lm.on { color: var(--brass); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .board.linemode { outline: 2px solid var(--brass); }
   .revexp .rmeta { font-size: 10.5px; opacity: .6; }
   .revshow { padding: 7px 12px; font-size: 11px; letter-spacing: .08em; }
   .revtally { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
@@ -2888,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.5-newgame';
+const VERSION = '2026-10-15.6-lines';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3361,6 +3373,7 @@ function adopt(history, remoteResult, force = false) {
   lastMove = verbose.length ? { from: verbose.at(-1).from, to: verbose.at(-1).to } : null;
   result = remoteResult || null;
   viewPly = null;
+  lineView = null;
   oppHold = null;
   clearTimeout(forcedTimer); forcedTimer = null; forcedFen = null;
   checkEnd();
@@ -3391,6 +3404,7 @@ function afterLocalMove(m) {
   coachPick = null;
   inspectSq = null;
   viewPly = null;
+  lineView = null;
   setGate(m);
   broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
   checkEnd();
@@ -3431,6 +3445,7 @@ function startFresh(colorForMe) {
   if (engineNote.startsWith('It has no ')) engineNote = '';   // the one-piece resignation belongs to the last game
   revPick = null;
   viewPly = null;
+  lineView = null;
   clearTimeout(forcedTimer); forcedTimer = null; forcedFen = null;
   persist();
   draw();
@@ -5554,9 +5569,11 @@ function draw() {
 
 function drawBoard() {
   // Showing an earlier position from the review: no moves, no badges, no marks.
-  const viewing = viewPly != null && game.history()[viewPly] != null;
-  const pos = viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
-  const shownLast = viewing ? null : lastMove;
+  const ls = lineState();
+  const viewing = !!ls || (viewPly != null && game.history()[viewPly] != null);
+  const pos = ls ? ls.chess : viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
+  const shownLast = ls ? ls.last : viewing ? null : lastMove;
+  boardEl.classList.toggle('linemode', !!ls);
   const myTurn = !viewing && game.turn() === myColor && !result;
   const targets = selected && !viewing
     ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
@@ -5646,6 +5663,14 @@ function drawTaken() {
 function drawStatus() {
   const s = el('status');
   s.classList.remove('urgent');
+
+  const ls = lineState();
+  if (ls) {
+    s.textContent = `Stockfish line · ${ls.idx ? `${ls.idx} of ${ls.n}` : 'start'}`;
+    s.classList.add('urgent');
+    el('gameNote').textContent = '';
+    return;
+  }
 
   if (result) {
     if (result.type === 'resign') {
@@ -5753,7 +5778,7 @@ function squareXY(sq) {
 function drawArrow() {
   const svg = el('arrow');
   const hint = currentHint();
-  if (!hintsOn || !hint || !hint.from || !hint.to || result) { svg.innerHTML = ''; return; }
+  if (!hintsOn || !hint || !hint.from || !hint.to || result || lineState()) { svg.innerHTML = ''; return; }
 
   const a = squareXY(hint.from);
   const b = squareXY(hint.to);
@@ -5874,6 +5899,9 @@ let oppHold = null;          // {fen, from, to, promotion, after, at}: their rep
 let holdTimer = null;
 let revPick = null;          // ply whose explanation is open
 let viewPly = null;          // ply whose starting position is being shown on the board
+/* Stepping through Stockfish's line for a reviewed move. `at` is the game's
+   length when it was opened: any move, takeback or new game closes it. */
+let lineView = null;         // { ply, which: 'best' | 'reply', idx, at }
 
 const reviewActive = () => !!code && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
 const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
@@ -6161,7 +6189,7 @@ function settle(fen, pv, color, plies = 8) {
   let c;
   try { c = new Chess(fen); } catch { return { start: 0, end: 0, played: [] }; }
   const start = balance(c, color);
-  let end = start;
+  let end = start, endAt = 0;
   const played = [];
   const moves = (pv || []).slice(0, plies);
   for (let j = 0; j < moves.length; j++) {
@@ -6170,15 +6198,15 @@ function settle(fen, pv, color, plies = 8) {
     try { m = c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { break; }
     if (!m) break;
     played.push(m);
-    const next = moves[j + 1];
+    const next = pv[j + 1];         // past the cut too: a line cut mid-exchange isn't a loss
     let nextCaptures = false;
     if (next) {
       const victim = c.get(next.slice(2, 4));
       nextCaptures = !!victim || (c.get(next.slice(0, 2)) || {}).type === 'p' && next[0] !== next[2];
     }
-    if (!nextCaptures) end = balance(c, color);
+    if (!nextCaptures) { end = balance(c, color); endAt = played.length; }
   }
-  return { start, end, played };
+  return { start, end, played, endAt };
 }
 
 function inBook(fen) {
@@ -6349,12 +6377,134 @@ function fmtScore(sW, signed = true) {
   return (signed && p > 0 ? '+' : '') + p.toFixed(1);
 }
 
+/* What changed hands in a line, by piece: 'wins a bishop for a pawn'.
+   Null when a promotion muddles it, or nothing was won. */
+function tradeWords(played, color) {
+  const won = {}, lost = {};
+  for (const m of played) {
+    if (m.promotion) return null;
+    if (!m.captured) continue;
+    const side = m.color === color ? won : lost;
+    side[m.captured] = (side[m.captured] || 0) + 1;
+  }
+  for (const t in won) {
+    const k = Math.min(won[t], lost[t] || 0);
+    won[t] -= k;
+    if (lost[t]) lost[t] -= k;
+  }
+  const count = ['', 'a', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+  const list = o => ['q', 'r', 'b', 'n', 'p'].filter(t => o[t] > 0)
+    .map(t => o[t] === 1 ? `a ${PIECE_WORD[t]}` : `${count[o[t]] || o[t]} ${PIECE_WORD[t]}s`);
+  const join = a => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a.at(-1);
+  const w = list(won), l = list(lost);
+  if (!w.length) return null;
+  return l.length ? `wins ${join(w)} for ${join(l)}` : `wins ${join(w)}`;
+}
+
 function materialWords(n) {
   if (n >= 9) return 'the queen’s worth of material';
   if (n >= 5) return n === 5 ? 'a rook' : 'a rook’s worth and more';
   if (n >= 3) return n === 3 ? 'a piece' : 'a piece and more';
   if (n === 2) return 'two pawns (or the exchange)';
   return 'a pawn';
+}
+
+/* How much of a line to show: at least 5 moves, then on to the last point
+   where material changed and settled (or mate), so the payoff is in it, and
+   never stopping half-way through an exchange. At most 10. */
+const LINE_MIN = 5, LINE_MAX = 10;
+function payoffLen(fen, pv, color) {
+  pv = pv || [];
+  let c;
+  try { c = new Chess(fen); } catch { return Math.min(LINE_MIN, pv.length); }
+  const caps = [];                      // caps[j]: does move j capture?
+  let prev = balance(c, color), last = 0, played = 0;
+  for (let j = 0; j < Math.min(pv.length, LINE_MAX + 1); j++) {
+    const u = pv[j];
+    let m;
+    try { m = c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { break; }
+    if (!m) break;
+    caps[j] = !!m.captured;
+    if (j >= LINE_MAX) break;           // only looked at to see if it captures
+    played = j + 1;
+    if (c.isCheckmate()) return j + 1;
+    const nextU = pv[j + 1];
+    const nextCaps = !!nextU && (!!c.get(nextU.slice(2, 4)) ||
+      ((c.get(nextU.slice(0, 2)) || {}).type === 'p' && nextU[0] !== nextU[2]));
+    if (nextCaps) continue;             // mid-exchange: not settled yet
+    const b = balance(c, color);
+    if (b !== prev) { last = j + 1; prev = b; }
+  }
+  let n = Math.min(played, Math.max(LINE_MIN, last));
+  while (n < played && caps[n]) n++;    // finish an exchange the cut would split
+  return n;
+}
+
+/* the line of a reviewed move: what was best from before it, or their best answer after it */
+function lineOf(r, which) {
+  return which === 'reply'
+    ? { fen: r.after, pv: r.replyPv || [], color: r.color === 'w' ? 'b' : 'w', scoreW: r.replyScoreW }
+    : { fen: r.before, pv: r.bestPv || [], color: r.color, scoreW: r.bestScoreW };
+}
+
+/* the move labels of a line, numbered: ['14.Nf5', 'exf5', '15.Qxh7+', …] */
+function lineSans(fen, pv, n) {
+  let c;
+  try { c = new Chess(fen); } catch { return []; }
+  const out = [];
+  for (const u of (pv || []).slice(0, n)) {
+    const black = c.turn() === 'b';
+    const num = c.moveNumber();
+    let m;
+    try { m = c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] }); } catch { break; }
+    if (!m) break;
+    out.push(!black ? `${num}.${m.san}` : out.length ? m.san : `${num}...${m.san}`);
+  }
+  return out;
+}
+
+/* Where the line being stepped through has got to, or null (and closed) if it no longer applies. */
+function lineState() {
+  if (!lineView) return null;
+  const hist = game.history({ verbose: true });
+  const m = hist[lineView.ply];
+  const r = m && hist.length === lineView.at && reviews.get(moveId(m));
+  if (!r) { lineView = null; return null; }
+  const L = lineOf(r, lineView.which);
+  const n = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color)).length;
+  if (!n) { lineView = null; return null; }
+  lineView.idx = Math.max(0, Math.min(n, lineView.idx));
+  const chess = new Chess(L.fen);
+  let last = null;
+  for (const u of L.pv.slice(0, lineView.idx)) {
+    const mv = chess.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
+    last = { from: mv.from, to: mv.to };
+  }
+  return { r, L, n, idx: lineView.idx, chess, fen: chess.fen(), last };
+}
+
+function lineStep(d) {
+  const ls = lineState();
+  if (!ls) return;
+  lineView.idx = Math.max(0, Math.min(ls.n, ls.idx + d));
+  draw();
+}
+
+/* A line in the explanation: plain text you can tap, or, while it's on the
+   board, the controls to step through it. */
+function lineHTML(r, which) {
+  const L = lineOf(r, which);
+  const sans = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color));
+  if (!sans.length) return '';
+  const on = lineView && lineView.ply === r.ply && lineView.which === which && lineView.at === game.history().length;
+  if (!on) return `<button class="rline" data-line="${which}" title="Step through it on the board">${esc(sans.join(' '))}</button>`;
+  const moves = sans.map((t, i) =>
+    `<button class="lm${i + 1 === lineView.idx ? ' on' : ''}" data-li="${i + 1}">${esc(t)}</button>`).join(' ');
+  return `<span class="lstrip"><span class="lnav">` +
+    `<button data-lstep="-1" aria-label="Back one move"${lineView.idx <= 0 ? ' disabled' : ''}>◀</button>` +
+    `<button data-lstep="1" aria-label="Forward one move"${lineView.idx >= sans.length ? ' disabled' : ''}>▶</button>` +
+    `<button data-lstep="x" aria-label="Back to the game">✕</button></span>` +
+    `<span class="lmoves">${moves}</span></span>`;
 }
 
 function lineText(fen, pv, n = 5) {
@@ -6389,9 +6539,9 @@ function lineEffect(fen, pv, color, scoreW) {
     const n = MATE_S - Math.abs(scoreW);
     return n ? `forces mate in ${n}` : 'is mate';
   }
-  const s = settle(fen, pv, color, 6);
+  const s = settle(fen, pv, color, payoffLen(fen, pv, color));
   const d = s.end - s.start;
-  if (d >= 1) return `wins ${materialWords(d)}`;
+  if (d >= 1) return tradeWords(s.played.slice(0, s.endAt), color) || `wins ${materialWords(d)}`;
   return '';
 }
 
@@ -6452,7 +6602,13 @@ function explainHTML(r) {
 
   if (r.best && r.best !== r.uci && r.cls !== 'book' && r.cls !== 'forced') {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
-    parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}. <span class="rline">${esc(lineText(r.before, r.bestPv))}</span></p>`);
+    parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}. Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+  }
+
+  // the best move gets its reason too: the line Stockfish expects after it
+  if (r.best && r.best === r.uci && r.cls !== 'book' && r.cls !== 'forced' && r.bestPv && r.bestPv.length > 1) {
+    const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
+    parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}. The line it expects: ${lineHTML(r, 'best')}</p>`);
   }
 
   if (r.loss >= 5 && r.replyPv && r.replyPv.length) {
@@ -6461,10 +6617,10 @@ function explainHTML(r) {
     const loose = newlyLoose(r.before, r.after, r.color);
     let t = `${mine ? 'Their' : 'Your'} best answer is <b>${esc(reply)}</b>${eff ? `, which ${esc(eff)}` : ''}.`;
     if (loose.length) t += ` The move left ${who} ${esc(loose.join(' and '))} where it can be won.`;
-    parts.push(`<p>${t} <span class="rline">${esc(lineText(r.after, r.replyPv))}</span></p>`);
+    parts.push(`<p>${t} Stockfish’s line: ${lineHTML(r, 'reply')}</p>`);
   }
 
-  parts.push(`<p class="rmeta">Engine depth ${r.depth}.</p>`);
+  parts.push(`<p class="rmeta">Tap a line to step through it on the board. Engine depth ${r.depth}.</p>`);
   return parts.join('');
 }
 
@@ -6476,8 +6632,11 @@ function drawEvalBar() {
   el('boardcol').classList.toggle('withbar', on && revBar);
   if (!on || !revBar) return;
   bar.classList.toggle('flip', myColor === 'b');
-  const fen = viewPly != null ? (game.history({ verbose: true })[viewPly] || {}).before : game.fen();
-  const e = fen && anCache.get(posKey(fen));
+  const ls = lineState();
+  const fen = ls ? ls.fen : viewPly != null ? (game.history({ verbose: true })[viewPly] || {}).before : game.fen();
+  let e = fen && anCache.get(posKey(fen));
+  // positions inside a line usually haven't been analysed: the line's own score stands for them
+  if (ls && !(e && e.depth) && ls.L.scoreW != null) e = { score: ls.L.scoreW, depth: ls.r.depth };
   if (!e || !e.depth) { el('vnum').textContent = ''; bar.title = 'Reading the position…'; return; }
   const w = winPct(e.score);
   el('vfill').style.height = w.toFixed(1) + '%';
@@ -6493,7 +6652,7 @@ function drawEvalBar() {
 /* badges on the board: the last two moves, on the squares they landed on */
 function boardBadges() {
   const out = new Map();
-  if (!reviewActive() || viewPly != null) return out;
+  if (!reviewActive() || viewPly != null || lineState()) return out;
   const hist = game.history({ verbose: true });
   // Newest first, and a square belongs to the newest move that landed on it
   // whether or not that move is graded yet: after a recapture the badge of the
@@ -6512,6 +6671,7 @@ function boardBadges() {
 
 function drawReviewArrows() {
   const svg = el('coachSvg');
+  if (lineState()) { svg.innerHTML = ''; return; }
   if (viewPly == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
   const hist = game.history({ verbose: true });
   const m = hist[viewPly];
@@ -6617,6 +6777,7 @@ function drawReview() {
 function openReview(ply) {
   if (theirsHidden(game.history({ verbose: true })[ply])) return;
   revPick = revPick === ply ? null : ply;
+  lineView = null;
   if (viewPly != null && viewPly !== revPick) viewPly = null;
   draw();
 }
@@ -6624,7 +6785,23 @@ function openReview(ply) {
 el('reviewBody').addEventListener('click', e => {
   const row = e.target.closest('[data-ply]');
   if (row) { openReview(Number(row.dataset.ply)); return; }
+  const ln = e.target.closest('[data-line]');
+  if (ln && revPick != null) {
+    lineView = { ply: revPick, which: ln.dataset.line, idx: 1, at: game.history().length };
+    viewPly = null;
+    selected = null;
+    draw();
+    return;
+  }
+  const st = e.target.closest('[data-lstep]');
+  if (st) {
+    if (st.dataset.lstep === 'x') { lineView = null; draw(); } else lineStep(Number(st.dataset.lstep));
+    return;
+  }
+  const li = e.target.closest('[data-li]');
+  if (li && lineView) { lineView.idx = Number(li.dataset.li); draw(); return; }
   if (e.target.closest('#revShow')) {
+    lineView = null;
     viewPly = viewPly === revPick ? null : revPick;
     selected = null;
     draw();
@@ -6651,7 +6828,7 @@ el('ledgerBody').addEventListener('click', e => {
 el('reviewBtn').onclick = () => {
   reviewOn = !reviewOn;
   store.set('table:review', reviewOn);
-  if (!reviewOn) { viewPly = null; revPick = null; }
+  if (!reviewOn) { viewPly = null; revPick = null; lineView = null; }
   if (anBroken && reviewOn) { anBroken = false; anNote = ''; anRestarts = 0; }   // a second chance
   announce();
   draw();
@@ -7657,7 +7834,7 @@ function setLink() {
 
 /* ---------- interaction ---------- */
 function pick(sq) {
-  if (viewPly != null) { viewPly = null; draw(); return; }   // any tap returns to the game
+  if (viewPly != null || lineView) { viewPly = null; lineView = null; draw(); return; }   // any tap returns to the game
   if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
 
   if (selected) {
@@ -7994,8 +8171,17 @@ el('setBtn').onclick = () => {
 /* ---------- the tabbed panel ---------- */
 const TABS = ['open', 'review', 'moves', 'set'];
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
+document.addEventListener('keydown', e => {
+  if (!lineView || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.target.closest && e.target.closest('input, select, textarea')) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); lineStep(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); lineStep(1); }
+  else if (e.key === 'Escape') { lineView = null; draw(); }
+});
+
 function showTab(t) {
   activeTab = TABS.includes(t) ? t : 'open';
+  if (lineView && activeTab !== 'review') { lineView = null; draw(); }
   store.set('table:tab', activeTab);
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === activeTab));
   for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.dataset.pane === activeTab);
