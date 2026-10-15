@@ -2888,7 +2888,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.4-etude';
+const VERSION = '2026-10-15.5-newgame';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3439,7 +3439,10 @@ function startFresh(colorForMe) {
 function persist() {
   if (!code) return;
   recordGame();
-  store.set('table:' + code, { history: game.history(), myColor, result, gameId });
+  // setting: what the game is being played against, so the start screen can
+  // tell whether the choices made there still match this game
+  store.set('table:' + code, { history: game.history(), myColor, result, gameId,
+    setting: solo ? (onePiece ? oppOnly : opponent) : undefined });
 }
 
 function restore() {
@@ -4205,7 +4208,7 @@ function setOppOnly(v) {
   el('oppOnly').value = oppOnly;
   if (sfBusy && !sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
   engineJob = null;
-  if (code) draw();
+  if (code) { persist(); draw(); }
 }
 
 function setOpponent(v) {
@@ -4217,7 +4220,7 @@ function setOpponent(v) {
   sfBroken = false;
   if (sfBusy && !sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
   engineJob = null;
-  if (code) draw();
+  if (code) { persist(); draw(); }
 }
 
 function sfSend(cmd) {
@@ -7796,11 +7799,24 @@ el('reloadBtn').onclick = () => {
 if (/[?&#]debug\b/.test(location.href)) toggleDebug();
 
 /* ---------- buttons ---------- */
+/* Play from the start screen: carry on the saved game only if it is still
+   being played and was set up the way the start screen is set up now (same
+   opponent or piece, and the same colour unless Toss is picked). A finished
+   game, or a different choice, starts a new game. Finished games stay in
+   "Your games" either way. */
+function soloStart(saveKey, choice, setting) {
+  const saved = store.get('table:' + saveKey);
+  const live = saved && Array.isArray(saved.history) && saved.history.length > 0 && !saved.result;
+  const sameSetting = saved && (saved.setting === undefined || saved.setting === setting);
+  const sameColour = choice === 'r' || (saved && saved.myColor === choice);
+  if (live && sameSetting && sameColour) return saved.myColor === 'b' ? 'b' : 'w';
+  store.set('table:' + saveKey, null);
+  return choice === 'r' ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b') : choice;
+}
+
 el('soloBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
-  const mine = choice === 'r'
-    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
-    : choice;
+  const mine = soloStart('solo', choice, opponent);
   solo = true;
   code = 'solo';
   myColor = mine;
@@ -7811,9 +7827,7 @@ el('soloBtn').onclick = () => {
 el('onlyLobby').value = ONLY_PICK();
 el('oneBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
-  const mine = choice === 'r'
-    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
-    : choice;
+  const mine = soloStart('onepiece', choice, el('onlyLobby').value);
   solo = true;
   onePiece = true;
   oppOnly = el('onlyLobby').value;
