@@ -2900,7 +2900,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.6-lines';
+const VERSION = '2026-10-15.7-why';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6533,6 +6533,12 @@ function moveLabel(ply, san) {
 }
 
 /* What a line does for `color`: forces mate, wins material, or neither. */
+/* material `color` gains over the settled part of a line (negative: gives up) */
+function lineGain(fen, pv, color) {
+  const s = settle(fen, pv, color, payoffLen(fen, pv, color));
+  return s.end - s.start;
+}
+
 function lineEffect(fen, pv, color, scoreW) {
   const sign = color === 'w' ? 1 : -1;
   if (scoreW != null && scoreW * sign >= MATE_S / 2) {
@@ -6600,20 +6606,33 @@ function explainHTML(r) {
     parts.push(`<p>${mine ? 'They' : 'You'} had just gone wrong with ${esc(moveLabel(r.ply - 1, prevSan || '…'))}, and this let ${mine ? 'them' : 'you'} off.</p>`);
   }
 
+  // their answer, worked out first: the best move's reason can depend on it
+  const replyEff = r.loss >= 5 && r.replyPv && r.replyPv.length ? lineEffect(r.after, r.replyPv, foe, r.replyScoreW) : '';
+
   if (r.best && r.best !== r.uci && r.cls !== 'book' && r.cls !== 'forced') {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
-    parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}. Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+    let why = '';
+    if (!eff) {
+      const d = lineGain(r.before, r.bestPv, r.color);
+      why = d <= -1 ? ` Its line gives up ${materialWords(-d)}, and Stockfish still rates it best: the return is in the position, not material.`
+        : replyEff ? ` Its line keeps the material level. ${mine ? 'Yours' : 'Theirs'} doesn’t: see the answer below.`
+        : ' No material changes hands in its line, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.';
+    }
+    parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}.${why} Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
   }
 
   // the best move gets its reason too: the line Stockfish expects after it
   if (r.best && r.best === r.uci && r.cls !== 'book' && r.cls !== 'forced' && r.bestPv && r.bestPv.length > 1) {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
-    parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}. The line it expects: ${lineHTML(r, 'best')}</p>`);
+    const why = eff ? '' : lineGain(r.before, r.bestPv, r.color) <= -1
+      ? ' It gives up material, and Stockfish still rates it best: the return is in the position.'
+      : ' No material changes hands in its line, so its value is positional.';
+    parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}.${why} The line it expects: ${lineHTML(r, 'best')}</p>`);
   }
 
   if (r.loss >= 5 && r.replyPv && r.replyPv.length) {
     const reply = sanOf(r.after, r.replyPv[0]);
-    const eff = lineEffect(r.after, r.replyPv, foe, r.replyScoreW);
+    const eff = replyEff;
     const loose = newlyLoose(r.before, r.after, r.color);
     let t = `${mine ? 'Their' : 'Your'} best answer is <b>${esc(reply)}</b>${eff ? `, which ${esc(eff)}` : ''}.`;
     if (loose.length) t += ` The move left ${who} ${esc(loose.join(' and '))} where it can be won.`;
@@ -7984,7 +8003,7 @@ if (/[?&#]debug\b/.test(location.href)) toggleDebug();
 function soloStart(saveKey, choice, setting) {
   const saved = store.get('table:' + saveKey);
   const live = saved && Array.isArray(saved.history) && saved.history.length > 0 && !saved.result;
-  const sameSetting = saved && (saved.setting === undefined || saved.setting === setting);
+  const sameSetting = saved && saved.setting === setting;   // a save that didn't record it can't be shown to match
   const sameColour = choice === 'r' || (saved && saved.myColor === choice);
   if (live && sameSetting && sameColour) return saved.myColor === 'b' ? 'b' : 'w';
   store.set('table:' + saveKey, null);
