@@ -2,7 +2,7 @@
   "id": "/chess/",
   "name": "Étude — chess practice",
   "short_name": "Étude",
-  "description": "A private chess board: play a friend by link, or the computer, with an eval bar, move review and an openings guide.",
+  "description": "Chess practice that explains itself: puzzles that adapt to your level and show why a wrong move fails, games against the computer with every move reviewed, and an openings guide. You can play a friend by link too.",
   "start_url": "/chess/",
   "scope": "/chess/",
   "display": "standalone",

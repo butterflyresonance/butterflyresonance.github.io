@@ -28,6 +28,15 @@
 <meta name="apple-mobile-web-app-title" content="Étude">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Étude — chess practice</title>
+<meta name="description" content="Chess practice that explains itself: puzzles that adapt to your level and show why a wrong move fails, games against the computer with every move reviewed, and an openings guide. You can play a friend by link too.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Étude — chess practice">
+<meta property="og:description" content="Chess practice that explains itself: puzzles that adapt to your level and show why a wrong move fails, games against the computer with every move reviewed, and an openings guide. You can play a friend by link too.">
+<meta property="og:url" content="https://butterflyresonance.github.io/chess/">
+<meta property="og:image" content="https://butterflyresonance.github.io/chess/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -904,6 +913,8 @@
   .lobby .opp-wrap { margin: 22px 0 8px; }
   /* the start screen: one section per way to play */
   .lsec { border-top: 1px solid var(--edge); padding: 18px 0 6px; }
+  .lsec.side fieldset { margin: 0 0 4px; }
+  .lsec.side + .lsec { border-top: 0; padding-top: 10px; }
   .lhead { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass); margin: 0 0 14px; }
   .lsec .label { display: block; }
   .lsec select.opp { margin-bottom: 10px; }
@@ -1143,7 +1154,15 @@
 
   <!-- LOBBY -->
   <section class="lobby" id="lobby">
-    <p class="lede">Chess practice: play the computer or a friend, solve puzzles, and see why each move was good or bad.</p>
+    <p class="lede">Chess practice: solve puzzles, play the computer or a friend, and see why each move was good or bad.</p>
+
+    <div class="lsec">
+      <h2 class="lhead">Puzzles</h2>
+      <button class="primary" id="pzBtn">Solve puzzles</button>
+      <p class="note">Positions from real games on Lichess where one move wins. They adapt to your level, and a wrong move shows you why it fails. Needs an internet connection.</p>
+    </div>
+
+    <div class="lsec side">
     <fieldset>
       <legend>You play (in games)</legend>
       <div class="choices">
@@ -1152,20 +1171,16 @@
         <label><input type="radio" name="side" value="r"><span>Toss</span></label>
       </div>
     </fieldset>
+    </div>
 
     <div class="lsec">
       <h2 class="lhead">Computer</h2>
       <label class="label" for="oppLobby">Opponent</label>
       <select class="opp" id="oppLobby"></select>
-      <button class="primary" id="soloBtn">Play the computer</button>
+      <button class="primary alt" id="soloBtn">Play the computer</button>
       <p class="note" id="oppNote"></p>
     </div>
 
-    <div class="lsec">
-      <h2 class="lhead">Puzzles</h2>
-      <button class="primary alt" id="pzBtn">Solve puzzles</button>
-      <p class="note">Positions from real games on Lichess where one move wins. Pick a theme and a difficulty. Needs an internet connection.</p>
-    </div>
 
     <div class="lsec">
       <h2 class="lhead">Friend</h2>
@@ -2986,7 +3001,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.14-pzoverall';
+const VERSION = '2026-10-16.15-describe';
 const LOG_MAX = 120;
 const logBuf = [];
 
