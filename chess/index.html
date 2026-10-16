@@ -723,6 +723,11 @@
   body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
   .pzdelta { font-weight: 600; }
   .pzstakes { margin: 4px 0 8px !important; }
+  .pztable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+  .pztable th, .pztable td { text-align: left; padding: 5px 6px 5px 0; border-bottom: 1px solid var(--edge); }
+  .pztable th { font-weight: 400; color: var(--muted); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .pztable .num { text-align: right; padding-right: 14px; }
+  .pzuntried { font-size: 11.5px; color: var(--muted); }
   .pzdelta.up { color: var(--g-best, #81b64c); }
   .pzdelta.down { color: var(--danger); }
   /* Puzzles need the board, the puzzle controls and the look-and-sound settings:
@@ -1262,8 +1267,8 @@
               <p class="coach-note" id="pzAbout"></p>
               <div class="pzbtns">
                 <button id="pzHintBtn">Hint</button>
-                <button id="pzSolBtn">Solution</button>
-                <button id="pzNextBtn">Skip</button>
+                <button id="pzSolBtn">Give up</button>
+                <button id="pzNextBtn" disabled>Next puzzle</button>
               </div>
               <div class="pzbody" id="pzBody"></div>
               <p class="pzcredit">Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Your rating starts at 1500 (marked ? until 10 puzzles) and is kept on this device. Easiest to Hardest are fixed bands, about 700–1000 up to 1900–2200.</p>
@@ -1349,6 +1354,7 @@
             </div>
             <div class="setrow" id="pzResetRow">
               <span>Puzzle stats</span>
+              <button id="pzThemesBtn">By theme</button>
               <button id="pzResetBtn">Reset</button>
             </div>
             <div class="setrow">
@@ -2980,7 +2986,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.12-pzloss';
+const VERSION = '2026-10-16.14-pzoverall';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6666,6 +6672,9 @@ function moveLabel(ply, san) {
 }
 
 /* What a line does for `color`: forces mate, wins material, or neither. */
+/* does anything get captured in the part of the line that's shown? */
+const lineTrades = (fen, pv, color) => settle(fen, pv, color, payoffLen(fen, pv, color)).played.some(m => m.captured);
+
 /* material `color` gains over the settled part of a line (negative: gives up) */
 function lineGain(fen, pv, color) {
   const s = settle(fen, pv, color, payoffLen(fen, pv, color));
@@ -6753,7 +6762,7 @@ function explainHTML(r) {
       const d = lineGain(r.before, r.bestPv, r.color);
       why = d <= -1 ? ` Its line gives up ${materialWords(-d)}, and Stockfish still rates it best: the return is in the position, not material.`
         : replyEff ? ` Its line keeps the material level. ${mine ? 'Yours' : 'Theirs'} doesn’t: see the answer below.`
-        : ' No material changes hands in its line, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.';
+        : `${lineTrades(r.before, r.bestPv, r.color) ? ' The trades in its line leave material level' : ' No pieces are taken in its line'}, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.`;
     }
     parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}.${why} Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
     }
@@ -6764,7 +6773,7 @@ function explainHTML(r) {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
     const why = eff ? '' : lineGain(r.before, r.bestPv, r.color) <= -1
       ? ' It gives up material, and Stockfish still rates it best: the return is in the position.'
-      : ' No material changes hands in its line, so its value is positional.';
+      : `${lineTrades(r.before, r.bestPv, r.color) ? ' The trades in its line leave material level' : ' No pieces are taken in its line'}, so its value is positional.`;
     parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}.${why} The line it expects: ${lineHTML(r, 'best')}</p>`);
   }
 
@@ -8393,36 +8402,105 @@ const PZ_BANDS = [['easiest', 850], ['easier', 1150], ['normal', 1450], ['harder
    decaying average: every result moves it a fixed share of the way, so older
    results fade and roughly the last 20-30 puzzles decide it. It never settles:
    K stays 32 for good. The first 10 puzzles use 60, to find your level quickly,
-   and so do the 10 after a break of a week or more, to find it again.
-   A hint, a wrong try, the solution or a skip all count as a miss, as on Lichess. */
+   and so do the 10 after a break of a week or more, to find it again. */
 const PZ_START = 1500;
 const PZ_BREAK_MS = 7 * 24 * 3600 * 1000;
 const pzOnBreak = () => !!pz.stats.lastAt && Date.now() - pz.stats.lastAt > PZ_BREAK_MS;
 const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 : 32;
-const pzExpected = () => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || pz.stats.rating) - pz.stats.rating) / 400));
-/* Help is a loss, as on Lichess, but a scaled one. A clean solve wins the full
-   K x (1 - expected). Any help means the puzzle was too hard for you, so the
-   rating goes down; how far depends on how much help you needed, up to the full
-   K x expected for no idea at all. Per move you had to find:
-     found alone 0, a wrong try 0.5, hint 1 (what to look for) 1/3,
-     hint 2 (the piece) 2/3, hint 3 (piece and square) or Solution 1;
-     a wrong try and hints together: 1 - (1 - 0.5)(1 - hint).
-   The puzzle's share of the full loss is the average over your moves. */
-const PZ_HINT_LOSS = [0, 1 / 3, 2 / 3, 1];
-const pzMovesToFind = () => Math.ceil(pzSolution().length / 2);
-const pzMoveLoss = () => 1 - (1 - PZ_HINT_LOSS[pz.hints]) * (pz.moveWrong ? 0.5 : 1);
-/* the share of the full loss if you find everything else alone from here */
-const pzLossSoFar = () => {
-  const n = pzMovesToFind(), done = pz.credits.length;
-  return (pz.credits.reduce((a, b) => a + b, 0) + (done < n ? pzMoveLoss() : 0)) / n;
+
+/* Ratings by theme. Each tactical theme you've met has an adjustment to your
+   overall rating: your fork rating is overall + the fork adjustment. The
+   adjustments are kept centred, so their average (weighted by how many puzzles
+   of each you've done) is always zero, and so the overall rating is always the
+   weighted average of the theme ratings: they can't drift apart.
+   A puzzle is predicted from your rating for its themes, not your overall one.
+   Its result moves the overall rating by K as usual, and the adjustments of its
+   themes by a smaller step that is bigger while a theme is uncertain: few
+   puzzles of it done, or none for a while (Glicko's idea, which Lichess uses for
+   its own puzzle rating). Uncertain themes therefore correct themselves quickly
+   once tried again, and the healthy mix leans towards them. */
+const PZ_TACTIC = new Set(PZ_THEMES.filter(([g]) => g === 'Tactics' || g === 'Checkmates')
+  .flatMap(([, list]) => list.map(t => t[0])).filter(t => t !== 'mate'));
+const PZ_STALE_DAYS = 60;
+const pzTactics = p => ((p && p.puzzle.themes) || []).filter(t => PZ_TACTIC.has(t));
+const pzTheme = t => (pz.stats.themes || {})[t];
+const pzThemeUnc = t => {
+  const th = pzTheme(t);
+  if (!th || !th.n) return 1;
+  return Math.min(1, 1 / (1 + th.n / 5) + (Date.now() - th.at) / 864e5 / PZ_STALE_DAYS);
 };
-const pzLossTotal = () => pz.credits.reduce((a, b) => a + b, 0) / pzMovesToFind();
-const pzChange = loss => { const k = pzK(), e = pzExpected(); return loss === 0 ? Math.round(k * (1 - e)) : -Math.round(k * e * loss); };
-/* [rating change if you solve it from here, rating change if you take the solution] */
-const pzStakes = () => [pzChange(pzLossSoFar()), pzChange(1)];
-function pzRate(loss) {
+const pzAdjFor = p => {
+  const ts = pzTactics(p).filter(t => pzTheme(t) && pzTheme(t).n);
+  return ts.length ? ts.reduce((a, t) => a + pzTheme(t).adj, 0) / ts.length : 0;
+};
+/* the chance of solving it: from your overall rating (what you see and what moves),
+   or from your rating on its themes (behind the scenes, for the theme ratings) */
+const pzExpectedAt = me => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || me) - me) / 400));
+const pzExpected = () => pzExpectedAt(pz.stats.rating);
+const pzExpectedThemes = () => pzExpectedAt(pz.stats.rating + pzAdjFor(pz.cur));
+
+/* How a puzzle scores. Each move you had to find carries a share of a full
+   loss, from 0 (found alone) to 1 (no idea):
+     hints: the first (what to look for) 1/3, the second (the piece) 2/3,
+       the third (piece and square: the answer) 1;
+     each wrong try: what it gave away, as a share of 40 points of winning
+       chance (a try 2 points worse than the answer costs 0.05, a blunder that
+       throws away 40 or more costs 1), read by Stockfish; 0.5 until it has;
+     together: 1 - (1 - hints)(1 - try)(1 - try)...
+   The puzzle's share p is the average over your moves; Give up makes every
+   move still to find a 1. Up to p = 0.1 you still gain, less as p grows;
+   beyond it you lose, more as p grows, up to the full loss at p = 1. So a
+   near miss can still gain, any real help loses, and finishing is never worse
+   than giving up. */
+const PZ_HINT_LOSS = [0, 1 / 3, 2 / 3, 1];
+const PZ_TRY_SPAN = 40;
+const PZ_TIP = 0.1;
+const pzMovesToFind = () => Math.ceil(pzSolution().length / 2);
+/* how much a wrong try gave away, 0-1, once Stockfish has read both sides of it; null until then */
+function pzTrySev(w) {
+  if (w.sev != null) return w.sev;
+  const a = anCache.get(posKey(w.pre)), b = anCache.get(posKey(w.post));
+  if (!(a && (a.terminal || pzRead(a)) && b && (b.terminal || pzRead(b)))) return null;
+  const sign = myColor === 'w' ? 1 : -1;
+  const drop = winPct(a.score * sign) - winPct(b.score * sign);
+  w.sev = Math.max(0, Math.min(1, drop / PZ_TRY_SPAN));
+  return w.sev;
+}
+const pzMoveShare = mv => 1 - (1 - PZ_HINT_LOSS[mv.hints]) * mv.tries.reduce((a, w) => {
+  const sv = pzTrySev(w);
+  return a * (1 - (sv == null ? 0.5 : sv));
+}, 1);
+/* the puzzle's share so far, if everything still to find is found alone (or, giving up, not at all) */
+function pzShare(givingUp = false) {
+  const n = pzMovesToFind();
+  let sum = pz.moves.reduce((a, mv) => a + pzMoveShare(mv), 0);
+  const left = n - pz.moves.length;
+  if (left > 0) sum += givingUp ? left : pzMoveShare({ hints: pz.hints, tries: pz.tries });
+  return Math.min(1, sum / n);
+}
+/* the result, -1..1 of a full step: + is a gain of K x (1 - expected) times it, - a loss of K x expected times it */
+const pzResult = (p, e) => p <= PZ_TIP ? (1 - e) * (1 - p / PZ_TIP) : -e * (p - PZ_TIP) / (1 - PZ_TIP);
+const pzChange = p => Math.round(pzK() * pzResult(p, pzExpected()));
+/* [rating change if you finish it from here, rating change if you give up now] */
+const pzStakes = () => [pzChange(pzShare()), pzChange(pzShare(true))];
+/* The overall rating is plain Elo against the puzzle, as shown before you move.
+   Behind the scenes, the puzzle's themes are judged against your rating for those
+   themes: if you did better than that predicted, their adjustment goes up, by a
+   step that's bigger while the theme is uncertain; then all are re-centred. */
+function pzRate(p) {
   if (pzOnBreak()) pz.stats.boost = 10;
-  const d = pzChange(loss);
+  const d = Math.round(pzK() * pzResult(p, pzExpected()));
+  const rt = pzResult(p, pzExpectedThemes());
+  const th = pz.stats.themes || (pz.stats.themes = {});
+  for (const t of pzTactics(pz.cur)) {
+    const cur = th[t] || (th[t] = { adj: 0, n: 0, at: 0 });
+    cur.adj += (16 + 64 * pzThemeUnc(t)) * rt;
+    cur.n++;
+    cur.at = Date.now();
+  }
+  const tried = Object.values(th).filter(x => x.n);
+  const w = tried.reduce((a, x) => a + x.n, 0);
+  if (w) { const mean = tried.reduce((a, x) => a + x.adj * x.n, 0) / w; for (const x of tried) x.adj -= mean; }
   if (pz.stats.boost > 0 && pz.stats.rated >= 10) pz.stats.boost--;
   pz.stats.rating = Math.max(400, pz.stats.rating + d);
   pz.stats.rated++;
@@ -8457,9 +8535,11 @@ const pz = {
   helped: false,      // a hint or the solution was used
   hintSq: null,
   hints: 0,           // hint stages used on this move: 1 what to look for, 2 the piece, 3 the square
-  moveWrong: false,
-  credits: [],
+  tries: [],          // wrong tries on this move: { pre, post, sev }
+  moves: [],          // your moves found so far: { hints, tries }
   hintsUsed: false,
+  note: '',           // e.g. that a new theme applies from the next puzzle
+  prog: pzSaved.prog || null,
   shown: false,
   wrong: null,        // { fen, san, from, to } your wrong move, while its refutation is shown
   badge: null,        // { sq, cls } on the board
@@ -8469,9 +8549,15 @@ const pz = {
 };
 const pzSeen = new Set(store.get('table:pzSeen') || []);
 if (pz.stats.rating == null) { pz.stats.rating = PZ_START; pz.stats.rated = 0; pz.stats.last = null; }
+if (!pz.stats.themes) pz.stats.themes = {};
 
+/* Saved as you go, including where you are in the puzzle and the help you've had,
+   so closing the app and coming back puts you back in the same puzzle with the same cost. */
 function pzSave() {
-  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, qBand: pz.qBand, cur: pz.cur, doneId: pz.doneId, stats: pz.stats });
+  const prog = pz.cur && pz.phase !== 'done'
+    ? { id: pz.cur.puzzle.id, step: pz.step, hints: pz.hints, tries: pz.tries, moves: pz.moves, hintsUsed: pz.hintsUsed, failed: pz.failed }
+    : null;
+  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, qBand: pz.qBand, cur: pz.cur, doneId: pz.doneId, stats: pz.stats, prog });
 }
 function pzMarkSeen(id) {
   pzSeen.add(id);
@@ -8483,9 +8569,26 @@ const pzCanMove = () => pz.phase === 'solve' && !!pz.cur;
 const pzSolution = () => (pz.cur && pz.cur.puzzle.solution) || [];
 const uciMove = u => ({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] || undefined });
 
+/* Healthy mix: half the time Lichess's own mix; otherwise one theme, drawn with
+   weights that favour themes you haven't tried, are weaker at, or are unsure of. */
+function pzMixAngle() {
+  if (Math.random() < 0.5) return 'mix';
+  const all = [...PZ_TACTIC];
+  const wt = t => {
+    const th = pzTheme(t);
+    if (!th || !th.n) return 3;
+    return 1 + Math.max(0, -th.adj) / 50 + 2 * pzThemeUnc(t);
+  };
+  const ws = all.map(wt), total = ws.reduce((a, b) => a + b, 0);
+  let x = Math.random() * total;
+  for (let i = 0; i < all.length; i++) { x -= ws[i]; if (x <= 0) return all[i]; }
+  return 'mix';
+}
 async function pzFetch() {
   if (navigator.onLine === false) throw new Error('offline');
-  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(pz.theme)}?nb=${PZ_BATCH}&difficulty=${pzBand()}`;
+  const mixing = pz.theme === 'mix';
+  const angle = mixing ? pzMixAngle() : pz.theme;
+  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(angle)}?nb=${mixing ? 10 : PZ_BATCH}&difficulty=${pzBand()}`;
   const r = await fetch(url, { headers: { Accept: 'application/json' } });
   if (r.status === 429) throw new Error('busy');
   if (!r.ok) throw new Error('http ' + r.status);
@@ -8525,6 +8628,8 @@ async function pzNext() {
       return;
     }
   }
+  // never straight back to the puzzle you've just finished, if there's anything else
+  if (pz.queue.length > 1 && pz.doneId) pz.queue = pz.queue.filter(q => q.puzzle.id !== pz.doneId);
   // adaptive: the queued puzzle rated nearest to you
   let i = 0;
   if (pz.diff === 'auto') {
@@ -8536,23 +8641,24 @@ async function pzNext() {
 
 /* Set up a puzzle: the game up to and including the opponent's last move, which
    is marked on the board (from and to squares) rather than played out in front of you. */
-function pzLoad(p) {
+function pzLoad(p, resume = null) {
   ++pz.gen;
   pz.cur = p;
+  pz.doneId = null;            // a new puzzle is under way (it may even be one you finished before, served again)
   pz.step = 0;
   pz.failed = false;
   pz.helped = false;
   pz.hintSq = null;
-  pz.hints = 0;            // hints taken on the move you're on now
-  pz.moveWrong = false;    // a wrong try on the move you're on now
-  pz.credits = [];         // the share of the loss each of your moves so far carries
+  pz.hints = 0;
+  pz.tries = [];
+  pz.moves = [];
   pz.hintsUsed = false;
+  pz.note = '';
   pz.shown = false;
   pz.wrong = null;
   pz.badge = null;
   pz.error = '';
   lineView = null;
-  pzSave();
   const sans = p.game.pgn.trim().split(/\s+/).slice(0, p.puzzle.initialPly + 1);
   const g = new Chess();
   for (const san of sans) { try { g.move(san); } catch { break; } }
@@ -8563,7 +8669,21 @@ function pzLoad(p) {
   lastMove = hist.length ? { from: hist.at(-1).from, to: hist.at(-1).to } : null;
   myColor = g.turn();                      // you play the side to move
   pz.startFen = g.fen();
+  // back in a puzzle you'd started: the moves you'd found, and the help you'd had
+  if (resume && resume.id === p.puzzle.id) {
+    for (const u of p.puzzle.solution.slice(0, resume.step)) {
+      try { const m = g.move(uciMove(u)); lastMove = { from: m.from, to: m.to }; } catch { break; }
+    }
+    pz.step = resume.step || 0;
+    pz.hints = resume.hints || 0;
+    pz.tries = resume.tries || [];
+    pz.moves = resume.moves || [];
+    pz.hintsUsed = !!resume.hintsUsed;
+    pz.failed = !!resume.failed;
+    pz.helped = pz.hintsUsed;
+  }
   pz.phase = 'solve';
+  pzSave();
   draw();
 }
 
@@ -8580,25 +8700,27 @@ function pzMove(from, to, promotion) {
   const uci = m.from + m.to + (m.promotion || '');
   const gen = pz.gen;
   if (uci === sol[pz.step] || game.isCheckmate()) {
-    pz.credits.push(pzMoveLoss());
+    pz.moves.push({ hints: pz.hints, tries: pz.tries });
     pz.hints = 0;
-    pz.moveWrong = false;
+    pz.tries = [];
     pz.step++;
     pz.hintSq = null;
     const last = pz.step >= sol.length || game.isCheckmate();
     pz.badge = { sq: m.to, cls: last ? 'best' : 'excellent' };
     if (last) { pzFinish(); return true; }
     pz.phase = 'reply';
+    pzSave();
     draw();
     setTimeout(() => { if (gen === pz.gen) pzReply(); }, 450);
     return true;
   }
   // wrong: it stays on the board while Stockfish shows what it allows; a tap or Try again takes it back
   pz.failed = true;
-  pz.moveWrong = true;
+  pz.tries.push({ pre: m.before, post: game.fen(), sev: null });
   pz.badge = { sq: m.to, cls: 'mistake' };
   pz.wrong = { fen: game.fen(), san: m.san, from: m.from, to: m.to };
   pz.phase = 'wrong';
+  pzSave();
   draw();
   return true;
 }
@@ -8619,20 +8741,28 @@ function pzRetry() {
 function pzAnTodo() {
   if (!pz.cur || pz.phase === 'loading' || pz.phase === 'error' || pz.phase === 'intro') return [];
   const out = [];
-  if (pz.step === 0 && pz.startFen) out.push(anEntry(pz.startFen));
-  if (pz.phase === 'wrong' && pz.wrong && !pz.wrong.why) out.push(anEntry(pz.wrong.fen));
-  return out.filter(e => !e.terminal);
+  const add = fen => { const e = anEntry(fen); if (!e.terminal && !out.includes(e)) out.push(e); };
+  // tries not yet weighed, the oldest first
+  for (const mv of [...pz.moves, { tries: pz.tries }]) for (const w of mv.tries) if (w.sev == null) { add(w.pre); add(w.post); }
+  if (pz.phase === 'solve') add(game.fen());                     // ready for the next try
+  if (pz.phase === 'wrong' && pz.wrong) {                        // the one being explained, deepest
+    const e = anEntry(pz.wrong.fen); const i = out.indexOf(e); if (i >= 0) out.splice(i, 1); if (!e.terminal && !pz.wrong.why) out.push(e);
+  }
+  return out;
 }
 const PZ_WHY_DEPTH = 14;
 const pzRead = e => !!e && (e.done || e.depth >= PZ_WHY_DEPTH || (e.depth >= 10 && e.ms >= 2500));
 
 let pzWhyKey = null;
 function pzOnAnalysis() {
-  if (pz.phase !== 'wrong' || !pz.wrong) return;
-  const e = anCache.get(posKey(pz.wrong.fen));
-  const key = pz.wrong.fen + '|' + (pzRead(e) ? 'ready' : e ? e.depth : 0);
+  if (!pz.cur || pz.phase === 'done') return;
+  const tries = [...pz.moves.flatMap(mv => mv.tries), ...pz.tries];
+  const weighed = tries.filter(w => pzTrySev(w) != null).length;
+  const e = pz.wrong && anCache.get(posKey(pz.wrong.fen));
+  const key = pz.phase + '|' + weighed + '|' + (pz.wrong ? pz.wrong.fen + (pzRead(e) ? 'ready' : '') : '');
   if (key === pzWhyKey) return;         // nothing new to say
   pzWhyKey = key;
+  pzSave();
   drawPuzzle();
 }
 
@@ -8718,14 +8848,14 @@ function pzReply() {
   blip();
   if (pz.step >= sol.length) { pzFinish(); return; }
   pz.phase = 'solve';
+  pzSave();
   draw();
 }
 
 function pzFinish() {
+  const share = pzShare(pz.shown);
   pz.phase = 'done';
-  while (pz.credits.length < pzMovesToFind()) pz.credits.push(1);   // moves the Solution gave you
-  const loss = pzLossTotal();
-  const score = loss === 0 ? 1 : 0;
+  const score = share === 0 ? 1 : 0;
   if (score === 1) {
     pz.stats.solved++;
     pz.stats.streak++;
@@ -8734,7 +8864,7 @@ function pzFinish() {
     if (pz.shown) pz.stats.missed++; else pz.stats.helped = (pz.stats.helped || 0) + 1;
     pz.stats.streak = 0;
   }
-  pzRate(loss);
+  pzRate(share);
   // only a clean solve is remembered; anything you needed help with may come round again
   if (score === 1) pzMarkSeen(pz.cur.puzzle.id);
   pz.doneId = pz.cur.puzzle.id;           // finished: reopening the page moves on rather than replaying it
@@ -8748,6 +8878,7 @@ function pzHint() {
   pz.helped = true;
   pz.hintsUsed = true;
   pz.hints++;
+  pzSave();
   draw();
 }
 /* the squares the hint outlines: the piece from stage 2, its square from stage 3 */
@@ -8762,7 +8893,6 @@ function pzShowSolution() {
   if (!pz.cur || pz.phase === 'done' || pz.phase === 'showing') return;
   pz.helped = true;
   pz.shown = true;
-  pz.hints = 0;
   pz.hintSq = null;
   pz.badge = null;
   if (pz.phase === 'wrong') { game.undo(); lastMove = pz.before; pz.wrong = null; }
@@ -8788,7 +8918,7 @@ function pzStatus() {
     case 'wrong': return ['Not that one.', true];
     case 'showing': return ['The solution', false];
     // you finished it yourself unless Solution played it out; only a clean solve counts towards the streak
-    case 'done': return [pz.shown ? 'Solution shown.' : pz.hintsUsed ? 'Solved with a hint.' : pz.failed ? 'Solved on a retry.' : 'Solved.',
+    case 'done': return [pz.shown ? 'Gave up.' : pz.hintsUsed ? 'Solved with a hint.' : pz.failed ? 'Solved on a retry.' : 'Solved.',
       !pz.failed && !pz.helped];
     default: return ['Puzzles', false];
   }
@@ -8812,17 +8942,19 @@ function drawPuzzle() {
   el('pzHintBtn').disabled = !(pzCanMove() || pz.phase === 'wrong') || pz.hints >= 3;
   el('pzHintBtn').textContent = pz.hints ? (pz.hints >= 3 ? 'Hints used' : 'Next hint') : 'Hint';
   el('pzSolBtn').disabled = !pz.cur || done || pz.phase === 'showing' || pz.phase === 'loading' || pz.phase === 'intro';
-  el('pzNextBtn').textContent = done || pz.phase === 'error' ? 'Next puzzle' : 'Skip';
+  el('pzNextBtn').textContent = pz.phase === 'error' ? 'Try again' : 'Next puzzle';
   el('pzNextBtn').classList.toggle('primary', done);
-  el('pzNextBtn').disabled = pz.phase === 'loading';
+  el('pzNextBtn').disabled = !(done || pz.phase === 'error');
 
   pzLines.length = 0;
   let html = '';
   if (pz.cur && ['solve', 'wrong', 'reply'].includes(pz.phase)) {
     const [up, down] = pzStakes();
-    const sign = n => n > 0 ? `<span class="pzdelta up">+${n}</span>` : `<span class="pzdelta down">−${-n}</span>`;
-    html += `<p class="pzstakes">${pz.credits.length || pz.hints || pz.moveWrong ? 'Solve now' : 'Solve'} ${sign(up)} · Solution ${sign(down)}</p>`;
+    const sign = n => n > 0 ? `<span class="pzdelta up">+${n}</span>` : n < 0 ? `<span class="pzdelta down">−${-n}</span>` : '<span class="pzdelta">0</span>';
+    const fresh = !pz.moves.some(mv => mv.hints || mv.tries.length) && !pz.hints && !pz.tries.length;
+    html += `<p class="pzstakes">${fresh ? 'Solve' : 'Solve now'} ${sign(up)} · Give up ${sign(down)}</p>`;
   }
+  if (pz.note && !done) html += `<p class="pzhinttext">${esc(pz.note)}</p>`;
   if (pz.phase === 'error') html += `<p class="pzerr">${esc(pz.error)}</p>`;
   if (pz.cur && pz.hints >= 1 && !done) {
     const stage = ['', '', ' The piece to move is outlined.', ' The piece and its square are outlined.'][pz.hints];
@@ -8845,8 +8977,8 @@ function drawPuzzle() {
       `<a href="https://lichess.org/${encodeURIComponent(g.id)}/${myColor === 'w' ? 'white' : 'black'}#${p.initialPly + 1}" target="_blank" rel="noopener">See the game on Lichess</a>.</p>`;
   }
   const s = pz.stats;
-  const change = done && s.last != null ? ` <span class="pzdelta ${s.last >= 0 ? 'up' : 'down'}">${s.last >= 0 ? '+' : '−'}${Math.abs(s.last)}</span>` : '';
-  html += `<p class="pzstats">Your puzzle rating <b>${pzRatingText()}</b>${change}. Solved ${s.solved}, with help ${s.helped || 0}, solution shown ${s.missed}. Streak ${s.streak}${s.best ? `, best ${s.best}` : ''}.</p>`;
+  const change = done && s.last != null ? ` <span class="pzdelta ${s.last > 0 ? 'up' : s.last < 0 ? 'down' : ''}">${s.last > 0 ? '+' : s.last < 0 ? '−' : '±'}${Math.abs(s.last)}</span>` : '';
+  html += `<p class="pzstats">Your puzzle rating <b>${pzRatingText()}</b>${change}. Solved ${s.solved}, with help ${s.helped || 0}, gave up ${s.missed}. Streak ${s.streak}${s.best ? `, best ${s.best}` : ''}.</p>`;
   el('pzBody').innerHTML = html;
 }
 
@@ -8862,6 +8994,13 @@ function pzSetFilter() {
   pz.theme = el('pzTheme').value;
   pz.diff = el('pzDiff').value;
   pz.queue = [];
+  // mid-puzzle the new choice waits for the next one, so it can't be used to skip this one
+  if (pz.cur && !['done', 'error', 'loading'].includes(pz.phase)) {
+    pz.note = 'Your new choice applies from the next puzzle.';
+    pzSave();
+    draw();
+    return;
+  }
   pzSave();
   pzNext();
 }
@@ -8883,20 +9022,37 @@ el('pzTheme').onchange = pzSetFilter;
 el('pzDiff').onchange = pzSetFilter;
 el('pzHintBtn').onclick = pzHint;
 el('pzSolBtn').onclick = pzShowSolution;
+// Next puzzle: only once this one is finished (or to retry after a failed fetch)
 el('pzNextBtn').onclick = () => {
-  // a skip costs nothing (closing the app would do the same), and isn't remembered:
-  // it leaves this batch, but Lichess may send it again some day
+  if (!(pz.phase === 'done' || pz.phase === 'error')) return;
   pz.cur = null;
   pzSave();
   pzNext();
 };
+el('pzThemesBtn').onclick = () => {
+  const th = pz.stats.themes || {};
+  const R = pz.stats.rating;
+  const ago = at => { const d = Math.floor((Date.now() - at) / 864e5); return d < 1 ? 'today' : d < 14 ? `${d} day${d > 1 ? 's' : ''} ago` : `${Math.floor(d / 7)} weeks ago`; };
+  const tried = [...PZ_TACTIC].filter(t => th[t] && th[t].n).map(t => ({ t, r: Math.round(R + th[t].adj), n: th[t].n, at: th[t].at, unsure: pzThemeUnc(t) > 0.5 }))
+    .sort((a, b) => a.r - b.r);
+  const untried = [...PZ_TACTIC].filter(t => !(th[t] && th[t].n)).map(pzName);
+  const rows = tried.map(x => `<tr><td>${esc(pzName(x.t))}</td><td class="num"><b>${x.r}${x.unsure ? '?' : ''}</b></td>` +
+    `<td class="num">${x.n}</td><td>${ago(x.at)}</td></tr>`).join('');
+  openModal({
+    title: 'Ratings by theme',
+    body: `<p>Your overall rating, <b>${R}</b>, is the average of these, weighted by how many of each you’ve done. Weakest first. A ? means there isn’t enough to go on yet, or it’s been a while: the next few of that theme will move it quickly, and the healthy mix will offer it more often.</p>` +
+      (tried.length ? `<table class="pztable"><tr><th>Theme</th><th class="num">Rating</th><th class="num">Done</th><th>Last</th></tr>${rows}</table>` : '<p>No themes yet: finish a few puzzles first.</p>') +
+      (untried.length ? `<p class="pzuntried">Not tried yet: ${esc(untried.join(', '))}.</p>` : ''),
+    actions: [{ label: 'Close', value: true, kind: 'go', focus: true }]
+  });
+};
 fillPzPickers();
 el('pzResetBtn').onclick = async () => {
   const ok = await confirmModal('Reset puzzle stats?',
-    `Your puzzle rating goes back to ${PZ_START}, your counts and streaks go back to zero, and puzzles you’ve solved can come up again.`,
+    `Your puzzle rating goes back to ${PZ_START}, your theme ratings, counts and streaks are cleared, and puzzles you’ve solved can come up again.`,
     'Reset', { danger: true });
   if (!ok) return;
-  pz.stats = { solved: 0, helped: 0, missed: 0, streak: 0, best: 0, rating: PZ_START, rated: 0, last: null, boost: 0, lastAt: 0 };
+  pz.stats = { solved: 0, helped: 0, missed: 0, streak: 0, best: 0, rating: PZ_START, rated: 0, last: null, boost: 0, lastAt: 0, themes: {} };
   pzSeen.clear();
   store.set('table:pzSeen', []);
   pzSave();
@@ -8909,7 +9065,7 @@ function pzStart() {
   autoPlay = false;
   coachMode = 'off';
   document.body.classList.add('puzzlemode');
-  if (pz.cur && !pzSeen.has(pz.cur.puzzle.id) && pz.cur.puzzle.id !== pz.doneId) pzLoad(pz.cur);    // carry on with the one you were on
+  if (pz.cur && !pzSeen.has(pz.cur.puzzle.id) && pz.cur.puzzle.id !== pz.doneId) pzLoad(pz.cur, pz.prog);    // carry on with the one you were on, as you left it
   else { pz.cur = null; pzNext(); }
 }
 
