@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Smash Burgers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Same kitchen column as the duck ramen page: quantity control, ingredients, steps with timers, notes; running timers pinned to the bottom */
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --ink: #1b2129;
+  --muted: #5b6573;
+  --line: #d8dde4;
+  --accent: #2c4a7c;
+  --accent-soft: #e3e9f3;
+  --on-accent: #ffffff;
+  --alarm: #b3261e;
+  --done: #8a929d;
+  --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+    --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+    --alarm: #ff8a80; --done: #6b7583;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+  --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+  --alarm: #ff8a80; --done: #6b7583;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; padding-top: env(safe-area-inset-top, 0px); }
+.wrap { max-width: 680px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 120px; display: flex; flex-direction: column; gap: 32px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; font-weight: 800; line-height: 1.15; }
+h2 { font-size: 1.35rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
+.sub { color: var(--muted); margin: 6px 0 0; }
+.label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.back { display: inline-block; color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 14px; }
+.back:hover { text-decoration: underline; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.control { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-size: 1.4rem; width: 48px; height: 48px; cursor: pointer; font-family: var(--body); }
+.stepper input { width: 64px; height: 48px; border: 0; text-align: center; font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink); font-family: var(--body); -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.control-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+.control-text strong { font-size: 1.05rem; }
+.control-text span { color: var(--muted); font-size: 0.9rem; }
+
+section { display: flex; flex-direction: column; gap: 14px; }
+.ing { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.ing li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ing .amt { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.ing .name { min-width: 0; }
+.ing .opt { color: var(--muted); font-weight: 400; }
+.ing .note { display: block; color: var(--muted); font-size: 0.88rem; }
+.groups { display: flex; flex-direction: column; gap: 18px; }
+
+.stepgroups { display: flex; flex-direction: column; gap: 22px; }
+.stepgroup { display: flex; flex-direction: column; gap: 10px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; scroll-margin-top: 16px; scroll-margin-bottom: 110px; }
+.steps input[type="checkbox"] { width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--accent); cursor: pointer; }
+.steps .body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps .head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.steps .head strong { font-size: 1.02rem; }
+.steps .time { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.steps p { margin: 0; }
+.steps li.done .body p, .steps li.done .head { color: var(--done); }
+.steps li.done .head strong { text-decoration: line-through; }
+.steps p a, .ing .note a { color: var(--accent); }
+.b { font-weight: 600; color: var(--accent); }
+.steps li.done .b { color: var(--done); }
+
+.timers { display: flex; flex-wrap: wrap; gap: 8px; }
+.timer { display: flex; align-items: stretch; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; }
+.timer .go { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-family: var(--body); font-size: 0.95rem; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.timer .go .clock { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.timer .go .what { font-size: 0.85rem; }
+.timer .reset { appearance: none; border: 0; border-left: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-family: var(--body); font-size: 0.8rem; padding: 0 10px; cursor: pointer; }
+.timer.running .go { background: var(--accent); color: var(--on-accent); }
+.timer.ringing { border-color: var(--alarm); cursor: pointer; }
+.timer.ringing .go { background: var(--alarm); color: var(--surface); padding-inline: 16px; animation: pulse 1s ease-in-out infinite; }
+.timer.ringing .reset { display: none; }
+@keyframes pulse { 50% { opacity: 0.65; } }
+
+.tips { margin: 0; padding-left: 1.1rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+
+.dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 16px rgba(0,0,0,0.08); }
+.dock-inner { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; overflow-x: auto; }
+.chip { appearance: none; flex: 0 0 auto; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 6px 12px; font-family: var(--body); font-size: 0.88rem; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.chip .clock { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip.paused { opacity: 0.7; }
+.chip.ringing { background: var(--alarm); border-color: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) { .timer.ringing .go, .chip.ringing { animation: none; } }
+@media (max-width: 420px) {
+  h1 { font-size: 1.8rem; }
+  .ing li { grid-template-columns: 6.2rem 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="back" href="../">← Cooking</a>
+    <div class="label">Family dinner</div>
+    <h1>Smash Burgers</h1>
+    <p class="sub">Thin, crusty beef patties with cheese on butter-toasted brioche. About 30 minutes.</p>
+  </header>
+
+  <div class="control">
+    <div class="control-text">
+      <strong>Number of burgers</strong>
+      <span>Two thin patties per burger. Every amount below updates.</span>
+    </div>
+    <div class="stepper">
+      <button type="button" id="minus" aria-label="One fewer">−</button>
+      <input id="qty" type="number" min="1" max="40" value="4" inputmode="numeric" aria-label="Number of burgers">
+      <button type="button" id="plus" aria-label="One more">+</button>
+    </div>
+  </div>
+
+  <section>
+    <h2>Ingredients</h2>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <p class="sub" style="margin:0">Tap a timer to start it, tap again to pause. Running timers stay pinned to the bottom of the screen.</p>
+    <div class="stepgroups" id="steps"></div>
+  </section>
+
+  <section>
+    <h2>Notes</h2>
+    <ul class="tips" id="tips"></ul>
+  </section>
+</div>
+
+<div class="dock" id="dock" hidden><div class="dock-inner" id="dockInner"></div></div>
+
+<script>
+(function () {
+  const qtyEl = document.getElementById('qty');
+  const checked = {};
+
+  // ---------- Timers ----------
+  const timers = {
+    bun:    { label: 'Buns', what: 'Toast', secs: 60 },
+    smash:  { label: 'Smash side', what: 'First side', secs: 120 },
+    cheese: { label: 'Cheese side', what: 'After flip', secs: 45 }
+  };
+  for (const k in timers) Object.assign(timers[k], { remaining: timers[k].secs, endAt: 0, running: false, ringing: false, started: false });
+
+  let audio = null;
+  function ensureAudio() {
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+    } catch (e) { audio = null; }
+  }
+  function beep() {
+    if (!audio) return;
+    try {
+      const t0 = audio.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0 + i * 0.35);
+        g.gain.exponentialRampToValueAtTime(0.4, t0 + i * 0.35 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.35 + 0.25);
+        o.connect(g).connect(audio.destination);
+        o.start(t0 + i * 0.35); o.stop(t0 + i * 0.35 + 0.3);
+      }
+    } catch (e) {}
+  }
+  function buzz() { try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
+
+  function fmt(s) {
+    s = Math.max(0, Math.ceil(s));
+    const m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function left(t) { return t.running ? (t.endAt - Date.now()) / 1000 : t.remaining; }
+
+  function toggleTimer(id) {
+    ensureAudio();
+    const t = timers[id];
+    if (t.ringing) { resetTimer(id); return; }
+    if (t.running) { t.remaining = left(t); t.running = false; }
+    else { t.endAt = Date.now() + t.remaining * 1000; t.running = true; t.started = true; keepAwake(); }
+    paint();
+  }
+  function resetTimer(id) {
+    const t = timers[id];
+    Object.assign(t, { remaining: t.secs, running: false, ringing: false, started: false });
+    paint();
+  }
+
+  let lastRing = 0;
+  function tick() {
+    const now = Date.now();
+    let anyRinging = false;
+    for (const k in timers) {
+      const t = timers[k];
+      if (t.running && t.endAt <= now) { t.running = false; t.remaining = 0; t.ringing = true; lastRing = 0; }
+      if (t.ringing) anyRinging = true;
+    }
+    if (anyRinging && now - lastRing > 4000) { lastRing = now; beep(); buzz(); }
+    paint();
+  }
+
+  function paint() {
+    document.querySelectorAll('.timer').forEach(el => {
+      const t = timers[el.dataset.timer];
+      el.classList.toggle('running', t.running);
+      el.classList.toggle('ringing', t.ringing);
+      el.querySelector('.clock').textContent = t.ringing ? 'Done' : fmt(left(t));
+      el.querySelector('.what').textContent = t.ringing ? 'tap to stop' : t.what;
+      el.querySelector('.go').setAttribute('aria-label',
+        t.label + ': ' + (t.ringing ? 'done, tap to stop' : t.running ? 'running, tap to pause' : 'tap to start'));
+    });
+    const active = Object.entries(timers).filter(([, t]) => t.started || t.ringing);
+    document.getElementById('dock').hidden = active.length === 0;
+    document.getElementById('dockInner').innerHTML = active.map(([k, t]) =>
+      '<button type="button" class="chip' + (t.ringing ? ' ringing' : t.running ? '' : ' paused') + '" data-chip="' + k + '">' +
+      '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done · tap to stop' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
+  }
+
+  document.getElementById('dockInner').addEventListener('click', e => {
+    const chip = e.target.closest('[data-chip]');
+    if (!chip) return;
+    const k = chip.dataset.chip, t = timers[k];
+    if (t.ringing) { resetTimer(k); return; }
+    const el = document.querySelector('.timer[data-timer="' + k + '"]');
+    if (el) el.closest('li').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ---------- Amounts ----------
+  function frac(x) {
+    const q = Math.round(x * 4) / 4;
+    if (q <= 0) return '¼';
+    const w = Math.floor(q), rem = q - w;
+    const f = rem === 0.25 ? '¼' : rem === 0.5 ? '½' : rem === 0.75 ? '¾' : '';
+    if (w === 0) return f;
+    return w + (f ? ' ' + f : '');
+  }
+  function spoons(tsp) { return tsp >= 3 ? frac(tsp / 3) + ' tbsp' : frac(tsp) + ' tsp'; }
+  function cups(x) { return frac(x / 250); }
+  const b = s => '<span class="b">' + s + '</span>';
+
+  const whole = x => Math.max(1, Math.round(x));
+  const halfUp = x => frac(Math.max(0.5, Math.round(x * 2) / 2));
+  const wt = g => g >= 1000 ? String(+(g / 1000).toFixed(2)) + ' kg' : g + ' g';
+  const s = (x, one, many) => (x > 1 ? many : one);
+  // Per burger: two thin 60 g patties.
+  function recipe(n) {
+    const balls = 2 * n;
+    const g = 60 * balls;
+    const A = {
+      mince: wt(g) + ' beef mince',
+      balls: balls + ' balls of about 60 g',
+      buns: n + ' brioche bun' + s(n, '', 's'),
+      butter: spoons(n) + ' butter',
+      cheese: balls + ' burger cheese slice' + s(balls, '', 's'),
+      sauce: 'burger sauce',
+      lettuce: 'shredded lettuce'
+    };
+    return {
+      groups: [
+        { label: 'Burgers', rows: [
+          [wt(g), 'beef mince', false, 'regular mince, not lean: the fat is what makes the crust. 120 g per burger.'],
+          [n, 'brioche bun' + s(n, '', 's'), false, ''],
+          [spoons(n), 'butter', false, 'for toasting the buns'],
+          [balls, 'burger cheese slice' + s(balls, '', 's'), false, 'one per patty'],
+          [spoons(3 * n), 'bottled burger sauce', false, 'about 1 tbsp per burger. Any brand from the sauce aisle; tomato sauce also works.'],
+          [Math.max(1, Math.round(n * 1.5)) + ' leaves', 'iceberg lettuce', false, 'finely shredded'],
+          [whole(n / 3), 'tomato' + s(whole(n / 3), '', 'es'), true, 'thinly sliced'],
+          ['', 'salt and pepper', false, '']
+        ]},
+        { label: 'Equipment', rows: [
+          ['', 'heavy frying pan or cast-iron pan', false, 'not non-stick: it should not go on high heat empty'],
+          ['', 'stiff metal spatula', false, 'plus a second spatula or a small saucepan to press down on it'],
+          [balls, 'squares of baking paper, about 12 cm', false, 'stops the meat sticking to the spatula']
+        ]}
+      ],
+      steps: [{ items: [
+        ['Prep the toppings', '',
+          'Shred the lettuce' + ', slice the tomato if using' + ', and get the ' + b(A.sauce) + ' and ' + b(A.cheese) + ' out. Cut the baking paper squares. Turn on the rangehood or open a window: this makes smoke.', []],
+        ['Roll the balls', '',
+          'Divide ' + b(A.mince) + ' into ' + b(A.balls) + '. Roll them loosely; do not squeeze them hard. Keep them in the fridge until the pan is hot. Cold meat gives a better crust.', []],
+        ['Toast the buns', '1 min',
+          'Split ' + b(A.buns) + '. Heat the pan on medium, melt a little of the ' + b(A.butter) + ' and put the buns cut-side down. Toast until golden, about 1 minute per batch. Set them aside and wipe the pan out.', ['bun']],
+        ['Heat the pan', '3–4 min',
+          'Turn the heat to high and leave the empty pan for 3–4 minutes until it is very hot and just starting to smoke. No oil needed.', []],
+        ['Smash', '2 min',
+          'Put 2–3 balls in the pan, well apart. Lay a baking paper square on one, press down hard with the spatula (push on it with the second spatula or the base of a saucepan) until it is about 5 mm thin. Peel the paper off. Repeat with the others straight away; smash within the first 15 seconds or it will not flatten. Season with salt and pepper and start the timer. Do not move them.', ['smash']],
+        ['Flip and add cheese', '45 sec',
+          'Scrape under each patty with the edge of the spatula so the brown crust comes with it, and flip. Put a cheese slice on each and start the timer. Stack two patties on top of each other for each burger.', ['cheese']],
+        ['Assemble', '',
+          'Bottom bun, sauce, lettuce, tomato if using, the double patty, sauce on the top bun. Repeat the smash and flip steps for the next batch, resetting both timers.', []]
+      ]}],
+      tips: [
+        'For small children, one patty per burger is usually enough. Make the same number of balls and freeze the spare ones, or serve the extras on the side.',
+        'Thin patties cook all the way through in this time, so there is no pink in the middle.',
+        'If the patty sticks when you flip it, the pan was not hot enough. Give it another minute before the next batch.'
+      ]
+    };
+  }
+
+  // ---------- Render ----------
+  function currentQty() {
+    let v = parseInt(qtyEl.value, 10);
+    if (!Number.isFinite(v) || v < 1) v = 1;
+    if (v > 40) v = 40;
+    return v;
+  }
+
+  function render() {
+    const d = recipe(currentQty());
+    document.getElementById('groups').innerHTML = d.groups.map(g =>
+      '<div><div class="label">' + g.label + '</div><ul class="ing">' + g.rows.map(r =>
+        '<li><span class="amt">' + r[0] + '</span><span class="name">' + r[1] +
+        (r[2] ? ' <span class="opt">(optional)</span>' : '') +
+        (r[3] ? '<span class="note">' + r[3] + '</span>' : '') + '</span></li>').join('') + '</ul></div>').join('');
+
+    document.getElementById('steps').innerHTML = d.steps.map((g, gi) =>
+      '<div class="stepgroup"><ol class="steps">' + g.items.map((s, i) => {
+        const key = gi + '-' + i;
+        const on = !!checked[key];
+        return '<li' + (on ? ' class="done"' : '') + '><input type="checkbox" data-key="' + key + '" aria-label="Mark step done: ' + s[0] + '"' + (on ? ' checked' : '') + '>' +
+          '<div class="body"><div class="head"><strong>' + (i + 1) + '. ' + s[0] + '</strong>' +
+          (s[1] ? '<span class="time">' + s[1] + '</span>' : '') + '</div><p>' + s[2] + '</p>' +
+          (s[3].length ? '<div class="timers">' + s[3].map(id =>
+            '<div class="timer" data-timer="' + id + '"><button type="button" class="go"><span class="clock"></span><span class="what"></span></button>' +
+            '<button type="button" class="reset" aria-label="Reset ' + timers[id].label + ' timer">Reset</button></div>').join('') + '</div>' : '') +
+          '</div></li>';
+      }).join('') + '</ol></div>').join('');
+
+    const tips = d.tips.slice();
+    tips.push('Timers keep counting if you switch apps, but the alarm only sounds while this page is open. Your phone must not be on silent to hear it.');
+    document.getElementById('tips').innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
+    paint();
+  }
+
+  document.getElementById('steps').addEventListener('click', e => {
+    const tEl = e.target.closest('.timer');
+    if (!tEl) return;
+    if (timers[tEl.dataset.timer].ringing || e.target.closest('.reset')) resetTimer(tEl.dataset.timer);
+    else if (e.target.closest('.go')) toggleTimer(tEl.dataset.timer);
+  });
+  document.getElementById('steps').addEventListener('change', e => {
+    if (e.target.matches('input[type="checkbox"]')) {
+      checked[e.target.dataset.key] = e.target.checked;
+      e.target.closest('li').classList.toggle('done', e.target.checked);
+    }
+  });
+  document.getElementById('minus').addEventListener('click', () => { qtyEl.value = Math.max(1, currentQty() - 1); render(); });
+  document.getElementById('plus').addEventListener('click', () => { qtyEl.value = Math.min(40, currentQty() + 1); render(); });
+  qtyEl.addEventListener('input', render);
+
+  function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); tick(); } });
+  keepAwake();
+
+  render();
+  setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>

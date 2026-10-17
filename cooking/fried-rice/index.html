@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fried Rice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Same kitchen column as the duck ramen page: quantity control, ingredients, steps with timers, notes; running timers pinned to the bottom */
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --ink: #1b2129;
+  --muted: #5b6573;
+  --line: #d8dde4;
+  --accent: #2c4a7c;
+  --accent-soft: #e3e9f3;
+  --on-accent: #ffffff;
+  --alarm: #b3261e;
+  --done: #8a929d;
+  --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+    --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+    --alarm: #ff8a80; --done: #6b7583;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+  --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
+  --alarm: #ff8a80; --done: #6b7583;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; padding-top: env(safe-area-inset-top, 0px); }
+.wrap { max-width: 680px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 120px; display: flex; flex-direction: column; gap: 32px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; font-weight: 800; line-height: 1.15; }
+h2 { font-size: 1.35rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
+.sub { color: var(--muted); margin: 6px 0 0; }
+.label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.back { display: inline-block; color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 14px; }
+.back:hover { text-decoration: underline; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.control { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-size: 1.4rem; width: 48px; height: 48px; cursor: pointer; font-family: var(--body); }
+.stepper input { width: 64px; height: 48px; border: 0; text-align: center; font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink); font-family: var(--body); -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.control-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+.control-text strong { font-size: 1.05rem; }
+.control-text span { color: var(--muted); font-size: 0.9rem; }
+
+section { display: flex; flex-direction: column; gap: 14px; }
+.ing { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.ing li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ing .amt { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.ing .name { min-width: 0; }
+.ing .opt { color: var(--muted); font-weight: 400; }
+.ing .note { display: block; color: var(--muted); font-size: 0.88rem; }
+.groups { display: flex; flex-direction: column; gap: 18px; }
+
+.stepgroups { display: flex; flex-direction: column; gap: 22px; }
+.stepgroup { display: flex; flex-direction: column; gap: 10px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; scroll-margin-top: 16px; scroll-margin-bottom: 110px; }
+.steps input[type="checkbox"] { width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--accent); cursor: pointer; }
+.steps .body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps .head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.steps .head strong { font-size: 1.02rem; }
+.steps .time { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.steps p { margin: 0; }
+.steps li.done .body p, .steps li.done .head { color: var(--done); }
+.steps li.done .head strong { text-decoration: line-through; }
+.steps p a, .ing .note a { color: var(--accent); }
+.b { font-weight: 600; color: var(--accent); }
+.steps li.done .b { color: var(--done); }
+
+.timers { display: flex; flex-wrap: wrap; gap: 8px; }
+.timer { display: flex; align-items: stretch; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; }
+.timer .go { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-family: var(--body); font-size: 0.95rem; padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.timer .go .clock { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.timer .go .what { font-size: 0.85rem; }
+.timer .reset { appearance: none; border: 0; border-left: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-family: var(--body); font-size: 0.8rem; padding: 0 10px; cursor: pointer; }
+.timer.running .go { background: var(--accent); color: var(--on-accent); }
+.timer.ringing { border-color: var(--alarm); cursor: pointer; }
+.timer.ringing .go { background: var(--alarm); color: var(--surface); padding-inline: 16px; animation: pulse 1s ease-in-out infinite; }
+.timer.ringing .reset { display: none; }
+@keyframes pulse { 50% { opacity: 0.65; } }
+
+.tips { margin: 0; padding-left: 1.1rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+
+.dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 16px rgba(0,0,0,0.08); }
+.dock-inner { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; overflow-x: auto; }
+.chip { appearance: none; flex: 0 0 auto; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 6px 12px; font-family: var(--body); font-size: 0.88rem; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.chip .clock { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip.paused { opacity: 0.7; }
+.chip.ringing { background: var(--alarm); border-color: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) { .timer.ringing .go, .chip.ringing { animation: none; } }
+@media (max-width: 420px) {
+  h1 { font-size: 1.8rem; }
+  .ing li { grid-template-columns: 6.2rem 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <a class="back" href="../">← Cooking</a>
+    <div class="label">Family dinner</div>
+    <h1>Fried Rice</h1>
+    <p class="sub">Egg, ham and frozen vegetables with a soy and oyster sauce seasoning. About 50 minutes, or 15 with cold cooked rice.</p>
+  </header>
+
+  <div class="control">
+    <div class="control-text">
+      <strong>Number of people</strong>
+      <span>Every amount below updates.</span>
+    </div>
+    <div class="stepper">
+      <button type="button" id="minus" aria-label="One fewer">−</button>
+      <input id="qty" type="number" min="1" max="40" value="4" inputmode="numeric" aria-label="Number of people">
+      <button type="button" id="plus" aria-label="One more">+</button>
+    </div>
+  </div>
+
+  <section>
+    <h2>Ingredients</h2>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section>
+    <h2>Method</h2>
+    <p class="sub" style="margin:0">Tap a timer to start it, tap again to pause. Running timers stay pinned to the bottom of the screen.</p>
+    <div class="stepgroups" id="steps"></div>
+  </section>
+
+  <section>
+    <h2>Notes</h2>
+    <ul class="tips" id="tips"></ul>
+  </section>
+</div>
+
+<div class="dock" id="dock" hidden><div class="dock-inner" id="dockInner"></div></div>
+
+<script>
+(function () {
+  const qtyEl = document.getElementById('qty');
+  const checked = {};
+
+  // ---------- Timers ----------
+  const timers = {
+    rcook: { label: 'Rice', what: 'Cook', secs: 12 * 60 },
+    rrest: { label: 'Rice rest', what: 'Lid on', secs: 10 * 60 },
+    cool:  { label: 'Rice dry', what: 'On tray', secs: 20 * 60 },
+    veg:   { label: 'Vegetables', what: 'Stir-fry', secs: 3 * 60 },
+    fry:   { label: 'Rice fry', what: 'Stir-fry', secs: 4 * 60 }
+  };
+  for (const k in timers) Object.assign(timers[k], { remaining: timers[k].secs, endAt: 0, running: false, ringing: false, started: false });
+
+  let audio = null;
+  function ensureAudio() {
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+    } catch (e) { audio = null; }
+  }
+  function beep() {
+    if (!audio) return;
+    try {
+      const t0 = audio.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, t0 + i * 0.35);
+        g.gain.exponentialRampToValueAtTime(0.4, t0 + i * 0.35 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.35 + 0.25);
+        o.connect(g).connect(audio.destination);
+        o.start(t0 + i * 0.35); o.stop(t0 + i * 0.35 + 0.3);
+      }
+    } catch (e) {}
+  }
+  function buzz() { try { navigator.vibrate && navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
+
+  function fmt(s) {
+    s = Math.max(0, Math.ceil(s));
+    const m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function left(t) { return t.running ? (t.endAt - Date.now()) / 1000 : t.remaining; }
+
+  function toggleTimer(id) {
+    ensureAudio();
+    const t = timers[id];
+    if (t.ringing) { resetTimer(id); return; }
+    if (t.running) { t.remaining = left(t); t.running = false; }
+    else { t.endAt = Date.now() + t.remaining * 1000; t.running = true; t.started = true; keepAwake(); }
+    paint();
+  }
+  function resetTimer(id) {
+    const t = timers[id];
+    Object.assign(t, { remaining: t.secs, running: false, ringing: false, started: false });
+    paint();
+  }
+
+  let lastRing = 0;
+  function tick() {
+    const now = Date.now();
+    let anyRinging = false;
+    for (const k in timers) {
+      const t = timers[k];
+      if (t.running && t.endAt <= now) { t.running = false; t.remaining = 0; t.ringing = true; lastRing = 0; }
+      if (t.ringing) anyRinging = true;
+    }
+    if (anyRinging && now - lastRing > 4000) { lastRing = now; beep(); buzz(); }
+    paint();
+  }
+
+  function paint() {
+    document.querySelectorAll('.timer').forEach(el => {
+      const t = timers[el.dataset.timer];
+      el.classList.toggle('running', t.running);
+      el.classList.toggle('ringing', t.ringing);
+      el.querySelector('.clock').textContent = t.ringing ? 'Done' : fmt(left(t));
+      el.querySelector('.what').textContent = t.ringing ? 'tap to stop' : t.what;
+      el.querySelector('.go').setAttribute('aria-label',
+        t.label + ': ' + (t.ringing ? 'done, tap to stop' : t.running ? 'running, tap to pause' : 'tap to start'));
+    });
+    const active = Object.entries(timers).filter(([, t]) => t.started || t.ringing);
+    document.getElementById('dock').hidden = active.length === 0;
+    document.getElementById('dockInner').innerHTML = active.map(([k, t]) =>
+      '<button type="button" class="chip' + (t.ringing ? ' ringing' : t.running ? '' : ' paused') + '" data-chip="' + k + '">' +
+      '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done · tap to stop' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
+  }
+
+  document.getElementById('dockInner').addEventListener('click', e => {
+    const chip = e.target.closest('[data-chip]');
+    if (!chip) return;
+    const k = chip.dataset.chip, t = timers[k];
+    if (t.ringing) { resetTimer(k); return; }
+    const el = document.querySelector('.timer[data-timer="' + k + '"]');
+    if (el) el.closest('li').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ---------- Amounts ----------
+  function frac(x) {
+    const q = Math.round(x * 4) / 4;
+    if (q <= 0) return '¼';
+    const w = Math.floor(q), rem = q - w;
+    const f = rem === 0.25 ? '¼' : rem === 0.5 ? '½' : rem === 0.75 ? '¾' : '';
+    if (w === 0) return f;
+    return w + (f ? ' ' + f : '');
+  }
+  function spoons(tsp) { return tsp >= 3 ? frac(tsp / 3) + ' tbsp' : frac(tsp) + ' tsp'; }
+  function cups(x) { return frac(x / 250); }
+  const b = s => '<span class="b">' + s + '</span>';
+
+  const whole = x => Math.max(1, Math.round(x));
+  const halfUp = x => frac(Math.max(0.5, Math.round(x * 2) / 2));
+  const wt = g => g >= 1000 ? String(+(g / 1000).toFixed(2)) + ' kg' : g + ' g';
+  const s = (x, one, many) => (x > 1 ? many : one);
+  // Per person: 100 g uncooked rice, 1 egg, 75 g frozen veg, 50 g ham.
+  function recipe(n) {
+    const rice = 100 * n;
+    const water = Math.round(rice / 200 * 310 / 10) * 10;
+    const two = n > 4;
+    const A = {
+      rice: frac(n / 2) + ' cup' + s(n / 2, '', 's') + ' (' + rice + ' g) jasmine rice',
+      water: water + ' ml water',
+      eggs: n + ' egg' + s(n, '', 's'),
+      veg: Math.round(75 * n / 25) * 25 + ' g frozen mixed vegetables',
+      ham: Math.round(50 * n / 25) * 25 + ' g ham',
+      garlic: whole(n / 2) + ' garlic clove' + s(whole(n / 2), '', 's'),
+      oil: spoons(1.5 * n) + ' oil',
+      soy: spoons(1.5 * n) + ' soy sauce',
+      oyster: spoons(0.75 * n) + ' oyster sauce',
+      fish: spoons(0.25 * n) + ' fish sauce',
+      sugar: spoons(0.125 * n) + ' sugar',
+      msg: spoons(0.125 * n) + ' MSG',
+      sesame: spoons(0.25 * n) + ' sesame oil',
+      spring: whole(n / 2) + ' spring onion' + s(whole(n / 2), '', 's')
+    };
+    return {
+      groups: [
+        { label: 'Fried rice', rows: [
+          [frac(n / 2) + ' cup' + s(n / 2, '', 's'), 'jasmine rice', false, rice + ' g uncooked. Or ' + frac(1.5 * n) + ' cups cold cooked rice from the fridge.'],
+          [water + ' ml', 'water', false, 'for cooking the rice'],
+          [n, 'egg' + s(n, '', 's'), false, ''],
+          [Math.round(75 * n / 25) * 25 + ' g', 'frozen mixed vegetables', false, 'the Coles peas, corn and carrot mix'],
+          [Math.round(50 * n / 25) * 25 + ' g', 'ham', false, 'diced 1 cm. See notes for other options.'],
+          [whole(n / 2), 'garlic clove' + s(whole(n / 2), '', 's'), false, 'crushed'],
+          [spoons(1.5 * n), 'oil', false, 'canola, rice bran or peanut']
+        ]},
+        { label: 'Sauce', rows: [
+          [spoons(1.5 * n), 'soy sauce', false, 'regular (light), not dark'],
+          [spoons(0.75 * n), 'oyster sauce', false, ''],
+          [spoons(0.25 * n), 'fish sauce', false, ''],
+          [spoons(0.125 * n), 'sugar', false, ''],
+          [spoons(0.125 * n), 'MSG', true, 'sold as Ajinomoto in the Asian aisle. This is the restaurant flavour.'],
+          [spoons(0.25 * n), 'sesame oil', false, 'added at the end'],
+          ['', 'white pepper', false, 'a pinch']
+        ]},
+        { label: 'To finish', rows: [
+          [whole(n / 2), 'spring onion' + s(whole(n / 2), '', 's'), true, 'sliced. Sold as "shallots" at Coles.']
+        ]}
+      ],
+      steps: [{ items: [
+        ['Cook the rice', '12 min',
+          'Skip steps 1–3 if you have cold cooked rice. Rinse ' + b(A.rice) + ' in a sieve until the water runs mostly clear. Put it in a pot with ' + b(A.water) + ' and bring to the boil uncovered. Put the lid on, turn the heat to the lowest setting and start the timer.', ['rcook']],
+        ['Rest the rice', '10 min',
+          'Turn the heat off and leave the lid on.', ['rrest']],
+        ['Spread it out to dry', '20 min',
+          'Tip the rice onto a large tray, fluff it with a fork and spread it out. Leave it uncovered until it stops steaming. Warm, wet rice makes mushy fried rice; this step is what stops that.', ['cool']],
+        ['Get everything ready', '',
+          'In a small bowl, mix ' + b(A.soy) + ', ' + b(A.oyster) + ', ' + b(A.fish) + ', ' + b(A.sugar) + ' and the ' + b(A.msg) + ' if using. Dice ' + b(A.ham) + ', crush ' + b(A.garlic) + ', beat ' + b(A.eggs) + ' in a bowl, and slice ' + b(A.spring) + ' if using. Things move fast from here.' + (two ? ' For ' + n + ' people, cook steps 5–8 in two batches with half of everything each time; a crowded pan steams instead of fries.' : ''), []],
+        ['Scramble the eggs', '1 min',
+          'Heat a wok or your biggest frying pan on high with a third of the ' + b(A.oil) + '. Pour in the eggs and stir until just set but still soft. Move them to a plate.', []],
+        ['Fry the vegetables and ham', '3 min',
+          'Add the rest of the oil. Fry the garlic for 20 seconds, then add ' + b(A.veg) + ' straight from the freezer. Stir-fry until hot and any water has cooked off, then add the ham for 1 minute.', ['veg']],
+        ['Fry the rice', '4 min',
+          'Add the rice and press out any clumps with the back of the spatula. Toss it, then leave it for 30 seconds, toss again, and repeat. It is ready when it is piping hot and some grains are starting to toast.', ['fry']],
+        ['Season and finish', '',
+          'Pour the sauce around the edge of the pan so it sizzles, and toss until the rice is evenly coloured. Add the eggs back and break them up. Turn the heat off, stir in ' + b(A.sesame) + ', a pinch of white pepper and the spring onion. Taste; if it is flat, add a little more soy sauce.', []]
+      ]}],
+      tips: [
+        'Instead of ham: shredded Coles BBQ chicken, Chinese BBQ pork from an Asian grocer, or cooked prawns. All go in at the same point as the ham. Bacon also works: fry it at the start of step 6 for 3 minutes before the garlic.',
+        'Do not leave cooked rice sitting out for more than an hour or two. Cool it and put it in the fridge, and use it within a day.',
+        'Leftover rice from a takeaway works well and lets you skip straight to step 4.'
+      ]
+    };
+  }
+
+  // ---------- Render ----------
+  function currentQty() {
+    let v = parseInt(qtyEl.value, 10);
+    if (!Number.isFinite(v) || v < 1) v = 1;
+    if (v > 40) v = 40;
+    return v;
+  }
+
+  function render() {
+    const d = recipe(currentQty());
+    document.getElementById('groups').innerHTML = d.groups.map(g =>
+      '<div><div class="label">' + g.label + '</div><ul class="ing">' + g.rows.map(r =>
+        '<li><span class="amt">' + r[0] + '</span><span class="name">' + r[1] +
+        (r[2] ? ' <span class="opt">(optional)</span>' : '') +
+        (r[3] ? '<span class="note">' + r[3] + '</span>' : '') + '</span></li>').join('') + '</ul></div>').join('');
+
+    document.getElementById('steps').innerHTML = d.steps.map((g, gi) =>
+      '<div class="stepgroup"><ol class="steps">' + g.items.map((s, i) => {
+        const key = gi + '-' + i;
+        const on = !!checked[key];
+        return '<li' + (on ? ' class="done"' : '') + '><input type="checkbox" data-key="' + key + '" aria-label="Mark step done: ' + s[0] + '"' + (on ? ' checked' : '') + '>' +
+          '<div class="body"><div class="head"><strong>' + (i + 1) + '. ' + s[0] + '</strong>' +
+          (s[1] ? '<span class="time">' + s[1] + '</span>' : '') + '</div><p>' + s[2] + '</p>' +
+          (s[3].length ? '<div class="timers">' + s[3].map(id =>
+            '<div class="timer" data-timer="' + id + '"><button type="button" class="go"><span class="clock"></span><span class="what"></span></button>' +
+            '<button type="button" class="reset" aria-label="Reset ' + timers[id].label + ' timer">Reset</button></div>').join('') + '</div>' : '') +
+          '</div></li>';
+      }).join('') + '</ol></div>').join('');
+
+    const tips = d.tips.slice();
+    tips.push('Timers keep counting if you switch apps, but the alarm only sounds while this page is open. Your phone must not be on silent to hear it.');
+    document.getElementById('tips').innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
+    paint();
+  }
+
+  document.getElementById('steps').addEventListener('click', e => {
+    const tEl = e.target.closest('.timer');
+    if (!tEl) return;
+    if (timers[tEl.dataset.timer].ringing || e.target.closest('.reset')) resetTimer(tEl.dataset.timer);
+    else if (e.target.closest('.go')) toggleTimer(tEl.dataset.timer);
+  });
+  document.getElementById('steps').addEventListener('change', e => {
+    if (e.target.matches('input[type="checkbox"]')) {
+      checked[e.target.dataset.key] = e.target.checked;
+      e.target.closest('li').classList.toggle('done', e.target.checked);
+    }
+  });
+  document.getElementById('minus').addEventListener('click', () => { qtyEl.value = Math.max(1, currentQty() - 1); render(); });
+  document.getElementById('plus').addEventListener('click', () => { qtyEl.value = Math.min(40, currentQty() + 1); render(); });
+  qtyEl.addEventListener('input', render);
+
+  function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); tick(); } });
+  keepAwake();
+
+  render();
+  setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>
