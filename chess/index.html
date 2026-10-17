@@ -729,6 +729,8 @@
   .pane { display: none; }
   /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
   body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.localmode #hintRow, body.localmode #thinkRow, body.localmode #revTheirsBtn, body.localmode #revTheirsLabel,
+  body.localmode .oforce { display: none !important; }
   body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
   .pzdelta { font-weight: 600; }
   .pzstakes { margin: 4px 0 8px !important; }
@@ -1186,6 +1188,8 @@
       <h2 class="lhead">Friend</h2>
       <button class="primary alt" id="startBtn">Open a table</button>
       <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+      <button class="primary alt" id="localBtn">Play on this device</button>
+      <p class="note">Both of you on one phone, no link needed. The board faces White; Black sits opposite and reads it upside down.</p>
       <details class="how">
         <summary>How this works</summary>
         <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
@@ -1309,7 +1313,7 @@
               <div class="setrow revopts" id="revOpts">
                 <span>Eval bar</span>
                 <button id="revBarBtn">On</button>
-                <span>Their badges</span>
+                <span id="revTheirsLabel">Their badges</span>
                 <button id="revTheirsBtn">On</button>
               </div>
               <div id="reviewBody"></div>
@@ -3001,7 +3005,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-16.15-describe';
+const VERSION = '2026-10-17.1-local';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3141,6 +3145,10 @@ async function copyText(text, button, doneLabel = 'Copied') {
 
 let game = new Chess();
 let myColor = 'w';
+/* One device, two players: the board faces White, Black sits opposite.
+   Whoever's turn it is moves; nothing is played by the engine. */
+const isLocal = () => code === 'local';
+const moverColor = () => isLocal() ? game.turn() : myColor;
 let code = null;
 let result = null;
 let selected = null;
@@ -3229,7 +3237,7 @@ function pieceSVG(type, color, cls = '') {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle') };
+  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local') };
 }
 
 /* The hash states *your own* colour, so each player holds a self-describing
@@ -3237,7 +3245,7 @@ function parseHash() {
    you're on depends on storage. */
 function setHash(colour) {
   navigating = true;          // our own write, not a jump to another game
-  location.hash = code === 'puzzle' ? 'puzzle=1'
+  location.hash = code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
     : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
     : solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
 }
@@ -3560,7 +3568,7 @@ function persist() {
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
   store.set('table:' + code, { history: game.history(), myColor, result, gameId,
-    setting: solo ? (onePiece ? oppOnly : opponent) : undefined });
+    setting: code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : undefined });
 }
 
 function restore() {
@@ -3639,7 +3647,7 @@ function recordGame() {
       id: gameId,
       v: 1,
       started: new Date().toISOString(),
-      mode: onePiece ? 'onepiece-' + oppOnly : solo ? 'engine' : 'online',
+      mode: code === 'local' ? 'local' : onePiece ? 'onepiece-' + oppOnly : solo ? 'engine' : 'online',
       color: myColor,
       moves: [], times: [], notes: [],
       opps: solo ? [] : ['Opponent'],
@@ -3723,7 +3731,7 @@ function emt(ms) {
 const NOTE_WORDS = { hint: 'hint on', coach: 'coach on', auto: 'engine played this' };
 
 function oppName(rec) {
-  if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : 'Opponent';
+  if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : rec.mode === 'local' ? 'Same device' : 'Opponent';
   return rec.opps.length === 1 ? rec.opps[0] : 'Mixed: ' + rec.opps.join(' / ');
 }
 
@@ -4165,7 +4173,7 @@ function requestHint() {
 /* In solo the engine is the opponent, so it moves when it is *not* our turn.
    With a peer, "Engine plays" hands over our own side instead. */
 function engineToMove() {
-  if (result || !code || code === 'puzzle') return false;
+  if (result || !code || code === 'puzzle' || code === 'local') return false;
   return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
 }
 
@@ -5656,6 +5664,7 @@ function draw() {
   el('autoLabel').classList.toggle('hidden', solo);
   el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
+  el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
   el('thinkRange').value = thinkMs;
@@ -5663,7 +5672,7 @@ function draw() {
   // Rated Stockfish always thinks for the same time, so the slider would only
   // mislead. Hints come from the analysis Stockfish, which has no time limit,
   // so they only need it when the table engine is standing in for it.
-  el('oppRow').classList.toggle('hidden', !solo || onePiece);     // one-piece games are always the Table engine
+  el('oppRow').classList.toggle('hidden', !solo || onePiece || isLocal());     // one-piece games are always the Table engine
   el('oppGame').value = opponent;
   el('onlyRow').classList.toggle('hidden', !onePiece);
   el('oppOnly').value = oppOnly;
@@ -5679,7 +5688,7 @@ function drawBoard() {
   const pos = ls ? ls.chess : viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
   const shownLast = ls ? ls.last : viewing ? null : lastMove;
   boardEl.classList.toggle('linemode', !!ls);
-  const myTurn = !viewing && game.turn() === myColor && !result;
+  const myTurn = !viewing && game.turn() === moverColor() && !result;
   const targets = selected && !viewing
     ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
     : {};
@@ -5709,7 +5718,7 @@ function drawBoard() {
       }
 
       const isTarget = !!targets[sq];
-      const canPick = myTurn && piece && piece.color === myColor;
+      const canPick = myTurn && piece && piece.color === moverColor();
       if (isTarget || canPick) classes.push('playable');
       if (isTarget && piece) classes.push('occupied');
 
@@ -5794,10 +5803,11 @@ function drawStatus() {
   }
 
   if (result) {
+    const W = result.winner === 'w' ? 'White' : 'Black', L = result.winner === 'w' ? 'Black' : 'White';
     if (result.type === 'resign') {
-      s.textContent = result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
+      s.textContent = isLocal() ? `${L} resigned. ${W} wins.` : result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
     } else if (result.type === 'checkmate') {
-      s.textContent = result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
+      s.textContent = isLocal() ? `Checkmate. ${W} wins.` : result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
     } else {
       s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
     }
@@ -5818,6 +5828,9 @@ function drawStatus() {
     // At long budgets an idle board is indistinguishable from a crash.
     s.textContent = engineJob && engineJob.sf && !sfReady ? 'Loading Stockfish…'
       : engineJob && engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
+    s.classList.add('urgent');
+  } else if (isLocal()) {
+    s.textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move.${game.isCheck() ? ' Check.' : ''}`;
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
@@ -6003,7 +6016,7 @@ let revBar = store.get('table:revBar') !== false;         // show the eval bar
 let revTheirs = store.get('table:revTheirs') !== false;   // show the badges on their moves
 /* Spotting their mistake yourself is part of the exercise, so their badges can
    be held back. Only while the game is on: once it ends, everything shows. */
-const theirsHidden = m => !revTheirs && !result && !!m && m.color !== myColor;
+const theirsHidden = m => !isLocal() && !revTheirs && !result && !!m && m.color !== myColor;
 let peerReview = false;
 let an = null;               // the analysis worker
 let anReady = false;
@@ -6417,7 +6430,7 @@ function reviewPending() {
 
 /* ---------- holding their reply until your badge and its own are ready ---------- */
 function setGate(m) {
-  if (!solo || !reviewActive() || m.color !== myColor) { gate = null; return; }
+  if (!solo || isLocal() || !reviewActive() || m.color !== myColor) { gate = null; return; }
   gate = { fen: game.fen(), id: moveId(m), at: Date.now(), opened: false, readyAt: 0 };
   setTimeout(checkGate, AN_GIVEUP_MS + 20);
 }
@@ -6727,9 +6740,10 @@ function newlyLoose(beforeFen, afterFen, color) {
 }
 
 function explainHTML(r) {
-  const mine = r.color === myColor;
-  const who = mine ? 'your' : 'their';
-  const Who = mine ? 'Your' : 'Their';
+  const mine = isLocal() || r.color === myColor;
+  const side = r.color === 'w' ? 'White' : 'Black';
+  const who = isLocal() ? side + '’s' : mine ? 'your' : 'their';
+  const Who = isLocal() ? side + '’s' : mine ? 'Your' : 'Their';
   const g = GRADES[r.cls];
   const foe = r.color === 'w' ? 'b' : 'w';
   const pct = x => Math.round(x) + '%';
@@ -6927,7 +6941,7 @@ function drawReview() {
     const badge = r ? badgeHTML(r.cls) : '<span class="badge g-pending">…</span>';
     const label = r ? GRADES[r.cls].label : 'checking…';
     return `<button class="revrow${revPick === i ? ' on' : ''}" data-ply="${i}">${badge}
-      <span class="rwho">${mine ? 'You' : 'They'}</span>
+      <span class="rwho">${isLocal() ? (m.color === 'w' ? 'White' : 'Black') : mine ? 'You' : 'They'}</span>
       <span class="rsan">${esc(moveLabel(i, m.san))}</span>
       <span class="rlab">${esc(label)}</span></button>`;
   };
@@ -7472,7 +7486,7 @@ function nextMoves(f, st, hist) {
   for (const k of gameKeys(hist)) { const n = book.nodes.get(k); if (n && n.name) here = n.name; }
   const ply = hist.length;
   const num = `${Math.floor(ply / 2) + 1}${ply % 2 ? '...' : '.'}`;
-  const who = game.turn() === myColor ? 'Your move' : 'Their move';
+  const who = isLocal() ? (game.turn() === 'w' ? 'White to move' : 'Black to move') : game.turn() === myColor ? 'Your move' : 'Their move';
   const list = opts.map(x => {
     const nm = moveName(f, book.nodes.get(x.k), here);
     return `<span class="omv"><b>${esc(sanOf(game.fen(), x.u))}</b>${nm ? ` <i>${esc(nm)}</i>` : ''}</span>`;
@@ -8003,7 +8017,7 @@ el('coachBody').addEventListener('toggle', e => {
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
-    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : onePiece ? 'one-piece' : 'practice';
+    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
     return;
@@ -8047,7 +8061,7 @@ function pick(sq) {
      readout come up together and the second tap still plays the move. Only a
      tap that actually plays a move skips the readout, and that one clears it. */
   const piece = game.get(sq);
-  selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
+  selected = (piece && piece.color === moverColor() && game.turn() === moverColor() && sq !== selected) ? sq : null;
   inspect(sq);
   drawBoard();
   drawCoach();
@@ -8072,7 +8086,7 @@ function askPromotion(from, to) {
   overlay.className = 'promo';
   overlay.innerHTML =
     '<div class="promo-box"><p>Promote to</p><div class="promo-row">' +
-    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, myColor)}</button>`).join('') +
+    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, moverColor())}</button>`).join('') +
     '</div></div>';
   overlay.addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -8209,6 +8223,14 @@ el('oneBtn').onclick = () => {
   begin();
 };
 
+el('localBtn').onclick = () => {
+  solo = true;
+  code = 'local';
+  myColor = 'w';
+  setHash('w');
+  begin();          // an unfinished game on this device carries on; a finished one shows its result, with New game
+};
+
 el('pzBtn').onclick = () => {
   solo = true;
   code = 'puzzle';
@@ -8251,14 +8273,16 @@ el('copyBtn').onclick = async () => {
 };
 
 function resign() {
-  result = { type: 'resign', winner: myColor === 'w' ? 'b' : 'w' };
+  // on one device it's the side to move that resigns
+  const loser = isLocal() ? game.turn() : myColor;
+  result = { type: 'resign', winner: loser === 'w' ? 'b' : 'w' };
   broadcast({ t: 'resign', by: myColor });
   persist();
   draw();
 }
 
 function rematch() {
-  const next = myColor === 'w' ? 'b' : 'w';
+  const next = isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w';     // one device: the board keeps facing White
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
 }
@@ -8271,10 +8295,10 @@ el('resignBtn').onclick = async () => {
   ];
   // Against the engine there's nobody to agree a rematch with, so offer the
   // restart in the same step.
-  if (solo) actions.push({ label: 'Resign & rematch', value: 'again', kind: 'danger' });
+  if (solo) actions.push({ label: isLocal() ? 'Resign & new game' : 'Resign & rematch', value: 'again', kind: 'danger' });
   const choice = await openModal({
-    title: 'Resign?',
-    body: solo
+    title: isLocal() ? `${game.turn() === 'w' ? 'White' : 'Black'} resigns?` : 'Resign?',
+    body: isLocal() ? '<p>The side to move resigns. The game is saved to your games.</p>' : solo
       ? '<p>The game is saved to your games as a loss either way. A rematch swaps colours.</p>'
       : '<p>They’ll be told straight away. The game is saved to your games as a loss.</p>',
     actions
@@ -8291,7 +8315,7 @@ el('takebackBtn').onclick = () => {
 
   if (solo) {                    // no one to ask
     const hist = game.history();
-    const drop = Math.min(game.turn() === myColor ? 2 : 1, hist.length);
+    const drop = Math.min(isLocal() ? 1 : game.turn() === myColor ? 2 : 1, hist.length);
     adopt(hist.slice(0, hist.length - drop), null, true);
     return;
   }
@@ -9093,6 +9117,7 @@ function begin() {
   el('diagSlot').appendChild(el('verBtn'));
   el('diagSlot').appendChild(el('debugPanel'));
   if (code === 'puzzle') activeTab = 'puzzle';
+  document.body.classList.toggle('localmode', code === 'local');
   showTab(activeTab);
   if (code !== 'puzzle') restore();
   if (!solo) {
@@ -9104,8 +9129,13 @@ function begin() {
   if (code === 'puzzle') pzStart();
 }
 
-const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash } = parseHash();
-if (puzzleHash) {
+const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash } = parseHash();
+if (localHash) {
+  solo = true;
+  code = 'local';
+  myColor = 'w';
+  begin();
+} else if (puzzleHash) {
   solo = true;
   code = 'puzzle';
   begin();
