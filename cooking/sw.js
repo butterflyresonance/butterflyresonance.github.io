@@ -5,7 +5,7 @@
    Network first: when online you always get the newest recipe. Every page you
    open is also kept, and used when the network fails, so recipes you have
    opened before still work offline. */
-const CACHE = 'cooking-v1';
+const CACHE = 'cooking-v2';
 
 const CORE = [
   './',
@@ -19,7 +19,8 @@ const CORE = [
   'rissoles-and-mash/',
   'fried-rice/',
   'butter-chicken/',
-  'meatballs/'
+  'meatballs/',
+  'soy-noodles/'
 ];
 
 self.addEventListener('install', event => {
