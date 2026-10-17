@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cooking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #f2f4f6; --surface: #ffffff; --ink: #1b2129; --muted: #5b6573;
+  --line: #d8dde4; --accent: #2c4a7c; --accent-soft: #e3e9f3;
+  --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+    --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
+  --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; padding-top: env(safe-area-inset-top, 0px); }
+.wrap { max-width: 680px; margin: 0 auto; padding: 28px 18px 64px; display: flex; flex-direction: column; gap: 28px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 2.1rem; line-height: 1.15; margin: 0; letter-spacing: 0.01em; }
+.sub { color: var(--muted); margin: 6px 0 0; }
+.back { display: inline-block; color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 14px; }
+.back:hover { text-decoration: underline; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.list a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; color: inherit; text-decoration: none; transition: border-color .15s; }
+.list a:hover { border-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.name { display: block; font-family: var(--display); font-weight: 800; font-size: 1.3rem; }
+.list a:hover .name { color: var(--accent); }
+.what { display: block; color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+.tag { display: inline-block; margin-top: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; }
+@media (max-width: 420px) { h1 { font-size: 1.8rem; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="../">← Projects</a>
+    <h1>Cooking</h1>
+    <p class="sub">What do you feel like?</p>
+  </header>
+  <ul class="list">
+    <li><a href="duck-ramen/">
+      <span class="name">Duck breast ramen</span>
+      <span class="what">Crisp-skinned duck breast, soft eggs and noodles in a rich shiitake and duck-fat broth.</span>
+      <span class="tag">Main · about 1 hour</span>
+    </a></li>
+    <li><a href="mash-potato/">
+      <span class="name">Mash potato</span>
+      <span class="what">Smooth, riced, very buttery mash, in the style of Joël Robuchon.</span>
+      <span class="tag">Side · about 35 min</span>
+    </a></li>
+  </ul>
+</div>
+</body>
+</html>
