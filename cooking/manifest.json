@@ -1,0 +1,19 @@
+{
+  "id": "/cooking/",
+  "name": "Cooking — family recipes",
+  "short_name": "Cooking",
+  "description": "Family recipes with adjustable servings and kitchen timers.",
+  "start_url": "/cooking/",
+  "scope": "/cooking/",
+  "display": "standalone",
+  "background_color": "#f2f4f6",
+  "theme_color": "#2c4a7c",
+  "lang": "en",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

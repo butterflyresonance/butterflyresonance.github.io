@@ -15,7 +15,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName.startsWith('attune-') && cacheName !== CACHE_NAME) { // only attune's own caches; the site shares one cache store with Étude and Cooking
                         console.log('Attune SW: Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }

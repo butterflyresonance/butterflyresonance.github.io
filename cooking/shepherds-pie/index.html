@@ -111,6 +111,15 @@ section { display: flex; flex-direction: column; gap: 14px; }
   .ing li { grid-template-columns: 6.2rem 1fr; }
 }
 </style>
+<!-- installable as its own app: manifest.json and sw.js live in /cooking/, so it is separate from Étude and attune -->
+<link rel="manifest" href="/cooking/manifest.json">
+<meta name="theme-color" content="#2c4a7c">
+<link rel="icon" href="/cooking/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/cooking/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cooking">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
 
@@ -407,6 +416,11 @@ section { display: flex; flex-direction: column; gap: 14px; }
   render();
   setInterval(tick, 250);
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('/cooking/sw.js', { scope: '/cooking/' }).catch(() => {});
+}
 </script>
 </body>
 </html>
