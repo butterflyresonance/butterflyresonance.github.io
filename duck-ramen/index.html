@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: one narrow kitchen column — adults control, ingredients, steps with timers, then a quiet end section; running timers pinned to the bottom */
+/* Layout: one narrow kitchen column — mode tabs, quantity control, ingredients, steps with timers, then a quiet end section; running timers pinned to the bottom */
 :root {
   --bg: #f2f4f6;
   --surface: #ffffff;
@@ -15,7 +15,6 @@
   --accent-soft: #e3e9f3;
   --on-accent: #ffffff;
   --alarm: #b3261e;
-  --alarm-soft: #fbe4e2;
   --done: #8a929d;
   --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
   --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -24,32 +23,39 @@
   :root:not([data-theme="light"]) {
     --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
     --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
-    --alarm: #ff8a80; --alarm-soft: #3a1d1c; --done: #6b7583;
+    --alarm: #ff8a80; --done: #6b7583;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa4b2;
   --line: #2c3440; --accent: #8fb0e8; --accent-soft: #1f2b3d; --on-accent: #0f1620;
-  --alarm: #ff8a80; --alarm-soft: #3a1d1c; --done: #6b7583;
+  --alarm: #ff8a80; --done: #6b7583;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
-.wrap { max-width: 680px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 120px; display: flex; flex-direction: column; gap: 36px; }
-h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+.wrap { max-width: 680px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 120px; display: flex; flex-direction: column; gap: 32px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
 h1 { font-size: 2.1rem; font-weight: 800; line-height: 1.15; }
 h2 { font-size: 1.35rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
 .sub { color: var(--muted); margin: 6px 0 0; }
 .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.tabs button { appearance: none; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--ink); font-family: var(--body); font-size: 0.92rem; font-weight: 500; padding: 12px 8px; cursor: pointer; line-height: 1.25; min-height: 52px; }
+.tabs button:first-child { border-left: 0; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.tabs small { display: block; font-size: 0.75rem; font-weight: 400; opacity: 0.8; }
 
 .control { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .stepper { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .stepper button { appearance: none; border: 0; background: var(--accent-soft); color: var(--accent); font-size: 1.4rem; width: 48px; height: 48px; cursor: pointer; font-family: var(--body); }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .stepper input { width: 64px; height: 48px; border: 0; text-align: center; font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink); font-family: var(--body); -moz-appearance: textfield; }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.control-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.control-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
 .control-text strong { font-size: 1.05rem; }
 .control-text span { color: var(--muted); font-size: 0.9rem; }
 
@@ -60,8 +66,11 @@ section { display: flex; flex-direction: column; gap: 14px; }
 .ing .name { min-width: 0; }
 .ing .opt { color: var(--muted); font-weight: 400; }
 .ing .note { display: block; color: var(--muted); font-size: 0.88rem; }
-.group { margin-top: 10px; }
+.groups { display: flex; flex-direction: column; gap: 18px; }
 
+.stepgroups { display: flex; flex-direction: column; gap: 22px; }
+.stepgroup { display: flex; flex-direction: column; gap: 10px; }
+.stepgroup .gnote { margin: 0; color: var(--muted); font-size: 0.92rem; }
 .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; scroll-margin-top: 16px; scroll-margin-bottom: 110px; }
 .steps input[type="checkbox"] { width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--accent); cursor: pointer; }
@@ -82,10 +91,8 @@ section { display: flex; flex-direction: column; gap: 14px; }
 .timer .go .what { font-size: 0.85rem; }
 .timer .reset { appearance: none; border: 0; border-left: 1px solid var(--accent); background: var(--surface); color: var(--accent); font-family: var(--body); font-size: 0.8rem; padding: 0 10px; cursor: pointer; }
 .timer.running .go { background: var(--accent); color: var(--on-accent); }
-.timer.ringing { border-color: var(--alarm); }
-.timer.ringing .go { background: var(--alarm); color: var(--surface); animation: pulse 1s ease-in-out infinite; }
-.timer.ringing { cursor: pointer; }
-.timer.ringing .go { padding-inline: 16px; }
+.timer.ringing { border-color: var(--alarm); cursor: pointer; }
+.timer.ringing .go { background: var(--alarm); color: var(--surface); padding-inline: 16px; animation: pulse 1s ease-in-out infinite; }
 .timer.ringing .reset { display: none; }
 @keyframes pulse { 50% { opacity: 0.65; } }
 
@@ -108,25 +115,32 @@ section { display: flex; flex-direction: column; gap: 14px; }
 @media (max-width: 420px) {
   h1 { font-size: 1.8rem; }
   .ing li { grid-template-columns: 6.2rem 1fr; }
+  .tabs button { font-size: 0.85rem; padding-inline: 4px; }
 }
 </style>
 
 <div class="wrap">
   <header>
-    <div class="label">Umami stack · alcohol-free</div>
+    <div class="label" id="kicker">Umami stack · alcohol-free</div>
     <h1>Duck Breast Ramen</h1>
-    <p class="sub">Seared duck, soy broth with the duck fat kept in, ramen noodles, soft egg. One whole duck breast per person.</p>
+    <p class="sub" id="sub"></p>
   </header>
+
+  <div class="tabs" role="tablist" aria-label="How you are cooking">
+    <button type="button" role="tab" id="tab-scratch" data-mode="scratch">From scratch<small>all in one go</small></button>
+    <button type="button" role="tab" id="tab-batch" data-mode="batch">Batch day<small>make &amp; freeze broth</small></button>
+    <button type="button" role="tab" id="tab-cook" data-mode="cook">Cook night<small>from the batch</small></button>
+  </div>
 
   <div class="control">
     <div class="control-text">
-      <strong>Number of adults</strong>
-      <span>Every amount below updates.</span>
+      <strong id="qtyLabel">Number of adults</strong>
+      <span id="qtyHint">Every amount below updates.</span>
     </div>
     <div class="stepper">
-      <button type="button" id="minus" aria-label="One fewer adult">−</button>
-      <input id="adults" type="number" min="1" max="20" value="2" inputmode="numeric" aria-label="Number of adults">
-      <button type="button" id="plus" aria-label="One more adult">+</button>
+      <button type="button" id="minus" aria-label="One fewer">−</button>
+      <input id="qty" type="number" min="1" max="40" value="2" inputmode="numeric" aria-label="Quantity">
+      <button type="button" id="plus" aria-label="One more">+</button>
     </div>
   </div>
 
@@ -134,24 +148,13 @@ section { display: flex; flex-direction: column; gap: 14px; }
 
   <section>
     <h2>Ingredients</h2>
-    <div>
-      <div class="label">Duck, noodles, eggs</div>
-      <ul class="ing" id="ingMain"></ul>
-    </div>
-    <div class="group">
-      <div class="label">Broth</div>
-      <ul class="ing" id="ingBroth"></ul>
-    </div>
-    <div class="group">
-      <div class="label">To finish</div>
-      <ul class="ing" id="ingFinish"></ul>
-    </div>
+    <div class="groups" id="groups"></div>
   </section>
 
   <section>
     <h2>Method</h2>
     <p class="sub" style="margin:0">Tap a timer to start it, tap again to pause. Running timers stay pinned to the bottom of the screen.</p>
-    <ol class="steps" id="steps"></ol>
+    <div class="stepgroups" id="steps"></div>
   </section>
 
   <section>
@@ -170,18 +173,27 @@ section { display: flex; flex-direction: column; gap: 14px; }
 
 <script>
 (function () {
-  const adultsEl = document.getElementById('adults');
+  const qtyEl = document.getElementById('qty');
   const alcEl = document.getElementById('alcohol');
+  const state = { mode: 'scratch', adults: 2, portions: 8 };
+  const checked = {};
 
   // ---------- Timers ----------
   const timers = {
-    soak:   { label: 'Shiitake soak', what: 'Soak', secs: 25 * 60, step: 0 },
-    rest:   { label: 'Duck rest', what: 'Room temp', secs: 15 * 60, step: 1 },
-    egg:    { label: 'Eggs', what: 'Boil', secs: 6 * 60 + 45, step: 2 },
-    skin:   { label: 'Duck skin side', what: 'Skin side', secs: 8 * 60, step: 3 },
-    flip:   { label: 'Duck flipped', what: 'After flip', secs: 3 * 60 + 30, step: 3 },
-    simmer: { label: 'Broth simmer', what: 'Simmer', secs: 15 * 60, step: 4 },
-    noodle: { label: 'Noodles', what: 'Fresh noodles', secs: 60, step: 6 }
+    soak:    { mode: 'scratch', label: 'Shiitake soak', what: 'Soak', secs: 25 * 60 },
+    rest:    { mode: 'scratch', label: 'Duck rest', what: 'Room temp', secs: 15 * 60 },
+    egg:     { mode: 'scratch', label: 'Eggs', what: 'Boil', secs: 405 },
+    skin:    { mode: 'scratch', label: 'Duck skin side', what: 'Skin side', secs: 8 * 60 },
+    flip:    { mode: 'scratch', label: 'Duck flipped', what: 'After flip', secs: 210 },
+    simmer:  { mode: 'scratch', label: 'Broth simmer', what: 'Simmer', secs: 15 * 60 },
+    noodle:  { mode: 'scratch', label: 'Noodles', what: 'Fresh noodles', secs: 60 },
+    bsoak:   { mode: 'batch', label: 'Shiitake soak', what: 'Soak', secs: 15 * 60 },
+    bsimmer: { mode: 'batch', label: 'Batch simmer', what: 'Simmer', secs: 15 * 60 },
+    cegg:    { mode: 'cook', label: 'Eggs', what: 'Boil', secs: 405 },
+    cskin:   { mode: 'cook', label: 'Duck skin side', what: 'Skin side', secs: 9 * 60 },
+    cflip:   { mode: 'cook', label: 'Duck flipped', what: 'After flip', secs: 210 },
+    crest:   { mode: 'cook', label: 'Duck rest', what: 'Rest', secs: 5 * 60 },
+    cnoodle: { mode: 'cook', label: 'Noodles', what: 'Fresh noodles', secs: 60 }
   };
   for (const k in timers) Object.assign(timers[k], { remaining: timers[k].secs, endAt: 0, running: false, ringing: false, started: false });
 
@@ -254,8 +266,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
         t.label + ': ' + (t.ringing ? 'done, tap to stop' : t.running ? 'running, tap to pause' : 'tap to start'));
     });
     const active = Object.entries(timers).filter(([, t]) => t.started || t.ringing);
-    const dock = document.getElementById('dock');
-    dock.hidden = active.length === 0;
+    document.getElementById('dock').hidden = active.length === 0;
     document.getElementById('dockInner').innerHTML = active.map(([k, t]) =>
       '<button type="button" class="chip' + (t.ringing ? ' ringing' : t.running ? '' : ' paused') + '" data-chip="' + k + '">' +
       '<span>' + t.label + '</span><span class="clock">' + (t.ringing ? 'Done · tap to stop' : fmt(left(t)) + (t.running ? '' : ' ⏸')) + '</span></button>').join('');
@@ -264,86 +275,43 @@ section { display: flex; flex-direction: column; gap: 14px; }
   document.getElementById('dockInner').addEventListener('click', e => {
     const chip = e.target.closest('[data-chip]');
     if (!chip) return;
-    const t = timers[chip.dataset.chip];
-    if (t.ringing) { resetTimer(chip.dataset.chip); return; }
-    const li = document.querySelectorAll('#steps > li')[t.step];
-    if (li) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const k = chip.dataset.chip, t = timers[k];
+    if (t.ringing) { resetTimer(k); return; }
+    if (t.mode !== state.mode) setMode(t.mode);
+    const el = document.querySelector('.timer[data-timer="' + k + '"]');
+    if (el) el.closest('li').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
   // ---------- Amounts ----------
   function frac(x) {
     const q = Math.round(x * 4) / 4;
     if (q <= 0) return '¼';
-    const whole = Math.floor(q);
-    const rem = q - whole;
+    const w = Math.floor(q), rem = q - w;
     const f = rem === 0.25 ? '¼' : rem === 0.5 ? '½' : rem === 0.75 ? '¾' : '';
-    if (whole === 0) return f;
-    return whole + (f ? ' ' + f : '');
+    if (w === 0) return f;
+    return w + (f ? ' ' + f : '');
   }
   function halfUp(x) { return frac(Math.max(0.5, Math.round(x * 2) / 2)); }
   function whole(x) { return Math.max(1, Math.round(x)); }
   function ml(x) { return Math.round(x / 25) * 25; }
   function cups(x) { return frac(x / 250); }
   function spoons(tsp) { return tsp >= 3 ? frac(tsp / 3) + ' tbsp' : frac(tsp) + ' tsp'; }
+  function pl(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  const b = s => '<span class="b">' + s + '</span>';
+  const TAMARI = 'tamari (or soy sauce)';
 
-  function render() {
-    let n = parseInt(adultsEl.value, 10);
-    if (!Number.isFinite(n) || n < 1) n = 1;
-    if (n > 20) n = 20;
-    const alc = alcEl.checked;
-    document.getElementById('altBanner').hidden = !alc;
-
+  // ---------- From scratch ----------
+  function scratch(n, alc) {
     const stock = ml(375 * n);
     const soak = ml(Math.max(125, 60 * n));
     const pans = n <= 2 ? 'one pan' : 'batches of 2 breasts (or two pans)';
-
-    // [amount, name, optional?, note]
-    const main = [
-      [whole(n), 'duck breasts', false, ''],
-      [Math.round(150 * n) + ' g', 'fresh ramen noodles', false, 'or ' + Math.round(100 * n) + ' g dried'],
-      [whole(n), 'eggs', false, ''],
-      ['', 'salt and white pepper', false, 'a good pinch of each per breast']
-    ];
-    const broth = [
-      [stock + ' ml', 'unseasoned chicken or dashi stock', false, 'about ' + cups(stock) + ' cups. Plain, not seasoned or bone broth.'],
-      [spoons(3.75 * n), 'tamari or soy sauce', false, 'check the label: choose one with no alcohol listed']
-    ];
-    if (alc) {
-      broth.push([spoons(3 * n), 'mirin', false, '']);
-      broth.push([spoons(2.25 * n), 'sake (or dry sherry)', false, '']);
-    } else {
-      broth.push([spoons(1.4 * n), 'rice malt syrup', false, 'or ' + spoons(1.125 * n) + ' white sugar']);
-      broth.push([spoons(0.25 * n), 'rice wine vinegar', false, 'or the same amount of fresh lime juice']);
-    }
-    broth.push(
-      [spoons(0.25 * n), 'fish sauce', false, ''],
-      [halfUp(0.25 * n), 'thumb-sized pieces of ginger', false, 'thinly sliced'],
-      [halfUp(0.75 * n), 'garlic cloves', false, 'smashed'],
-      [halfUp(1.5 * n), 'dried shiitake mushrooms', true, 'plus ' + soak + ' ml warm water or stock to soak them in'],
-      [spoons(0.5 * n), 'powdered gelatin', true, 'gives a silky mouthfeel']
-    );
-    const finish = [
-      [spoons(0.375 * n), 'sesame oil', false, ''],
-      [whole(n), 'spring onions', false, 'sold as "shallots" at Coles. Sliced thin, white and green parts.'],
-      ['', 'extras', true, 'nori, chilli oil, toasted sesame seeds, blanched pak choi']
-    ];
-
-    function fill(id, rows) {
-      document.getElementById(id).innerHTML = rows.map(r =>
-        '<li><span class="amt">' + r[0] + '</span><span class="name">' + r[1] +
-        (r[2] ? ' <span class="opt">(optional)</span>' : '') +
-        (r[3] ? '<span class="note">' + r[3] + '</span>' : '') + '</span></li>').join('');
-    }
-    fill('ingMain', main); fill('ingBroth', broth); fill('ingFinish', finish);
-
-    // Amounts reused in the method text
     const A = {
-      duck: whole(n) + (whole(n) === 1 ? ' duck breast' : ' duck breasts'),
-      egg: whole(n) + (whole(n) === 1 ? ' egg' : ' eggs'),
+      duck: pl(whole(n), 'duck breast', 'duck breasts'),
+      egg: pl(whole(n), 'egg', 'eggs'),
       noodles: Math.round(150 * n) + ' g fresh ramen noodles (or ' + Math.round(100 * n) + ' g dried)',
       stock: stock + ' ml stock',
       shiitake: halfUp(1.5 * n) + ' dried shiitake',
-      tamari: spoons(3.75 * n) + ' tamari',
+      tamari: spoons(3.75 * n) + ' ' + TAMARI,
       malt: spoons(1.4 * n) + ' rice malt syrup (or ' + spoons(1.125 * n) + ' sugar)',
       vinegar: spoons(0.25 * n) + ' rice wine vinegar (or lime juice)',
       mirin: spoons(3 * n) + ' mirin',
@@ -353,61 +321,274 @@ section { display: flex; flex-direction: column; gap: 14px; }
       garlic: halfUp(0.75 * n) + ' garlic clove' + (0.75 * n > 1.25 ? 's' : '') + ', smashed',
       gelatin: spoons(0.5 * n) + ' gelatin',
       sesame: spoons(0.375 * n) + ' sesame oil',
-      spring: whole(n) + ' spring onion' + (whole(n) === 1 ? '' : 's') + ', sliced'
+      spring: pl(whole(n), 'spring onion', 'spring onions') + ', sliced'
     };
-    const b = s => '<span class="b">' + s + '</span>';
+    const broth = [
+      [stock + ' ml', 'unseasoned chicken or dashi stock', false, 'about ' + cups(stock) + ' cups. Plain, not seasoned or bone broth.'],
+      [spoons(3.75 * n), TAMARI, false, 'check the label: choose one with no alcohol listed']
+    ];
+    if (alc) {
+      broth.push([spoons(3 * n), 'mirin', false, ''], [spoons(2.25 * n), 'sake (or dry sherry)', false, '']);
+    } else {
+      broth.push([spoons(1.4 * n), 'rice malt syrup', false, 'or ' + spoons(1.125 * n) + ' white sugar'],
+                 [spoons(0.25 * n), 'rice wine vinegar', false, 'or the same amount of fresh lime juice']);
+    }
+    broth.push(
+      [spoons(0.25 * n), 'fish sauce', false, ''],
+      [halfUp(0.25 * n), 'thumb-sized pieces of ginger', false, 'thinly sliced'],
+      [halfUp(0.75 * n), 'garlic cloves', false, 'smashed'],
+      [halfUp(1.5 * n), 'dried shiitake mushrooms', true, 'plus ' + soak + ' ml warm water or stock to soak them in'],
+      [spoons(0.5 * n), 'powdered gelatin', true, 'gives a silky mouthfeel']
+    );
     const seasonAdd = alc
       ? b(A.tamari) + ', ' + b(A.mirin) + ', ' + b(A.sake) + ' and ' + b(A.fish)
       : b(A.tamari) + ', ' + b(A.malt) + ' and ' + b(A.fish) + '. Stir until the syrup dissolves';
     const finishAcid = alc ? '' : ' Stir in the ' + b(A.vinegar) + '.';
+    return {
+      kicker: 'From scratch',
+      sub: 'Everything in one session, about an hour. One whole duck breast per person.',
+      qtyLabel: 'Number of adults', qtyHint: 'Every amount below updates.',
+      groups: [
+        { label: 'Duck, noodles, eggs', rows: [
+          [whole(n), 'duck breasts', false, ''],
+          [Math.round(150 * n) + ' g', 'fresh ramen noodles', false, 'or ' + Math.round(100 * n) + ' g dried'],
+          [whole(n), 'eggs', false, ''],
+          ['', 'salt and white pepper', false, 'a good pinch of each per breast']
+        ]},
+        { label: 'Broth', rows: broth },
+        { label: 'To finish', rows: [
+          [spoons(0.375 * n), 'sesame oil', false, ''],
+          [whole(n), 'spring onions', false, 'sold as "shallots" at Coles. Sliced thin, white and green parts.'],
+          ['', 'extras', true, 'nori, chilli oil, toasted sesame seeds, blanched pak choi']
+        ]}
+      ],
+      steps: [{ items: [
+        ['Soak the shiitake (optional)', '25 min',
+          'Skip this step if you are not using shiitake. Put ' + b(A.shiitake) + ' in a bowl with ' + soak + ' ml warm water or stock. Soak until soft. Squeeze them gently over the bowl, cut off the stems, and keep the soaking liquid.', ['soak']],
+        ['Score and season the duck', '15 min',
+          'Pat ' + b(A.duck) + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Season both sides with salt and white pepper. Leave at room temperature for 15 minutes.', ['rest']],
+        ['Boil the eggs', '6¾ min',
+          'Lower ' + b(A.egg) + ' into boiling water and start the timer. When it goes off, move them straight into iced water. Peel and halve when cool. You can do this hours ahead.', ['egg']],
+        ['Render the duck', '8 + 3½ min',
+          'Use ' + pans + '. Put the duck skin-side down in a cold stainless pan, turn the heat to medium, and start the skin-side timer. Do not move it. When it goes off the skin should be golden; flip and start the second timer (medium, pink inside). Rest the duck on a board. Pour all the fat into a jug. For another batch, reset both timers.', ['skin', 'flip']],
+        ['Build the broth', '15 min',
+          'Put about 2 tbsp of the duck fat in your biggest pot over medium heat. Fry ' + b(A.ginger) + ' and ' + b(A.garlic) + ' for 1 minute. Add ' + b(A.stock) + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using gelatin, sprinkle ' + b(A.gelatin) + ' over and stir until dissolved. Simmer gently for 15 minutes.' + finishAcid, ['simmer']],
+        ['Add the duck fat and taste', '',
+          'Add the rest of the duck fat a little at a time, tasting as you go. Stop if it pools oily on the surface; keep any leftover fat for roast potatoes. Too salty: add a splash of stock or water. Flat: add a little more tamari (or soy sauce). Strain out the ginger and garlic. If using shiitake, lift them out and slice them. Stir in ' + b(A.sesame) + ' and keep the broth at a simmer.', []],
+        ['Cook the noodles in the broth', '1 min',
+          'Slice each duck breast across the grain and have the bowls ready. Drop ' + b(A.noodles) + ' straight into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.', ['noodle']],
+        ['Assemble', '',
+          'Lift the noodles into the bowls with tongs and ladle the broth over. Lay one whole sliced duck breast on each bowl. Add two egg halves, the sliced shiitake if using, and scatter ' + b(A.spring) + ' on top.', []]
+      ]}],
+      tips: [
+        'Not gluten free (ramen noodles, soy sauce). For gluten free, use rice noodles with tamari.',
+        'Homegrown dried shiitake give a deeper, smokier broth than shop-bought ones.'
+      ]
+    };
+  }
 
-    // [title, time label, text, timer ids]
-    const steps = [
-      ['Soak the shiitake (optional)', '25 min',
-        'Skip this step if you are not using shiitake. Put ' + b(A.shiitake) + ' in a bowl with ' + soak + ' ml warm water or stock. Soak until soft. Squeeze them gently over the bowl, cut off the stems, and keep the soaking liquid.',
-        ['soak']],
-      ['Score and season the duck', '15 min',
-        'Pat ' + b(A.duck) + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Season both sides with salt and white pepper. Leave at room temperature for 15 minutes.',
-        ['rest']],
-      ['Boil the eggs', '6¾ min',
-        'Lower ' + b(A.egg) + ' into boiling water and start the timer. When it goes off, move them straight into iced water. Peel and halve when cool. You can do this hours ahead.',
-        ['egg']],
-      ['Render the duck', '8 + 3½ min',
-        'Use ' + pans + '. Put the duck skin-side down in a cold stainless pan, turn the heat to medium, and start the skin-side timer. Do not move it. When it goes off the skin should be golden; flip and start the second timer (medium, pink inside). Rest the duck on a board. Pour all the fat into a jug. For another batch, reset both timers.',
-        ['skin', 'flip']],
-      ['Build the broth', '15 min',
-        'Put about 2 tbsp of the duck fat in your biggest pot over medium heat. Fry ' + b(A.ginger) + ' and ' + b(A.garlic) + ' for 1 minute. Add ' + b(A.stock) + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using gelatin, sprinkle ' + b(A.gelatin) + ' it over and stir until dissolved. Simmer gently for 15 minutes.' + finishAcid,
-        ['simmer']],
-      ['Add the duck fat and taste', '',
-        'Add the rest of the duck fat a little at a time, tasting as you go. Stop if it pools oily on the surface; keep any leftover fat for roast potatoes. Too salty: add a splash of stock or water. Flat: add a little more tamari. Strain out the ginger and garlic. If using shiitake, lift them out and slice them. Stir in ' + b(A.sesame) + ' and keep the broth at a simmer.',
-        []],
-      ['Cook the noodles in the broth', '1 min',
-        'Slice each duck breast across the grain and have the bowls ready. Drop ' + b(A.noodles) + ' straight into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.',
-        ['noodle']],
-      ['Assemble', '',
-        'Lift the noodles into the bowls with tongs and ladle the broth over. Lay one whole sliced duck breast on each bowl. Add two egg halves, the sliced shiitake if using, and scatter ' + b(A.spring) + ' on top.',
-        []]
+  // ---------- Batch day: make and freeze broth ----------
+  function batch(p, alc) {
+    const stock = ml(375 * p);
+    const soak = ml(Math.max(125, 60 * p));
+    const per = ml(400);
+    const A = {
+      shiitake: halfUp(1.5 * p) + ' dried shiitake',
+      oil: spoons(Math.max(3, 0.75 * p)) + ' neutral oil',
+      stock: stock + ' ml stock',
+      tamari: spoons(3.75 * p) + ' ' + TAMARI,
+      malt: spoons(1.4 * p) + ' rice malt syrup (or ' + spoons(1.125 * p) + ' sugar)',
+      mirin: spoons(3 * p) + ' mirin',
+      sake: spoons(2.25 * p) + ' sake',
+      fish: spoons(0.25 * p) + ' fish sauce',
+      ginger: halfUp(0.25 * p) + ' thumb' + (0.25 * p > 1.25 ? 's' : '') + ' of ginger, sliced',
+      garlic: halfUp(0.75 * p) + ' garlic clove' + (0.75 * p > 1.25 ? 's' : '') + ', smashed',
+      gelatin: spoons(0.5 * p) + ' gelatin'
+    };
+    const rows = [
+      [stock + ' ml', 'unseasoned chicken or dashi stock', false, 'about ' + cups(stock) + ' cups. Plain, not seasoned or bone broth.'],
+      [spoons(3.75 * p), TAMARI, false, 'check the label: choose one with no alcohol listed']
     ];
-    const prev = Array.from(document.querySelectorAll('#steps input')).map(c => c.checked);
-    document.getElementById('steps').innerHTML = steps.map((s, i) =>
-      '<li' + (prev[i] ? ' class="done"' : '') + '><input type="checkbox" id="step' + i + '" aria-label="Mark step done: ' + s[0] + '"' + (prev[i] ? ' checked' : '') + '>' +
-      '<div class="body"><div class="head"><strong>' + (i + 1) + '. ' + s[0] + '</strong>' +
-      (s[1] ? '<span class="time">' + s[1] + '</span>' : '') + '</div><p>' + s[2] + '</p>' +
-      (s[3].length ? '<div class="timers">' + s[3].map(id =>
-        '<div class="timer" data-timer="' + id + '"><button type="button" class="go"><span class="clock"></span><span class="what">' + timers[id].what + '</span></button>' +
-        '<button type="button" class="reset" aria-label="Reset ' + timers[id].label + ' timer">Reset</button></div>').join('') + '</div>' : '') +
-      '</div></li>').join('');
+    if (alc) rows.push([spoons(3 * p), 'mirin', false, ''], [spoons(2.25 * p), 'sake (or dry sherry)', false, '']);
+    else rows.push([spoons(1.4 * p), 'rice malt syrup', false, 'or ' + spoons(1.125 * p) + ' white sugar']);
+    rows.push(
+      [spoons(0.25 * p), 'fish sauce', false, ''],
+      [halfUp(0.25 * p), 'thumb-sized pieces of ginger', false, 'thinly sliced'],
+      [halfUp(0.75 * p), 'garlic cloves', false, 'smashed'],
+      [spoons(Math.max(3, 0.75 * p)), 'neutral oil', false, 'canola, rice bran or vegetable. Stands in for the duck fat.'],
+      [halfUp(1.5 * p), 'dried shiitake mushrooms', true, 'plus ' + soak + ' ml just-boiled water to soak them in'],
+      [spoons(0.5 * p), 'powdered gelatin', true, 'gives a silky mouthfeel']
+    );
+    const seasonAdd = alc
+      ? b(A.tamari) + ', ' + b(A.mirin) + ', ' + b(A.sake) + ' and ' + b(A.fish)
+      : b(A.tamari) + ', ' + b(A.malt) + ' and ' + b(A.fish) + '. Stir until the syrup dissolves';
+    return {
+      kicker: 'Batch day · broth for the freezer',
+      sub: 'Makes the seasoned broth only. The duck fat, sesame oil and vinegar go in fresh on cook night. About 45 minutes, mostly hands-off.',
+      qtyLabel: 'Portions of broth to make', qtyHint: '1 portion = 1 adult. Every amount below updates.',
+      groups: [
+        { label: 'Broth', rows: rows },
+        { label: 'Equipment', rows: [
+          [p >= 6 ? 'large' : 'medium', 'stockpot with a lid', false, ''],
+          ['', 'freezer containers or ziplock bags', false, 'enough for ' + pl(p, 'portion', 'portions') + ' at about 400 ml each, plus a marker for labels']
+        ]}
+      ],
+      steps: [{ items: [
+        ['Soak the shiitake (optional)', '15 min',
+          'Skip this step if you are not using shiitake. Put ' + b(A.shiitake) + ' in a heatproof bowl and cover with ' + soak + ' ml just-boiled water from the kettle. Soak until soft. Squeeze them over the bowl, cut off the stems, and keep the soaking liquid.', ['bsoak']],
+        ['Fry the aromatics', '1 min',
+          'Heat ' + b(A.oil) + ' in the stockpot over medium heat. Fry ' + b(A.ginger) + ' and ' + b(A.garlic) + ' for 1 minute, until fragrant.', []],
+        ['Season and simmer', '15 min',
+          'Add ' + b(A.stock) + ', then ' + seasonAdd + '. If using shiitake, add the soaking liquid and the mushrooms. If using gelatin, sprinkle ' + b(A.gelatin) + ' over and stir until dissolved. Put the lid on and turn the heat to high. When it boils, turn it down to a gentle simmer and start the timer.', ['bsimmer']],
+        ['Strain and taste', '',
+          'Strain out the ginger and garlic. If using shiitake, lift them out, slice them and put them back in the broth. Taste it now: this is the final seasoning. Too salty: add a splash of stock or water. Flat: add a little more tamari (or soy sauce). Do not add sesame oil, vinegar or duck fat; they go in on cook night.', []],
+        ['Cool it quickly', '',
+          'Sit the pot in a sink of cold water and stir every few minutes until it stops steaming. Get it into the fridge or freezer within 2 hours of finishing.', []],
+        ['Portion and freeze', '',
+          'Ladle into containers or ziplock bags, about ' + per + ' ml per portion, with the shiitake shared out. Pack them in the sizes you usually cook (for example 2-portion and 4-portion tubs). Leave 2 cm of space at the top for expansion. Label each one: "Duck ramen broth", the number of portions, and today\'s date. Keeps 3 months in the freezer or 4 days in the fridge.', []]
+      ]}],
+      tips: [
+        'The broth sets like jelly in the fridge when it has gelatin in it. That is normal. It melts as soon as it is heated.',
+        'Ziplock bags frozen flat on a tray thaw much faster than tubs and stack neatly once frozen.',
+        'If you will cook within 2 days, you can also do the "Before cook night" steps from the Cook night tab today: eggs, duck and spring onions.'
+      ]
+    };
+  }
 
-    const tips = [
-      'Not gluten free (ramen noodles). For gluten free, use rice noodles with tamari.',
-      'Homegrown dried shiitake give a deeper, smokier broth than shop-bought ones.',
-      'Timers keep counting if you switch apps, but the alarm only sounds while this page is open. Your phone must not be on silent to hear it.',
-      alc ? 'Let the sake bubble in the pot for 30–60 seconds before the stock goes in, to cook off the harsh edge.' : 'Rice wine vinegar and rice vinegar are the same product. Do not confuse it with "rice wine" or Shaoxing wine, which are alcohol and sit on the same shelf.'
+  // ---------- Cook night: from the batch ----------
+  function cook(n, alc) {
+    const pans = n <= 2 ? 'one pan' : 'batches of 2 breasts (or two pans)';
+    const A = {
+      broth: pl(whole(n), 'portion', 'portions') + ' of broth',
+      duck: pl(whole(n), 'duck breast', 'duck breasts'),
+      egg: pl(whole(n), 'egg', 'eggs'),
+      salt: spoons(0.5 * whole(n)) + ' salt',
+      mTamari: spoons(3 * whole(n)) + ' ' + TAMARI,
+      mWater: spoons((alc ? 3 : 6) * whole(n)) + ' water',
+      mSweet: alc ? spoons(3 * whole(n)) + ' mirin' : spoons(1.5 * whole(n)) + ' rice malt syrup',
+      noodles: Math.round(150 * n) + ' g fresh ramen noodles (or ' + Math.round(100 * n) + ' g dried)',
+      sesame: spoons(0.375 * n) + ' sesame oil',
+      vinegar: spoons(0.25 * n) + ' rice wine vinegar (or lime juice)',
+      spring: pl(whole(n), 'spring onion', 'spring onions')
+    };
+    const night = [
+      [Math.round(150 * n) + ' g', 'fresh ramen noodles', false, 'or ' + Math.round(100 * n) + ' g dried'],
+      [spoons(0.375 * n), 'sesame oil', false, '']
     ];
+    if (!alc) night.push([spoons(0.25 * n), 'rice wine vinegar', false, 'or the same amount of fresh lime juice']);
+    night.push(['', 'extras', true, 'nori, chilli oil, toasted sesame seeds, blanched pak choi']);
+    return {
+      kicker: 'Cook night · from the batch',
+      sub: 'Prep the eggs and duck ahead, then about 25 minutes on the night. One whole duck breast per person.',
+      qtyLabel: 'Number of adults', qtyHint: 'Every amount below updates.',
+      groups: [
+        { label: 'From the freezer', rows: [
+          [pl(whole(n), 'portion', 'portions'), 'duck ramen broth', false, 'from your batch']
+        ]},
+        { label: 'Prep ahead: duck and eggs', rows: [
+          [whole(n), 'duck breasts', false, ''],
+          [spoons(0.5 * whole(n)), 'salt', false, '½ tsp per breast, plus a little white pepper'],
+          [whole(n), 'eggs', false, ''],
+          [spoons(3 * whole(n)), TAMARI + ' for the egg marinade', false, ''],
+          [alc ? spoons(3 * whole(n)) : spoons(1.5 * whole(n)), (alc ? 'mirin' : 'rice malt syrup') + ' for the egg marinade', false, ''],
+          [whole(n), 'spring onions', false, 'sold as "shallots" at Coles']
+        ]},
+        { label: 'On the night', rows: night }
+      ],
+      steps: [
+        { heading: 'Before cook night', note: 'Do these 1–2 days ahead, or the night before.', items: [
+          ['Move the broth to the fridge', 'night before',
+            'Take ' + b(A.broth) + ' out of the freezer and put it in the fridge to thaw. Forgot? See step 1 of "On the night".', []],
+          ['Boil and marinate the eggs', '6¾ min + overnight',
+            'Lower ' + b(A.egg) + ' into boiling water and start the timer. When it goes off, move them straight into iced water for 5 minutes, then peel. In a ziplock bag or small container, mix ' + b(A.mTamari) + ', ' + b(A.mSweet) + ' and ' + b(A.mWater) + '. Add the peeled eggs so they are covered. Refrigerate at least 4 hours, at most 24 hours, then lift them out of the marinade. They keep 3 days in the fridge after that.', ['cegg']],
+          ['Dry-brine the duck', 'night before',
+            'Pat ' + b(A.duck) + ' dry. Cut a crosshatch through the fat skin, stopping before the meat. Rub both sides with ' + b(A.salt) + ' and a little white pepper. Put them skin-side up on a plate in the fridge, uncovered, for 8–48 hours. The skin dries out and crisps better.', []],
+          ['Slice the spring onions', '2 min',
+            'Slice ' + b(A.spring) + ' thinly, white and green parts. Keep them in a container lined with paper towel. They last 3 days.', []]
+        ]},
+        { heading: 'On the night', note: 'About 25 minutes.', items: [
+          ['Heat the broth', '',
+            'Tip the ' + b(A.broth) + ' into a pot. Put the lid on, turn the heat to high, and bring it to the boil, then turn it down to a gentle simmer. Still frozen: run the container under hot water to loosen it, put the block in the pot with a splash of water, lid on, medium-low until melted (about 15 minutes), then high.', []],
+          ['Render the duck', '9 + 3½ min',
+            'Do this while the broth heats. Use ' + pans + '. Put the duck straight from the fridge skin-side down in a cold stainless pan, turn the heat to medium, and start the skin-side timer. Do not move it. When it goes off the skin should be golden; flip and start the second timer (medium, pink inside). Move the duck to a board. Pour all the fat into a jug. For another batch, reset both timers.', ['cskin', 'cflip']],
+          ['Rest the duck, finish the broth', '5 min',
+            'Start the rest timer. While it runs: add the duck fat to the broth a little at a time, tasting as you go, and stop if it pools oily on the surface. Stir in ' + b(A.sesame) + (alc ? '' : ' and ' + b(A.vinegar)) + '. Lower the eggs into the broth in a sieve or ladle to take the chill off.', ['crest']],
+          ['Slice the duck, cook the noodles', '1 min',
+            'Slice each duck breast across the grain. Lift the eggs out and halve them. Drop ' + b(A.noodles) + ' into the simmering broth, loosen them with chopsticks and start the timer. Dried noodles need the time on the packet instead.', ['cnoodle']],
+          ['Assemble', '',
+            'Lift the noodles into the bowls with tongs and ladle the broth and shiitake over. Lay one whole sliced duck breast on each bowl. Add two egg halves and scatter the spring onions on top.', []]
+        ]}
+      ],
+      tips: [
+        'Keep the duck on medium. Higher heat burns the skin before the fat has melted out.',
+        'Not gluten free (ramen noodles, soy sauce). For gluten free, use rice noodles with tamari.'
+      ]
+    };
+  }
+
+  // ---------- Render ----------
+  function currentQty() {
+    let v = parseInt(qtyEl.value, 10);
+    if (!Number.isFinite(v) || v < 1) v = 1;
+    if (v > 40) v = 40;
+    return v;
+  }
+
+  function render() {
+    const alc = alcEl.checked;
+    const q = currentQty();
+    if (state.mode === 'batch') state.portions = q; else state.adults = q;
+    const d = state.mode === 'batch' ? batch(q, alc) : state.mode === 'cook' ? cook(q, alc) : scratch(q, alc);
+
+    document.querySelectorAll('.tabs [role="tab"]').forEach(t => t.setAttribute('aria-selected', String(t.dataset.mode === state.mode)));
+    document.getElementById('kicker').textContent = d.kicker + (alc ? ' · with alcohol' : ' · alcohol-free');
+    document.getElementById('sub').textContent = d.sub;
+    document.getElementById('qtyLabel').textContent = d.qtyLabel;
+    document.getElementById('qtyHint').textContent = d.qtyHint;
+    document.getElementById('altBanner').hidden = !alc;
+
+    document.getElementById('groups').innerHTML = d.groups.map(g =>
+      '<div><div class="label">' + g.label + '</div><ul class="ing">' + g.rows.map(r =>
+        '<li><span class="amt">' + r[0] + '</span><span class="name">' + r[1] +
+        (r[2] ? ' <span class="opt">(optional)</span>' : '') +
+        (r[3] ? '<span class="note">' + r[3] + '</span>' : '') + '</span></li>').join('') + '</ul></div>').join('');
+
+    document.getElementById('steps').innerHTML = d.steps.map((g, gi) =>
+      '<div class="stepgroup">' +
+      (g.heading ? '<h3>' + g.heading + '</h3>' : '') +
+      (g.note ? '<p class="gnote">' + g.note + '</p>' : '') +
+      '<ol class="steps">' + g.items.map((s, i) => {
+        const key = state.mode + '-' + gi + '-' + i;
+        const on = !!checked[key];
+        return '<li' + (on ? ' class="done"' : '') + '><input type="checkbox" data-key="' + key + '" id="step-' + key + '" aria-label="Mark step done: ' + s[0] + '"' + (on ? ' checked' : '') + '>' +
+          '<div class="body"><div class="head"><strong>' + (i + 1) + '. ' + s[0] + '</strong>' +
+          (s[1] ? '<span class="time">' + s[1] + '</span>' : '') + '</div><p>' + s[2] + '</p>' +
+          (s[3].length ? '<div class="timers">' + s[3].map(id =>
+            '<div class="timer" data-timer="' + id + '"><button type="button" class="go"><span class="clock"></span><span class="what"></span></button>' +
+            '<button type="button" class="reset" aria-label="Reset ' + timers[id].label + ' timer">Reset</button></div>').join('') + '</div>' : '') +
+          '</div></li>';
+      }).join('') + '</ol></div>').join('');
+
+    const tips = d.tips.slice();
+    tips.push('Timers keep counting if you switch apps, but the alarm only sounds while this page is open. Your phone must not be on silent to hear it.');
+    tips.push(alc ? 'Let the sake bubble in the pot for 30–60 seconds before the stock goes in, to cook off the harsh edge.' : 'Rice wine vinegar and rice vinegar are the same product. Do not confuse it with "rice wine" or Shaoxing wine, which are alcohol and sit on the same shelf.');
     document.getElementById('tips').innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
     paint();
   }
 
+  function setMode(m) {
+    if (!['scratch', 'batch', 'cook'].includes(m)) m = 'scratch';
+    state.mode = m;
+    qtyEl.value = m === 'batch' ? state.portions : state.adults;
+    try { localStorage.setItem('ramen-mode', m); } catch (e) {}
+    try { history.replaceState(null, '', '#' + m); } catch (e) {}
+    render();
+  }
+
+  document.querySelector('.tabs').addEventListener('click', e => {
+    const t = e.target.closest('[data-mode]');
+    if (t) setMode(t.dataset.mode);
+  });
   document.getElementById('steps').addEventListener('click', e => {
     const tEl = e.target.closest('.timer');
     if (!tEl) return;
@@ -415,20 +596,24 @@ section { display: flex; flex-direction: column; gap: 14px; }
     else if (e.target.closest('.go')) toggleTimer(tEl.dataset.timer);
   });
   document.getElementById('steps').addEventListener('change', e => {
-    if (e.target.matches('input[type="checkbox"]')) e.target.closest('li').classList.toggle('done', e.target.checked);
+    if (e.target.matches('input[type="checkbox"]')) {
+      checked[e.target.dataset.key] = e.target.checked;
+      e.target.closest('li').classList.toggle('done', e.target.checked);
+    }
   });
-  document.getElementById('minus').addEventListener('click', () => { adultsEl.value = Math.max(1, (parseInt(adultsEl.value, 10) || 1) - 1); render(); });
-  document.getElementById('plus').addEventListener('click', () => { adultsEl.value = Math.min(20, (parseInt(adultsEl.value, 10) || 1) + 1); render(); });
-  adultsEl.addEventListener('input', render);
+  document.getElementById('minus').addEventListener('click', () => { qtyEl.value = Math.max(1, currentQty() - 1); render(); });
+  document.getElementById('plus').addEventListener('click', () => { qtyEl.value = Math.min(40, currentQty() + 1); render(); });
+  qtyEl.addEventListener('input', render);
   alcEl.checked = false;
   alcEl.addEventListener('change', render);
 
-  // Keep the screen awake while cooking, if the browser allows it
   function keepAwake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { keepAwake(); tick(); } });
   keepAwake();
 
-  render();
+  let start = (location.hash || '').replace('#', '');
+  if (!start) { try { start = localStorage.getItem('ramen-mode') || ''; } catch (e) {} }
+  setMode(start || 'scratch');
   setInterval(tick, 250);
 })();
 </script>
