@@ -313,7 +313,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
       shiitake: whole(4 * k) + ' shiitake mushroom' + s(whole(4 * k), '', 's'),
       choy: whole(k) + ' handful' + s(whole(k), '', 's') + ' choy sum',
       sesame: spoons(4.5 * k) + ' sesame oil',
-      slurry: spoons(3 * k) + ' cornflour mixed with ' + spoons(3 * k) + ' water'
+      slurry: spoons(3 * k) + ' cornflour and ' + spoons(3 * k) + ' water'
     };
     const sauceRows = [
       [stock + ' ml', 'chicken stock', false, ''],
@@ -369,15 +369,17 @@ section { display: flex; flex-direction: column; gap: 14px; }
       ['Coat the mince', '',
         'In a bowl, mix ' + b(A.mince) + ' with ' + b(A.mSoy) + ', ' + b(A.mCorn) + ' and a pinch of bicarbonate of soda. No need to wait; cook it straight away.', []],
       ['Brown the mince', '2 + 3 min',
-        'Heat a wok or large frying pan on high until very hot. Add a little oil and spread the mince out flat. Leave it for 2 minutes to brown, then break it up and stir-fry until cooked through with no pink, about 3 minutes. Put it in a serving bowl. Spoon 2–3 tablespoons of the sauce over it.', ['brown', 'cook']],
+        'Heat a wok or large frying pan on high until very hot. Add a little oil and spread the mince out flat. Leave it for 2 minutes to brown, then break it up and stir-fry until cooked through with no pink, about 3 minutes. Take it out onto a plate.', ['brown', 'cook']],
       ['Fry the garlic, ginger and carrot', '1 min',
         'Add a little more oil. Stir-fry the garlic, ginger and carrot for 1 minute.', ['aroma']],
       ['Add the noodles and sauce', '1 min',
-        'Add the noodles and toss for 30 seconds. Pour in the rest of the sauce and toss for 1 minute.', ['sauce']],
-      ['Thicken and finish', '',
-        'Stir the cornflour mix and pour it in. Toss until the sauce turns glossy and clings to the noodles. Turn the heat off and stir through ' + b(A.sesame) + '.', []],
+        'Add the noodles and toss for 30 seconds. Pour in the sauce and toss for 1 minute.', ['sauce']],
+      ['Thicken', '',
+        'Stir the cornflour mix and pour it in. Toss until the sauce turns glossy and clings to the noodles.', []],
+      ['Return the mince and finish', '',
+        'If anyone wants noodles without mince, lift their portion out now. Put the mince back in and toss for 30 seconds until it is coated in the sauce. Turn the heat off and stir through ' + b(A.sesame) + '.', []],
       ['Serve', '',
-        'Put the noodles in bowls with the mince in its bowl on the table, so each person adds their own. Spring onions on top for the adults.', []]
+        'Serve in bowls, with spring onions on top for the adults.', []]
     ];
     const fullSteps = [
       ['Marinate the mince', '15 min',
@@ -400,7 +402,7 @@ section { display: flex; flex-direction: column; gap: 14px; }
     return {
       kicker: kids ? 'Kids\' version' : 'Full version',
       sub: kids
-        ? 'Simplified from the ABC recipe: no marinating, milder and less salty, fewer vegetables, mince served on the side. About 25 minutes.'
+        ? 'Simplified from the ABC recipe: no marinating, milder and less salty, fewer vegetables. About 25 minutes.'
         : 'The original ABC recipe. About 45 minutes including the marinade and chopping.',
       groups: groups,
       steps: [{ items: kids ? kidSteps : fullSteps }],
