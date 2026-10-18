@@ -28,6 +28,15 @@
 <meta name="apple-mobile-web-app-title" content="Étude">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Étude — chess practice</title>
+<meta name="description" content="Chess practice that explains itself: puzzles that adapt to your level and show why a wrong move fails, games against the computer with every move reviewed, and an openings guide. You can play a friend by link too.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Étude — chess practice">
+<meta property="og:description" content="Chess practice that explains itself: puzzles that adapt to your level and show why a wrong move fails, games against the computer with every move reviewed, and an openings guide. You can play a friend by link too.">
+<meta property="og:url" content="https://butterflyresonance.github.io/chess/">
+<meta property="og:image" content="https://butterflyresonance.github.io/chess/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -266,7 +275,6 @@
   .invite-actions { display: flex; gap: 8px; }
   .invite-actions button { flex: 1; }
   .onepiece-wrap { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--edge); }
-  .backbtn { display: block; margin: 14px 0 0; padding: 4px 0; }
   .note {
     font-size: 12px;
     line-height: 1.6;
@@ -371,6 +379,12 @@
     position: absolute;
     inset: 0;
     border: 3px solid var(--brass);
+  }
+  .sq.pzhint::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px dashed var(--brass);
   }
   .sq.check::after {
     content: "";
@@ -677,7 +691,8 @@
 
   .topbar { display: flex; align-items: center; gap: 10px; min-height: 40px; flex: none; }
   .backbtn {
-    flex: none; width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1;
+    flex: none; width: 34px; height: 34px; padding: 0; margin: 0;
+    display: grid; place-items: center;
     border: 1px solid var(--edge); background: none; color: var(--muted);
   }
   .backbtn:hover { color: var(--brass); border-color: var(--brass-dim); }
@@ -712,6 +727,41 @@
   .tabs button[aria-selected="true"] { color: var(--brass); border-bottom-color: var(--brass); }
   .panes { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 0 24px; }
   .pane { display: none; }
+  /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
+  body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.localmode #hintRow, body.localmode #thinkRow, body.localmode #revTheirsBtn, body.localmode #revTheirsLabel,
+  body.localmode .oforce { display: none !important; }
+  body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
+  .pzdelta { font-weight: 600; }
+  .pzstakes { margin: 4px 0 8px !important; }
+  .pztable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+  .pztable th, .pztable td { text-align: left; padding: 5px 6px 5px 0; border-bottom: 1px solid var(--edge); }
+  .pztable th { font-weight: 400; color: var(--muted); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .pztable .num { text-align: right; padding-right: 14px; }
+  .pzuntried { font-size: 11.5px; color: var(--muted); }
+  .pzdelta.up { color: var(--g-best, #81b64c); }
+  .pzdelta.down { color: var(--danger); }
+  /* Puzzles need the board, the puzzle controls and the look-and-sound settings:
+     no tabs, no move list, no engine choices, no game buttons. */
+  body.puzzlemode .tabs, body.puzzlemode .controls, body.puzzlemode #hintPanel,
+  body.puzzlemode .pane[data-pane="open"], body.puzzlemode .pane[data-pane="review"], body.puzzlemode .pane[data-pane="moves"],
+  body.puzzlemode #hintRow, body.puzzlemode #oppRow, body.puzzlemode #onlyRow, body.puzzlemode #onlyNote,
+  body.puzzlemode #thinkRow, body.puzzlemode #pgnBtn { display: none !important; }
+  body.puzzlemode .pane[data-pane="puzzle"], body.puzzlemode .pane[data-pane="set"] { display: block; }
+  body.puzzlemode .pane[data-pane="set"] { border-top: 1px solid var(--edge); margin-top: 14px; padding-top: 4px; }
+  .pzbtns { display: flex; gap: 8px; margin: 10px 0 4px; }
+  .pzbtns button { flex: 1; min-width: 0; padding: 10px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 350px) { .pzbtns button { letter-spacing: 0; font-size: 11.5px; } }
+  .pzbtns button.primary { width: auto; }
+  .pzbody { font-size: 12px; line-height: 1.65; color: var(--muted); padding-top: 6px; }
+  .pzbody p { margin: 6px 0; }
+  .pzbody b { color: var(--text); font-weight: 500; }
+  .pzbody a, .pzcredit a { color: var(--brass); }
+  .pzerr { color: var(--text); }
+  .pzhinttext { color: var(--text); border-left: 2px solid var(--brass); padding-left: 10px; }
+  .pzretry button.linkish { padding: 0; border: 0; background: none; color: var(--brass); font-size: inherit; text-decoration: underline; }
+  .pzstats { border-top: 1px solid var(--edge); padding-top: 8px; margin-top: 10px !important; }
+  .pzcredit { font-size: 10.5px; color: var(--muted); opacity: .75; margin-top: 14px; line-height: 1.5; }
   .pane.on { display: block; }
   .pane > :first-child, .pane > :first-child > .setrow:first-child { margin-top: 10px; }
   .pane .ledger { margin-top: 10px; }
@@ -863,6 +913,14 @@
     text-transform: none;
   }
   .lobby .opp-wrap { margin: 22px 0 8px; }
+  /* the start screen: one section per way to play */
+  .lsec { border-top: 1px solid var(--edge); padding: 18px 0 6px; }
+  .lsec.side fieldset { margin: 0 0 4px; }
+  .lsec.side + .lsec { border-top: 0; padding-top: 10px; }
+  .lhead { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass); margin: 0 0 14px; }
+  .lsec .label { display: block; }
+  .lsec select.opp { margin-bottom: 10px; }
+  .lsec .how { margin: 14px 0 6px; border-bottom: 0; }
   button.linkish {
     border: 0;
     padding: 6px 0;
@@ -1003,18 +1061,18 @@
   .revexp b { color: var(--text); font-weight: 500; }
   .revexp .rhead { display: flex; align-items: center; gap: 8px; color: var(--text); }
   .revexp .rhead .badge { width: 20px; height: 20px; font-size: 10px; }
-  .revexp button.rline {
+  .pzbody button.rline, .revexp button.rline {
     display: block; width: 100%; margin-top: 4px; padding: 6px 0; border: 0; background: none;
     font-size: 11.5px; letter-spacing: .02em; line-height: 1.6; text-align: left; color: var(--muted);
     text-decoration: underline dotted; text-underline-offset: 4px;
   }
-  .revexp button.rline:hover { color: var(--text); }
-  .revexp .lstrip { display: block; margin-top: 6px; }
-  .revexp .lnav { display: flex; gap: 6px; margin-bottom: 6px; }
-  .revexp .lnav button { padding: 7px 0; width: 48px; font-size: 12px; }
-  .revexp .lmoves { display: block; font-size: 11.5px; line-height: 1.9; }
-  .revexp button.lm { padding: 2px 3px; border: 0; background: none; font-size: 11.5px; letter-spacing: .02em; color: var(--muted); }
-  .revexp button.lm.on { color: var(--brass); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .pzbody button.rline:hover, .revexp button.rline:hover { color: var(--text); }
+  .pzbody .lstrip, .revexp .lstrip { display: block; margin-top: 6px; }
+  .pzbody .lnav, .revexp .lnav { display: flex; gap: 6px; margin-bottom: 6px; }
+  .pzbody .lnav button, .revexp .lnav button { padding: 7px 0; width: 48px; font-size: 12px; }
+  .pzbody .lmoves, .revexp .lmoves { display: block; font-size: 11.5px; line-height: 1.9; }
+  .pzbody button.lm, .revexp button.lm { padding: 2px 3px; border: 0; background: none; font-size: 11.5px; letter-spacing: .02em; color: var(--muted); }
+  .pzbody button.lm.on, .revexp button.lm.on { color: var(--brass); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
   .board.linemode { outline: 2px solid var(--brass); }
   .revexp .rmeta { font-size: 10.5px; opacity: .6; }
   .revshow { padding: 7px 12px; font-size: 11px; letter-spacing: .08em; }
@@ -1098,31 +1156,51 @@
 
   <!-- LOBBY -->
   <section class="lobby" id="lobby">
-    <p class="lede">Play chess with one other person. Pick a side, send them the link, and you’re both looking at the same board.</p>
-    <details class="how">
-      <summary>How this works</summary>
-      <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
-      <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
-      <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
-    </details>
+    <p class="lede">Chess practice: solve puzzles, play the computer or a friend, and see why each move was good or bad.</p>
+
+    <div class="lsec">
+      <h2 class="lhead">Puzzles</h2>
+      <button class="primary" id="pzBtn">Solve puzzles</button>
+      <p class="note">Positions from real games on Lichess where one move wins. They adapt to your level, and a wrong move shows you why it fails. Needs an internet connection.</p>
+    </div>
+
+    <div class="lsec side">
     <fieldset>
-      <legend>You play</legend>
+      <legend>You play (in games)</legend>
       <div class="choices">
         <label><input type="radio" name="side" value="w" checked><span>White</span></label>
         <label><input type="radio" name="side" value="b"><span>Black</span></label>
         <label><input type="radio" name="side" value="r"><span>Toss</span></label>
       </div>
     </fieldset>
-    <button class="primary" id="startBtn">Open a table</button>
-    <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
-    <div class="opp-wrap">
-      <label class="label" for="oppLobby">Opponent, if you play an engine</label>
-      <select class="opp" id="oppLobby"></select>
     </div>
-    <button class="primary alt" id="soloBtn">Play the engine</button>
-    <p class="note" id="oppNote">No link and nobody to wait for.</p>
-    <div class="opp-wrap onepiece-wrap">
-      <label class="label" for="onlyLobby">One-piece challenge: the computer may move only</label>
+
+    <div class="lsec">
+      <h2 class="lhead">Computer</h2>
+      <label class="label" for="oppLobby">Opponent</label>
+      <select class="opp" id="oppLobby"></select>
+      <button class="primary alt" id="soloBtn">Play the computer</button>
+      <p class="note" id="oppNote"></p>
+    </div>
+
+
+    <div class="lsec">
+      <h2 class="lhead">Friend</h2>
+      <button class="primary alt" id="startBtn">Open a table</button>
+      <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+      <button class="primary alt" id="localBtn">Play on this device</button>
+      <p class="note">Both of you on one phone, no link needed. The board faces White; Black sits opposite and reads it upside down.</p>
+      <details class="how">
+        <summary>How this works</summary>
+        <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+        <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
+        <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+      </details>
+    </div>
+
+    <div class="lsec">
+      <h2 class="lhead">One-piece challenge</h2>
+      <label class="label" for="onlyLobby">The computer may move only</label>
       <select class="opp" id="onlyLobby">
         <option value="k">the king</option>
         <option value="q">the queen</option>
@@ -1131,9 +1209,10 @@
         <option value="n">knights</option>
         <option value="p">pawns</option>
       </select>
+      <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
+      <p class="note">A party trick, played by the Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
     </div>
-    <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
-    <p class="note">A party trick, played by your Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
+
     <button class="linkish" id="gamesLobbyBtn">Your games</button>
   </section>
 
@@ -1154,7 +1233,7 @@
   <section class="game hidden" id="game">
     <div class="game-grid">
       <div class="topbar">
-        <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen">←</button>
+        <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
         <span class="topstate" id="topState"></span>
       </div>
@@ -1187,12 +1266,33 @@
         <p class="note gnote" id="gameNote"></p>
         <div class="invite-slot" id="inviteSlot"></div>
         <div class="tabs" role="tablist">
+          <button role="tab" data-tab="puzzle">Puzzle</button>
           <button role="tab" data-tab="open">Openings</button>
           <button role="tab" data-tab="review">Review</button>
           <button role="tab" data-tab="moves">Moves</button>
           <button role="tab" data-tab="set">Settings</button>
         </div>
         <div class="panes" id="panes">
+          <div class="pane" data-pane="puzzle">
+            <section class="pzblock">
+              <div class="setrow">
+                <span>Theme</span>
+                <select class="opp" id="pzTheme" aria-label="Puzzle theme"></select>
+              </div>
+              <div class="setrow">
+                <span>Difficulty</span>
+                <select class="opp" id="pzDiff" aria-label="Puzzle difficulty"></select>
+              </div>
+              <p class="coach-note" id="pzAbout"></p>
+              <div class="pzbtns">
+                <button id="pzHintBtn">Hint</button>
+                <button id="pzSolBtn">Give up</button>
+                <button id="pzNextBtn" disabled>Next puzzle</button>
+              </div>
+              <div class="pzbody" id="pzBody"></div>
+              <p class="pzcredit">Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Your rating starts at 1500 (marked ? until 10 puzzles) and is kept on this device. Easiest to Hardest are fixed bands, about 700–1000 up to 1900–2200.</p>
+            </section>
+          </div>
           <div class="pane" data-pane="open">
             <section class="openblock hidden" id="openBlock">
               <div class="setrow">
@@ -1213,7 +1313,7 @@
               <div class="setrow revopts" id="revOpts">
                 <span>Eval bar</span>
                 <button id="revBarBtn">On</button>
-                <span>Their badges</span>
+                <span id="revTheirsLabel">Their badges</span>
                 <button id="revTheirsBtn">On</button>
               </div>
               <div id="reviewBody"></div>
@@ -1239,7 +1339,7 @@
             </div>
           </div>
           <div class="pane" data-pane="set">
-            <div class="setrow">
+            <div class="setrow" id="hintRow">
               <span>Hints</span>
               <button id="hintBtn">Off</button>
               <span id="autoLabel">Engine plays</span>
@@ -1260,7 +1360,7 @@
                 <option value="p">pawns</option>
               </select>
             </div>
-            <p class="coach-note hidden" id="onlyNote">Played by your Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
+            <p class="coach-note hidden" id="onlyNote">Played by the Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
             <div class="setrow thinkrow hidden" id="thinkRow">
               <span>Think</span>
               <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
@@ -1270,6 +1370,11 @@
             <div class="setrow">
               <span>Theme</span>
               <button id="themeBtn">Dark</button>
+            </div>
+            <div class="setrow" id="pzResetRow">
+              <span>Puzzle stats</span>
+              <button id="pzThemesBtn">By theme</button>
+              <button id="pzResetBtn">Reset</button>
             </div>
             <div class="setrow">
               <span>Pieces</span>
@@ -2900,7 +3005,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-15.7-why';
+const VERSION = '2026-10-18.2-trycap';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3040,6 +3145,10 @@ async function copyText(text, button, doneLabel = 'Copied') {
 
 let game = new Chess();
 let myColor = 'w';
+/* One device, two players: the board faces White, Black sits opposite.
+   Whoever's turn it is moves; nothing is played by the engine. */
+const isLocal = () => code === 'local';
+const moverColor = () => isLocal() ? game.turn() : myColor;
 let code = null;
 let result = null;
 let selected = null;
@@ -3128,7 +3237,7 @@ function pieceSVG(type, color, cls = '') {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only') };
+  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local') };
 }
 
 /* The hash states *your own* colour, so each player holds a self-describing
@@ -3136,7 +3245,8 @@ function parseHash() {
    you're on depends on storage. */
 function setHash(colour) {
   navigating = true;          // our own write, not a jump to another game
-  location.hash = onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
+  location.hash = code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
+    : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
     : solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
 }
 
@@ -3383,6 +3493,7 @@ function adopt(history, remoteResult, force = false) {
 
 /* ---------- game flow ---------- */
 function localMove(from, to, promotion) {
+  if (code === 'puzzle') return pzMove(from, to, promotion);
   let m;
   try { m = game.move({ from, to, promotion }); } catch { return false; }
   return afterLocalMove(m);
@@ -3452,12 +3563,12 @@ function startFresh(colorForMe) {
 }
 
 function persist() {
-  if (!code) return;
+  if (!code || code === 'puzzle') return;
   recordGame();
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
   store.set('table:' + code, { history: game.history(), myColor, result, gameId,
-    setting: solo ? (onePiece ? oppOnly : opponent) : undefined });
+    setting: code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : undefined });
 }
 
 function restore() {
@@ -3536,7 +3647,7 @@ function recordGame() {
       id: gameId,
       v: 1,
       started: new Date().toISOString(),
-      mode: onePiece ? 'onepiece-' + oppOnly : solo ? 'engine' : 'online',
+      mode: code === 'local' ? 'local' : onePiece ? 'onepiece-' + oppOnly : solo ? 'engine' : 'online',
       color: myColor,
       moves: [], times: [], notes: [],
       opps: solo ? [] : ['Opponent'],
@@ -3620,7 +3731,7 @@ function emt(ms) {
 const NOTE_WORDS = { hint: 'hint on', coach: 'coach on', auto: 'engine played this' };
 
 function oppName(rec) {
-  if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : 'Opponent';
+  if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : rec.mode === 'local' ? 'Same device' : 'Opponent';
   return rec.opps.length === 1 ? rec.opps[0] : 'Mixed: ' + rec.opps.join(' / ');
 }
 
@@ -4062,7 +4173,7 @@ function requestHint() {
 /* In solo the engine is the opponent, so it moves when it is *not* our turn.
    With a peer, "Engine plays" hands over our own side instead. */
 function engineToMove() {
-  if (result || !code) return false;
+  if (result || !code || code === 'puzzle' || code === 'local') return false;
   return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
 }
 
@@ -4146,7 +4257,7 @@ function adaptivePick(cands, prev) {
   return { uci: pick.uci, s: pick.s, why: pick === best ? 'best' : 'ease' };
 }
 
-let opponent = validOpp(store.get('table:opp'));
+let opponent = store.get('table:opp') == null ? 'sfadapt' : validOpp(store.get('table:opp'));   // first visit: close games, not a beating
 let sf = null;           // the Stockfish worker
 let sfReady = false;     // uciok received
 let sfQueue = [];        // commands sent before it was ready
@@ -4203,7 +4314,7 @@ function oppNoteText() {
 
 function fillOppSelects() {
   const html =
-    '<optgroup label="Your engine"><option value="table">Étude engine</option></optgroup>' +
+    '<optgroup label="Étude"><option value="table">Étude engine</option></optgroup>' +
     '<optgroup label="Stockfish, rated">' +
       SF_TIERS.map(e => `<option value="sf${e}">Stockfish ${e}</option>`).join('') +
     '</optgroup>' +
@@ -5527,6 +5638,7 @@ function analyze(fen, me, opts = {}) {
 }
 
 function draw() {
+  if (!lineView && oppHold) pokeHold();   // a reply held back while a line was open
   requestCoach();        // before drawBoard: its marks come from the last reading
   drawBoard();
   drawTaken();
@@ -5543,6 +5655,7 @@ function draw() {
   drawEvalBar();
   drawReview();
   drawOpenings();
+  drawPuzzle();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('takebackBtn').disabled = !!result || game.history().length === 0 || (!solo && !peers.size);
@@ -5551,6 +5664,7 @@ function draw() {
   el('autoLabel').classList.toggle('hidden', solo);
   el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
+  el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
   el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
   el('thinkRange').value = thinkMs;
@@ -5558,7 +5672,7 @@ function draw() {
   // Rated Stockfish always thinks for the same time, so the slider would only
   // mislead. Hints come from the analysis Stockfish, which has no time limit,
   // so they only need it when the table engine is standing in for it.
-  el('oppRow').classList.toggle('hidden', !solo || onePiece);     // one-piece games are always the Table engine
+  el('oppRow').classList.toggle('hidden', !solo || onePiece || isLocal());     // one-piece games are always the Table engine
   el('oppGame').value = opponent;
   el('onlyRow').classList.toggle('hidden', !onePiece);
   el('oppOnly').value = oppOnly;
@@ -5574,7 +5688,7 @@ function drawBoard() {
   const pos = ls ? ls.chess : viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
   const shownLast = ls ? ls.last : viewing ? null : lastMove;
   boardEl.classList.toggle('linemode', !!ls);
-  const myTurn = !viewing && game.turn() === myColor && !result;
+  const myTurn = !viewing && game.turn() === moverColor() && !result;
   const targets = selected && !viewing
     ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
     : {};
@@ -5598,12 +5712,13 @@ function drawBoard() {
       const classes = ['sq', isLight ? 'light' : 'dark'];
       if (shownLast && (shownLast.from === sq || shownLast.to === sq)) classes.push('last');
       if (selected === sq && !viewing) classes.push('sel');
+      if (code === 'puzzle' && !viewing && pzHintSquares().includes(sq)) classes.push('pzhint');
       if (piece && piece.type === 'k' && piece.color === pos.turn() && pos.isCheck() && (viewing || !result)) {
         classes.push('check');
       }
 
       const isTarget = !!targets[sq];
-      const canPick = myTurn && piece && piece.color === myColor;
+      const canPick = myTurn && piece && piece.color === moverColor();
       if (isTarget || canPick) classes.push('playable');
       if (isTarget && piece) classes.push('occupied');
 
@@ -5664,19 +5779,35 @@ function drawStatus() {
   const s = el('status');
   s.classList.remove('urgent');
 
+  if (code === 'puzzle') {
+    const lsp = lineState();
+    const [t, hi] = lsp ? [`Stockfish line ${lsp.idx ? `${lsp.idx}/${lsp.n}` : 'start'}`, true] : pzStatus();
+    s.textContent = t;
+    s.classList.toggle('urgent', hi);
+    el('gameNote').textContent = '';
+    return;
+  }
+
   const ls = lineState();
   if (ls) {
-    s.textContent = `Stockfish line · ${ls.idx ? `${ls.idx} of ${ls.n}` : 'start'}`;
+    const moved = game.history().length > lineView.at ? ' · they’ve moved'
+      : oppHold && oppHold.fen === game.fen() ? ' · their move is waiting' : '';
+    const mv = moveLabel(lineView.ply, game.history()[lineView.ply]);
+    s.textContent = ls.idx ? `Stockfish line · ${ls.idx} of ${ls.n}${moved}`
+      : lineView.which === 'best'
+        ? `Before ${mv} · ${ls.r.best !== ls.r.uci ? `${ls.r.color === myColor ? 'yours' : 'theirs'} dashed, best solid` : 'the line starts here'}${moved}`
+        : `After ${mv} · the line starts here${moved}`;
     s.classList.add('urgent');
     el('gameNote').textContent = '';
     return;
   }
 
   if (result) {
+    const W = result.winner === 'w' ? 'White' : 'Black', L = result.winner === 'w' ? 'Black' : 'White';
     if (result.type === 'resign') {
-      s.textContent = result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
+      s.textContent = isLocal() ? `${L} resigned. ${W} wins.` : result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
     } else if (result.type === 'checkmate') {
-      s.textContent = result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
+      s.textContent = isLocal() ? `Checkmate. ${W} wins.` : result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
     } else {
       s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
     }
@@ -5697,6 +5828,9 @@ function drawStatus() {
     // At long budgets an idle board is indistinguishable from a crash.
     s.textContent = engineJob && engineJob.sf && !sfReady ? 'Loading Stockfish…'
       : engineJob && engineJob.depth ? `Thinking… depth ${engineJob.depth}` : 'Thinking…';
+    s.classList.add('urgent');
+  } else if (isLocal()) {
+    s.textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move.${game.isCheck() ? ' Check.' : ''}`;
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
     s.textContent = 'Your move.' + check;
@@ -5882,7 +6016,7 @@ let revBar = store.get('table:revBar') !== false;         // show the eval bar
 let revTheirs = store.get('table:revTheirs') !== false;   // show the badges on their moves
 /* Spotting their mistake yourself is part of the exercise, so their badges can
    be held back. Only while the game is on: once it ends, everything shows. */
-const theirsHidden = m => !revTheirs && !result && !!m && m.color !== myColor;
+const theirsHidden = m => !isLocal() && !revTheirs && !result && !!m && m.color !== myColor;
 let peerReview = false;
 let an = null;               // the analysis worker
 let anReady = false;
@@ -5900,10 +6034,12 @@ let holdTimer = null;
 let revPick = null;          // ply whose explanation is open
 let viewPly = null;          // ply whose starting position is being shown on the board
 /* Stepping through Stockfish's line for a reviewed move. `at` is the game's
-   length when it was opened: any move, takeback or new game closes it. */
-let lineView = null;         // { ply, which: 'best' | 'reply', idx, at }
+   length when it was opened, `id` the move's: a takeback past it or a new game
+   closes it. Against the computer its reply waits until the line is closed;
+   a person's move just arrives underneath it. */
+let lineView = null;         // { ply, which: 'best' | 'reply', idx, at, id }
 
-const reviewActive = () => !!code && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
+const reviewActive = () => !!code && code !== 'puzzle' && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
 const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
 const uciOf = m => m.from + m.to + (m.promotion || '');
 const moveId = m => posKey(m.before) + '|' + uciOf(m);
@@ -6120,6 +6256,7 @@ function anLine(line) {
     anPump();
     reviewPending();
     drawEvalBar();
+    if (code === 'puzzle') pzOnAnalysis();
   }
 }
 
@@ -6137,12 +6274,18 @@ function anTick(e) {
   drawEvalBar();
   drawReviewState();
   if (hintsOn) { drawHint(); drawArrow(); }
+  if (code === 'puzzle') pzOnAnalysis();
 }
 
 /* Called from draw(): which positions matter now. The two moves on the board
    need the positions either side of them, and the board itself is read
    deeply for the bar and for the move you are about to make. */
 function anSync() {
+  if (code === 'puzzle') {
+    anTodo = pzAnTodo();
+    if (anTodo.length && !anBroken) anPump(); else anStopJob();
+    return;
+  }
   if (!reviewActive()) {
     checkGate();
     pokeHold();
@@ -6287,7 +6430,7 @@ function reviewPending() {
 
 /* ---------- holding their reply until your badge and its own are ready ---------- */
 function setGate(m) {
-  if (!solo || !reviewActive() || m.color !== myColor) { gate = null; return; }
+  if (!solo || isLocal() || !reviewActive() || m.color !== myColor) { gate = null; return; }
   gate = { fen: game.fen(), id: moveId(m), at: Date.now(), opened: false, readyAt: 0 };
   setTimeout(checkGate, AN_GIVEUP_MS + 20);
 }
@@ -6331,6 +6474,7 @@ function playOpponent(fen, from, to, promotion) {
    badge needs: playing it then grades it in the same draw. */
 function holdReady(h) {
   if (gateHolding()) return false;
+  if (lineState()) return false;          // you're looking at a line: the reply waits until you close it
   if (!solo || !reviewActive() || !h.after || !revTheirs) return true;
   if (Date.now() - h.at >= AN_HOLD_MS) return true;      // a slow machine: let the game go on
   const b = anCache.get(posKey(h.fen)), a = anCache.get(posKey(h.after));
@@ -6466,9 +6610,10 @@ function lineSans(fen, pv, n) {
 /* Where the line being stepped through has got to, or null (and closed) if it no longer applies. */
 function lineState() {
   if (!lineView) return null;
+  if (lineView.src) return srcLineState();
   const hist = game.history({ verbose: true });
   const m = hist[lineView.ply];
-  const r = m && hist.length === lineView.at && reviews.get(moveId(m));
+  const r = m && hist.length >= lineView.at && moveId(m) === lineView.id && reviews.get(moveId(m));
   if (!r) { lineView = null; return null; }
   const L = lineOf(r, lineView.which);
   const n = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color)).length;
@@ -6480,7 +6625,24 @@ function lineState() {
     const mv = chess.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
     last = { from: mv.from, to: mv.to };
   }
+  if (!last && lineView.which === 'reply') { const m = game.history({ verbose: true })[lineView.ply]; last = { from: m.from, to: m.to }; }
   return { r, L, n, idx: lineView.idx, chess, fen: chess.fen(), last };
+}
+
+/* A puzzle's line: { fen, pv, color, last } given directly, valid while the same puzzle is up. */
+function srcLineState() {
+  const L = lineView.src;
+  if (code !== 'puzzle' || lineView.gen !== pz.gen || game.fen() !== lineView.boardFen) { lineView = null; return null; }
+  const n = lineSans(L.fen, L.pv, L.len || payoffLen(L.fen, L.pv, L.color)).length;
+  if (!n) { lineView = null; return null; }
+  lineView.idx = Math.max(0, Math.min(n, lineView.idx));
+  const chess = new Chess(L.fen);
+  let last = L.last || null;
+  for (const u of L.pv.slice(0, lineView.idx)) {
+    const mv = chess.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
+    last = { from: mv.from, to: mv.to };
+  }
+  return { r: null, L, n, idx: lineView.idx, chess, fen: chess.fen(), last };
 }
 
 function lineStep(d) {
@@ -6496,8 +6658,13 @@ function lineHTML(r, which) {
   const L = lineOf(r, which);
   const sans = lineSans(L.fen, L.pv, payoffLen(L.fen, L.pv, L.color));
   if (!sans.length) return '';
-  const on = lineView && lineView.ply === r.ply && lineView.which === which && lineView.at === game.history().length;
+  const on = !!lineView && lineView.ply === r.ply && lineView.which === which;
   if (!on) return `<button class="rline" data-line="${which}" title="Step through it on the board">${esc(sans.join(' '))}</button>`;
+  return lineStripHTML(sans);
+}
+
+/* the controls for the line on the board: back, forward, close, and the moves to jump to */
+function lineStripHTML(sans) {
   const moves = sans.map((t, i) =>
     `<button class="lm${i + 1 === lineView.idx ? ' on' : ''}" data-li="${i + 1}">${esc(t)}</button>`).join(' ');
   return `<span class="lstrip"><span class="lnav">` +
@@ -6533,6 +6700,9 @@ function moveLabel(ply, san) {
 }
 
 /* What a line does for `color`: forces mate, wins material, or neither. */
+/* does anything get captured in the part of the line that's shown? */
+const lineTrades = (fen, pv, color) => settle(fen, pv, color, payoffLen(fen, pv, color)).played.some(m => m.captured);
+
 /* material `color` gains over the settled part of a line (negative: gives up) */
 function lineGain(fen, pv, color) {
   const s = settle(fen, pv, color, payoffLen(fen, pv, color));
@@ -6570,9 +6740,10 @@ function newlyLoose(beforeFen, afterFen, color) {
 }
 
 function explainHTML(r) {
-  const mine = r.color === myColor;
-  const who = mine ? 'your' : 'their';
-  const Who = mine ? 'Your' : 'Their';
+  const mine = isLocal() || r.color === myColor;
+  const side = r.color === 'w' ? 'White' : 'Black';
+  const who = isLocal() ? side + '’s' : mine ? 'your' : 'their';
+  const Who = isLocal() ? side + '’s' : mine ? 'Your' : 'Their';
   const g = GRADES[r.cls];
   const foe = r.color === 'w' ? 'b' : 'w';
   const pct = x => Math.round(x) + '%';
@@ -6612,13 +6783,18 @@ function explainHTML(r) {
   if (r.best && r.best !== r.uci && r.cls !== 'book' && r.cls !== 'forced') {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
     let why = '';
+    if (r.loss < 5) {
+      const n = Math.round(r.loss);
+      parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}, but ${who} move was ${n < 1 ? 'less than 1%' : `only ${n}%`} worse. Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+    } else {
     if (!eff) {
       const d = lineGain(r.before, r.bestPv, r.color);
       why = d <= -1 ? ` Its line gives up ${materialWords(-d)}, and Stockfish still rates it best: the return is in the position, not material.`
         : replyEff ? ` Its line keeps the material level. ${mine ? 'Yours' : 'Theirs'} doesn’t: see the answer below.`
-        : ' No material changes hands in its line, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.';
+        : `${lineTrades(r.before, r.bestPv, r.color) ? ' The trades in its line leave material level' : ' No pieces are taken in its line'}, so the gain is positional (piece activity, pawn structure or king safety). The review can’t say which.`;
     }
     parts.push(`<p>Best was <b>${esc(sanOf(r.before, r.best))}</b>${eff ? `, which ${esc(eff)}` : ''}.${why} Stockfish’s line: ${lineHTML(r, 'best')}</p>`);
+    }
   }
 
   // the best move gets its reason too: the line Stockfish expects after it
@@ -6626,8 +6802,13 @@ function explainHTML(r) {
     const eff = lineEffect(r.before, r.bestPv, r.color, r.bestScoreW);
     const why = eff ? '' : lineGain(r.before, r.bestPv, r.color) <= -1
       ? ' It gives up material, and Stockfish still rates it best: the return is in the position.'
-      : ' No material changes hands in its line, so its value is positional.';
+      : `${lineTrades(r.before, r.bestPv, r.color) ? ' The trades in its line leave material level' : ' No pieces are taken in its line'}, so its value is positional.`;
     parts.push(`<p>This is Stockfish’s top move${eff ? `, and it ${esc(eff)}` : ''}.${why} The line it expects: ${lineHTML(r, 'best')}</p>`);
+  }
+
+  if (r.loss < 5 && r.best && r.best !== r.uci && r.replyPv && r.replyPv.length &&
+      r.cls !== 'book' && r.cls !== 'forced') {
+    parts.push(`<p>After ${who} move, Stockfish expects: ${lineHTML(r, 'reply')}</p>`);
   }
 
   if (r.loss >= 5 && r.replyPv && r.replyPv.length) {
@@ -6660,7 +6841,9 @@ function drawEvalBar() {
   const w = winPct(e.score);
   el('vfill').style.height = w.toFixed(1) + '%';
   const num = el('vnum');
-  num.textContent = fmtScore(e.score, false).replace(/^-/, '');
+  // the bar is narrow: from 10 pawns up the tenths go, so '22' rather than a clipped '22.0'
+  const big = Math.abs(e.score) >= 1000 && Math.abs(e.score) < MATE_S / 2;
+  num.textContent = big ? String(Math.round(Math.abs(e.score) / 100)) : fmtScore(e.score, false).replace(/^-/, '');
   // the number sits at the end of the side that's ahead, as it does on chess.com
   const whiteAhead = e.score >= 0;
   const atBottom = (myColor === 'w') === whiteAhead;
@@ -6670,6 +6853,7 @@ function drawEvalBar() {
 
 /* badges on the board: the last two moves, on the squares they landed on */
 function boardBadges() {
+  if (code === 'puzzle') return pzBadges();
   const out = new Map();
   if (!reviewActive() || viewPly != null || lineState()) return out;
   const hist = game.history({ verbose: true });
@@ -6690,10 +6874,12 @@ function boardBadges() {
 
 function drawReviewArrows() {
   const svg = el('coachSvg');
-  if (lineState()) { svg.innerHTML = ''; return; }
-  if (viewPly == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
+  const ls = lineState();
+  if (ls && !(ls.idx === 0 && lineView.which === 'best')) { svg.innerHTML = ''; return; }
+  const at = ls ? lineView.ply : viewPly;
+  if (at == null) { if (coachMode === 'off') svg.innerHTML = ''; return; }
   const hist = game.history({ verbose: true });
-  const m = hist[viewPly];
+  const m = hist[at];
   const r = m && reviews.get(moveId(m));
   if (!m) { svg.innerHTML = ''; return; }
   const arrow = (from, to, colour, dashed) => {
@@ -6755,7 +6941,7 @@ function drawReview() {
     const badge = r ? badgeHTML(r.cls) : '<span class="badge g-pending">…</span>';
     const label = r ? GRADES[r.cls].label : 'checking…';
     return `<button class="revrow${revPick === i ? ' on' : ''}" data-ply="${i}">${badge}
-      <span class="rwho">${mine ? 'You' : 'They'}</span>
+      <span class="rwho">${isLocal() ? (m.color === 'w' ? 'White' : 'Black') : mine ? 'You' : 'They'}</span>
       <span class="rsan">${esc(moveLabel(i, m.san))}</span>
       <span class="rlab">${esc(label)}</span></button>`;
   };
@@ -6774,7 +6960,7 @@ function drawReview() {
     const r = reviews.get(moveId(hist[revPick]));
     if (r) {
       html += `<div class="revexp">${explainHTML(r)}
-        <button class="revshow" id="revShow">${viewPly === revPick ? 'Back to the game' : 'Show on the board'}</button></div>`;
+</div>`;
     } else {
       html += '<div class="revexp"><p>This move hasn’t been judged. Only moves made with the review on get a verdict.</p></div>';
     }
@@ -6806,7 +6992,8 @@ el('reviewBody').addEventListener('click', e => {
   if (row) { openReview(Number(row.dataset.ply)); return; }
   const ln = e.target.closest('[data-line]');
   if (ln && revPick != null) {
-    lineView = { ply: revPick, which: ln.dataset.line, idx: 1, at: game.history().length };
+    lineView = { ply: revPick, which: ln.dataset.line, idx: 0, at: game.history().length,
+      id: moveId(game.history({ verbose: true })[revPick]) };
     viewPly = null;
     selected = null;
     draw();
@@ -7299,7 +7486,7 @@ function nextMoves(f, st, hist) {
   for (const k of gameKeys(hist)) { const n = book.nodes.get(k); if (n && n.name) here = n.name; }
   const ply = hist.length;
   const num = `${Math.floor(ply / 2) + 1}${ply % 2 ? '...' : '.'}`;
-  const who = game.turn() === myColor ? 'Your move' : 'Their move';
+  const who = isLocal() ? (game.turn() === 'w' ? 'White to move' : 'Black to move') : game.turn() === myColor ? 'Your move' : 'Their move';
   const list = opts.map(x => {
     const nm = moveName(f, book.nodes.get(x.k), here);
     return `<span class="omv"><b>${esc(sanOf(game.fen(), x.u))}</b>${nm ? ` <i>${esc(nm)}</i>` : ''}</span>`;
@@ -7447,7 +7634,7 @@ function drawOpenings() {
   // Against a person too: it names what is on the board and what each of you
   // can still steer for, and suggests no moves, so it needs nobody's consent.
   // Only "Opponent plays along" is the computer's to offer.
-  const show = !!code;
+  const show = !!code && code !== 'puzzle';
   blk.classList.toggle('hidden', !show);
   if (!show) return;
   ensureBook();
@@ -7830,7 +8017,7 @@ el('coachBody').addEventListener('toggle', e => {
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
-    el('topState').textContent = el('linkState').textContent = onePiece ? 'one-piece' : 'practice';
+    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
     return;
@@ -7854,6 +8041,8 @@ function setLink() {
 /* ---------- interaction ---------- */
 function pick(sq) {
   if (viewPly != null || lineView) { viewPly = null; lineView = null; draw(); return; }   // any tap returns to the game
+  if (code === 'puzzle' && pz.phase === 'wrong') { pzRetry(); return; }
+  if (code === 'puzzle' && !pzCanMove()) return;
   if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
 
   if (selected) {
@@ -7872,7 +8061,7 @@ function pick(sq) {
      readout come up together and the second tap still plays the move. Only a
      tap that actually plays a move skips the readout, and that one clears it. */
   const piece = game.get(sq);
-  selected = (piece && piece.color === myColor && game.turn() === myColor && sq !== selected) ? sq : null;
+  selected = (piece && piece.color === moverColor() && game.turn() === moverColor() && sq !== selected) ? sq : null;
   inspect(sq);
   drawBoard();
   drawCoach();
@@ -7897,7 +8086,7 @@ function askPromotion(from, to) {
   overlay.className = 'promo';
   overlay.innerHTML =
     '<div class="promo-box"><p>Promote to</p><div class="promo-row">' +
-    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, myColor)}</button>`).join('') +
+    ['q','r','b','n'].map(t => `<button data-t="${t}">${pieceSVG(t, moverColor())}</button>`).join('') +
     '</div></div>';
   overlay.addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -8034,6 +8223,21 @@ el('oneBtn').onclick = () => {
   begin();
 };
 
+el('localBtn').onclick = () => {
+  solo = true;
+  code = 'local';
+  myColor = 'w';
+  setHash('w');
+  begin();          // an unfinished game on this device carries on; a finished one shows its result, with New game
+};
+
+el('pzBtn').onclick = () => {
+  solo = true;
+  code = 'puzzle';
+  setHash('w');
+  begin();
+};
+
 /* Back to the start screen. Every game is saved as it goes, so this only
    leaves; opening the same mode or link again picks the game up. */
 el('backBtn').onclick = () => { location.href = location.pathname + location.search; };
@@ -8069,14 +8273,16 @@ el('copyBtn').onclick = async () => {
 };
 
 function resign() {
-  result = { type: 'resign', winner: myColor === 'w' ? 'b' : 'w' };
+  // on one device it's the side to move that resigns
+  const loser = isLocal() ? game.turn() : myColor;
+  result = { type: 'resign', winner: loser === 'w' ? 'b' : 'w' };
   broadcast({ t: 'resign', by: myColor });
   persist();
   draw();
 }
 
 function rematch() {
-  const next = myColor === 'w' ? 'b' : 'w';
+  const next = isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w';     // one device: the board keeps facing White
   broadcast({ t: 'rematch', yourColor: myColor });
   startFresh(next);
 }
@@ -8089,10 +8295,10 @@ el('resignBtn').onclick = async () => {
   ];
   // Against the engine there's nobody to agree a rematch with, so offer the
   // restart in the same step.
-  if (solo) actions.push({ label: 'Resign & rematch', value: 'again', kind: 'danger' });
+  if (solo) actions.push({ label: isLocal() ? 'Resign & new game' : 'Resign & rematch', value: 'again', kind: 'danger' });
   const choice = await openModal({
-    title: 'Resign?',
-    body: solo
+    title: isLocal() ? `${game.turn() === 'w' ? 'White' : 'Black'} resigns?` : 'Resign?',
+    body: isLocal() ? '<p>The side to move resigns. The game is saved to your games.</p>' : solo
       ? '<p>The game is saved to your games as a loss either way. A rematch swaps colours.</p>'
       : '<p>They’ll be told straight away. The game is saved to your games as a loss.</p>',
     actions
@@ -8109,7 +8315,7 @@ el('takebackBtn').onclick = () => {
 
   if (solo) {                    // no one to ask
     const hist = game.history();
-    const drop = Math.min(game.turn() === myColor ? 2 : 1, hist.length);
+    const drop = Math.min(isLocal() ? 1 : game.turn() === myColor ? 2 : 1, hist.length);
     adopt(hist.slice(0, hist.length - drop), null, true);
     return;
   }
@@ -8188,7 +8394,7 @@ el('setBtn').onclick = () => {
 
 /* ---------- boot ---------- */
 /* ---------- the tabbed panel ---------- */
-const TABS = ['open', 'review', 'moves', 'set'];
+const TABS = ['puzzle', 'open', 'review', 'moves', 'set'];
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
 document.addEventListener('keydown', e => {
   if (!lineView || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -8200,8 +8406,11 @@ document.addEventListener('keydown', e => {
 
 function showTab(t) {
   activeTab = TABS.includes(t) ? t : 'open';
+  // puzzles have their own tab in place of Openings and Review, which would give answers away
+  if (code === 'puzzle' && (activeTab === 'open' || activeTab === 'review')) activeTab = 'puzzle';
+  if (code !== 'puzzle' && activeTab === 'puzzle') activeTab = 'open';
   if (lineView && activeTab !== 'review') { lineView = null; draw(); }
-  store.set('table:tab', activeTab);
+  if (code !== 'puzzle') store.set('table:tab', activeTab);
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === activeTab));
   for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.dataset.pane === activeTab);
   el('panes').scrollTop = activeTab === 'moves' ? el('panes').scrollHeight : 0;
@@ -8211,6 +8420,708 @@ document.querySelector('.tabs').addEventListener('click', e => {
   if (b) showTab(b.dataset.tab);
 });
 
+/* ================= puzzles =================
+   Lichess's puzzles, fetched straight from lichess.org by this page (its API
+   allows it from any site), a batch at a time for the chosen theme and
+   difficulty. The puzzles are public domain. Each one is a position from a
+   real game: the game's moves up to the puzzle are replayed, the last of them
+   (the opponent's) is played in front of you, and then you find the moves in
+   `solution`; the opponent's answers in it are played for you. A different
+   move is accepted only if it mates, as on Lichess.
+
+   Nothing else in the page runs here: no engine, no review, no hints, no
+   saved game. Only this module's own state is kept, under table:pz. */
+const PZ_THEMES = [["Mixed", [["mix", "Healthy mix", "A bit of everything. You don't know what to expect, so be ready for anything! Just like in real games."]]], ["Tactics", [["fork", "Fork", "A move where a piece attacks two or more opposing pieces simultaneously."], ["pin", "Pin", "A tactic involving pins, where a piece is unable to move without revealing an attack on a higher value piece."], ["skewer", "Skewer", "A motif involving a high value piece being attacked, moving out the way, and allowing a lower value piece behind it to be captured or attacked, the inverse of a pin."], ["discoveredAttack", "Discovered attack", "Moving a piece (such as a knight), that previously blocked an attack by a long range piece (such as a rook), out of the way of that piece."], ["discoveredCheck", "Discovered check", "Move a piece to reveal a check from a hidden attacking piece, which often leads to a decisive advantage."], ["doubleCheck", "Double check", "Checking with two pieces at once, as a result of a discovered attack where both the moving piece and the unveiled piece attack the opponent's king."], ["hangingPiece", "Hanging piece", "A tactic involving an opponent piece being undefended or insufficiently defended and free to capture."], ["trappedPiece", "Trapped piece", "A piece is unable to escape capture as it has limited moves."], ["sacrifice", "Sacrifice", "A tactic involving giving up material in the short-term, to gain an advantage again after a forced sequence of moves."], ["deflection", "Deflection", "A move that distracts an opposing piece from another duty that it performs, such as guarding a key square. Sometimes also called \"overloading\"."], ["attraction", "Attraction", "An exchange or sacrifice encouraging or forcing an opponent piece to a square that allows a follow-up tactic."], ["clearance", "Clearance", "A move, often with tempo, that clears a square, file or diagonal for a follow-up tactical idea."], ["interference", "Interference", "Moving a piece between two opponent pieces to leave one or both opponent pieces undefended, such as a knight on a defended square between two rooks."], ["intermezzo", "Intermezzo", "Instead of playing the expected move, first interpose another move posing an immediate threat that the opponent must answer. Also known as \"Zwischenzug\" or \"In between\"."], ["capturingDefender", "Capture the defender", "Removing a piece that is critical to defence of another piece, allowing the now undefended piece to be captured on a following move."], ["xRayAttack", "X-Ray attack", "A piece attacks or defends a square, through an enemy piece."], ["quietMove", "Quiet move", "A move that does not check, capture, or create an immediate threat to capture. Instead, it prepares a hidden and unavoidable threat for a later move."], ["defensiveMove", "Defensive move", "A precise move or sequence of moves that is needed to avoid losing material or another advantage."], ["zugzwang", "Zugzwang", "The opponent is limited in the moves they can make, and all moves worsen their position."], ["exposedKing", "Exposed king", "A tactic involving a king with few defenders around it, often leading to checkmate."], ["kingsideAttack", "Kingside attack", "An attack of the opponent's king, after they castled on the king side."], ["queensideAttack", "Queenside attack", "An attack of the opponent's king, after they castled on the queen side."], ["attackingF2F7", "Attacking f2 or f7", "An attack focusing on the f2 or f7 pawn, such as in the fried liver opening."], ["advancedPawn", "Advanced pawn", "One of your pawns is deep into the opponent position, maybe threatening to promote."], ["promotion", "Promotion", ""], ["underPromotion", "Underpromotion", "Promotion to a knight, bishop, or rook."], ["enPassant", "En passant", "A tactic involving the en passant rule, where a pawn can capture an opposing pawn that has just moved next to it with its initial two-square move."], ["castling", "Castling", "Bring the king to safety, and deploy the rook for attack."]]], ["Checkmates", [["mate", "Checkmate", "Win the game with style."], ["mateIn1", "Mate in 1", "Deliver checkmate in one move."], ["mateIn2", "Mate in 2", "Deliver checkmate in two moves."], ["mateIn3", "Mate in 3", "Deliver checkmate in three moves."], ["mateIn4", "Mate in 4", "Deliver checkmate in four moves."], ["mateIn5", "Mate in 5 or more", "Figure out a long mating sequence."], ["backRankMate", "Back rank mate", "Checkmate the king on the home rank, when it is trapped there by its own pieces."], ["smotheredMate", "Smothered mate", "A checkmate delivered by a knight in which the mated king is unable to move because it is surrounded (or smothered) by its own pieces."], ["anastasiaMate", "Anastasia's mate", "A knight and rook or queen team up to trap the opposing king between the side of the board and a friendly piece."], ["arabianMate", "Arabian mate", "A knight and a rook team up to trap the opposing king on a corner of the board."], ["bodenMate", "Boden's mate", "Two attacking bishops on criss-crossing diagonals deliver mate to a king obstructed by friendly pieces."], ["doubleBishopMate", "Double bishop mate", "Two attacking bishops on adjacent diagonals deliver mate to a king obstructed by friendly pieces."], ["dovetailMate", "Dovetail mate", "A queen delivers mate to an adjacent king, whose only two escape squares are obstructed by friendly pieces."], ["hookMate", "Hook mate", "Checkmate using a rook, knight, and pawn, where an opposing pawn blocks the king's escape."], ["epauletteMate", "Epaulette mate", "Two adjacent escape squares for a checked king are occupied by other pieces."], ["cornerMate", "Corner mate", ""], ["killBoxMate", "Kill box mate", "A rook is next to the enemy king and supported by a queen that also blocks the king's escape squares. The rook and the queen catch the enemy king in a 3 by 3 \"kill box\"."], ["morphysMate", "Morphy's mate", ""], ["operaMate", "Opera mate", "Check the king with a rook and use a bishop to defend the rook."], ["pillsburysMate", "Pillsbury's mate", ""], ["swallowstailMate", "Swallow's tail mate", "A checkmate pattern that visually resembles the appearance of a swallow’s tail, similar to a V shape."], ["triangleMate", "Triangle mate", "The queen and rook, one square away from the enemy king, are on the same rank or file, separated by one square, forming a triangle."], ["vukovicMate", "Vuković mate", "A rook and knight team up to mate the king. The rook delivers mate while supported by a third piece, and the knight is used to block the king's escape squares."], ["balestraMate", "Balestra mate", "A bishop delivers the checkmate, while a queen blocks the remaining escape squares"], ["blindSwineMate", "Blind Swine mate", "Two rooks team up to mate the king in an area of 2 by 2 squares."]]], ["Phase", [["opening", "Opening", "A tactic during the first phase of the game."], ["middlegame", "Middlegame", "A tactic during the second phase of the game."], ["endgame", "Endgame", "A tactic during the last phase of the game."], ["pawnEndgame", "Pawn endgame", "An endgame with only pawns."], ["rookEndgame", "Rook endgame", "An endgame with only rooks and pawns."], ["bishopEndgame", "Bishop endgame", "An endgame with only bishops and pawns."], ["knightEndgame", "Knight endgame", "An endgame with only knights and pawns."], ["queenEndgame", "Queen endgame", "An endgame with only queens and pawns."], ["queenRookEndgame", "Queen and Rook", "An endgame with only queens, rooks and pawns."]]], ["Length", [["oneMove", "One-move puzzle", "A puzzle that is only one move long."], ["short", "Short puzzle", "Two moves to win."], ["long", "Long puzzle", "Three moves to win."], ["veryLong", "Very long puzzle", "Four moves or more to win."]]], ["Goal", [["equality", "Equality", "Come back from a losing position, and secure a draw or a balanced position. (eval ≤ 200cp)"], ["advantage", "Advantage", "Seize your chance to get a decisive advantage. (200cp ≤ eval ≤ 600cp)"], ["crushing", "Crushing", "Spot the opponent blunder to obtain a crushing advantage. (eval ≥ 600cp)"]]]];
+const PZ_DIFFS = [['auto', 'Matches your rating'], ['easiest', 'Easiest'], ['easier', 'Easier'], ['normal', 'Normal'], ['harder', 'Harder'], ['hardest', 'Hardest']];
+/* Lichess's anonymous difficulty bands: for the big themes it picks puzzles rated
+   1300-1600 shifted by -600/-300/0/+300/+600 (lila PuzzleAnon, PuzzleDifficulty).
+   Small themes get a wider spread. The middle of each band: */
+const PZ_BANDS = [['easiest', 850], ['easier', 1150], ['normal', 1450], ['harder', 1750], ['hardest', 2050]];
+/* Your puzzle rating: Elo against each puzzle's Lichess rating, which is a
+   decaying average: every result moves it a fixed share of the way, so older
+   results fade and roughly the last 20-30 puzzles decide it. It never settles:
+   K stays 32 for good. The first 10 puzzles use 60, to find your level quickly,
+   and so do the 10 after a break of a week or more, to find it again. */
+const PZ_START = 1500;
+const PZ_BREAK_MS = 7 * 24 * 3600 * 1000;
+const pzOnBreak = () => !!pz.stats.lastAt && Date.now() - pz.stats.lastAt > PZ_BREAK_MS;
+const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 : 32;
+
+/* Ratings by theme. Each tactical theme you've met has an adjustment to your
+   overall rating: your fork rating is overall + the fork adjustment. The
+   adjustments are kept centred, so their average (weighted by how many puzzles
+   of each you've done) is always zero, and so the overall rating is always the
+   weighted average of the theme ratings: they can't drift apart.
+   A puzzle is predicted from your rating for its themes, not your overall one.
+   Its result moves the overall rating by K as usual, and the adjustments of its
+   themes by a smaller step that is bigger while a theme is uncertain: few
+   puzzles of it done, or none for a while (Glicko's idea, which Lichess uses for
+   its own puzzle rating). Uncertain themes therefore correct themselves quickly
+   once tried again, and the healthy mix leans towards them. */
+const PZ_TACTIC = new Set(PZ_THEMES.filter(([g]) => g === 'Tactics' || g === 'Checkmates')
+  .flatMap(([, list]) => list.map(t => t[0])).filter(t => t !== 'mate'));
+const PZ_STALE_DAYS = 60;
+const pzTactics = p => ((p && p.puzzle.themes) || []).filter(t => PZ_TACTIC.has(t));
+const pzTheme = t => (pz.stats.themes || {})[t];
+const pzThemeUnc = t => {
+  const th = pzTheme(t);
+  if (!th || !th.n) return 1;
+  return Math.min(1, 1 / (1 + th.n / 5) + (Date.now() - th.at) / 864e5 / PZ_STALE_DAYS);
+};
+const pzAdjFor = p => {
+  const ts = pzTactics(p).filter(t => pzTheme(t) && pzTheme(t).n);
+  return ts.length ? ts.reduce((a, t) => a + pzTheme(t).adj, 0) / ts.length : 0;
+};
+/* the chance of solving it: from your overall rating (what you see and what moves),
+   or from your rating on its themes (behind the scenes, for the theme ratings) */
+const pzExpectedAt = me => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || me) - me) / 400));
+const pzExpected = () => pzExpectedAt(pz.stats.rating);
+const pzExpectedThemes = () => pzExpectedAt(pz.stats.rating + pzAdjFor(pz.cur));
+
+/* How a puzzle scores. Each move you had to find carries a share of a full
+   loss, from 0 (found alone) to 1 (no idea):
+     hints: the first (what to look for) 1/3, the second (the piece) 2/3,
+       the third (piece and square: the answer) 1;
+     each wrong try: what it gave away, as a share of 40 points of winning
+       chance (a try 2 points worse than the answer costs 0.05, a blunder that
+       throws away 40 or more costs 1), read by Stockfish; 0.5 until it has;
+     together: 1 - (1 - hints)(1 - try)(1 - try)...
+   The puzzle's share p is the average over your moves; Give up makes every
+   move still to find a 1. Up to p = 0.1 you still gain, less as p grows;
+   beyond it you lose, more as p grows, up to the full loss at p = 1. So a
+   near miss can still gain, any real help loses, and finishing is never worse
+   than giving up. */
+const PZ_HINT_LOSS = [0, 1 / 3, 2 / 3, 1];
+const PZ_TRY_SPAN = 40;
+const PZ_TIP = 0.1;
+const pzMovesToFind = () => Math.ceil(pzSolution().length / 2);
+/* how much a wrong try gave away, 0-1, once Stockfish has read both sides of it; null until then */
+function pzTrySev(w) {
+  if (w.sev != null) return w.sev;
+  const a = anCache.get(posKey(w.pre)), b = anCache.get(posKey(w.post));
+  if (!(a && (a.terminal || pzRead(a)) && b && (b.terminal || pzRead(b)))) return null;
+  const sign = myColor === 'w' ? 1 : -1;
+  const drop = winPct(a.score * sign) - winPct(b.score * sign);
+  w.sev = Math.max(0, Math.min(1, drop / PZ_TRY_SPAN));
+  return w.sev;
+}
+/* wrong tries on one move cost at most PZ_TRY_CAP of it, so finishing after a blunder
+   always beats giving up, and a hint after a blunder still costs something;
+   only being shown the move (the last hint) costs the whole move */
+const PZ_TRY_CAP = 0.75;
+const pzMoveShare = mv => {
+  const kept = mv.tries.reduce((a, w) => {
+    const sv = pzTrySev(w);
+    return a * (1 - (sv == null ? 0.5 : sv));
+  }, 1);
+  return 1 - (1 - PZ_HINT_LOSS[mv.hints]) * Math.max(1 - PZ_TRY_CAP, kept);
+};
+/* the puzzle's share so far, if everything still to find is found alone (or, giving up, not at all) */
+function pzShare(givingUp = false) {
+  const n = pzMovesToFind();
+  let sum = pz.moves.reduce((a, mv) => a + pzMoveShare(mv), 0);
+  const left = n - pz.moves.length;
+  if (left > 0) sum += givingUp ? left : pzMoveShare({ hints: pz.hints, tries: pz.tries });
+  return Math.min(1, sum / n);
+}
+/* the result, -1..1 of a full step: + is a gain of K x (1 - expected) times it, - a loss of K x expected times it */
+const pzResult = (p, e) => p <= PZ_TIP ? (1 - e) * (1 - p / PZ_TIP) : -e * (p - PZ_TIP) / (1 - PZ_TIP);
+const pzChange = p => Math.round(pzK() * pzResult(p, pzExpected()));
+/* [rating change if you finish it from here, rating change if you give up now] */
+const pzStakes = () => [pzChange(pzShare()), pzChange(pzShare(true))];
+/* The overall rating is plain Elo against the puzzle, as shown before you move.
+   Behind the scenes, the puzzle's themes are judged against your rating for those
+   themes: if you did better than that predicted, their adjustment goes up, by a
+   step that's bigger while the theme is uncertain; then all are re-centred. */
+function pzRate(p) {
+  if (pzOnBreak()) pz.stats.boost = 10;
+  const d = Math.round(pzK() * pzResult(p, pzExpected()));
+  const rt = pzResult(p, pzExpectedThemes());
+  const th = pz.stats.themes || (pz.stats.themes = {});
+  for (const t of pzTactics(pz.cur)) {
+    const cur = th[t] || (th[t] = { adj: 0, n: 0, at: 0 });
+    cur.adj += (16 + 64 * pzThemeUnc(t)) * rt;
+    cur.n++;
+    cur.at = Date.now();
+  }
+  const tried = Object.values(th).filter(x => x.n);
+  const w = tried.reduce((a, x) => a + x.n, 0);
+  if (w) { const mean = tried.reduce((a, x) => a + x.adj * x.n, 0) / w; for (const x of tried) x.adj -= mean; }
+  if (pz.stats.boost > 0 && pz.stats.rated >= 10) pz.stats.boost--;
+  pz.stats.rating = Math.max(400, pz.stats.rating + d);
+  pz.stats.rated++;
+  pz.stats.last = d;
+  pz.stats.lastAt = Date.now();
+}
+/* the Lichess band to ask for: the chosen one, or the one nearest your rating */
+const pzBand = () => pz.diff !== 'auto' ? pz.diff
+  : PZ_BANDS.reduce((a, b) => Math.abs(b[1] - pz.stats.rating) < Math.abs(a[1] - pz.stats.rating) ? b : a)[0];
+const pzRatingText = () => `${pz.stats.rating}${pz.stats.rated < 10 ? '?' : ''}`;
+const PZ_BATCH = 30;
+const PZ_SEEN_MAX = 4000;
+const pzThemeInfo = k => { for (const [, list] of PZ_THEMES) for (const t of list) if (t[0] === k) return t; return [k, k, '']; };
+// tags Lichess puts on puzzles that aren't offered as themes to pick
+const PZ_EXTRA = { master: 'Master games', masterVsMaster: 'Master vs Master games', superGM: 'Super GM games',
+  playerGames: 'Player games', collinearMove: 'Collinear move' };
+const pzName = k => PZ_EXTRA[k] || pzThemeInfo(k)[1];
+
+const pzSaved = store.get('table:pz') || {};
+const pz = {
+  theme: pzSaved.theme || 'mix',
+  // adaptive by default, including for anyone whose save predates the rating
+  diff: pzSaved.stats && pzSaved.stats.rating != null && PZ_DIFFS.some(d => d[0] === pzSaved.diff) ? pzSaved.diff : 'auto',
+  qBand: pzSaved.qBand || null,
+  doneId: pzSaved.doneId || null,
+  queue: Array.isArray(pzSaved.queue) ? pzSaved.queue : [],
+  cur: pzSaved.cur || null,
+  stats: pzSaved.stats || { solved: 0, missed: 0, streak: 0, best: 0 },
+  step: 0,            // index into the solution of the move wanted next
+  phase: 'idle',      // idle | loading | intro | solve | wrong | reply | showing | done | error
+  failed: false,      // a wrong move was played
+  helped: false,      // a hint or the solution was used
+  hintSq: null,
+  hints: 0,           // hint stages used on this move: 1 what to look for, 2 the piece, 3 the square
+  tries: [],          // wrong tries on this move: { pre, post, sev }
+  moves: [],          // your moves found so far: { hints, tries }
+  hintsUsed: false,
+  note: '',           // e.g. that a new theme applies from the next puzzle
+  prog: pzSaved.prog || null,
+  shown: false,
+  wrong: null,        // { fen, san, from, to } your wrong move, while its refutation is shown
+  badge: null,        // { sq, cls } on the board
+  before: null,       // lastMove before your try, to put back after a wrong one
+  error: '',
+  gen: 0              // bumps on every load, so stale timers do nothing
+};
+const pzSeen = new Set(store.get('table:pzSeen') || []);
+if (pz.stats.rating == null) { pz.stats.rating = PZ_START; pz.stats.rated = 0; pz.stats.last = null; }
+if (!pz.stats.themes) pz.stats.themes = {};
+
+/* Saved as you go, including where you are in the puzzle and the help you've had,
+   so closing the app and coming back puts you back in the same puzzle with the same cost. */
+function pzSave() {
+  const prog = pz.cur && pz.phase !== 'done'
+    ? { id: pz.cur.puzzle.id, step: pz.step, hints: pz.hints, tries: pz.tries, moves: pz.moves, hintsUsed: pz.hintsUsed, failed: pz.failed }
+    : null;
+  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, qBand: pz.qBand, cur: pz.cur, doneId: pz.doneId, stats: pz.stats, prog });
+}
+function pzMarkSeen(id) {
+  pzSeen.add(id);
+  const list = [...pzSeen].slice(-PZ_SEEN_MAX);
+  store.set('table:pzSeen', list);
+}
+
+const pzCanMove = () => pz.phase === 'solve' && !!pz.cur;
+const pzSolution = () => (pz.cur && pz.cur.puzzle.solution) || [];
+const uciMove = u => ({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] || undefined });
+
+/* Healthy mix: half the time Lichess's own mix; otherwise one theme, drawn with
+   weights that favour themes you haven't tried, are weaker at, or are unsure of. */
+function pzMixAngle() {
+  if (Math.random() < 0.5) return 'mix';
+  const all = [...PZ_TACTIC];
+  const wt = t => {
+    const th = pzTheme(t);
+    if (!th || !th.n) return 3;
+    return 1 + Math.max(0, -th.adj) / 50 + 2 * pzThemeUnc(t);
+  };
+  const ws = all.map(wt), total = ws.reduce((a, b) => a + b, 0);
+  let x = Math.random() * total;
+  for (let i = 0; i < all.length; i++) { x -= ws[i]; if (x <= 0) return all[i]; }
+  return 'mix';
+}
+async function pzFetch() {
+  if (navigator.onLine === false) throw new Error('offline');
+  const mixing = pz.theme === 'mix';
+  const angle = mixing ? pzMixAngle() : pz.theme;
+  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(angle)}?nb=${mixing ? 10 : PZ_BATCH}&difficulty=${pzBand()}`;
+  const r = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (r.status === 429) throw new Error('busy');
+  if (!r.ok) throw new Error('http ' + r.status);
+  const j = await r.json();
+  return (j.puzzles || []).filter(p => p && p.puzzle && p.game && Array.isArray(p.puzzle.solution) && p.puzzle.solution.length);
+}
+
+async function pzNext() {
+  const gen = ++pz.gen;
+  // your rating has moved into another band: what's queued is now the wrong level
+  if (pz.qBand !== pzBand()) pz.queue = [];
+  pz.queue = pz.queue.filter(p => !pzSeen.has(p.puzzle.id));
+  if (!pz.queue.length) {
+    pz.phase = 'loading';
+    pz.cur = null;
+    draw();
+    try {
+      let got = await pzFetch();
+      if (gen !== pz.gen) return;
+      const fresh = got.filter(p => !pzSeen.has(p.puzzle.id));
+      pz.queue = fresh.length ? fresh : got;          // all seen before: repeats beat nothing
+      pz.qBand = pzBand();
+    } catch (err) {
+      if (gen !== pz.gen) return;
+      const m = String(err && err.message || err);
+      pz.error = m === 'offline' ? 'You’re offline. Puzzles come from lichess.org, so they need a connection.'
+        : m === 'busy' ? 'Lichess asked for a pause between requests. Wait a minute, then try again.'
+        : 'Couldn’t reach lichess.org. Check the connection, then try again.';
+      pz.phase = 'error';
+      draw();
+      return;
+    }
+    if (!pz.queue.length) {
+      pz.error = 'Lichess sent no puzzles for that theme and difficulty. Try another.';
+      pz.phase = 'error';
+      draw();
+      return;
+    }
+  }
+  // never straight back to the puzzle you've just finished, if there's anything else
+  if (pz.queue.length > 1 && pz.doneId) pz.queue = pz.queue.filter(q => q.puzzle.id !== pz.doneId);
+  // adaptive: the queued puzzle rated nearest to you
+  let i = 0;
+  if (pz.diff === 'auto') {
+    let gap = Infinity;
+    pz.queue.forEach((q, j) => { const g = Math.abs((q.puzzle.rating || 1500) - pz.stats.rating); if (g < gap) { gap = g; i = j; } });
+  }
+  pzLoad(pz.queue.splice(i, 1)[0]);
+}
+
+/* Set up a puzzle: the game up to and including the opponent's last move, which
+   is marked on the board (from and to squares) rather than played out in front of you. */
+function pzLoad(p, resume = null) {
+  ++pz.gen;
+  pz.cur = p;
+  pz.doneId = null;            // a new puzzle is under way (it may even be one you finished before, served again)
+  pz.step = 0;
+  pz.failed = false;
+  pz.helped = false;
+  pz.hintSq = null;
+  pz.hints = 0;
+  pz.tries = [];
+  pz.moves = [];
+  pz.hintsUsed = false;
+  pz.note = '';
+  pz.shown = false;
+  pz.wrong = null;
+  pz.badge = null;
+  pz.error = '';
+  lineView = null;
+  const sans = p.game.pgn.trim().split(/\s+/).slice(0, p.puzzle.initialPly + 1);
+  const g = new Chess();
+  for (const san of sans) { try { g.move(san); } catch { break; } }
+  game = g;
+  result = null;
+  selected = null;
+  const hist = g.history({ verbose: true });
+  lastMove = hist.length ? { from: hist.at(-1).from, to: hist.at(-1).to } : null;
+  myColor = g.turn();                      // you play the side to move
+  pz.startFen = g.fen();
+  // back in a puzzle you'd started: the moves you'd found, and the help you'd had
+  if (resume && resume.id === p.puzzle.id) {
+    for (const u of p.puzzle.solution.slice(0, resume.step)) {
+      try { const m = g.move(uciMove(u)); lastMove = { from: m.from, to: m.to }; } catch { break; }
+    }
+    pz.step = resume.step || 0;
+    pz.hints = resume.hints || 0;
+    pz.tries = resume.tries || [];
+    pz.moves = resume.moves || [];
+    pz.hintsUsed = !!resume.hintsUsed;
+    pz.failed = !!resume.failed;
+    pz.helped = pz.hintsUsed;
+  }
+  pz.phase = 'solve';
+  pzSave();
+  draw();
+}
+
+/* Your move, from a tap or the promotion picker. */
+function pzMove(from, to, promotion) {
+  if (!pzCanMove()) return false;
+  let m;
+  try { m = game.move({ from, to, promotion }); } catch { return false; }
+  if (!m) return false;
+  selected = null;
+  pz.before = lastMove;
+  lastMove = { from: m.from, to: m.to };
+  const sol = pzSolution();
+  const uci = m.from + m.to + (m.promotion || '');
+  const gen = pz.gen;
+  if (uci === sol[pz.step] || game.isCheckmate()) {
+    pz.moves.push({ hints: pz.hints, tries: pz.tries });
+    pz.hints = 0;
+    pz.tries = [];
+    pz.step++;
+    pz.hintSq = null;
+    const last = pz.step >= sol.length || game.isCheckmate();
+    pz.badge = { sq: m.to, cls: last ? 'best' : 'excellent' };
+    if (last) { pzFinish(); return true; }
+    pz.phase = 'reply';
+    pzSave();
+    draw();
+    setTimeout(() => { if (gen === pz.gen) pzReply(); }, 450);
+    return true;
+  }
+  // wrong: it stays on the board while Stockfish shows what it allows; a tap or Try again takes it back
+  pz.failed = true;
+  pz.tries.push({ pre: m.before, post: game.fen(), sev: null });
+  pz.badge = { sq: m.to, cls: 'mistake' };
+  pz.wrong = { fen: game.fen(), pre: m.before, san: m.san, from: m.from, to: m.to };
+  pz.phase = 'wrong';
+  pzSave();
+  draw();
+  return true;
+}
+
+function pzRetry() {
+  if (pz.phase !== 'wrong') return;
+  lineView = null;
+  game.undo();
+  lastMove = pz.before;
+  pz.badge = null;
+  pz.wrong = null;
+  pz.phase = 'solve';
+  draw();
+}
+
+/* What Stockfish should read: the position your wrong move left, and the puzzle's own start,
+   which says how good the puzzle position was to begin with. */
+function pzAnTodo() {
+  if (!pz.cur || pz.phase === 'loading' || pz.phase === 'error' || pz.phase === 'intro') return [];
+  const out = [];
+  const add = fen => { const e = anEntry(fen); if (!e.terminal && !out.includes(e)) out.push(e); };
+  // tries not yet weighed, the oldest first
+  for (const mv of [...pz.moves, { tries: pz.tries }]) for (const w of mv.tries) if (w.sev == null) { add(w.pre); add(w.post); }
+  if (pz.phase === 'solve') add(game.fen());                     // ready for the next try
+  if (pz.phase === 'wrong' && pz.wrong) {                        // the one being explained, deepest
+    const e = anEntry(pz.wrong.fen); const i = out.indexOf(e); if (i >= 0) out.splice(i, 1); if (!e.terminal && !pz.wrong.why) out.push(e);
+  }
+  return out;
+}
+const PZ_WHY_DEPTH = 14;
+const pzRead = e => !!e && (e.done || e.depth >= PZ_WHY_DEPTH || (e.depth >= 10 && e.ms >= 2500));
+
+let pzWhyKey = null;
+function pzOnAnalysis() {
+  if (!pz.cur || pz.phase === 'done') return;
+  const tries = [...pz.moves.flatMap(mv => mv.tries), ...pz.tries];
+  const weighed = tries.filter(w => pzTrySev(w) != null).length;
+  const e = pz.wrong && anCache.get(posKey(pz.wrong.fen));
+  const key = pz.phase + '|' + weighed + '|' + (pz.wrong ? pz.wrong.fen + (pzRead(e) ? 'ready' : '') : '');
+  if (key === pzWhyKey) return;         // nothing new to say
+  pzWhyKey = key;
+  pzSave();
+  drawPuzzle();
+}
+
+/* Why the wrong move fails, from Stockfish's reading of the position after it. */
+function pzWhyHTML() {
+  const w = pz.wrong;
+  if (!w) return '';
+  const foe = myColor === 'w' ? 'b' : 'w';
+  const sign = myColor === 'w' ? 1 : -1;
+  let c;
+  try { c = new Chess(w.fen); } catch { return ''; }
+  if (c.isStalemate()) return `<p><b>${esc(w.san)}</b> is stalemate: a draw, from a winning position.</p>`;
+  if (c.isDraw()) return `<p><b>${esc(w.san)}</b> lets the game end in a draw.</p>`;
+  if (anBroken) return `<p><b>${esc(w.san)}</b> isn’t the move. (Stockfish isn’t running, so it can’t show why.)</p>`;
+  // The first good-enough reading is kept, so the line you are stepping through
+  // doesn't change under you as Stockfish looks deeper.
+  if (!w.why) {
+    const e0 = anCache.get(posKey(w.fen));
+    if (!pzRead(e0) || !e0.lines[0]) return `<p><b>${esc(w.san)}</b> isn’t the move. Checking why…</p>`;
+    w.why = { pv: e0.lines[0].pv.slice(), score: e0.score };
+  }
+  const e = w.why;
+  const pv = e.pv;
+  const reply = sanOf(w.fen, pv[0]);
+  const eff = lineEffect(w.fen, pv, foe, e.score);
+  // compared with the position you were in when you made it, not the start of the puzzle
+  const start = anCache.get(posKey(w.pre || pz.startFen));
+  const after = winPct(e.score * sign);
+  const before = start && start.depth >= 10 ? winPct(start.score * sign) : null;
+  const hadMate = start && start.depth >= 10 && start.score * sign >= MATE_S / 2;
+  const stillMate = e.score * sign >= MATE_S / 2;
+  // a mate you had and your move lost is said first, whatever else the move costs
+  const lost = hadMate && !stillMate ? `There was a forced mate in ${MATE_S - Math.abs(start.score)} here. ` : '';
+  let t;
+  if (eff) t = `${lost}After <b>${esc(w.san)}</b>, they answer <b>${esc(reply)}</b>, which ${esc(eff)}.`;
+  else if (lost)
+    t = `${lost}After <b>${esc(w.san)}</b>, their best answer is <b>${esc(reply)}</b>, and there’s no mate any more. Your winning chances: ${Math.round(after)}%.`;
+  else if (before != null && after >= 70 && before - after < 8)
+    t = `<b>${esc(w.san)}</b> is nearly as strong by Stockfish’s count (${Math.round(after)}% against ${Math.round(before)}%), but it isn’t the puzzle’s move: the puzzle has a more forcing one.`;
+  else t = `After <b>${esc(w.san)}</b>, their best answer is <b>${esc(reply)}</b>.` +
+    (before != null ? ` Your winning chances go from ${Math.round(before)}% to ${Math.round(after)}%.` : ` Your winning chances: ${Math.round(after)}%.`);
+  const src = { fen: w.fen, pv, color: foe, scoreW: e.score, last: { from: w.from, to: w.to } };
+  return `<p>${t} Stockfish’s line: ${pzLineHTML(src)}</p><p class="pzretry">Tap the board or <button class="linkish" data-pzretry>try again</button>.</p>`;
+}
+
+/* a line from the puzzle that can be stepped through on the board */
+const pzLines = [];
+function pzLineHTML(src) {
+  const len = src.len || payoffLen(src.fen, src.pv, src.color);
+  const sans = lineSans(src.fen, src.pv, len);
+  if (!sans.length) return '';
+  const i = pzLines.push(src) - 1;
+  const on = lineView && lineView.src && lineView.src.fen === src.fen && lineView.src.pv.join() === src.pv.join();
+  if (on) return lineStripHTML(sans);
+  return `<button class="rline" data-pzline="${i}" title="Step through it on the board">${esc(sans.join(' '))}</button>`;
+}
+
+/* Hint stages: what kind of move to look for, then the piece, then the square. */
+const PZ_GENERAL = new Set(['opening', 'middlegame', 'endgame', 'short', 'long', 'veryLong', 'oneMove', 'master',
+  'masterVsMaster', 'superGM', 'playerGames', 'advantage', 'crushing', 'equality', 'mate', 'rookEndgame', 'pawnEndgame',
+  'bishopEndgame', 'knightEndgame', 'queenEndgame', 'queenRookEndgame']);
+function pzLookFor() {
+  const themes = (pz.cur.puzzle.themes || []);
+  const mateN = themes.find(t => /^mateIn\d$/.test(t));
+  const tactic = themes.find(t => !PZ_GENERAL.has(t) && !/^mateIn\d$/.test(t));
+  const parts = [];
+  if (mateN) parts.push(`There’s a forced checkmate: ${pzName(mateN).toLowerCase()}.`);
+  else if (themes.includes('mate')) parts.push('There’s a forced checkmate.');
+  if (tactic) {
+    const [, name, desc] = pzThemeInfo(tactic);
+    parts.push(`Look for: ${name.toLowerCase()}.${desc ? ' ' + desc : ''}`);
+  }
+  if (!parts.length) {
+    if (themes.includes('equality')) parts.push('You’re worse here. Look for the move that saves the game.');
+    else parts.push('One move wins material. Check every capture and check first, including ones that look like they lose a piece.');
+  }
+  return parts.join(' ');
+}
+
+/* The opponent's answer from the solution. */
+function pzReply() {
+  const sol = pzSolution();
+  const u = sol[pz.step];
+  let m = null;
+  try { m = game.move(uciMove(u)); } catch {}
+  if (!m) { pzFinish(); return; }
+  lastMove = { from: m.from, to: m.to };
+  pz.step++;
+  pz.badge = null;
+  blip();
+  if (pz.step >= sol.length) { pzFinish(); return; }
+  pz.phase = 'solve';
+  pzSave();
+  draw();
+}
+
+function pzFinish() {
+  const share = pzShare(pz.shown);
+  pz.phase = 'done';
+  const score = share === 0 ? 1 : 0;
+  if (score === 1) {
+    pz.stats.solved++;
+    pz.stats.streak++;
+    pz.stats.best = Math.max(pz.stats.best, pz.stats.streak);
+  } else {
+    if (pz.shown) pz.stats.missed++; else pz.stats.helped = (pz.stats.helped || 0) + 1;
+    pz.stats.streak = 0;
+  }
+  pzRate(share);
+  // only a clean solve is remembered; anything you needed help with may come round again
+  if (score === 1) pzMarkSeen(pz.cur.puzzle.id);
+  pz.doneId = pz.cur.puzzle.id;           // finished: reopening the page moves on rather than replaying it
+  pzSave();
+  draw();
+}
+
+function pzHint() {
+  if (pz.phase === 'wrong') pzRetry();
+  if (!pzCanMove() || pz.hints >= 3) return;
+  pz.helped = true;
+  pz.hintsUsed = true;
+  pz.hints++;
+  pzSave();
+  draw();
+}
+/* the squares the hint outlines: the piece from stage 2, its square from stage 3 */
+const pzHintSquares = () => {
+  if (!pzCanMove() || pz.hints < 2) return [];
+  const u = pzSolution()[pz.step];
+  return pz.hints >= 3 ? [u.slice(0, 2), u.slice(2, 4)] : [u.slice(0, 2)];
+};
+
+/* Give up on the puzzle: it ends here, and its solution appears as a line to step through. */
+function pzShowSolution() {
+  if (!pz.cur || pz.phase === 'done' || pz.phase === 'showing') return;
+  pz.helped = true;
+  pz.shown = true;
+  pz.hintSq = null;
+  pz.badge = null;
+  if (pz.phase === 'wrong') { game.undo(); lastMove = pz.before; pz.wrong = null; }
+  lineView = null;
+  // no playback: the board stays where you were, and the solution is a line to step through at your own pace
+  pzFinish();
+}
+
+function pzBadges() {
+  const out = new Map();
+  if (lineView) return out;
+  if (pz.badge && lastMove && pz.badge.sq === lastMove.to) out.set(pz.badge.sq, pz.badge.cls);
+  return out;
+}
+
+function pzStatus() {
+  const side = myColor === 'w' ? 'White' : 'Black';
+  switch (pz.phase) {
+    case 'loading': return ['Fetching puzzles…', false];
+    case 'error': return ['No puzzle', true];
+    case 'solve': return [pz.step ? 'Good. Keep going.' : `${side} to move.`, false];
+    case 'reply': return ['Good.', false];
+    case 'wrong': return ['Not that one.', true];
+    case 'showing': return ['The solution', false];
+    // you finished it yourself unless Solution played it out; only a clean solve counts towards the streak
+    case 'done': return [pz.shown ? 'Gave up.' : pz.hintsUsed ? 'Solved with a hint.' : pz.failed ? 'Solved on a retry.' : 'Solved.',
+      !pz.failed && !pz.helped];
+    default: return ['Puzzles', false];
+  }
+}
+
+function fillPzPickers() {
+  el('pzTheme').innerHTML = PZ_THEMES.map(([group, list]) =>
+    `<optgroup label="${esc(group)}">` + list.map(([k, name]) => `<option value="${k}">${esc(name)}</option>`).join('') + '</optgroup>').join('');
+  el('pzDiff').innerHTML = PZ_DIFFS.map(([k, name]) => `<option value="${k}">${name}</option>`).join('');
+}
+
+function drawPuzzle() {
+  if (code !== 'puzzle') return;
+  el('pzTheme').value = pz.theme;
+  el('pzDiff').value = pz.diff;
+  const info = pzThemeInfo(pz.theme);
+  const band = PZ_BANDS.find(b => b[0] === pzBand());
+  el('pzAbout').textContent = (info[2] ? info[2] + ' ' : '') +
+    (pz.diff === 'auto' ? `Difficulty follows your rating: puzzles around ${band[1] - 150}–${band[1] + 150}.` : '');
+  const done = pz.phase === 'done';
+  el('pzHintBtn').disabled = !(pzCanMove() || pz.phase === 'wrong') || pz.hints >= 3;
+  el('pzHintBtn').textContent = pz.hints ? (pz.hints >= 3 ? 'Hints used' : 'Next hint') : 'Hint';
+  el('pzSolBtn').disabled = !pz.cur || done || pz.phase === 'showing' || pz.phase === 'loading' || pz.phase === 'intro';
+  el('pzNextBtn').textContent = pz.phase === 'error' ? 'Try again' : 'Next puzzle';
+  el('pzNextBtn').classList.toggle('primary', done);
+  el('pzNextBtn').disabled = !(done || pz.phase === 'error');
+
+  pzLines.length = 0;
+  let html = '';
+  if (pz.cur && ['solve', 'wrong', 'reply'].includes(pz.phase)) {
+    const [up, down] = pzStakes();
+    const sign = n => n > 0 ? `<span class="pzdelta up">+${n}</span>` : n < 0 ? `<span class="pzdelta down">−${-n}</span>` : '<span class="pzdelta">0</span>';
+    const fresh = !pz.moves.some(mv => mv.hints || mv.tries.length) && !pz.hints && !pz.tries.length;
+    html += `<p class="pzstakes">${fresh ? 'Solve' : 'Solve now'} ${sign(up)} · Give up ${sign(down)}</p>`;
+  }
+  if (pz.note && !done) html += `<p class="pzhinttext">${esc(pz.note)}</p>`;
+  if (pz.phase === 'error') html += `<p class="pzerr">${esc(pz.error)}</p>`;
+  if (pz.cur && pz.hints >= 1 && !done) {
+    const stage = ['', '', ' The piece to move is outlined.', ' The piece and its square are outlined.'][pz.hints];
+    html += `<p class="pzhinttext">${esc(pzLookFor())}${stage}</p>`;
+  }
+  if (pz.phase === 'wrong') html += pzWhyHTML();
+  if (done && pz.cur) {
+    const p = pz.cur.puzzle, g = pz.cur.game;
+    const themes = (p.themes || []).map(pzName).join(', ');
+    const pl = (g.players || []).map(x => `${x.title ? x.title + ' ' : ''}${x.name} (${x.rating})`).join(' vs ');
+    const startFen = pzStartFen();
+    const end = new Chess(startFen);
+    for (const u of p.solution) { try { end.move(uciMove(u)); } catch { break; } }
+    const eff = end.isCheckmate() ? 'ends in checkmate' : lineEffect(startFen, p.solution, myColor, null);
+    html += `<p><b>Solution:</b> ${pzLineHTML({ fen: startFen, pv: p.solution, color: myColor, len: p.solution.length })}` +
+      `${eff ? ` It ${esc(eff)}.` : ''}</p>`;
+    html += `<p>Puzzle rating <b>${p.rating}</b>, played ${Number(p.plays || 0).toLocaleString()} times.</p>`;
+    if (themes) html += `<p>Themes: ${esc(themes)}.</p>`;
+    html += `<p>From a ${esc((g.perf && g.perf.name || '').toLowerCase())} game, ${esc(pl)}. ` +
+      `<a href="https://lichess.org/${encodeURIComponent(g.id)}/${myColor === 'w' ? 'white' : 'black'}#${p.initialPly + 1}" target="_blank" rel="noopener">See the game on Lichess</a>.</p>`;
+  }
+  const s = pz.stats;
+  const change = done && s.last != null ? ` <span class="pzdelta ${s.last > 0 ? 'up' : s.last < 0 ? 'down' : ''}">${s.last > 0 ? '+' : s.last < 0 ? '−' : '±'}${Math.abs(s.last)}</span>` : '';
+  html += `<p class="pzstats">Your puzzle rating <b>${pzRatingText()}</b>${change}. Solved ${s.solved}, with help ${s.helped || 0}, gave up ${s.missed}. Streak ${s.streak}${s.best ? `, best ${s.best}` : ''}.</p>`;
+  el('pzBody').innerHTML = html;
+}
+
+/* the position the solution starts from: the puzzle's game with the opponent's last move played */
+function pzStartFen() {
+  const p = pz.cur;
+  const g = new Chess();
+  for (const san of p.game.pgn.trim().split(/\s+/).slice(0, p.puzzle.initialPly + 1)) { try { g.move(san); } catch { break; } }
+  return g.fen();
+}
+
+function pzSetFilter() {
+  pz.theme = el('pzTheme').value;
+  pz.diff = el('pzDiff').value;
+  pz.queue = [];
+  // mid-puzzle the new choice waits for the next one, so it can't be used to skip this one
+  if (pz.cur && !['done', 'error', 'loading'].includes(pz.phase)) {
+    pz.note = 'Your new choice applies from the next puzzle.';
+    pzSave();
+    draw();
+    return;
+  }
+  pzSave();
+  pzNext();
+}
+
+el('pzBody').addEventListener('click', e => {
+  const ln = e.target.closest('[data-pzline]');
+  if (ln) {
+    const src = pzLines[Number(ln.dataset.pzline)];
+    if (src) { lineView = { src, idx: 0, gen: pz.gen, boardFen: game.fen() }; selected = null; draw(); }
+    return;
+  }
+  const st = e.target.closest('[data-lstep]');
+  if (st) { if (st.dataset.lstep === 'x') { lineView = null; draw(); } else lineStep(Number(st.dataset.lstep)); return; }
+  const li = e.target.closest('[data-li]');
+  if (li && lineView) { lineView.idx = Number(li.dataset.li); draw(); return; }
+  if (e.target.closest('[data-pzretry]')) pzRetry();
+});
+el('pzTheme').onchange = pzSetFilter;
+el('pzDiff').onchange = pzSetFilter;
+el('pzHintBtn').onclick = pzHint;
+el('pzSolBtn').onclick = pzShowSolution;
+// Next puzzle: only once this one is finished (or to retry after a failed fetch)
+el('pzNextBtn').onclick = () => {
+  if (!(pz.phase === 'done' || pz.phase === 'error')) return;
+  pz.cur = null;
+  pzSave();
+  pzNext();
+};
+el('pzThemesBtn').onclick = () => {
+  const th = pz.stats.themes || {};
+  const R = pz.stats.rating;
+  const ago = at => { const d = Math.floor((Date.now() - at) / 864e5); return d < 1 ? 'today' : d < 14 ? `${d} day${d > 1 ? 's' : ''} ago` : `${Math.floor(d / 7)} weeks ago`; };
+  const tried = [...PZ_TACTIC].filter(t => th[t] && th[t].n).map(t => ({ t, r: Math.round(R + th[t].adj), n: th[t].n, at: th[t].at, unsure: pzThemeUnc(t) > 0.5 }))
+    .sort((a, b) => a.r - b.r);
+  const untried = [...PZ_TACTIC].filter(t => !(th[t] && th[t].n)).map(pzName);
+  const rows = tried.map(x => `<tr><td>${esc(pzName(x.t))}</td><td class="num"><b>${x.r}${x.unsure ? '?' : ''}</b></td>` +
+    `<td class="num">${x.n}</td><td>${ago(x.at)}</td></tr>`).join('');
+  openModal({
+    title: 'Ratings by theme',
+    body: `<p>Your overall rating, <b>${R}</b>, is the average of these, weighted by how many of each you’ve done. Weakest first. A ? means there isn’t enough to go on yet, or it’s been a while: the next few of that theme will move it quickly, and the healthy mix will offer it more often.</p>` +
+      (tried.length ? `<table class="pztable"><tr><th>Theme</th><th class="num">Rating</th><th class="num">Done</th><th>Last</th></tr>${rows}</table>` : '<p>No themes yet: finish a few puzzles first.</p>') +
+      (untried.length ? `<p class="pzuntried">Not tried yet: ${esc(untried.join(', '))}.</p>` : ''),
+    actions: [{ label: 'Close', value: true, kind: 'go', focus: true }]
+  });
+};
+fillPzPickers();
+el('pzResetBtn').onclick = async () => {
+  const ok = await confirmModal('Reset puzzle stats?',
+    `Your puzzle rating goes back to ${PZ_START}, your theme ratings, counts and streaks are cleared, and puzzles you’ve solved can come up again.`,
+    'Reset', { danger: true });
+  if (!ok) return;
+  pz.stats = { solved: 0, helped: 0, missed: 0, streak: 0, best: 0, rating: PZ_START, rated: 0, last: null, boost: 0, lastAt: 0, themes: {} };
+  pzSeen.clear();
+  store.set('table:pzSeen', []);
+  pzSave();
+  draw();
+};
+
+/* Entering puzzle mode: everything that would give the answer away is off. */
+function pzStart() {
+  hintsOn = false;
+  autoPlay = false;
+  coachMode = 'off';
+  document.body.classList.add('puzzlemode');
+  if (pz.cur && !pzSeen.has(pz.cur.puzzle.id) && pz.cur.puzzle.id !== pz.doneId) pzLoad(pz.cur, pz.prog);    // carry on with the one you were on, as you left it
+  else { pz.cur = null; pzNext(); }
+}
+
 function begin() {
   el('lobby').classList.add('hidden');
   el('game').classList.remove('hidden');
@@ -8219,18 +9130,30 @@ function begin() {
   el('inviteSlot').appendChild(el('invite'));
   el('diagSlot').appendChild(el('verBtn'));
   el('diagSlot').appendChild(el('debugPanel'));
+  if (code === 'puzzle') activeTab = 'puzzle';
+  document.body.classList.toggle('localmode', code === 'local');
   showTab(activeTab);
-  restore();
+  if (code !== 'puzzle') restore();
   if (!solo) {
     connect();
     el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
   }
   draw();
   setLink();
+  if (code === 'puzzle') pzStart();
 }
 
-const { r, c, solo: soloHash, only: onlyHash } = parseHash();
-if (soloHash) {
+const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash } = parseHash();
+if (localHash) {
+  solo = true;
+  code = 'local';
+  myColor = 'w';
+  begin();
+} else if (puzzleHash) {
+  solo = true;
+  code = 'puzzle';
+  begin();
+} else if (soloHash) {
   solo = true;
   if (ONLY_KINDS.includes(onlyHash) && onlyHash !== 'any') {
     onePiece = true;

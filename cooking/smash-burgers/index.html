@@ -293,10 +293,10 @@ section { display: flex; flex-direction: column; gap: 14px; }
     return {
       groups: [
         { label: 'Burgers', rows: [
-          [wt(g), 'beef mince', false, 'regular mince, not lean: the fat is what makes the crust. 120 g per burger.'],
+          [wt(g), 'beef mince', false, 'regular mince, not lean: the fat is what makes the crust. 2 × 60 g patties per burger.'],
           [n, 'brioche bun' + s(n, '', 's'), false, ''],
           [spoons(n), 'butter', false, 'for toasting the buns'],
-          [balls, 'burger cheese slice' + s(balls, '', 's'), false, 'one per patty'],
+          [balls, 'burger cheese slice' + s(balls, '', 's'), false, 'one per patty (2 per burger)'],
           [spoons(3 * n), 'bottled burger sauce', false, 'about 1 tbsp per burger. Any brand from the sauce aisle; tomato sauce also works.'],
           [Math.max(1, Math.round(n * 1.5)) + ' leaves', 'iceberg lettuce', false, 'finely shredded'],
           [whole(n / 3), 'tomato' + s(whole(n / 3), '', 'es'), true, 'thinly sliced'],
