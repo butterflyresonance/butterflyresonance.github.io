@@ -3085,7 +3085,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-19.7-idb';
+const VERSION = '2026-10-19.8-games-idb';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3722,14 +3722,30 @@ function startFresh(colorForMe) {
   draw();
 }
 
+const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle'].includes(c);
+
 function persist() {
   if (!code || code === 'puzzle') return;
   recordGame();
+  /* An online table's own copy is only for picking the game up again. Once the
+     game is over it's in your history in full, so the copy goes; opening the
+     old link later starts a fresh table. */
+  if (ownTable(code) && result) { try { localStorage.removeItem('table:' + code); } catch {} return; }
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
   store.set('table:' + code, { history: game.history(), myColor, result, gameId,
     setting: code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : undefined });
 }
+
+// tidy up: finished online tables saved by earlier builds (the game is in your history)
+try {
+  for (let k = localStorage.length - 1; k >= 0; k--) {
+    const key = localStorage.key(k);
+    if (!key || !key.startsWith('table:') || !ownTable(key.slice(6))) continue;
+    const v = store.get(key);
+    if (v && Array.isArray(v.history) && v.result) localStorage.removeItem(key);
+  }
+} catch {}
 
 function restore() {
   const saved = store.get('table:' + code);
@@ -3769,26 +3785,103 @@ let historyFull = false; // storage refused a write and old games were dropped
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) plyAway = true; });
 
+/* ---------- IndexedDB ----------
+   One database, 'etude', with a store per kind of record: 'games' (your game
+   history, one record per game) and 'pzbuf' (puzzles waiting to be served).
+   Each record is written on its own, so saving a move rewrites one game, not
+   all of them, and none of it shares localStorage's 5 MB with the rest. */
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('no indexedDB')); return; }
+    const r = indexedDB.open('etude', 2);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.contains('pzbuf')) db.createObjectStore('pzbuf', { keyPath: 'puzzle.id' });
+      if (!db.objectStoreNames.contains('games')) db.createObjectStore('games', { keyPath: 'id' });
+    };
+    r.onsuccess = () => {
+      const db = r.result;
+      db.onversionchange = () => db.close();     // let a newer build in another tab upgrade
+      res(db);
+    };
+    r.onerror = () => rej(r.error);
+    // an older build open in another tab holds the database: give up after a few
+    // seconds and run from localStorage / memory for this visit
+    r.onblocked = () => setTimeout(() => rej(new Error('blocked')), 3000);
+  }));
+  const tx = (store, mode, fn) => open().then(db => new Promise((res, rej) => {
+    const t = db.transaction(store, mode), req = fn(t.objectStore(store));
+    t.oncomplete = () => res(req && req.result);
+    t.onerror = t.onabort = () => rej(t.error);
+  }));
+  return {
+    all: store => tx(store, 'readonly', st => st.getAll()),
+    put: (store, list) => list.length ? tx(store, 'readwrite', st => { list.forEach(x => st.put(x)); }) : Promise.resolve(),
+    del: (store, ids) => ids.length ? tx(store, 'readwrite', st => { ids.forEach(id => st.delete(id)); }) : Promise.resolve(),
+    clear: store => tx(store, 'readwrite', st => st.clear()),
+  };
+})();
+
+/* Games are held in memory (gamesMem) and each change is written to IndexedDB
+   as one record. Older builds kept the whole list under table:games in
+   localStorage: on first load it is copied across, and removed once the copy
+   is safely stored. If IndexedDB can't be used, the list stays in localStorage
+   as before. */
+let gamesMem = [];
+let gamesIdb = true;          // false: IndexedDB unavailable, fall back to localStorage
+let gamesLoaded = false;
+const byStarted = (a, b) => a.started < b.started ? -1 : 1;
+const gamesReady = idb.all('games').then(async list => {
+  const old = store.get(HISTORY_KEY);
+  if (Array.isArray(old) && old.length) {
+    const have = new Set(list.map(g => g.id));
+    const move = old.filter(g => g && g.id && !have.has(g.id));
+    await idb.put('games', move);
+    list = list.concat(move);
+    try { localStorage.removeItem(HISTORY_KEY); } catch {}
+  }
+  return list;
+}).catch(() => {
+  gamesIdb = false;
+  const old = store.get(HISTORY_KEY);
+  return Array.isArray(old) ? old : [];
+}).then(list => {
+  gamesMem = list.sort(byStarted);
+  gamesLoaded = true;
+});
+
 function loadGames() {
-  const list = store.get(HISTORY_KEY);
-  return Array.isArray(list) ? list : [];
+  return gamesMem;
 }
 
-function saveGames(list) {
-  list.sort((a, b) => a.started < b.started ? -1 : 1);
-  while (list.length > HISTORY_MAX) list.shift();
-  // If storage is full, drop the oldest games until it fits, and say so in the
-  // games panel rather than silently stop recording.
+// save one game (rec is already in gamesMem)
+function saveGame(rec) {
+  gamesMem.sort(byStarted);
+  const drop = gamesMem.length > HISTORY_MAX ? gamesMem.splice(0, gamesMem.length - HISTORY_MAX) : [];
+  if (gamesIdb) {
+    idb.put('games', [rec]).catch(() => { historyFull = true; });
+    if (drop.length) idb.del('games', drop.map(g => g.id)).catch(() => {});
+    return;
+  }
+  // localStorage fallback: the whole list, dropping the oldest if storage is full
   for (;;) {
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-      return true;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(gamesMem));
+      return;
     } catch {
-      if (list.length <= 1) return false;
-      list.splice(0, Math.max(1, Math.ceil(list.length / 10)));
+      if (gamesMem.length <= 1) return;
+      gamesMem.splice(0, Math.max(1, Math.ceil(gamesMem.length / 10)));
       historyFull = true;
     }
   }
+}
+
+function clearGames() {
+  gamesMem = [];
+  historyFull = false;
+  if (gamesIdb) idb.clear('games').catch(() => {});
+  try { localStorage.removeItem(HISTORY_KEY); } catch {}
 }
 
 function newGameId() {
@@ -3797,6 +3890,8 @@ function newGameId() {
 }
 
 function recordGame() {
+  // a game resumed after a reload must find its own record, not start another
+  if (!gamesLoaded) { gamesReady.then(recordGame); return; }
   const hist = game.history();
   if (!gameId) gameId = newGameId();
   const list = loadGames();
@@ -3855,7 +3950,7 @@ function recordGame() {
   if (result && !rec.result) rec.ended = new Date().toISOString();
   rec.result = result ? { type: result.type, winner: result.winner, why: result.why || null } : null;
   rec.updated = new Date().toISOString();
-  saveGames(list);
+  saveGame(rec);
 }
 
 /* ---------- PGN ----------
@@ -3987,7 +4082,8 @@ function downloadText(name, text) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-function showGames() {
+async function showGames() {
+  await gamesReady;
   const games = loadGames().slice().reverse();          // newest first
   const wrap = document.createElement('div');
 
@@ -4084,10 +4180,7 @@ function showGames() {
             'Clear history?',
             `This deletes all ${n} saved game${n === 1 ? '' : 's'} from this browser. It can’t be undone — download them first if you want them.`,
             'Delete them', { danger: true });
-          if (ok) {
-            try { localStorage.removeItem(HISTORY_KEY); } catch {}
-            historyFull = false;
-          }
+          if (ok) clearGames();
           showGames();
           return true;                     // showGames already replaced this modal
         }
@@ -6756,12 +6849,12 @@ function pokeHold() {
 /* ---------- the record: grades and evals go into the saved game ---------- */
 function markRecord(i, r) {
   if (!gameId) return;
-  const list = loadGames();
-  const rec = list.find(g => g.id === gameId);
+  if (!gamesLoaded) { gamesReady.then(() => markRecord(i, r)); return; }
+  const rec = loadGames().find(g => g.id === gameId);
   if (!rec || rec.moves[i] !== r.san) return;
   (rec.marks ||= [])[i] = r.cls;
   (rec.evals ||= [])[i] = r.scoreAfterW;
-  saveGames(list);
+  saveGame(rec);
 }
 
 /* ---------- words ---------- */
@@ -9012,29 +9105,11 @@ async function pzFetch(angle, nb) {
    a few: nothing is ever rewritten whole, and it doesn't share localStorage's
    5 MB with your games and stats. If IndexedDB is unavailable the buffer just
    lives in memory. */
-const pzDb = (() => {
-  let dbp = null;
-  const open = () => dbp || (dbp = new Promise((res, rej) => {
-    if (!window.indexedDB) { rej(new Error('no indexedDB')); return; }
-    const r = indexedDB.open('etude', 1);
-    r.onupgradeneeded = () => {
-      if (!r.result.objectStoreNames.contains('pzbuf')) r.result.createObjectStore('pzbuf', { keyPath: 'puzzle.id' });
-    };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-    r.onblocked = () => rej(new Error('blocked'));
-  }));
-  const tx = (mode, fn) => open().then(db => new Promise((res, rej) => {
-    const t = db.transaction('pzbuf', mode), req = fn(t.objectStore('pzbuf'));
-    t.oncomplete = () => res(req && req.result);
-    t.onerror = t.onabort = () => rej(t.error);
-  }));
-  return {
-    all: () => tx('readonly', st => st.getAll()),
-    put: list => list.length ? tx('readwrite', st => { list.forEach(q => st.put(q)); }).catch(() => {}) : null,
-    del: ids => ids.length ? tx('readwrite', st => { ids.forEach(id => st.delete(id)); }).catch(() => {}) : null,
-  };
-})();
+const pzDb = {
+  all: () => idb.all('pzbuf'),
+  put: list => idb.put('pzbuf', list).catch(() => {}),
+  del: ids => idb.del('pzbuf', ids).catch(() => {}),
+};
 
 // Load the saved buffer once. Older builds kept it with the rest of your progress: move it over.
 const pzBufReady = pzDb.all().catch(() => []).then(list => {
