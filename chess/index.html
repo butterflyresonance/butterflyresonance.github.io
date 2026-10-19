@@ -300,7 +300,7 @@
     height: 26px;
     margin: 6px 0;
   }
-  .taken svg { width: 19px; height: 19px; display: block; opacity: .75; }
+  .taken .pc { width: 19px; height: 19px; display: block; opacity: .75; object-fit: contain; }
   .taken .adv {
     font-size: 12px;
     color: var(--brass);
@@ -394,16 +394,17 @@
   }
   .sq.playable { cursor: pointer; }
 
-  .sq svg.pc {
+  .sq .pc {
     position: relative;
     width: 96%;
     height: 96%;
     display: block;
+    object-fit: contain;
     pointer-events: none;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
   }
-  .sq svg.pc.bauhaus { width: 88%; height: 88%; }
-  .sq svg.pc.moved { animation: settle .22s ease-out; }
+  .sq .pc.bauhaus { width: 88%; height: 88%; }
+  .sq .pc.moved { animation: settle .22s ease-out; }
   @keyframes settle {
     from { transform: scale(1.14); }
     to   { transform: scale(1); }
@@ -433,6 +434,50 @@
   .coord.r { left: 3px; top: 1px; }
   .light .coord { color: #3d3830; }
   .dark  .coord { color: #d6dbdd; }
+
+  /* Board looks. A colour board just sets --sq-light / --sq-dark on the board.
+     A texture is one whole-board image (a1 dark, like every board), so the
+     squares go clear over it; flipped for Black, h8 is also dark, so it fits. */
+  .board.textured { background-size: 100% 100%; }
+  .board.textured .sq.light, .board.textured .sq.dark { background: transparent; }
+  .board.textured .coord { color: #fff; opacity: .85; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+
+  .look { margin-top: 14px; padding: 14px 0 4px; border-top: 1px solid var(--edge); }
+  .look h4 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .look h4:not(:first-child) { margin-top: 18px; }
+  .lookgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .lookgrid.boards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  @media (max-width: 400px) {
+    .lookgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .lookgrid.boards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .lookopt {
+    padding: 5px;
+    font-size: 10.5px;
+    letter-spacing: .02em;
+    color: var(--muted);
+    text-align: center;
+    min-width: 0;
+  }
+  .lookopt[aria-checked="true"] { border-color: var(--brass); color: var(--text); box-shadow: inset 0 0 0 1px var(--brass); }
+  .lookopt .lname { display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lookopt .pair { display: grid; grid-template-columns: 1fr 1fr; aspect-ratio: 2 / 1; }
+  .lookopt .pair span { display: flex; align-items: center; justify-content: center; min-width: 0; }
+  .lookopt .pair .pc { width: 92%; height: 92%; display: block; object-fit: contain; }
+  .lookopt .chk { display: grid; grid-template-columns: 1fr 1fr; aspect-ratio: 1; background-size: cover; }
+  .lookfoot { margin-top: 14px; display: flex; justify-content: flex-end; }
+  .lookfoot button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
+  .credits { font-size: 12px; line-height: 1.55; }
+  .credits h5 { margin: 14px 0 4px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text); font-weight: 500; }
+  .credits ul { margin: 0; padding-left: 16px; }
+  .credits a { color: var(--brass); }
 
   /* ---- ledger ---- */
   .ledger { margin-top: 22px; }
@@ -705,7 +750,7 @@
   .boardcol { --barw: 0px; flex: none; width: min(100%, calc(100dvh - 330px + var(--barw))); margin: 0 auto; }
   .boardcol.withbar { --barw: 26px; }
   .taken { height: 20px; margin: 2px 0; }
-  .taken svg { width: 16px; height: 16px; }
+  .taken .pc { width: 16px; height: 16px; }
 
   .side { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .side .hintpanel { margin-top: 6px; flex: none; }
@@ -812,7 +857,7 @@
   }
   .promo-row { display: flex; gap: 6px; }
   .promo-row button { padding: 8px; }
-  .promo-row svg { width: 46px; height: 46px; display: block; }
+  .promo-row .pc { width: 46px; height: 46px; display: block; object-fit: contain; }
 
   /* ---- modal ----
      One <dialog> for every question the page asks, so nothing ever falls back
@@ -1130,7 +1175,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
-    .sq svg.pc.moved { animation: none; }
+    .sq .pc.moved { animation: none; }
     * { transition: none !important; }
   }
 </style>
@@ -1378,7 +1423,21 @@
             </div>
             <div class="setrow">
               <span>Pieces</span>
-              <button id="setBtn">Staunton</button>
+              <button id="setBtn" aria-expanded="false" aria-controls="lookPanel">Cburnett</button>
+              <span>Board</span>
+              <button id="boardBtn" aria-expanded="false" aria-controls="lookPanel">Étude</button>
+            </div>
+            <div class="look hidden" id="lookPanel">
+              <h4>Pieces</h4>
+              <div class="lookgrid" id="lookSets" role="radiogroup" aria-label="Piece set"></div>
+              <h4>Board</h4>
+              <div class="lookgrid boards" id="lookBoards" role="radiogroup" aria-label="Board"></div>
+              <div class="lookfoot">
+                <button id="lookCredits">Credits</button>
+                <button id="lookDone">Done</button>
+              </div>
+            </div>
+            <div class="setrow">
               <span>Sound</span>
               <button id="soundBtn">On</button>
               <button id="pgnBtn">Games</button>
@@ -3181,7 +3240,102 @@ let engineRetried = false;
 let engineNote = '';           // survives drawStatus overwriting gameNote
 let thinkMs = Math.min(60000, Math.max(1000, Number(store.get('table:think')) || 2000));
 
-let pieceSet = store.get('table:set') === 'bauhaus' ? 'bauhaus' : 'staunton';
+/* ---------- looks: piece sets and boards ----------
+   Chosen in Settings, kept under table:set and table:board, so every mode
+   (games, puzzles, openings, review) shows the same pieces and board.
+   Cburnett ('staunton') and Bauhaus are drawn inline below and need nothing
+   fetched. The rest are lichess sets, one file per piece in pieces/<id>/;
+   board images are in boards/. Authors and licenses are in these lists, shown
+   under Settings → Credits, and in CREDITS-art.txt.
+   [id, name, author, license, file extension] */
+const PIECE_SETS = [
+  ['staunton',       'Cburnett',       'Colin M.L. Burnett',          'GPLv2+'],
+  ['merida',         'Merida',         'Armando Hernandez Marroquin', 'GPLv2+'],
+  ['california',     'California',     'Jerry S.',                    'CC BY-NC-SA 4.0'],
+  ['maestro',        'Maestro',        'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['staunty',        'Staunty',        'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['cardinal',       'Cardinal',       'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['fresca',         'Fresca',         'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['gioco',          'Gioco',          'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['tatiana',        'Tatiana',        'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['dubrovny',       'Dubrovny',       'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['icpieces',       'IC Pieces',      'sadsnake1',                   'CC BY-NC-SA 4.0'],
+  ['cooke',          'Cooke',          'fejfar',                      'CC BY-NC-SA 4.0'],
+  ['chessnut',       'Chessnut',       'Alexis Luengas',              'Apache 2.0'],
+  ['mpchess',        'MPChess',        'Maxime Chupin',               'GPLv3+'],
+  ['pirouetti',      'Pirouetti',      'pirouetti',                   'AGPLv3+'],
+  ['fantasy',        'Fantasy',        'Maurizio Monge',              'MIT'],
+  ['celtic',         'Celtic',         'Maurizio Monge',              'MIT'],
+  ['spatial',        'Spatial',        'Maurizio Monge',              'MIT'],
+  ['monarchy',       'Monarchy',       'slither77',                   'CC BY-NC-SA 4.0', 'webp'],
+  ['minimal-warmth', 'Minimal Warmth', 'blunder_reign',               'CC BY-NC-SA 4.0'],
+  ['caliente',       'Caliente',       'avi',                         'CC BY-NC-SA 4.0'],
+  ['anarcandy',      'Anarcandy',      'caderek',                     'CC BY-NC-SA 4.0'],
+  ['firi',           'Firi',           'James Faure',                 'CC BY 4.0'],
+  ['totoy',          'Totoy',          'Kosal Sen',                   'CC BY 4.0'],
+  ['papercut',       'Papercut',       'Nikolay Anzarov',             'CC BY 4.0'],
+  ['kiwen-suwi',     'Kiwen-suwi',     'neverRare',                   'CC BY 4.0'],
+  ['shapes',         'Shapes',         'flugsio',                     'CC BY-SA 4.0'],
+  ['rhosgfx',        'RhosGFX',        'RhosGFX',                     'CC0 1.0'],
+  ['pixel',          'Pixel',          'therealqtpi',                 'AGPLv3+'],
+  ['horsey',         'Horsey',         'cham & michael1241',          'CC BY-NC-SA 4.0'],
+  ['xkcd',           'xkcd',           'Randall Munroe',              'CC BY-NC-SA 2.5'],
+  ['letter',         'Letter',         'usolando',                    'AGPLv3+'],
+  ['mono',           'Mono',           'Thibault Duplessis & Colin M.L. Burnett', 'GPLv2+'],
+  ['disguised',      'Disguised',      'danegraphics',                'CC BY-NC-SA 4.0'],
+  ['bauhaus',        'Bauhaus',        'drawn for Étude',             ''],
+].map(([id, name, author, license, ext = 'svg']) => ({ id, name, author, license, ext }));
+
+// Colour boards: [id, name, light square, dark square]. Étude's own pair first.
+// Textures: [id, name, file] — whole-board images from lichess, AGPLv3+.
+const BOARDS = [
+  ...[
+    ['etude',      'Étude',      '#ada497', '#535d61'],
+    ['tournament', 'Tournament', '#eeeed2', '#769656'],
+    ['walnut',     'Walnut',     '#f0d9b5', '#b58863'],
+    ['slate',      'Slate',      '#dee3e6', '#8ca2ad'],
+    ['seaglass',   'Sea glass',  '#d8e8de', '#6f9a8a'],
+    ['sage',       'Sage',       '#e6e8cf', '#8f9e63'],
+    ['sandstone',  'Sandstone',  '#efdfc0', '#c49a6c'],
+    ['amber',      'Amber',      '#f4e4b8', '#c8913a'],
+    ['coral',      'Coral',      '#f7e3d7', '#d0806a'],
+    ['rosewood',   'Rosewood',   '#eed6cb', '#9c5b55'],
+    ['lavender',   'Lavender',   '#e6def0', '#8a76a8'],
+    ['ice',        'Ice',        '#edf4f9', '#a6c4d9'],
+    ['paper',      'Paper',      '#f1f0ec', '#b3b1aa'],
+    ['ink',        'Ink',        '#c9ccd1', '#454b55'],
+    ['midnight',   'Midnight',   '#7d8bab', '#3a4564'],
+    ['vapor',      'Vapor',      '#f5c2dc', '#7e63ad'],
+  ].map(([id, name, light, dark]) => ({ id, name, light, dark })),
+  ...[
+    ['wood',          'Wood',          'wood.jpg'],
+    ['wood2',         'Wood 2',        'wood2.jpg'],
+    ['wood3',         'Wood 3',        'wood3.jpg'],
+    ['wood4',         'Wood 4',        'wood4.jpg'],
+    ['maple',         'Maple',         'maple.jpg'],
+    ['maple2',        'Maple 2',       'maple2.jpg'],
+    ['marble',        'Marble',        'marble.jpg'],
+    ['blue-marble',   'Blue marble',   'blue-marble.jpg'],
+    ['blue2',         'Blue 2',        'blue2.jpg'],
+    ['blue3',         'Blue 3',        'blue3.jpg'],
+    ['metal',         'Metal',         'metal.jpg'],
+    ['leather',       'Leather',       'leather.jpg'],
+    ['canvas2',       'Canvas',        'canvas2.jpg'],
+    ['olive',         'Olive',         'olive.jpg'],
+    ['grey',          'Grey',          'grey.jpg'],
+    ['green-plastic', 'Green plastic', 'green-plastic.png'],
+    ['pink-pyramid',  'Pink pyramid',  'pink-pyramid.png'],
+    ['purple-diag',   'Purple diag',   'purple-diag.png'],
+    ['newspaper',     'Newspaper',     'newspaper.svg'],
+  ].map(([id, name, file]) => ({
+    id, name, texture: true,
+    src: 'boards/' + file,
+    thumb: 'boards/' + (file.endsWith('.svg') ? file : file.replace(/\.(jpg|png)$/, '.thumbnail.$1')),
+  })),
+];
+
+let pieceSet = PIECE_SETS.some(s => s.id === store.get('table:set')) ? store.get('table:set') : 'staunton';
+let boardLook = BOARDS.some(b => b.id === store.get('table:board')) ? store.get('table:board') : 'etude';
 
 /* ---------- pieces ----------
    SVG paths, not Unicode glyphs: glyphs can only be outlined with
@@ -3220,8 +3374,12 @@ const BAUHAUS = {
   k: '<path d="M50,27 L67,44 L50,61 L33,44 Z"/><rect x="35" y="64" width="30" height="20"/>'
 };
 
-function pieceSVG(type, color, cls = '') {
-  if (pieceSet === 'bauhaus') {
+function pieceSVG(type, color, cls = '', set = pieceSet) {
+  if (set !== 'staunton' && set !== 'bauhaus') {
+    const s = PIECE_SETS.find(x => x.id === set);
+    if (s) return `<img class="pc ${cls}" src="pieces/${s.id}/${color}${type.toUpperCase()}.${s.ext}" alt="" draggable="false">`;
+  }
+  if (set === 'bauhaus') {
     const fill   = color === 'w' ? '#f2ede2' : '#22262b';
     const stroke = color === 'w' ? '#191c20' : '#e6e0d3';
     // viewBox cropped to the shapes' own bounding box so they sit with presence
@@ -5665,7 +5823,8 @@ function draw() {
   el('soundBtn').textContent = soundOn ? 'On' : 'Off';
   el('rematchBtn').classList.toggle('hidden', !result);
   el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
-  el('setBtn').textContent = pieceSet === 'bauhaus' ? 'Bauhaus' : 'Staunton';
+  el('setBtn').textContent = PIECE_SETS.find(x => x.id === pieceSet).name;
+  el('boardBtn').textContent = BOARDS.find(x => x.id === boardLook).name;
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
   el('thinkRange').value = thinkMs;
   el('thinkVal').textContent = fmtThink(thinkMs);
@@ -8386,11 +8545,85 @@ el('oppGame').onchange = e => setOpponent(e.target.value);
 el('oppOnly').onchange = e => setOppOnly(e.target.value);
 fillOppSelects();
 
-el('setBtn').onclick = () => {
-  pieceSet = pieceSet === 'bauhaus' ? 'staunton' : 'bauhaus';
-  store.set('table:set', pieceSet);
+/* ---------- looks picker (Settings → Pieces / Board) ---------- */
+function applyBoardLook() {
+  const b = BOARDS.find(x => x.id === boardLook);
+  boardEl.classList.toggle('textured', !!b.texture);
+  boardEl.style.backgroundImage = b.texture ? `url("${b.src}")` : '';
+  boardEl.style.setProperty('--sq-light', b.texture ? '' : b.light);
+  boardEl.style.setProperty('--sq-dark', b.texture ? '' : b.dark);
+}
+
+// Fetch a set's twelve pieces as soon as it is chosen, so the board never
+// shows a gap, and so the service worker has them for offline use.
+function preloadSet(id) {
+  const s = PIECE_SETS.find(x => x.id === id);
+  if (!s || id === 'staunton' || id === 'bauhaus') return;
+  for (const c of 'wb') for (const t of 'kqrbnp') new Image().src = `pieces/${id}/${c}${t.toUpperCase()}.${s.ext}`;
+}
+
+function drawLook() {
+  const cur = BOARDS.find(x => x.id === boardLook);
+  const sqBg = light => cur.texture ? '' : `background:${light ? cur.light : cur.dark}`;
+  const pairBg = cur.texture ? `background-image:url('${cur.src}');background-size:400% 800%` : '';
+  el('lookSets').innerHTML = PIECE_SETS.map(s =>
+    `<button class="lookopt" role="radio" aria-checked="${s.id === pieceSet}" data-set="${s.id}" title="${escText(s.name)}">` +
+      `<span class="pair" style="${pairBg}">` +
+        `<span style="${sqBg(true)}">${pieceSVG('n', 'w', '', s.id)}</span>` +
+        `<span style="${sqBg(false)}">${pieceSVG('q', 'b', '', s.id)}</span>` +
+      `</span><span class="lname">${escText(s.name)}</span></button>`).join('');
+  el('lookBoards').innerHTML = BOARDS.map(b => {
+    const chk = b.texture
+      ? `<span class="chk" style="background-image:url('${b.thumb}')"></span>`
+      : `<span class="chk"><span style="background:${b.light}"></span><span style="background:${b.dark}"></span>` +
+        `<span style="background:${b.dark}"></span><span style="background:${b.light}"></span></span>`;
+    return `<button class="lookopt" role="radio" aria-checked="${b.id === boardLook}" data-board="${b.id}" title="${escText(b.name)}">` +
+      `${chk}<span class="lname">${escText(b.name)}</span></button>`;
+  }).join('');
+}
+
+function toggleLook(open = el('lookPanel').classList.contains('hidden')) {
+  el('lookPanel').classList.toggle('hidden', !open);
+  el('setBtn').setAttribute('aria-expanded', open);
+  el('boardBtn').setAttribute('aria-expanded', open);
+  if (open) drawLook();
+}
+
+el('setBtn').onclick = () => toggleLook();
+el('boardBtn').onclick = () => toggleLook();
+el('lookDone').onclick = () => toggleLook(false);
+el('lookPanel').addEventListener('click', e => {
+  const opt = e.target.closest('.lookopt');
+  if (!opt) return;
+  if (opt.dataset.set) {
+    pieceSet = opt.dataset.set;
+    store.set('table:set', pieceSet);
+    preloadSet(pieceSet);
+  }
+  if (opt.dataset.board) {
+    boardLook = opt.dataset.board;
+    store.set('table:board', boardLook);
+    applyBoardLook();
+  }
+  drawLook();
   draw();
+});
+
+el('lookCredits').onclick = () => {
+  const li = s => `<li>${escText(s.name)}: ${escText(s.author)}${s.license ? ', ' + escText(s.license) : ''}</li>`;
+  openModal({
+    title: 'Credits',
+    body: `<div class="credits">
+      <p>Piece sets and board images from <a href="https://github.com/lichess-org/lila" target="_blank" rel="noopener">lichess</a>, used unchanged under the licenses below. Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Engine: Stockfish, GPLv3.</p>
+      <h5>Pieces</h5><ul>${PIECE_SETS.filter(s => s.license).map(li).join('')}</ul>
+      <h5>Boards</h5><ul><li>Textured boards: the lila authors and pirouetti, AGPLv3+</li></ul>
+      <p style="margin-top:12px">License texts: <a href="https://creativecommons.org/licenses/" target="_blank" rel="noopener">Creative Commons</a>, <a href="https://www.gnu.org/licenses/" target="_blank" rel="noopener">GNU</a>, <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT</a>, <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>.</p>
+    </div>`,
+  });
 };
+
+applyBoardLook();
+preloadSet(pieceSet);
 
 /* ---------- boot ---------- */
 /* ---------- the tabbed panel ---------- */

@@ -49,6 +49,9 @@ self.addEventListener('fetch', event => {
     ? url.pathname.startsWith('/chess/')
     : url.hostname === 'esm.sh';
   if (!mine) return;
+  // Other pages in /chess/ (preview.html, the backups) are left to the network.
+  // Without this they would be cached under the app's own key and replace it.
+  if (req.mode === 'navigate' && !/\/chess\/(index\.html)?$/.test(url.pathname)) return;
 
   // The page is one file whatever the #hash or ?query, so it is cached as one.
   const key = req.mode === 'navigate' ? new Request(new URL('./', self.registration.scope)) : req;
