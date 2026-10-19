@@ -3085,7 +3085,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-19.4-sounds';
+const VERSION = '2026-10-19.7-idb';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8912,7 +8912,15 @@ function pzRate(p) {
 const pzBand = () => pz.diff !== 'auto' ? pz.diff
   : PZ_BANDS.reduce((a, b) => Math.abs(b[1] - pz.stats.rating) < Math.abs(a[1] - pz.stats.rating) ? b : a)[0];
 const pzRatingText = () => `${pz.stats.rating}${pz.stats.rated < 10 ? '?' : ''}`;
-const PZ_BATCH = 30;
+const PZ_BATCH = 30;        // empty buffer: Lichess's own mix, or the theme you chose
+const PZ_NEED = 6;          // healthy mix picked a theme the buffer has none of: 6, serve 1
+const PZ_REFILL = 5;        // a theme is down to its last one: 5 more in the background
+const PZ_REFILL_SOLO = 15;  // the same for a single chosen theme, drawn every time
+const PZ_LOW = 10;          // an 'anything' pick with fewer than this left fetches a mix of 30
+const PZ_BUF_MAX = 520;     // 52 themes x 10: room for about 10 of each
+const PZ_FAR = 300;         // puzzles further than this from your rating are dropped
+const PZ_REST_MS = 30 * 60000;  // a refill that brings nothing new rests that theme
+const PZ_COOL_MS = 60000;   // after a 429 Lichess asks for a full minute's pause
 const PZ_SEEN_MAX = 4000;
 const pzThemeInfo = k => { for (const [, list] of PZ_THEMES) for (const t of list) if (t[0] === k) return t; return [k, k, '']; };
 // tags Lichess puts on puzzles that aren't offered as themes to pick
@@ -8927,7 +8935,9 @@ const pz = {
   diff: pzSaved.stats && pzSaved.stats.rating != null && PZ_DIFFS.some(d => d[0] === pzSaved.diff) ? pzSaved.diff : 'auto',
   qBand: pzSaved.qBand || null,
   doneId: pzSaved.doneId || null,
-  queue: Array.isArray(pzSaved.queue) ? pzSaved.queue : [],
+  queue: [],          // the buffer, in memory; kept in IndexedDB (see pzDb), not with the rest
+  lastAngle: null,
+  coolUntil: pzSaved.coolUntil || 0,   // no requests to Lichess before this time (after a 429); survives a reload
   cur: pzSaved.cur || null,
   stats: pzSaved.stats || { solved: 0, missed: 0, streak: 0, best: 0 },
   step: 0,            // index into the solution of the move wanted next
@@ -8958,7 +8968,7 @@ function pzSave() {
   const prog = pz.cur && pz.phase !== 'done'
     ? { id: pz.cur.puzzle.id, step: pz.step, hints: pz.hints, tries: pz.tries, moves: pz.moves, hintsUsed: pz.hintsUsed, failed: pz.failed }
     : null;
-  store.set('table:pz', { theme: pz.theme, diff: pz.diff, queue: pz.queue, qBand: pz.qBand, cur: pz.cur, doneId: pz.doneId, stats: pz.stats, prog });
+  store.set('table:pz', { theme: pz.theme, diff: pz.diff, qBand: pz.qBand, coolUntil: pz.coolUntil, cur: pz.cur, doneId: pz.doneId, stats: pz.stats, prog });
 }
 function pzMarkSeen(id) {
   pzSeen.add(id);
@@ -8985,11 +8995,9 @@ function pzMixAngle() {
   for (let i = 0; i < all.length; i++) { x -= ws[i]; if (x <= 0) return all[i]; }
   return 'mix';
 }
-async function pzFetch() {
+async function pzFetch(angle, nb) {
   if (navigator.onLine === false) throw new Error('offline');
-  const mixing = pz.theme === 'mix';
-  const angle = mixing ? pzMixAngle() : pz.theme;
-  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(angle)}?nb=${mixing ? 10 : PZ_BATCH}&difficulty=${pzBand()}`;
+  const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(angle)}?nb=${nb}&difficulty=${pzBand()}`;
   const r = await fetch(url, { headers: { Accept: 'application/json' } });
   if (r.status === 429) throw new Error('busy');
   if (!r.ok) throw new Error('http ' + r.status);
@@ -8997,47 +9005,197 @@ async function pzFetch() {
   return (j.puzzles || []).filter(p => p && p.puzzle && p.game && Array.isArray(p.puzzle.solution) && p.puzzle.solution.length);
 }
 
+/* ---------- the puzzle buffer ----------
+   Puzzles fetched from Lichess wait here, each with its theme tags. Decisions
+   are made against the copy in memory (pz.queue). IndexedDB keeps a copy behind
+   it, one record per puzzle, so serving one deletes one record and a fetch adds
+   a few: nothing is ever rewritten whole, and it doesn't share localStorage's
+   5 MB with your games and stats. If IndexedDB is unavailable the buffer just
+   lives in memory. */
+const pzDb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('no indexedDB')); return; }
+    const r = indexedDB.open('etude', 1);
+    r.onupgradeneeded = () => {
+      if (!r.result.objectStoreNames.contains('pzbuf')) r.result.createObjectStore('pzbuf', { keyPath: 'puzzle.id' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  }));
+  const tx = (mode, fn) => open().then(db => new Promise((res, rej) => {
+    const t = db.transaction('pzbuf', mode), req = fn(t.objectStore('pzbuf'));
+    t.oncomplete = () => res(req && req.result);
+    t.onerror = t.onabort = () => rej(t.error);
+  }));
+  return {
+    all: () => tx('readonly', st => st.getAll()),
+    put: list => list.length ? tx('readwrite', st => { list.forEach(q => st.put(q)); }).catch(() => {}) : null,
+    del: ids => ids.length ? tx('readwrite', st => { ids.forEach(id => st.delete(id)); }).catch(() => {}) : null,
+  };
+})();
+
+// Load the saved buffer once. Older builds kept it with the rest of your progress: move it over.
+const pzBufReady = pzDb.all().catch(() => []).then(list => {
+  const old = Array.isArray(pzSaved.queue) ? pzSaved.queue : [];
+  pzBufAdd([...(list || []), ...old], !!old.length);
+});
+
+function pzBufAdd(list, save = true) {
+  const have = new Set(pz.queue.map(q => q.puzzle.id)), added = [];
+  for (const q of list) {
+    if (!q || !q.puzzle || have.has(q.puzzle.id)) continue;
+    if (!q.at) q.at = Date.now();
+    have.add(q.puzzle.id);
+    added.push(q);
+  }
+  pz.queue.push(...added);
+  if (save) pzDb.put(added);
+  pzBufTrim();
+  return added.length;
+}
+function pzBufDrop(qs) {
+  if (!qs.length) return;
+  const ids = new Set(qs.map(q => q.puzzle.id));
+  pz.queue = pz.queue.filter(q => !ids.has(q.puzzle.id));
+  pzDb.del([...ids]);
+}
+// solved puzzles, ones far from your rating now, and the oldest beyond the cap
+function pzBufTrim() {
+  const r = pz.stats.rating;
+  pzBufDrop(pz.queue.filter(q => pzSeen.has(q.puzzle.id) ||
+    (r != null && Math.abs((q.puzzle.rating || 1500) - r) > PZ_FAR)));
+  if (pz.queue.length > PZ_BUF_MAX)
+    pzBufDrop([...pz.queue].sort((a, b) => a.at - b.at).slice(0, pz.queue.length - PZ_BUF_MAX));
+}
+
+/* ---------- talking to Lichess ----------
+   One request at a time: each waits for the one before. After a 429, none at
+   all for a minute. A refill that brings nothing new rests that theme. */
+let pzReqChain = Promise.resolve();
+const pzRest = {};                 // theme -> resting until
+const pzRefilling = new Set();     // themes with a background refill on its way
+const pzResting = a => a !== 'mix' && (pzRest[a] || 0) > Date.now();
+const pzCooling = () => Date.now() < pz.coolUntil;
+let pzCoolTimer = null;
+
+function pzRequest(angle, nb) {
+  const run = pzReqChain.then(async () => {
+    if (pzCooling()) throw new Error('cooling');
+    try { return await pzFetch(angle, nb); }
+    catch (e) { if (String(e && e.message) === 'busy') pz.coolUntil = Date.now() + PZ_COOL_MS; throw e; }
+  });
+  pzReqChain = run.catch(() => {});
+  return run;
+}
+// fetch and add to the buffer; returns how many were new
+async function pzFill(angle, nb, needNow = false) {
+  const got = await pzRequest(angle, nb);
+  const fresh = got.filter(q => !pzSeen.has(q.puzzle.id));
+  // nothing you haven't solved: a refill rests the theme; a puzzle needed now takes a repeat
+  if (!fresh.length && angle !== 'mix') pzRest[angle] = Date.now() + PZ_REST_MS;
+  return pzBufAdd(fresh.length || !needNow ? fresh : got);
+}
+// a refill in the background, while you solve
+function pzTopUp(angle, nb) {
+  if (pzRefilling.has(angle) || pzCooling() || pzResting(angle)) return;
+  pzRefilling.add(angle);
+  pzFill(angle, nb).catch(() => {}).finally(() => pzRefilling.delete(angle));
+}
+
+/* ---------- choosing the next puzzle ----------
+   Healthy mix:
+     - buffer empty: fetch a mix of 30 and serve the nearest-rated of those.
+     - otherwise draw a kind of puzzle (pzMixAngle):
+         'anything': the nearest-rated in the buffer; under PZ_LOW left, a mix of 30 behind it.
+         a theme the buffer has: its nearest-rated; down to its last one, 5 more behind it.
+         a theme it hasn't: fetch 6 and serve one. If that can't happen (the
+           minute's pause, a resting theme, no connection), serve anything.
+   A chosen theme works the same way, drawing that theme every time: refills of
+   15, and 30 when none are left. */
+const pzHas = (q, angle) => angle === 'mix' || (q.puzzle.themes || []).includes(angle);
+
 async function pzNext() {
   const gen = ++pz.gen;
-  // your rating has moved into another band: what's queued is now the wrong level
-  if (pz.qBand !== pzBand()) pz.queue = [];
-  pz.queue = pz.queue.filter(p => !pzSeen.has(p.puzzle.id));
-  if (!pz.queue.length) {
-    pz.phase = 'loading';
-    pz.cur = null;
-    draw();
-    try {
-      let got = await pzFetch();
-      if (gen !== pz.gen) return;
-      const fresh = got.filter(p => !pzSeen.has(p.puzzle.id));
-      pz.queue = fresh.length ? fresh : got;          // all seen before: repeats beat nothing
-      pz.qBand = pzBand();
-    } catch (err) {
-      if (gen !== pz.gen) return;
-      const m = String(err && err.message || err);
+  await pzBufReady;
+  if (gen !== pz.gen) return;
+  pzBufTrim();
+  const mixing = pz.theme === 'mix';
+  // never straight back to the puzzle you've just finished
+  const usable = () => pz.queue.filter(q => q.puzzle.id !== pz.doneId);
+  const ofKind = a => usable().filter(q => pzHas(q, a));
+  const nearest = list => {
+    if (pz.diff !== 'auto') return list[Math.floor(Math.random() * list.length)];
+    const r = pz.stats.rating;
+    return list.reduce((b, q) => Math.abs((q.puzzle.rating || 1500) - r) < Math.abs((b.puzzle.rating || 1500) - r) ? q : b);
+  };
+  const serve = (q, angle) => {
+    pz.lastAngle = angle;
+    pzBufDrop([q]);
+    pzLoad(q);
+  };
+  const loading = () => { pz.phase = 'loading'; pz.cur = null; draw(); };
+  const stuck = err => {
+    const m = String(err && err.message || err);
+    const wait = Math.max(0, pz.coolUntil - Date.now());
+    if (wait) {
+      pz.error = `Lichess asked for a pause between requests. Puzzles carry on by themselves in ${Math.ceil(wait / 1000)} seconds.`;
+      clearTimeout(pzCoolTimer);
+      pzCoolTimer = setTimeout(() => { if (pz.phase === 'error' && code === 'puzzle') pzNext(); }, wait + 500);
+    } else {
       pz.error = m === 'offline' ? 'You’re offline. Puzzles come from lichess.org, so they need a connection.'
-        : m === 'busy' ? 'Lichess asked for a pause between requests. Wait a minute, then try again.'
+        : m === 'none' ? 'Lichess sent no puzzles for that theme and difficulty. Try another.'
         : 'Couldn’t reach lichess.org. Check the connection, then try again.';
-      pz.phase = 'error';
-      draw();
-      return;
     }
-    if (!pz.queue.length) {
-      pz.error = 'Lichess sent no puzzles for that theme and difficulty. Try another.';
-      pz.phase = 'error';
-      draw();
-      return;
+    pz.phase = 'error';
+    draw();
+  };
+
+  // the emergency: nothing at all waiting
+  if (mixing && !usable().length) {
+    loading();
+    try { await pzFill('mix', PZ_BATCH, true); } catch (err) { if (gen === pz.gen) stuck(err); return; }
+    if (gen !== pz.gen) return;
+    if (!usable().length) { stuck('none'); return; }
+    serve(nearest(usable()), 'mix');
+    return;
+  }
+
+  // decide what kind of puzzle comes next
+  let angle = pz.theme;
+  if (mixing) {
+    for (let k = 0; k < 3; k++) {             // redraw a repeat of the last theme, or a resting one
+      angle = pzMixAngle();
+      if (angle === 'mix' || (angle !== pz.lastAngle && !pzResting(angle))) break;
     }
+    if (pzResting(angle)) angle = 'mix';
   }
-  // never straight back to the puzzle you've just finished, if there's anything else
-  if (pz.queue.length > 1 && pz.doneId) pz.queue = pz.queue.filter(q => q.puzzle.id !== pz.doneId);
-  // adaptive: the queued puzzle rated nearest to you
-  let i = 0;
-  if (pz.diff === 'auto') {
-    let gap = Infinity;
-    pz.queue.forEach((q, j) => { const g = Math.abs((q.puzzle.rating || 1500) - pz.stats.rating); if (g < gap) { gap = g; i = j; } });
+
+  if (angle === 'mix') {
+    serve(nearest(usable()), 'mix');
+    if (pz.queue.length < PZ_LOW) pzTopUp('mix', PZ_BATCH);
+    return;
   }
-  pzLoad(pz.queue.splice(i, 1)[0]);
+
+  let pool = ofKind(angle);
+  if (pool.length) {
+    serve(nearest(pool), angle);
+    if (pool.length - 1 < 2) pzTopUp(angle, mixing ? PZ_REFILL : PZ_REFILL_SOLO);
+    return;
+  }
+
+  // none of that kind waiting: fetch some and serve one
+  let err = null;
+  if (!pzCooling() && !(mixing && pzResting(angle))) {
+    loading();
+    try { await pzFill(angle, mixing ? PZ_NEED : PZ_BATCH, true); } catch (e) { err = e; }
+    if (gen !== pz.gen) return;
+    pool = ofKind(angle);
+    if (pool.length) { serve(nearest(pool), angle); return; }
+  }
+  if (mixing && usable().length) { serve(nearest(usable()), 'mix'); return; }
+  stuck(err || (pzCooling() ? 'cooling' : 'none'));
 }
 
 /* Set up a puzzle: the game up to and including the opponent's last move, which
@@ -9401,8 +9559,7 @@ function pzStartFen() {
 
 function pzSetFilter() {
   pz.theme = el('pzTheme').value;
-  pz.diff = el('pzDiff').value;
-  pz.queue = [];
+  pz.diff = el('pzDiff').value;   // the buffer stays: a new band clears it in pzNext
   // mid-puzzle the new choice waits for the next one, so it can't be used to skip this one
   if (pz.cur && !['done', 'error', 'loading'].includes(pz.phase)) {
     pz.note = 'Your new choice applies from the next puzzle.';
