@@ -403,7 +403,6 @@
     pointer-events: none;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
   }
-  .sq .pc.bauhaus { width: 88%; height: 88%; }
   .sq .pc.moved { animation: settle .22s ease-out; }
   @keyframes settle {
     from { transform: scale(1.14); }
@@ -451,7 +450,7 @@
     text-transform: uppercase;
     color: var(--muted);
   }
-  .look h4:not(:first-child) { margin-top: 18px; }
+  .setrow button.on { border-color: var(--brass); color: var(--brass); }
   .lookgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .lookgrid.boards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   @media (max-width: 400px) {
@@ -472,6 +471,12 @@
   .lookopt .pair span { display: flex; align-items: center; justify-content: center; min-width: 0; }
   .lookopt .pair .pc { width: 92%; height: 92%; display: block; object-fit: contain; }
   .lookopt .chk { display: grid; grid-template-columns: 1fr 1fr; aspect-ratio: 1; background-size: cover; }
+  .lookgrid + h4 { margin-top: 16px; }
+  .lookgrid.sounds { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .lookgrid.sounds .lookopt { padding: 9px 2px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 400px) { .lookgrid.sounds { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .lookvol { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .lookvol input { flex: 1; accent-color: var(--brass); }
   .lookfoot { margin-top: 14px; display: flex; justify-content: flex-end; }
   .lookfoot button { padding: 7px 12px; font-size: 11px; letter-spacing: .1em; }
   .credits { font-size: 12px; line-height: 1.55; }
@@ -1427,20 +1432,36 @@
               <span>Board</span>
               <button id="boardBtn" aria-expanded="false" aria-controls="lookPanel">Étude</button>
             </div>
+            <div class="setrow">
+              <span>Sound</span>
+              <button id="soundBtn" aria-expanded="false" aria-controls="lookPanel">Wood</button>
+              <button id="pgnBtn">Games</button>
+            </div>
             <div class="look hidden" id="lookPanel">
-              <h4>Pieces</h4>
-              <div class="lookgrid" id="lookSets" role="radiogroup" aria-label="Piece set"></div>
-              <h4>Board</h4>
-              <div class="lookgrid boards" id="lookBoards" role="radiogroup" aria-label="Board"></div>
+              <div id="lookSetsWrap">
+                <h4>Pieces</h4>
+                <div class="lookgrid" id="lookSets" role="radiogroup" aria-label="Piece set"></div>
+              </div>
+              <div id="lookBoardsWrap">
+                <h4>Board</h4>
+                <div class="lookgrid boards" id="lookBoards" role="radiogroup" aria-label="Board"></div>
+              </div>
+              <div id="lookSoundsWrap">
+                <h4>Move sounds</h4>
+                <div class="lookgrid sounds" id="lookSounds" role="radiogroup" aria-label="Move sounds"></div>
+                <h4>Hear them</h4>
+                <div class="lookgrid sounds">
+                  <button class="lookopt" data-hear="move">Move</button>
+                  <button class="lookopt" data-hear="capture">Capture</button>
+                  <button class="lookopt" data-hear="check">Check</button>
+                  <button class="lookopt" data-hear="mate">Checkmate</button>
+                </div>
+                <label class="lookvol">Volume <input type="range" id="sfxVol" min="0" max="1" step="0.05" aria-label="Move sound volume"></label>
+              </div>
               <div class="lookfoot">
                 <button id="lookCredits">Credits</button>
                 <button id="lookDone">Done</button>
               </div>
-            </div>
-            <div class="setrow">
-              <span>Sound</span>
-              <button id="soundBtn">On</button>
-              <button id="pgnBtn">Games</button>
             </div>
             <div class="diag-slot" id="diagSlot"></div>
           </div>
@@ -3064,7 +3085,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-19.1-looks';
+const VERSION = '2026-10-19.4-sounds';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3223,7 +3244,11 @@ let navigating = false;        // true while we write our own hash
 let solo = false;              // playing the engine, no peer, no relays
 let seatClash = false;         // both ended up on the same side
 let takebackAsked = false;     // we have a request outstanding
-let soundOn = store.get('table:sound') !== false;
+/* Move sounds: a style (or 'off') and a volume, chosen in Settings → Sound.
+   Older builds stored only on/off under table:sound; off carries over. */
+let sfxStyle = store.get('table:sfx') || (store.get('table:sound') === false ? 'off' : 'wood');
+let sfxVol = Number.isFinite(store.get('table:sfxVol')) ? store.get('table:sfxVol') : .7;
+let soundOn = sfxStyle !== 'off';
 let audioCtx = null;
 let faviconState = null;
 let rooms = [];                // held so we can tear down and rejoin
@@ -3243,7 +3268,7 @@ let thinkMs = Math.min(60000, Math.max(1000, Number(store.get('table:think')) ||
 /* ---------- looks: piece sets and boards ----------
    Chosen in Settings, kept under table:set and table:board, so every mode
    (games, puzzles, openings, review) shows the same pieces and board.
-   Cburnett ('staunton') and Bauhaus are drawn inline below and need nothing
+   Cburnett ('staunton') is drawn inline below and needs nothing
    fetched. The rest are lichess sets, one file per piece in pieces/<id>/;
    board images are in boards/. Authors and licenses are in these lists, shown
    under Settings → Credits, and in CREDITS-art.txt.
@@ -3283,7 +3308,6 @@ const PIECE_SETS = [
   ['letter',         'Letter',         'usolando',                    'AGPLv3+'],
   ['mono',           'Mono',           'Thibault Duplessis & Colin M.L. Burnett', 'GPLv2+'],
   ['disguised',      'Disguised',      'danegraphics',                'CC BY-NC-SA 4.0'],
-  ['bauhaus',        'Bauhaus',        'drawn for Étude',             ''],
 ].map(([id, name, author, license, ext = 'svg']) => ({ id, name, author, license, ext }));
 
 // Colour boards: [id, name, light square, dark square]. Étude's own pair first.
@@ -3360,33 +3384,10 @@ const STAUNTON = {
   bp: '<path stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z"/>',
 };
 
-/* Alternate set, after Josef Hartwig's 1924 Bauhaus design: each form states how
-   the piece moves. Square for the pawn's single step, crenellated block for the
-   rook's ranks and files, an L for the knight, a diamond whose edges are the
-   bishop's diagonals, a circle for the queen's freedom in every direction, and
-   the king as diamond over square — every direction, but one step only.        */
-const BAUHAUS = {
-  p: '<rect x="36" y="54" width="28" height="30"/>',
-  r: '<path d="M28,84 V44 H38 V54 H46 V44 H54 V54 H62 V44 H72 V84 Z"/>',
-  n: '<path d="M32,84 V32 H54 V62 H72 V84 Z"/>',
-  b: '<path d="M50,42 L70,63 L50,84 L30,63 Z"/>',
-  q: '<circle cx="50" cy="62" r="22"/>',
-  k: '<path d="M50,27 L67,44 L50,61 L33,44 Z"/><rect x="35" y="64" width="30" height="20"/>'
-};
-
 function pieceSVG(type, color, cls = '', set = pieceSet) {
-  if (set !== 'staunton' && set !== 'bauhaus') {
+  if (set !== 'staunton') {
     const s = PIECE_SETS.find(x => x.id === set);
     if (s) return `<img class="pc ${cls}" src="pieces/${s.id}/${color}${type.toUpperCase()}.${s.ext}" alt="" draggable="false">`;
-  }
-  if (set === 'bauhaus') {
-    const fill   = color === 'w' ? '#f2ede2' : '#22262b';
-    const stroke = color === 'w' ? '#191c20' : '#e6e0d3';
-    // viewBox cropped to the shapes' own bounding box so they sit with presence
-    // in the square rather than floating in dead space.
-    return `<svg class="pc bauhaus ${cls}" viewBox="19 24 62 62" aria-hidden="true"
-      ><g fill="${fill}" stroke="${stroke}" stroke-width="3.5"
-          stroke-linejoin="round">${BAUHAUS[type]}</g></svg>`;
   }
   return `<svg class="pc ${cls}" viewBox="0 0 45 45" aria-hidden="true"
     >${STAUNTON[color + type]}</svg>`;
@@ -3559,7 +3560,7 @@ function handleMessage(msg) {
           checkEnd();
           persist();
           draw();
-          blip();                  // their move, not ours
+          moveSound(m);
         }
       } catch { sendState(); }
     } else if (msg.ply > ply) {
@@ -3665,6 +3666,7 @@ function localMoveSan(san) {
 
 function afterLocalMove(m) {
   if (!m) return false;
+  moveSound(m);
   lastMove = { from: m.from, to: m.to };
   /* Close the sections. Otherwise the next position arrives with its answers
      already open, and there is no point at which you look for yourself. */
@@ -4099,23 +4101,118 @@ function showGames() {
    Moves only cross while both pages are open, so the app asks you to leave the
    tab sitting there. These close the loop: something has to say a move landed
    while you were looking elsewhere. */
-function blip() {
-  if (!soundOn) return;
+/* ---------- move sounds ----------
+   Synthesised with the Web Audio API, nothing downloaded: a short burst of
+   filtered noise and a low tone make a piece landing on wood; bells and square
+   waves make the other styles. Each move plays move, capture, check or mate.
+   They also do the job the old blip did: say a move landed while you were
+   looking elsewhere. */
+let sfxBus = null;
+const sfxNoise = {};
+function sfxCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!sfxBus) {
+    const comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = -10;
+    comp.ratio.value = 4;
+    comp.connect(audioCtx.destination);
+    sfxBus = audioCtx.createGain();
+    sfxBus.gain.value = sfxVol;
+    sfxBus.connect(comp);
+  }
+  return audioCtx;
+}
+function sfxNoiseBuf(kind) {
+  if (sfxNoise[kind]) return sfxNoise[kind];
+  const sr = audioCtx.sampleRate, len = sr;
+  const buf = audioCtx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    if (kind === 'white') { d[i] = w; continue; }
+    b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759;
+    b2 = .969 * b2 + w * .153852;    b3 = .8665 * b3 + w * .3104856;
+    b4 = .55 * b4 + w * .5329522;    b5 = -.7616 * b5 - w * .016898;
+    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11;
+    b6 = w * .115926;
+  }
+  return (sfxNoise[kind] = buf);
+}
+const sfxFilt = (type, f, q = .7) => { const x = audioCtx.createBiquadFilter(); x.type = type; x.frequency.value = f; x.Q.value = q; return x; };
+function sfxEnv(g, t, a, peak, d) {
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), t + a);
+  g.gain.exponentialRampToValueAtTime(.0001, t + a + d);
+}
+function sfxTone(type, freq, t, a, peak, d, to) {
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t + a + d);
+  sfxEnv(g, t, a, peak, d);
+  o.connect(g).connect(sfxBus);
+  o.start(t); o.stop(t + a + d + .05);
+}
+function sfxBurst(kind, t, a, peak, d, filters) {
+  const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+  src.buffer = sfxNoiseBuf(kind);
+  let n = src; for (const f of filters) { n.connect(f); n = f; }
+  sfxEnv(g, t, a, peak, d);
+  n.connect(g).connect(sfxBus);
+  src.start(t, Math.random() * .8); src.stop(t + a + d + .05);
+}
+function sfxBell(f, t, peak, d) {
+  [[1, 1], [2.756, .4], [5.404, .15]].forEach(([m, a]) => sfxTone('sine', f * m, t, .002, peak * a, d / Math.sqrt(m)));
+}
+function sfxKnock(t, { f = 1800, body = 260, peak = .9, len = .06 } = {}) {
+  sfxBurst('white', t, .001, peak * .7, .03, [sfxFilt('bandpass', f, 4)]);
+  sfxTone('sine', body, t, .002, peak * .6, len, body * .7);
+}
+const SFX = {
+  wood: {
+    name: 'Wood',
+    move:    t => sfxKnock(t),
+    capture: t => { sfxKnock(t, { f: 1500, body: 220, peak: 1 }); sfxKnock(t + .07, { f: 1250, body: 190, peak: .8, len: .08 }); },
+    check:   t => { sfxKnock(t); sfxTone('triangle', 880, t + .08, .005, .22, .5); sfxTone('triangle', 1174.7, t + .2, .005, .2, .7); },
+    mate:    t => { sfxKnock(t, { f: 1200, body: 170, peak: 1, len: .12 });
+                    [220, 261.6, 329.6, 440].forEach((f, i) => sfxTone('triangle', f, t + .14 + i * .07, .01, .14, 2.4)); },
+  },
+  soft: {
+    name: 'Soft',
+    move:    t => { sfxBurst('pink', t, .004, .6, .07, [sfxFilt('lowpass', 700)]); sfxTone('sine', 160, t, .004, .5, .1, 110); },
+    capture: t => { SFX.soft.move(t); SFX.soft.move(t + .1); },
+    check:   t => { SFX.soft.move(t); sfxBell(659.3, t + .08, .22, 1.6); },
+    mate:    t => { SFX.soft.move(t); [261.6, 329.6, 392, 493.9].forEach(f => sfxTone('sine', f, t + .1, .3, .11, 2.8)); },
+  },
+  glass: {
+    name: 'Glass',
+    move:    t => sfxBell(1760, t, .28, .5),
+    capture: t => { sfxBell(1568, t, .3, .5); sfxBell(2349.3, t + .05, .22, .6); sfxBurst('white', t + .03, .001, .15, .12, [sfxFilt('highpass', 5000)]); },
+    check:   t => { sfxBell(1318.5, t, .2, .9); sfxBell(1760, t + .14, .2, 1.1); },
+    mate:    t => [2093, 1760, 1318.5, 1046.5].forEach((f, i) => sfxBell(f, t + i * .16, .18, 1.8)),
+  },
+  retro: {
+    name: '8-bit',
+    move:    t => sfxTone('square', 440, t, .002, .25, .05, 660),
+    capture: t => { sfxBurst('white', t, .001, .4, .09, [sfxFilt('lowpass', 3000)]); sfxTone('square', 520, t, .002, .25, .12, 180); },
+    check:   t => { sfxTone('square', 988, t, .002, .22, .08); sfxTone('square', 988, t + .13, .002, .22, .08); },
+    mate:    t => [784, 659.3, 523.3, 392, 329.6, 261.6].forEach((f, i) => sfxTone('square', f, t + i * .11, .002, .22, i === 5 ? .5 : .09)),
+  },
+};
+if (sfxStyle !== 'off' && !SFX[sfxStyle]) sfxStyle = 'wood';
+
+function playSfx(kind, style = sfxStyle) {
+  if (style === 'off' || !SFX[style]) return;
   try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 620;
-    const t = audioCtx.currentTime;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.14, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(t);
-    osc.stop(t + 0.22);
-  } catch { /* no audio available; the title and favicon still do their job */ }
+    sfxCtx();
+    SFX[style][kind](audioCtx.currentTime + .02);
+  } catch { /* no audio available */ }
+}
+// the sound for a move just played (a chess.js move object)
+function moveSound(m) {
+  if (!m) return;
+  playSfx(m.san.includes('#') ? 'mate' : m.san.includes('+') ? 'check' : m.captured ? 'capture' : 'move');
 }
 
 function setFavicon(active) {
@@ -5820,7 +5917,7 @@ function draw() {
   el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
   el('autoBtn').classList.toggle('hidden', solo);
   el('autoLabel').classList.toggle('hidden', solo);
-  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
+  el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
   el('rematchBtn').classList.toggle('hidden', !result);
   el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
   el('setBtn').textContent = PIECE_SETS.find(x => x.id === pieceSet).name;
@@ -6624,7 +6721,7 @@ function playOpponent(fen, from, to, promotion) {
     return true;
   }
   oppHold = null;
-  if (localMove(from, to, promotion)) { blip(); return true; }
+  if (localMove(from, to, promotion)) return true;
   return false;
 }
 
@@ -6646,7 +6743,7 @@ function releaseHold() {
   if (h.fen !== game.fen()) { oppHold = null; return; }
   if (!holdReady(h)) return;
   oppHold = null;
-  if (localMove(h.from, h.to, h.promotion)) blip();
+  localMove(h.from, h.to, h.promotion);
 }
 
 /* Asked from inside the analysis and drawing code, so the move is played on
@@ -8484,12 +8581,6 @@ el('takebackBtn').onclick = () => {
   draw();
 };
 
-el('soundBtn').onclick = () => {
-  soundOn = !soundOn;
-  store.set('table:sound', soundOn);
-  el('soundBtn').textContent = soundOn ? 'On' : 'Off';
-  if (soundOn) blip();          // confirm it actually works
-};
 
 function fmtThink(ms) {
   return ms >= 10000 ? Math.round(ms / 1000) + 's' : (ms / 1000).toFixed(0) + 's';
@@ -8558,7 +8649,7 @@ function applyBoardLook() {
 // shows a gap, and so the service worker has them for offline use.
 function preloadSet(id) {
   const s = PIECE_SETS.find(x => x.id === id);
-  if (!s || id === 'staunton' || id === 'bauhaus') return;
+  if (!s || id === 'staunton') return;
   for (const c of 'wb') for (const t of 'kqrbnp') new Image().src = `pieces/${id}/${c}${t.toUpperCase()}.${s.ext}`;
 }
 
@@ -8580,21 +8671,45 @@ function drawLook() {
     return `<button class="lookopt" role="radio" aria-checked="${b.id === boardLook}" data-board="${b.id}" title="${escText(b.name)}">` +
       `${chk}<span class="lname">${escText(b.name)}</span></button>`;
   }).join('');
+  el('lookSounds').innerHTML = [['off', 'Off'], ...Object.entries(SFX).map(([id, x]) => [id, x.name])].map(([id, name]) =>
+    `<button class="lookopt" role="radio" aria-checked="${id === sfxStyle}" data-sfx="${id}">${name}</button>`).join('');
+  el('sfxVol').value = sfxVol;
 }
 
-function toggleLook(open = el('lookPanel').classList.contains('hidden')) {
-  el('lookPanel').classList.toggle('hidden', !open);
-  el('setBtn').setAttribute('aria-expanded', open);
-  el('boardBtn').setAttribute('aria-expanded', open);
-  if (open) drawLook();
+// Pieces and Board each open their own list. Pressing the open one again
+// closes it; pressing the other switches straight to that list.
+let lookOpen = null;            // null, 'sets', 'boards' or 'sounds'
+function toggleLook(which) {
+  lookOpen = which && which !== lookOpen ? which : null;
+  el('lookPanel').classList.toggle('hidden', !lookOpen);
+  el('lookSetsWrap').classList.toggle('hidden', lookOpen !== 'sets');
+  el('lookBoardsWrap').classList.toggle('hidden', lookOpen !== 'boards');
+  el('lookSoundsWrap').classList.toggle('hidden', lookOpen !== 'sounds');
+  el('lookCredits').classList.toggle('hidden', lookOpen === 'sounds');
+  el('soundBtn').setAttribute('aria-expanded', lookOpen === 'sounds');
+  el('soundBtn').classList.toggle('on', lookOpen === 'sounds');
+  el('setBtn').setAttribute('aria-expanded', lookOpen === 'sets');
+  el('boardBtn').setAttribute('aria-expanded', lookOpen === 'boards');
+  el('setBtn').classList.toggle('on', lookOpen === 'sets');
+  el('boardBtn').classList.toggle('on', lookOpen === 'boards');
+  if (lookOpen) drawLook();
 }
 
-el('setBtn').onclick = () => toggleLook();
-el('boardBtn').onclick = () => toggleLook();
-el('lookDone').onclick = () => toggleLook(false);
+el('setBtn').onclick = () => toggleLook('sets');
+el('boardBtn').onclick = () => toggleLook('boards');
+el('soundBtn').onclick = () => toggleLook('sounds');
+el('lookDone').onclick = () => toggleLook(null);
 el('lookPanel').addEventListener('click', e => {
   const opt = e.target.closest('.lookopt');
   if (!opt) return;
+  if (opt.dataset.hear) { playSfx(opt.dataset.hear, sfxStyle === 'off' ? 'wood' : sfxStyle); return; }
+  if (opt.dataset.sfx) {
+    sfxStyle = opt.dataset.sfx;
+    soundOn = sfxStyle !== 'off';
+    store.set('table:sfx', sfxStyle);
+    store.set('table:sound', soundOn);
+    playSfx('move');
+  }
   if (opt.dataset.set) {
     pieceSet = opt.dataset.set;
     store.set('table:set', pieceSet);
@@ -8609,13 +8724,20 @@ el('lookPanel').addEventListener('click', e => {
   draw();
 });
 
+el('sfxVol').oninput = e => {
+  sfxVol = +e.target.value;
+  store.set('table:sfxVol', sfxVol);
+  if (sfxBus) sfxBus.gain.setTargetAtTime(sfxVol, audioCtx.currentTime, .05);
+};
+el('sfxVol').onchange = () => playSfx('move', sfxStyle === 'off' ? 'wood' : sfxStyle);
+
 el('lookCredits').onclick = () => {
   const li = s => `<li>${escText(s.name)}: ${escText(s.author)}${s.license ? ', ' + escText(s.license) : ''}</li>`;
   openModal({
     title: 'Credits',
     body: `<div class="credits">
       <p>Piece sets and board images from <a href="https://github.com/lichess-org/lila" target="_blank" rel="noopener">lichess</a>, used unchanged under the licenses below. Puzzles from <a href="https://lichess.org/training" target="_blank" rel="noopener">lichess.org</a>, public domain. Engine: Stockfish, GPLv3.</p>
-      <h5>Pieces</h5><ul>${PIECE_SETS.filter(s => s.license).map(li).join('')}</ul>
+      <h5>Pieces</h5><ul>${PIECE_SETS.map(li).join('')}</ul>
       <h5>Boards</h5><ul><li>Textured boards: the lila authors and pirouetti, AGPLv3+</li></ul>
       <p style="margin-top:12px">License texts: <a href="https://creativecommons.org/licenses/" target="_blank" rel="noopener">Creative Commons</a>, <a href="https://www.gnu.org/licenses/" target="_blank" rel="noopener">GNU</a>, <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT</a>, <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>.</p>
     </div>`,
@@ -8972,6 +9094,7 @@ function pzMove(from, to, promotion) {
   let m;
   try { m = game.move({ from, to, promotion }); } catch { return false; }
   if (!m) return false;
+  moveSound(m);
   selected = null;
   pz.before = lastMove;
   lastMove = { from: m.from, to: m.to };
@@ -9131,7 +9254,7 @@ function pzReply() {
   lastMove = { from: m.from, to: m.to };
   pz.step++;
   pz.badge = null;
-  blip();
+  moveSound(m);
   if (pz.step >= sol.length) { pzFinish(); return; }
   pz.phase = 'solve';
   pzSave();

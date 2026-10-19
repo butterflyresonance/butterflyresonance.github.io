@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Étude — board preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  A look-only preview of piece sets and boards. Nothing here is wired into
+  index.html: it shows a position, and Settings swaps the pieces and board.
+  Choices are remembered on this device under preview:* keys only.
+
+  Piece sets live in pieces/<set>/ and board images in boards/. They come from
+  lichess (github.com/lichess-org/lila). The author and license of each are in
+  SETS and TEXTURES below and shown on the page.
+-->
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #15181b;
+    --panel: #1d2226;
+    --edge: #2b3238;
+    --brass: #c8a35b;
+    --brass-dim: #6d5a33;
+    --text: #e8e6e1;
+    --muted: #8b9198;
+    --display: "Bodoni Moda", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sq-light: #ada497;
+    --sq-dark: #535d61;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100dvh;
+    padding: 20px 16px 48px;
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+  }
+  button { font: inherit; color: inherit; }
+
+  .main { width: 100%; max-width: 520px; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 30px;
+    margin: 0 0 4px;
+  }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+
+  /* ---- board ---- */
+  .board {
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 1px solid var(--edge);
+    background-size: 100% 100%;
+    user-select: none;
+  }
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .board:not(.textured) .sq.light { background: var(--sq-light); }
+  .board:not(.textured) .sq.dark  { background: var(--sq-dark); }
+  .sq.last::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brass);
+    opacity: .3;
+  }
+  .sq img {
+    position: relative;
+    width: 92%;
+    height: 92%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .coord {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    opacity: .85;
+  }
+  .coord.rank { top: 3px; left: 3px; }
+  .coord.file { bottom: 3px; right: 3px; }
+  .sq.light .coord { color: var(--sq-dark); }
+  .sq.dark  .coord { color: var(--sq-light); }
+  .board.textured .coord { color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+  .board.nocoords .coord { display: none; }
+
+  .caption {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 2.6em;
+  }
+  .caption b { color: var(--text); font-weight: 500; }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .btn {
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .btn:hover { border-color: var(--brass-dim); }
+  .btn.primary { border-color: var(--brass); color: var(--brass); }
+  .btn[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); }
+
+  /* ---- settings panel: beside the board on wide screens, a bottom sheet on
+     phones so the board stays in view while you choose ---- */
+  .panel {
+    width: 400px;
+    flex: none;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    padding: 18px 18px 24px;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+  }
+  .panel[hidden] { display: none; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; }
+  .panel h2 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0;
+  }
+  .close { background: none; border: 0; font-size: 22px; cursor: pointer; color: var(--muted); padding: 0 4px; }
+  .panel h3 {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 22px 0 4px;
+  }
+  .panel .hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+
+  .grid { display: grid; gap: 8px; }
+  .grid.sets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.swatches { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .opt {
+    background: var(--ground);
+    border: 1px solid var(--edge);
+    padding: 6px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .opt:hover { border-color: var(--brass-dim); }
+  .opt[aria-checked="true"] { border-color: var(--brass); color: var(--text); box-shadow: inset 0 0 0 1px var(--brass); }
+  .opt .thumb {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    aspect-ratio: 2 / 1;
+    margin-bottom: 5px;
+    background-size: 100% 100%;
+  }
+  .opt .thumb span { display: flex; align-items: center; justify-content: center; }
+  .opt .thumb img { width: 90%; height: 90%; object-fit: contain; }
+  .opt .chk {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    aspect-ratio: 1;
+    margin-bottom: 5px;
+    background-size: 400% 400%;
+  }
+  .opt .name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  .toggle input { accent-color: var(--brass); }
+
+  /* ---- sound ---- */
+  .sgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .sopt {
+    background: var(--ground);
+    border: 1px solid var(--edge);
+    padding: 9px 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sopt:hover { border-color: var(--brass-dim); }
+  .sopt[aria-checked="true"] { border-color: var(--brass); color: var(--text); box-shadow: inset 0 0 0 1px var(--brass); }
+  .sopt.play { color: var(--text); }
+  .sopt.play:active { border-color: var(--brass); color: var(--brass); }
+  .srow { margin-top: 10px; }
+  .vol { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .vol input { flex: 1; accent-color: var(--brass); }
+
+  @media (max-width: 960px) {
+    body { flex-direction: column; align-items: center; gap: 0; }
+    .panel {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      width: auto;
+      max-height: 44dvh;
+      top: auto;
+      border-width: 1px 0 0;
+      box-shadow: 0 -10px 30px rgba(0,0,0,.5);
+      z-index: 10;
+    }
+    body.open { padding-bottom: 46dvh; padding-top: 12px; }
+    /* keep the whole board visible above the sheet */
+    body.open .main { max-width: min(520px, calc(56dvh - 70px)); }
+    body.open .sub, body.open h1 { display: none; }
+    body.open .caption { min-height: 0; }
+    .grid.sets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid.swatches { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+  @media (max-width: 520px) {
+    .grid.sets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.swatches { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="main">
+  <h1>Board preview</h1>
+  <p class="sub">Look only. Open Settings to try piece sets, boards and sounds. <span style="opacity:.6">· preview 2026-10-19.5</span></p>
+
+  <div class="board" id="board"></div>
+
+  <p class="caption" id="caption"></p>
+
+  <div class="bar">
+    <button class="btn primary" id="settingsBtn">Settings</button>
+    <button class="btn" id="posStart" aria-pressed="false">Starting position</button>
+    <button class="btn" id="posMid" aria-pressed="true">Middlegame</button>
+    <button class="btn" id="flipBtn">Flip board</button>
+  </div>
+</div>
+
+<aside class="panel" id="panel" hidden>
+  <div class="panel-head">
+    <h2>Settings</h2>
+    <button class="close" id="closeBtn" aria-label="Close settings">×</button>
+  </div>
+
+  <h3>Pieces — free to use</h3>
+  <p class="hint">Open licenses. Fine to use with a credit line.</p>
+  <div class="grid sets" id="setsFree" role="radiogroup" aria-label="Piece set"></div>
+
+  <h3>Pieces — non-commercial only</h3>
+  <p class="hint">CC BY-NC-SA. Usable while Étude stays free and ad-free.</p>
+  <div class="grid sets" id="setsNC" role="radiogroup" aria-label="Piece set"></div>
+
+  <h3>Board — colours</h3>
+  <div class="grid swatches" id="colours" role="radiogroup" aria-label="Board colours"></div>
+
+  <h3>Board — textures</h3>
+  <p class="hint">Images from lichess, AGPL.</p>
+  <div class="grid swatches" id="textures" role="radiogroup" aria-label="Board texture"></div>
+
+  <h3>Display</h3>
+  <label class="toggle"><input type="checkbox" id="coordsChk" checked> Show coordinates</label>
+
+  <h3>Sound — effects</h3>
+  <p class="hint">Made in the browser as it plays. Nothing is downloaded.</p>
+  <div class="sgrid" id="fxStyles" role="radiogroup" aria-label="Sound style"></div>
+  <div class="sgrid srow">
+    <button class="sopt play" data-fx="move">Move</button>
+    <button class="sopt play" data-fx="capture">Capture</button>
+    <button class="sopt play" data-fx="check">Check</button>
+    <button class="sopt play" data-fx="mate">Checkmate</button>
+  </div>
+  <label class="vol">Volume <input type="range" id="fxVol" min="0" max="1" step="0.05"></label>
+
+  <h3>Sound — background</h3>
+  <p class="hint">Plays until you pick Off. After a reload, tap anywhere to start it again: browsers won't play sound before a tap.</p>
+  <div class="sgrid" id="ambs" role="radiogroup" aria-label="Background sound"></div>
+  <label class="vol">Volume <input type="range" id="ambVol" min="0" max="1" step="0.05"></label>
+</aside>
+
+<script>
+/* ---------- data ---------- */
+
+// [id, display name, author, license, group, file extension]
+const SETS = [
+  ['cburnett',       'Cburnett',       'Colin M.L. Burnett',          'GPLv2+',        'free'],
+  ['merida',         'Merida',         'Armando Hernandez Marroquin', 'GPLv2+',        'free'],
+  ['mpchess',        'MPChess',        'Maxime Chupin',               'GPLv3+',        'free'],
+  ['chessnut',       'Chessnut',       'Alexis Luengas',              'Apache 2.0',    'free'],
+  ['fantasy',        'Fantasy',        'Maurizio Monge',              'MIT',           'free'],
+  ['celtic',         'Celtic',         'Maurizio Monge',              'MIT',           'free'],
+  ['spatial',        'Spatial',        'Maurizio Monge',              'MIT',           'free'],
+  ['shapes',         'Shapes',         'flugsio',                     'CC BY-SA 4.0',  'free'],
+  ['kiwen-suwi',     'Kiwen-suwi',     'neverRare',                   'CC BY 4.0',     'free'],
+  ['firi',           'Firi',           'James Faure',                 'CC BY 4.0',     'free'],
+  ['totoy',          'Totoy',          'Kosal Sen',                   'CC BY 4.0',     'free'],
+  ['papercut',       'Papercut',       'Nikolay Anzarov',             'CC BY 4.0',     'free'],
+  ['rhosgfx',        'RhosGFX',        'RhosGFX',                     'CC0',           'free'],
+  ['pixel',          'Pixel',          'therealqtpi',                 'AGPLv3+',       'free'],
+  ['letter',         'Letter',         'usolando',                    'AGPLv3+',       'free'],
+  ['pirouetti',      'Pirouetti',      'pirouetti',                   'AGPLv3+',       'free'],
+  ['mono',           'Mono',           'Thibault Duplessis & Colin M.L. Burnett', 'GPLv2+', 'free'],
+  ['california',     'California',     'Jerry S.',                    'CC BY-NC-SA 4.0', 'nc'],
+  ['maestro',        'Maestro',        'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['fresca',         'Fresca',         'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['cardinal',       'Cardinal',       'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['gioco',          'Gioco',          'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['tatiana',        'Tatiana',        'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['staunty',        'Staunty',        'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['dubrovny',       'Dubrovny',       'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['icpieces',       'IC Pieces',      'sadsnake1',                   'CC BY-NC-SA 4.0', 'nc'],
+  ['cooke',          'Cooke',          'fejfar',                      'CC BY-NC-SA 4.0', 'nc'],
+  ['monarchy',       'Monarchy',       'slither77',                   'CC BY-NC-SA 4.0', 'nc', 'webp'],
+  ['minimal-warmth', 'Minimal Warmth', 'blunder_reign',               'CC BY-NC-SA 4.0', 'nc'],
+  ['caliente',       'Caliente',       'avi',                         'CC BY-NC-SA 4.0', 'nc'],
+  ['anarcandy',      'Anarcandy',      'caderek',                     'CC BY-NC-SA 4.0', 'nc'],
+  ['horsey',         'Horsey',         'cham & michael1241',          'CC BY-NC-SA 4.0', 'nc'],
+  ['disguised',      'Disguised',      'danegraphics',                'CC BY-NC-SA 4.0', 'nc'],
+  ['xkcd',           'xkcd',           'Randall Munroe',              'CC BY-NC-SA 2.5', 'nc'],
+].map(([id, name, author, license, group, ext = 'svg']) => ({ id, name, author, license, group, ext }));
+
+// Plain two-colour boards: [id, name, light square, dark square]
+const COLOURS = [
+  ['etude',      'Étude',       '#ada497', '#535d61'],
+  ['tournament', 'Tournament',  '#eeeed2', '#769656'],
+  ['walnut',     'Walnut',      '#f0d9b5', '#b58863'],
+  ['slate',      'Slate',       '#dee3e6', '#8ca2ad'],
+  ['seaglass',   'Sea glass',   '#d8e8de', '#6f9a8a'],
+  ['sage',       'Sage',        '#e6e8cf', '#8f9e63'],
+  ['sandstone',  'Sandstone',   '#efdfc0', '#c49a6c'],
+  ['amber',      'Amber',       '#f4e4b8', '#c8913a'],
+  ['coral',      'Coral',       '#f7e3d7', '#d0806a'],
+  ['rosewood',   'Rosewood',    '#eed6cb', '#9c5b55'],
+  ['lavender',   'Lavender',    '#e6def0', '#8a76a8'],
+  ['ice',        'Ice',         '#edf4f9', '#a6c4d9'],
+  ['paper',      'Paper',       '#f1f0ec', '#b3b1aa'],
+  ['ink',        'Ink',         '#c9ccd1', '#454b55'],
+  ['midnight',   'Midnight',    '#7d8bab', '#3a4564'],
+  ['vapor',      'Vapor',       '#f5c2dc', '#7e63ad'],
+].map(([id, name, light, dark]) => ({ id, name, light, dark }));
+
+// Whole-board images from lichess, AGPLv3+. [id, name, file, thumbnail]
+const TEXTURES = [
+  ['wood',          'Wood',         'wood.jpg'],
+  ['wood2',         'Wood 2',       'wood2.jpg'],
+  ['wood3',         'Wood 3',       'wood3.jpg'],
+  ['wood4',         'Wood 4',       'wood4.jpg'],
+  ['maple',         'Maple',        'maple.jpg'],
+  ['maple2',        'Maple 2',      'maple2.jpg'],
+  ['marble',        'Marble',       'marble.jpg'],
+  ['blue-marble',   'Blue marble',  'blue-marble.jpg'],
+  ['blue2',         'Blue 2',       'blue2.jpg'],
+  ['blue3',         'Blue 3',       'blue3.jpg'],
+  ['metal',         'Metal',        'metal.jpg'],
+  ['leather',       'Leather',      'leather.jpg'],
+  ['canvas2',       'Canvas',       'canvas2.jpg'],
+  ['olive',         'Olive',        'olive.jpg'],
+  ['grey',          'Grey',         'grey.jpg'],
+  ['green-plastic', 'Green plastic','green-plastic.png'],
+  ['pink-pyramid',  'Pink pyramid', 'pink-pyramid.png'],
+  ['purple-diag',   'Purple diag',  'purple-diag.png'],
+  ['newspaper',     'Newspaper',    'newspaper.svg'],
+].map(([id, name, file]) => ({
+  id, name,
+  src: 'boards/' + file,
+  thumb: 'boards/' + (file.endsWith('.svg') ? file : file.replace(/\.(jpg|png)$/, '.thumbnail.$1')),
+}));
+
+const POSITIONS = {
+  start: { fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', last: [] },
+  // Closed Ruy Lopez after 9.h3: pieces on both colours of square, last move shown
+  mid:   { fen: 'r1bq1rk1/2p1bppp/p1np1n2/1p2p3/4P3/1BP2N1P/PP1P1PP1/RNBQR1K1', last: ['h2', 'h3'] },
+};
+
+/* ---------- state ---------- */
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const state = {
+  set:    store.get('preview:set', 'cburnett'),
+  board:  store.get('preview:board', 'colour:etude'),   // 'colour:<id>' or 'texture:<id>'
+  pos:    store.get('preview:pos', 'mid'),
+  flip:   store.get('preview:flip', false),
+  coords: store.get('preview:coords', true),
+};
+if (!SETS.some(s => s.id === state.set)) state.set = 'cburnett';
+
+const el = id => document.getElementById(id);
+const FILES = 'abcdefgh';
+const pieceSrc = (set, colour, type) => `pieces/${set.id}/${colour}${type.toUpperCase()}.${set.ext}`;
+const getSet = () => SETS.find(s => s.id === state.set);
+
+function boardChoice() {
+  const [kind, id] = state.board.split(':');
+  if (kind === 'texture') {
+    const t = TEXTURES.find(x => x.id === id);
+    if (t) return { kind, item: t };
+  }
+  return { kind: 'colour', item: COLOURS.find(x => x.id === id) || COLOURS[0] };
+}
+
+/* ---------- board ---------- */
+function parseFen(fen) {
+  const map = {};
+  fen.split('/').forEach((row, i) => {
+    const rank = 8 - i;
+    let f = 0;
+    for (const ch of row) {
+      if (/\d/.test(ch)) { f += +ch; continue; }
+      map[FILES[f] + rank] = { colour: ch === ch.toUpperCase() ? 'w' : 'b', type: ch.toLowerCase() };
+      f++;
+    }
+  });
+  return map;
+}
+
+function renderBoard() {
+  const b = el('board');
+  const { kind, item } = boardChoice();
+  if (kind === 'texture') {
+    b.classList.add('textured');
+    b.style.backgroundImage = `url("${item.src}")`;
+  } else {
+    b.classList.remove('textured');
+    b.style.backgroundImage = '';
+    b.style.setProperty('--sq-light', item.light);
+    b.style.setProperty('--sq-dark', item.dark);
+  }
+  b.classList.toggle('nocoords', !state.coords);
+
+  const pos = POSITIONS[state.pos];
+  const pieces = parseFen(pos.fen);
+  const set = getSet();
+  const ranks = state.flip ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+  const files = state.flip ? [...FILES].reverse() : [...FILES];
+  let html = '';
+  ranks.forEach((rank, ri) => {
+    files.forEach((file, fi) => {
+      const sq = file + rank;
+      const light = (FILES.indexOf(file) + rank) % 2 === 0;   // a1 dark
+      const cls = ['sq', light ? 'light' : 'dark'];
+      if (pos.last.includes(sq)) cls.push('last');
+      let inner = '';
+      if (fi === 0) inner += `<span class="coord rank">${rank}</span>`;
+      if (ri === 7) inner += `<span class="coord file">${file}</span>`;
+      const p = pieces[sq];
+      if (p) inner += `<img src="${pieceSrc(set, p.colour, p.type)}" alt="">`;
+      html += `<div class="${cls.join(' ')}">${inner}</div>`;
+    });
+  });
+  b.innerHTML = html;
+  // A texture image has a1 dark at bottom-left; flipped, h8 (also dark) sits there, so it still matches.
+
+  el('caption').innerHTML =
+    `<b>${set.name}</b> pieces by ${set.author} · ${set.license}<br>` +
+    (kind === 'texture'
+      ? `<b>${item.name}</b> board · lichess, AGPLv3+`
+      : `<b>${item.name}</b> board · ${item.light} / ${item.dark}`);
+
+  el('posStart').setAttribute('aria-pressed', state.pos === 'start');
+  el('posMid').setAttribute('aria-pressed', state.pos === 'mid');
+}
+
+/* ---------- settings panel ---------- */
+function thumbBg() {
+  const { kind, item } = boardChoice();
+  return kind === 'texture'
+    ? { image: item.src }
+    : { light: item.light, dark: item.dark };
+}
+
+function renderSets() {
+  const bg = thumbBg();
+  for (const group of ['free', 'nc']) {
+    el(group === 'free' ? 'setsFree' : 'setsNC').innerHTML = SETS.filter(s => s.group === group).map(s => {
+      const on = s.id === state.set;
+      const sqStyle = (light) => bg.image ? '' : `background:${light ? bg.light : bg.dark}`;
+      const thumbStyle = bg.image ? `background-image:url('${bg.image}');background-size:400% 800%;background-position:0 0` : '';
+      return `<button class="opt" role="radio" aria-checked="${on}" data-set="${s.id}" title="${s.name} — ${s.author}, ${s.license}">
+        <span class="thumb" style="${thumbStyle}">
+          <span style="${sqStyle(true)}"><img src="${pieceSrc(s, 'w', 'n')}" alt=""></span>
+          <span style="${sqStyle(false)}"><img src="${pieceSrc(s, 'b', 'q')}" alt=""></span>
+        </span>
+        <span class="name">${s.name}</span>
+      </button>`;
+    }).join('');
+  }
+}
+
+function renderBoards() {
+  el('colours').innerHTML = COLOURS.map(c => {
+    const on = state.board === 'colour:' + c.id;
+    return `<button class="opt" role="radio" aria-checked="${on}" data-board="colour:${c.id}" title="${c.name}">
+      <span class="chk">
+        <span style="background:${c.light}"></span><span style="background:${c.dark}"></span>
+        <span style="background:${c.dark}"></span><span style="background:${c.light}"></span>
+      </span>
+      <span class="name">${c.name}</span>
+    </button>`;
+  }).join('');
+  el('textures').innerHTML = TEXTURES.map(t => {
+    const on = state.board === 'texture:' + t.id;
+    return `<button class="opt" role="radio" aria-checked="${on}" data-board="texture:${t.id}" title="${t.name}">
+      <span class="chk" style="background-image:url('${t.thumb}');background-size:cover"></span>
+      <span class="name">${t.name}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderBoard();
+  renderSets();
+  renderBoards();
+  el('coordsChk').checked = state.coords;
+}
+
+function save() {
+  store.set('preview:set', state.set);
+  store.set('preview:board', state.board);
+  store.set('preview:pos', state.pos);
+  store.set('preview:flip', state.flip);
+  store.set('preview:coords', state.coords);
+}
+
+/* ---------- events ---------- */
+el('panel').addEventListener('click', e => {
+  const opt = e.target.closest('.opt');
+  if (!opt) return;
+  if (opt.dataset.set) state.set = opt.dataset.set;
+  if (opt.dataset.board) state.board = opt.dataset.board;
+  save();
+  renderAll();
+});
+el('coordsChk').onchange = e => { state.coords = e.target.checked; save(); renderBoard(); };
+
+function openPanel(open) {
+  el('panel').hidden = !open;
+  document.body.classList.toggle('open', open);
+  el('settingsBtn').textContent = open ? 'Close settings' : 'Settings';
+}
+el('settingsBtn').onclick = () => openPanel(el('panel').hidden);
+el('closeBtn').onclick = () => openPanel(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') openPanel(false); });
+
+el('posStart').onclick = () => { state.pos = 'start'; save(); renderBoard(); };
+el('posMid').onclick   = () => { state.pos = 'mid';   save(); renderBoard(); };
+el('flipBtn').onclick  = () => { state.flip = !state.flip; save(); renderBoard(); };
+
+
+/* ---------- sound ----------
+   Everything is synthesised with the Web Audio API: filtered noise for rain,
+   water, wind and fire, short noise bursts and tones for the piece sounds.
+   No files. Two buses, effects and background, each with its own volume,
+   both through a gentle compressor so nothing clips.                        */
+const snd = {
+  fx:     store.get('preview:fx', 'wood'),
+  fxVol:  store.get('preview:fxVol', 0.7),
+  amb:    store.get('preview:amb', 'off'),
+  ambVol: store.get('preview:ambVol', 0.5),
+};
+let actx = null, fxBus = null, ambBus = null, ambStop = null, ambPlaying = null;
+const noiseBufs = {};
+
+function audio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = actx.createDynamicsCompressor();
+    comp.threshold.value = -10;
+    comp.ratio.value = 4;
+    comp.connect(actx.destination);
+    fxBus = actx.createGain();
+    ambBus = actx.createGain();
+    fxBus.gain.value = snd.fxVol;
+    ambBus.gain.value = snd.ambVol * snd.ambVol;   // squared: the slider feels even
+    fxBus.connect(comp);
+    ambBus.connect(comp);
+  }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+
+// Four seconds of white, pink or brown noise. The first 50 ms are blended
+// with the last 50 ms and the loop stops short of them, so it loops seamlessly.
+function noise(kind) {
+  if (noiseBufs[kind]) return noiseBufs[kind];
+  const sr = actx.sampleRate, len = sr * 4;
+  const buf = actx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    if (kind === 'white') d[i] = w;
+    else if (kind === 'pink') {
+      b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759;
+      b2 = .969 * b2 + w * .153852;    b3 = .8665 * b3 + w * .3104856;
+      b4 = .55 * b4 + w * .5329522;    b5 = -.7616 * b5 - w * .016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11;
+      b6 = w * .115926;
+    } else { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; }
+  }
+  const f = Math.floor(sr * .05);
+  for (let i = 0; i < f; i++) { const a = i / f; d[i] = d[i] * a + d[len - f + i] * (1 - a); }
+  return (noiseBufs[kind] = buf);
+}
+
+const filt = (type, f, q = .7) => { const x = actx.createBiquadFilter(); x.type = type; x.frequency.value = f; x.Q.value = q; return x; };
+const gainOf = v => { const g = actx.createGain(); g.gain.value = v; return g; };
+function env(g, t, a, peak, d) {
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), t + a);
+  g.gain.exponentialRampToValueAtTime(.0001, t + a + d);
+}
+// a tone with an attack/decay envelope, optionally gliding to another pitch
+function tone(type, freq, t, a, peak, d, dest, to) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t + a + d);
+  env(g, t, a, peak, d);
+  o.connect(g).connect(dest);
+  o.start(t); o.stop(t + a + d + .05);
+}
+// a short burst of noise through a chain of filters
+function burst(kind, t, a, peak, d, filters, dest) {
+  const s = actx.createBufferSource(), g = actx.createGain();
+  s.buffer = noise(kind); s.loop = true;
+  let n = s; for (const f of filters) { n.connect(f); n = f; }
+  env(g, t, a, peak, d);
+  n.connect(g).connect(dest);
+  s.start(t, Math.random() * 3); s.stop(t + a + d + .05);
+}
+// a struck bell or glass: a fundamental and two inharmonic partials
+function bell(f, t, peak, d, dest = fxBus) {
+  [[1, 1], [2.756, .4], [5.404, .15]].forEach(([m, a]) => tone('sine', f * m, t, .002, peak * a, d / Math.sqrt(m), dest));
+}
+// a piece set down on a wooden board: a click of filtered noise and a thud
+function knock(t, { f = 1800, body = 260, peak = .9, len = .06 } = {}) {
+  burst('white', t, .001, peak * .7, .03, [filt('bandpass', f, 4)], fxBus);
+  tone('sine', body, t, .002, peak * .6, len, fxBus, body * .7);
+}
+
+const FX = {
+  wood: {
+    name: 'Wood',
+    move:    t => knock(t),
+    capture: t => { knock(t, { f: 1500, body: 220, peak: 1 }); knock(t + .07, { f: 1250, body: 190, peak: .8, len: .08 }); },
+    check:   t => { knock(t); tone('triangle', 880, t + .08, .005, .22, .5, fxBus); tone('triangle', 1174.7, t + .2, .005, .2, .7, fxBus); },
+    mate:    t => { knock(t, { f: 1200, body: 170, peak: 1, len: .12 });
+                    [220, 261.6, 329.6, 440].forEach((f, i) => tone('triangle', f, t + .14 + i * .07, .01, .14, 2.4, fxBus)); },
+  },
+  soft: {
+    name: 'Soft',
+    move:    t => { burst('pink', t, .004, .6, .07, [filt('lowpass', 700)], fxBus); tone('sine', 160, t, .004, .5, .1, fxBus, 110); },
+    capture: t => { FX.soft.move(t); FX.soft.move(t + .1); },
+    check:   t => { FX.soft.move(t); bell(659.3, t + .08, .22, 1.6); },
+    mate:    t => { FX.soft.move(t); [261.6, 329.6, 392, 493.9].forEach(f => tone('sine', f, t + .1, .3, .11, 2.8, fxBus)); },
+  },
+  glass: {
+    name: 'Glass',
+    move:    t => bell(1760, t, .28, .5),
+    capture: t => { bell(1568, t, .3, .5); bell(2349.3, t + .05, .22, .6); burst('white', t + .03, .001, .15, .12, [filt('highpass', 5000)], fxBus); },
+    check:   t => { bell(1318.5, t, .2, .9); bell(1760, t + .14, .2, 1.1); },
+    mate:    t => [2093, 1760, 1318.5, 1046.5].forEach((f, i) => bell(f, t + i * .16, .18, 1.8)),
+  },
+  retro: {
+    name: '8-bit',
+    move:    t => tone('square', 440, t, .002, .25, .05, fxBus, 660),
+    capture: t => { burst('white', t, .001, .4, .09, [filt('lowpass', 3000)], fxBus); tone('square', 520, t, .002, .25, .12, fxBus, 180); },
+    check:   t => { tone('square', 988, t, .002, .22, .08, fxBus); tone('square', 988, t + .13, .002, .22, .08, fxBus); },
+    mate:    t => [784, 659.3, 523.3, 392, 329.6, 261.6].forEach((f, i) => tone('square', f, t + i * .11, .002, .22, i === 5 ? .5 : .09, fxBus)),
+  },
+};
+
+function playFx(kind) {
+  audio();
+  FX[snd.fx][kind](actx.currentTime + .02);
+}
+
+/* ---- background scenes ---- */
+// fire fn at random gaps between lo and hi seconds until stopped
+function every(lo, hi, fn) {
+  let id;
+  const next = () => (lo + Math.random() * (hi - lo)) * 1000;
+  const run = () => { fn(actx.currentTime + .05); id = setTimeout(run, next()); };
+  id = setTimeout(run, next() * .3);
+  return () => clearTimeout(id);
+}
+// drift an AudioParam to a new random value every few seconds
+function wander(param, lo, hi, secs) {
+  let id;
+  const step = () => {
+    param.setTargetAtTime(lo + Math.random() * (hi - lo), actx.currentTime, secs / 3);
+    id = setTimeout(step, secs * 1000 * (.6 + Math.random() * .8));
+  };
+  step();
+  return () => clearTimeout(id);
+}
+
+const rnd = (lo, hi) => lo + Math.random() * (hi - lo);
+// a stereo position for one sound: -1 left … 1 right
+const panned = (dest, pan) => {
+  if (!actx.createStereoPanner) return dest;
+  const sp = actx.createStereoPanner();
+  sp.pan.value = pan;
+  sp.connect(dest);
+  return sp;
+};
+// fire fn about perSec times a second, at random moments, scheduled a little
+// ahead on the audio clock so the timing stays even when the page is busy
+function rate(perSec, fn) {
+  let id, until = actx.currentTime;
+  const tick = () => {
+    const from = Math.max(until, actx.currentTime + .02), end = actx.currentTime + .35;
+    const want = perSec * Math.max(0, end - from);
+    const n = Math.floor(want) + (Math.random() < want % 1 ? 1 : 0);
+    for (let i = 0; i < n; i++) fn(from + Math.random() * (end - from));
+    until = Math.max(until, end);
+    id = setTimeout(tick, 100);
+  };
+  tick();
+  return () => clearTimeout(id);
+}
+
+/* Rain is thousands of separate drops, not a hiss. So: a quiet, dark wash for
+   the rain too far away to pick out, spread left and right; then drops you can
+   hear, in four kinds — far grain, crisp leaf ticks, ringing roof taps, and
+   'plinks' (a drop into water traps a tiny bubble that rings with a rising
+   pitch) — each from a random place; two drips off a gutter with an uneven
+   rhythm; and slow gusts that swell and ease all of it together. */
+function rain(a) {
+  const level = gainOf(1);
+  level.connect(a.out);
+  a.stops.push(wander(level.gain, 1.3, 2, 6));
+  // the far-off wash: soft, dark, left and right
+  [-.7, .7].forEach(pan => {
+    const lp = filt('lowpass', 2400);
+    a.loop('pink', filt('highpass', 200), lp).connect(gainOf(.14)).connect(panned(level, pan));
+    a.stops.push(wander(lp.frequency, 1800, 3000, 5));
+  });
+  a.loop('brown', filt('lowpass', 300)).connect(gainOf(.05)).connect(level);
+
+  // Fewer drops, heavier ones: each lands with a soft thud under its click.
+  const drop = (t, pan) => {
+    const v = rnd(.1, .26), out = panned(level, pan);
+    burst('white', t, .0005, v, rnd(.012, .04), [filt('bandpass', rnd(500, 1500), 5)], out);
+    tone('sine', rnd(170, 320), t, .002, v * .6, rnd(.04, .08), out, rnd(110, 160));
+  };
+  a.stops.push(rate(5, t => drop(t, rnd(-.9, .9))));
+  // far grain, much sparser than before
+  a.stops.push(rate(30, t => burst('white', t, .0008, rnd(.015, .04), rnd(.004, .01),
+    [filt('bandpass', rnd(800, 2500), 1.5)], panned(level, rnd(-1, 1)))));
+  // the odd drop on a leaf
+  a.stops.push(rate(3, t => burst('white', t, .0004, rnd(.05, .14), rnd(.002, .006),
+    [filt('highpass', rnd(2000, 4500))], panned(level, rnd(-1, 1)))));
+  // drops into water: a lower, rounder plink
+  const plink = (t, f, v, pan, d = rnd(.04, .08)) =>
+    tone('sine', f, t, .002, v, d, panned(level, pan), f * rnd(1.15, 1.4));
+  a.stops.push(rate(1.5, t => plink(t, rnd(900, 2200), rnd(.05, .11), rnd(-1, 1))));
+  // two slow drips off a gutter
+  [[-.55, 900], [.4, 1300]].forEach(([pan, f]) =>
+    a.stops.push(every(1.4, 4, t => plink(t, f * rnd(.95, 1.05), rnd(.08, .13), pan, .08))));
+}
+
+// Version 2: many fast, light drops.
+function rainDense(a) {
+  const level = gainOf(1);
+  level.connect(a.out);
+  a.stops.push(wander(level.gain, 1.5, 2.4, 5));
+  [-.7, .7].forEach(pan => {
+    const lp = filt('lowpass', 3000);
+    a.loop('pink', filt('highpass', 250), lp).connect(gainOf(.2)).connect(panned(level, pan));
+    a.stops.push(wander(lp.frequency, 2200, 3800, 4));
+  });
+  a.loop('brown', filt('lowpass', 300)).connect(gainOf(.06)).connect(level);
+
+  a.stops.push(rate(140, t => burst('white', t, .0005, rnd(.02, .06), rnd(.002, .006),
+    [filt('bandpass', rnd(1500, 4500), 1.5)], panned(level, rnd(-1, 1)))));
+  a.stops.push(rate(22, t => burst('white', t, .0003, rnd(.06, .2), rnd(.001, .004),
+    [filt('highpass', rnd(2500, 6000))], panned(level, rnd(-1, 1)))));
+  a.stops.push(rate(9, t => burst('white', t, .0005, rnd(.08, .22), rnd(.01, .035),
+    [filt('bandpass', rnd(700, 2200), 8)], panned(level, rnd(-.9, .9)))));
+
+  const plink = (t, f, v, pan, d = rnd(.02, .05)) =>
+    tone('sine', f, t, .001, v, d, panned(level, pan), f * rnd(1.15, 1.5));
+  a.stops.push(rate(7, t => plink(t, rnd(1400, 4200), rnd(.04, .12), rnd(-1, 1))));
+  [[-.55, 1100], [.4, 1600]].forEach(([pan, f]) =>
+    a.stops.push(every(.5, 2.2, t => {
+      plink(t, f * rnd(.9, 1.1), rnd(.08, .14), pan, .06);
+      burst('white', t, .0005, .05, .006, [filt('bandpass', f * 2, 2)], panned(level, pan));
+    })));
+}
+
+// The first version, kept for comparison: a hiss with faint drops.
+function rainOld(a) {
+  const hiss = gainOf(.5);
+  a.loop('pink', filt('highpass', 500), filt('lowpass', 6500)).connect(hiss).connect(a.out);
+  const roof = gainOf(.35);
+  a.loop('brown', filt('lowpass', 400)).connect(roof).connect(a.out);
+  a.stops.push(wander(hiss.gain, .35, .6, 6));
+  // individual drops
+  a.stops.push(every(.015, .07, t =>
+    burst('white', t, .001, .03 + Math.random() * .08, .006 + Math.random() * .02, [filt('bandpass', 1500 + Math.random() * 5000, 3)], a.out)));
+}
+
+function thunderClap(t, dest) {
+  const far = Math.random();                     // 0 overhead … 1 distant
+  const dur = 5 + far * 5;
+  const peak = 1.1 - far * .7;
+  const s = actx.createBufferSource();
+  s.buffer = noise('brown'); s.loop = true;
+  const lp = filt('lowpass', 900 - far * 500);
+  lp.frequency.setValueAtTime(900 - far * 500, t);
+  lp.frequency.exponentialRampToValueAtTime(120, t + dur);
+  const g = actx.createGain();
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + .15 + far * .6);
+  let tt = t + .15 + far * .6;
+  for (let i = 0; i < 3; i++) {                  // it rolls: a few swells
+    tt = Math.min(tt + .6 + Math.random() * 1.2, t + dur - 1.5);
+    g.gain.exponentialRampToValueAtTime(peak * (.35 + Math.random() * .5), tt);
+  }
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(lp).connect(g).connect(dest);
+  s.start(t, Math.random() * 3); s.stop(t + dur + .1);
+  if (far < .35) burst('white', t, .002, .45, .35, [filt('lowpass', 2500)], dest);   // close: the crack
+}
+
+function fire(a) {
+  const roar = gainOf(.5);
+  a.loop('brown', filt('lowpass', 250)).connect(roar).connect(a.out);
+  a.stops.push(wander(roar.gain, .3, .7, 2));
+  const hiss = gainOf(.03);
+  a.loop('white', filt('bandpass', 4000, .8)).connect(hiss).connect(a.out);
+  a.stops.push(wander(hiss.gain, .01, .05, 1.5));
+  const crackle = t => burst('white', t, .0005, .1 + Math.random() * .35, .002 + Math.random() * .006,
+                             [filt('highpass', 1200 + Math.random() * 2500)], a.out);
+  a.stops.push(every(.05, .4, t => {             // single crackles, and now and then a run of them
+    const n = Math.random() < .25 ? 3 + (Math.random() * 6 | 0) : 1;
+    for (let i = 0; i < n; i++) crackle(t + i * (.01 + Math.random() * .04));
+  }));
+  a.stops.push(every(2, 7, t => burst('white', t, .001, .45, .03, [filt('bandpass', 600 + Math.random() * 500, 2)], a.out)));  // a log pops
+}
+
+/* A slow trickle in a Japanese garden: a thin, quiet run of water into a pool,
+   lazy bubbling in small clusters with long pauses, now and then a single drop
+   into the pool, and once a minute or so a bamboo deer-scarer (shishi-odoshi)
+   tipping and knocking against its stone. */
+function stream(a) {
+  const level = gainOf(2.5);
+  level.connect(a.out);
+  // the thin run of water: soft and narrow, drifting gently
+  [[-.4, 700], [.4, 1300]].forEach(([pan, f]) => {
+    const bp = filt('bandpass', f, 2.5), g = gainOf(.18);
+    a.loop('pink', bp).connect(g).connect(panned(level, pan));
+    a.stops.push(wander(bp.frequency, f * .8, f * 1.25, 3));
+    a.stops.push(wander(g.gain, .08, .22, 2.5));
+  });
+  // bubbling: two to five low bloops close together, then a rest
+  const bloop = (t, pan) => {
+    const f = rnd(280, 750);
+    tone('sine', f, t, .004, rnd(.06, .14), rnd(.05, .1), panned(level, pan), f * rnd(1.3, 1.9));
+  };
+  a.stops.push(every(.6, 2.2, t => {
+    const n = 2 + (Math.random() * 4 | 0), pan = rnd(-.5, .5);
+    let tt = t;
+    for (let i = 0; i < n; i++) { bloop(tt, pan + rnd(-.15, .15)); tt += rnd(.06, .22); }
+  }));
+  // a single drop into the pool
+  a.stops.push(every(2.5, 7, t => {
+    const f = rnd(900, 1500), pan = rnd(-.8, .8);
+    tone('sine', f, t, .002, rnd(.06, .1), .12, panned(level, pan), f * 1.3);
+  }));
+  // the bamboo: a hollow knock, then a smaller bounce
+  const knockBamboo = (t, v) => {
+    const out = panned(level, .3);
+    burst('white', t, .0005, v, .05, [filt('bandpass', 620, 12)], out);
+    tone('sine', 410, t, .002, v * .8, .18, out, 395);
+    tone('sine', 1030, t, .002, v * .25, .08, out);
+  };
+  a.stops.push(every(45, 90, t => { knockBamboo(t, .4); knockBamboo(t + .28, .14); }));
+}
+
+function wind(a) {
+  [[500, 3, 2.4], [1100, 5, 1.2]].forEach(([f, q, v]) => {
+    const bp = filt('bandpass', f, q), g = gainOf(v);
+    a.loop('pink', bp).connect(g).connect(a.out);
+    a.stops.push(wander(bp.frequency, f * .5, f * 1.6, 4));
+    a.stops.push(wander(g.gain, v * .2, v * 1.2, 3));
+  });
+}
+
+/* A warm night: a faint breeze, two crickets chirping slowly with long rests,
+   and every so often a cicada's long trill that swells and fades away. */
+function night(a) {
+  const air = gainOf(.18);
+  a.loop('pink', filt('lowpass', 700)).connect(air).connect(a.out);
+  a.stops.push(wander(air.gain, .06, .14, 6));
+  // crickets: a few slow, soft pulses, then several seconds of quiet
+  [[4300, -.5, 3, 6.5], [4650, .55, 4, 8]].forEach(([f, pan, lo, hi]) =>
+    a.stops.push(every(lo, hi, t => {
+      const n = 3 + (Math.random() * 3 | 0), v = rnd(.06, .11), out = panned(a.out, pan);
+      for (let i = 0; i < n; i++) tone('sine', f, t + i * .085, .012, v, .045, out);
+    })));
+  // cicada: a trill that rises over a couple of seconds, holds, and dies away
+  a.stops.push(every(14, 30, t => {
+    const dur = rnd(4, 7), pan = rnd(-.6, .6);
+    const o = actx.createOscillator(), trem = actx.createOscillator();
+    const tg = actx.createGain(), g = actx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = rnd(4800, 5600);
+    trem.frequency.value = rnd(28, 40);        // the buzz is a fast pulsing
+    const depth = gainOf(.5);
+    tg.gain.value = .5; trem.connect(depth).connect(tg.gain);
+    const bp = filt('bandpass', o.frequency.value, 6);
+    g.gain.setValueAtTime(.0001, t);
+    const peak = rnd(.04, .07);
+    g.gain.exponentialRampToValueAtTime(peak, t + dur * .4);
+    g.gain.exponentialRampToValueAtTime(peak * .85, t + dur * .6);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(bp).connect(tg).connect(g).connect(panned(a.out, pan));
+    o.start(t); trem.start(t); o.stop(t + dur + .1); trem.stop(t + dur + .1);
+  }));
+}
+
+const AMBS = {
+  off:    { name: 'Off' },
+  rainOld: { name: 'Rain 1', build: rainOld },
+  rainDense: { name: 'Rain 2', build: rainDense },
+  rain:   { name: 'Rain 3',  build: rain },
+  storm:  { name: 'Storm',   build: a => { rain(a); a.stops.push(every(12, 35, t => thunderClap(t, a.out))); } },
+  fire:   { name: 'Fire',    build: fire },
+  stream: { name: 'Trickle', build: stream },
+  wind:   { name: 'Wind',    build: wind },
+  night:  { name: 'Night',   build: night },
+  cosy:   { name: 'Cosy', build: a => { fire(a); const sub = { ...a, out: gainOf(.35) }; sub.out.connect(a.out); rain(sub); } },
+};
+
+// Build a scene, fade it in; returns a function that fades it out and tidies up.
+function startScene(build) {
+  const out = gainOf(.0001), stops = [], srcs = [];
+  out.connect(ambBus);
+  build({
+    out, stops,
+    loop(kind, ...filters) {
+      const s = actx.createBufferSource();
+      s.buffer = noise(kind); s.loop = true; s.loopEnd = s.buffer.duration - .05;
+      let n = s; for (const f of filters) { n.connect(f); n = f; }
+      s.start(0, Math.random() * 3);
+      srcs.push(s);
+      return n;
+    },
+  });
+  out.gain.setTargetAtTime(1, actx.currentTime, .6);
+  return () => {
+    stops.forEach(f => f());
+    out.gain.setTargetAtTime(.0001, actx.currentTime, .4);
+    setTimeout(() => { srcs.forEach(s => { try { s.stop(); } catch {} }); out.disconnect(); }, 2500);
+  };
+}
+
+function setAmb(id) {
+  if (ambStop) { ambStop(); ambStop = null; ambPlaying = null; }
+  snd.amb = id;
+  store.set('preview:amb', id);
+  if (id !== 'off') { audio(); ambStop = startScene(AMBS[id].build); ambPlaying = id; }
+  renderSound();
+}
+
+function renderSound() {
+  el('fxStyles').innerHTML = Object.entries(FX).map(([id, f]) =>
+    `<button class="sopt" role="radio" aria-checked="${id === snd.fx}" data-style="${id}">${f.name}</button>`).join('');
+  el('ambs').innerHTML = Object.entries(AMBS).map(([id, a]) =>
+    `<button class="sopt" role="radio" aria-checked="${id === snd.amb}" data-amb="${id}">${a.name}</button>`).join('');
+  el('fxVol').value = snd.fxVol;
+  el('ambVol').value = snd.ambVol;
+}
+
+el('panel').addEventListener('click', e => {
+  const b = e.target.closest('.sopt');
+  if (!b) return;
+  if (b.dataset.fx) playFx(b.dataset.fx);
+  if (b.dataset.style) { snd.fx = b.dataset.style; store.set('preview:fx', snd.fx); renderSound(); playFx('move'); }
+  if (b.dataset.amb) setAmb(b.dataset.amb);
+});
+el('fxVol').oninput = e => {
+  snd.fxVol = +e.target.value; store.set('preview:fxVol', snd.fxVol);
+  if (fxBus) fxBus.gain.setTargetAtTime(snd.fxVol, actx.currentTime, .05);
+};
+el('ambVol').oninput = e => {
+  snd.ambVol = +e.target.value; store.set('preview:ambVol', snd.ambVol);
+  if (ambBus) ambBus.gain.setTargetAtTime(snd.ambVol * snd.ambVol, actx.currentTime, .05);
+};
+// After a reload the chosen background waits for the first tap anywhere.
+document.addEventListener('pointerdown', () => {
+  if (snd.amb !== 'off' && !ambPlaying) setAmb(snd.amb);
+}, { once: true });
+if (!FX[snd.fx]) snd.fx = 'wood';
+if (!AMBS[snd.amb]) snd.amb = 'off';
+renderSound();
+
+renderAll();
+openPanel(window.matchMedia('(min-width: 961px)').matches);
+</script>
+</body>
+</html>
