@@ -1215,8 +1215,24 @@
   }
   .shelf .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
   .shelf .cell .pc { width: 86%; height: 86%; display: block; object-fit: contain; pointer-events: none; }
-  .shelf .cell.bin { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-align: center; line-height: 1.3; }
-  .shelf .cell.bin.dragover { color: var(--danger); }
+  .shelf .bin {
+    grid-column: 7 / span 2; grid-row: 1 / span 2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    margin: 6px; border: 1px dashed var(--edge);
+    color: var(--muted); font-size: clamp(9px, 2.4vw, 11px); letter-spacing: .06em; text-align: center; line-height: 1.3;
+    min-width: 0; overflow: hidden;
+  }
+  .shelf .bin svg { width: clamp(16px, 5vw, 24px); height: auto; }
+  body.insetup header, body.insetup .verstamp { display: none; }
+  /* castling: a label, then White's two and Black's two as a tidy 2x2 */
+  #setupCastle { display: grid; grid-template-columns: auto auto auto; justify-content: start; column-gap: 14px; row-gap: 6px; }
+  #setupCastle .lbl { grid-row: 1 / span 2; align-self: center; }
+  @media (max-width: 380px) {
+    #setupCastle { grid-template-columns: auto auto; }
+    #setupCastle .lbl { grid-column: 1 / -1; grid-row: auto; }
+    #setupSaved { flex-basis: 100% !important; }
+  }
+  .setup .topbar { margin-bottom: 8px; }
   .setup-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
   .setup-row button { padding: 8px 12px; font-size: 12px; }
   .setup-row button.on { border-color: var(--brass); color: var(--brass); }
@@ -1351,15 +1367,18 @@
 
   <!-- SET UP A POSITION -->
   <section class="setup hidden" id="setup">
-    <div class="setup-row" style="margin-top:0">
-      <button class="backbtn" id="setupBack" aria-label="Back to the start screen">←</button>
-      <span class="lbl">Set up a position</span>
+    <div class="topbar">
+      <button class="backbtn" id="setupBack" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+      <div class="status">Set up a position</div>
+      <span class="topstate">editor</span>
     </div>
     <div class="board" id="setupBoard" aria-label="Set-up board"></div>
     <div class="shelf" id="shelf" aria-label="Pieces to drag onto the board"></div>
     <div class="setup-row">
-      <button id="setupPhoto">From a photo</button>
-      <input type="file" id="setupPhotoFile" accept="image/*" class="hidden">
+      <button id="setupPhoto">Take a photo</button>
+      <button id="setupPhotoPick">Choose a photo</button>
+      <input type="file" id="setupPhotoFile" accept="image/*" capture="environment" class="hidden">
+      <input type="file" id="setupPhotoPickFile" accept="image/*" class="hidden">
       <button id="setupClear">Clear</button>
       <button id="setupStart">Starting position</button>
       <button id="setupFlip">Flip board</button>
@@ -3217,7 +3236,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-21.2-photo';
+const VERSION = '2026-10-21.3-photo';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -10084,9 +10103,8 @@ function drawSetup() {
   // the shelf: the colour at the bottom of the board on the row nearest it
   const rowsOrder = su.flip ? ['b', 'w'] : ['w', 'b'];
   el('shelf').innerHTML = rowsOrder.map((c, i) =>
-    SHELF.map(t => `<div class="cell" data-p="${c}${t}">${pieceSVG(t, c)}</div>`).join('') +
-    (i === 0 ? '<div class="cell bin" data-bin="1">drag<br>here to<br>remove</div><div class="cell bin" data-bin="1"></div>'
-             : '<div class="cell bin" data-bin="1"></div><div class="cell bin" data-bin="1"></div>')).join('');
+    SHELF.map((t, j) => `<div class="cell" data-p="${c}${t}" style="grid-row:${i + 1};grid-column:${j + 1}">${pieceSVG(t, c)}</div>`).join('')).join('') +
+    '<div class="bin" data-bin="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg><span>Drop here<br>to remove</span></div>';
   el('setupW').classList.toggle('on', su.turn === 'w');
   el('setupB').classList.toggle('on', su.turn === 'b');
   const allowed = suCastleAllowed();
@@ -10115,6 +10133,7 @@ function drawSavedPositions() {
 }
 
 function openSetup() {
+  document.body.classList.add('insetup');
   el('lobby').classList.add('hidden');
   el('setup').classList.remove('hidden');
   fillOppSelects();
@@ -10188,7 +10207,7 @@ for (const id of ['setupBoard', 'shelf']) {
 }
 
 el('setupBtn').onclick = openSetup;
-el('setupBack').onclick = () => { el('setup').classList.add('hidden'); el('lobby').classList.remove('hidden'); };
+el('setupBack').onclick = () => { document.body.classList.remove('insetup'); el('setup').classList.add('hidden'); el('lobby').classList.remove('hidden'); };
 el('setupClear').onclick = () => { su.pos = new Map(); su.castleOff.clear(); drawSetup(); };
 el('setupStart').onclick = () => { suFromFen(SETUP_START); drawSetup(); };
 el('setupFlip').onclick = () => { su.flip = !su.flip; drawSetup(); };
@@ -10241,6 +10260,7 @@ el('oppSetup').onchange = e => setOpponent(e.target.value);
 // Play: the position is checked, then a game starts from it like any other
 function startFromSetup(mode) {
   if (suProblem()) { drawSetup(); return; }
+  document.body.classList.remove('insetup');
   const fen = suFen();
   const local = mode === 'both';
   const mine = local ? 'w' : su.turn;
@@ -10593,8 +10613,9 @@ function ocrOpen(img) {
 }
 
 el('setupPhoto').onclick = () => el('setupPhotoFile').click();
+el('setupPhotoPick').onclick = () => el('setupPhotoPickFile').click();
 if (/[?&#]debug\b/.test(location.href)) window.ocrDebug = { ocrGrey, ocrGuessCorners, ocrRead, ocrLoad, ocrClassify };
-el('setupPhotoFile').onchange = async e => {
+el('setupPhotoFile').onchange = el('setupPhotoPickFile').onchange = async e => {
   const file = e.target.files && e.target.files[0];
   e.target.value = '';
   if (!file) return;
