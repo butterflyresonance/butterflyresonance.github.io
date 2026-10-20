@@ -1268,6 +1268,19 @@
   .photo-ui label.ck input { accent-color: var(--brass); }
   #setupBoard .sq.unsure::after { content: ""; position: absolute; inset: 2px; border: 2px dashed var(--danger); }
 
+  /* ---- the in-page camera ---- */
+  .cam-ui { position: fixed; inset: 0; z-index: 60; background: #000; display: flex; flex-direction: column; }
+  .cam-ui .view { position: relative; flex: 1; min-height: 0; }
+  .cam-ui video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .cam-ui .guide {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    border: 2px dashed var(--brass); box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none;
+  }
+  .cam-ui .tip { position: absolute; left: 0; right: 0; top: 10px; text-align: center; color: #e8e6e1; font-size: 13px; text-shadow: 0 1px 3px #000; padding: 0 16px; }
+  .cam-ui .bar { display: flex; gap: 10px; justify-content: center; align-items: center; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--ground); }
+  .cam-ui .shutter { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--brass); background: rgba(200,163,91,.15); padding: 0; }
+  .cam-ui .bar button:not(.shutter) { padding: 9px 14px; font-size: 12px; }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -3236,7 +3249,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-21.3-photo';
+const VERSION = '2026-10-21.4-camera';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -10442,7 +10455,7 @@ function ocrGuessCorners(G) {
     }
     if (pick) break;        // the whole-photo threshold found a board: the local one is only a fallback
   }
-  if (!pick) return [[.15, .15], [.85, .15], [.85, .85], [.15, .85]];
+  if (!pick) return null;
   // the frame's thickness: from the middle of each side, count dark pixels going inward
   const q = pick.q, dark = pick.dark, cx = q.reduce((a, p) => a + p[0], 0) / 4, cy = q.reduce((a, p) => a + p[1], 0) / 4;
   const thick = [];
@@ -10551,7 +10564,7 @@ function ocrDecode(probs, flipped) {
 }
 
 // the photo screen: corners to adjust, then Read
-function ocrOpen(img) {
+function ocrOpen(img, hint) {
   const ui = document.createElement('div');
   ui.className = 'photo-ui';
   ui.innerHTML = `
@@ -10570,7 +10583,8 @@ function ocrOpen(img) {
   const G = ocrGrey(img, 1600), small = ocrGrey(img, 500);
   canvas.width = G.w; canvas.height = G.h;
   canvas.getContext('2d').drawImage(img, 0, 0, G.w, G.h);
-  let q = ocrGuessCorners(small);
+  // the frame if one can be found; else the camera's guide square; else a box in the middle
+  let q = ocrGuessCorners(small) || hint || [[.15, .15], [.85, .15], [.85, .85], [.15, .85]];
   const handles = q.map(() => { const h = document.createElement('div'); h.className = 'handle'; stage.appendChild(h); return h; });
   const place = () => {
     const r = canvas.getBoundingClientRect(), s = stage.getBoundingClientRect();
@@ -10612,7 +10626,65 @@ function ocrOpen(img) {
   };
 }
 
-el('setupPhoto').onclick = () => el('setupPhotoFile').click();
+
+/* Take a photo inside the page rather than handing over to the phone's camera
+   app. On Android the browser can be closed for memory while the camera app is
+   open, and the photo is then lost ('unable to complete previous operation due
+   to low memory'). Here the camera stays in this page: a live view with a guide
+   square to line the board up in, and a shutter. The guide square also serves
+   as the first guess at the corners if the frame can't be found. */
+async function camOpen() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { el('setupPhotoFile').click(); return; }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1920 } }, audio: false,
+    });
+  } catch (err) {
+    el('setupMsg').classList.add('bad');
+    el('setupMsg').textContent = err && err.name === 'NotAllowedError'
+      ? 'The camera wasn’t allowed. Allow it for this site in the browser’s settings, or use Choose a photo.'
+      : 'The camera couldn’t be opened. Use Choose a photo instead.';
+    return;
+  }
+  const ui = document.createElement('div');
+  ui.className = 'cam-ui';
+  ui.innerHTML = `
+    <div class="view"><video playsinline muted autoplay></video><div class="guide"></div>
+      <p class="tip">Fit the board inside the square, as straight on as you can.</p></div>
+    <div class="bar"><button id="camCancel">Cancel</button><button class="shutter" id="camShoot" aria-label="Take the photo"></button><span style="width:70px"></span></div>`;
+  document.body.appendChild(ui);
+  const video = ui.querySelector('video'), guide = ui.querySelector('.guide'), view = ui.querySelector('.view');
+  video.srcObject = stream;
+  const stop = () => { stream.getTracks().forEach(t => t.stop()); window.removeEventListener('resize', fit); ui.remove(); };
+  // the guide: a square 80% of the shorter side of the picture as shown
+  let shown = null;
+  const fit = () => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return;
+    const W = view.clientWidth, H = view.clientHeight, k = Math.min(W / vw, H / vh);
+    shown = { w: vw * k, h: vh * k };
+    const side = .8 * Math.min(shown.w, shown.h);
+    guide.style.width = guide.style.height = side + 'px';
+  };
+  video.addEventListener('loadedmetadata', fit);
+  window.addEventListener('resize', fit);
+  ui.querySelector('#camCancel').onclick = stop;
+  ui.querySelector('#camShoot').onclick = async () => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return;
+    const c = document.createElement('canvas');
+    c.width = vw; c.height = vh;
+    c.getContext('2d').drawImage(video, 0, 0, vw, vh);
+    stop();
+    const img = await createImageBitmap(c);
+    // the guide square, as fractions of the photo
+    const side = .8 * Math.min(vw, vh), x0 = (vw - side) / 2 / vw, y0 = (vh - side) / 2 / vh, x1 = 1 - x0, y1 = 1 - y0;
+    ocrOpen(img, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
+  };
+}
+
+el('setupPhoto').onclick = camOpen;
 el('setupPhotoPick').onclick = () => el('setupPhotoPickFile').click();
 if (/[?&#]debug\b/.test(location.href)) window.ocrDebug = { ocrGrey, ocrGuessCorners, ocrRead, ocrLoad, ocrClassify };
 el('setupPhotoFile').onchange = el('setupPhotoPickFile').onchange = async e => {
