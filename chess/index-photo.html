@@ -3217,7 +3217,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-20.5-photo-test';
+const VERSION = '2026-10-21.1-photo-test';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -10267,7 +10267,9 @@ function startFromSetup(mode) {
    The network: 40x40 grey square, normalised -> conv3x3 16, pool -> conv3x3 32,
    pool -> conv3x3 64, pool -> conv3x3 64, global average -> linear 13. Batch
    norm is already folded into the convolutions. Classes: empty, then white
-   K Q R B N P, then black k q r b n p. Trained on synthetic book diagrams. */
+   K Q R B N P, then black k q r b n p. Trained on synthetic book diagrams.
+   Its square-by-square reading is then checked against what positions can
+   look like (ocrDecode). */
 const OCR_SQ = 40;
 const OCR_LAYERS = [[1, 16], [16, 32], [32, 64], [64, 64]];
 const OCR_PIECES = [null, ...'KQRBNP'.split('').map(t => ['w', t.toLowerCase()]), ...'KQRBNP'.split('').map(t => ['b', t.toLowerCase()])];
@@ -10384,7 +10386,7 @@ function ocrGuessCorners(G) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const xa = Math.max(0, x - R), xb = Math.min(w, x + R + 1), ya = Math.max(0, y - R), yb = Math.min(h, y + R + 1);
     const mean = (I[yb * (w + 1) + xb] - I[ya * (w + 1) + xb] - I[yb * (w + 1) + xa] + I[ya * (w + 1) + xa]) / ((xb - xa) * (yb - ya));
-    dLocal[y * w + x] = px[y * w + x] < mean * .82 ? 1 : 0;
+    dLocal[y * w + x] = px[y * w + x] < mean * .9 ? 1 : 0;
   }
   const seen = new Uint8Array(w * h), stack = new Int32Array(w * h);
   let pick = null;
@@ -10412,7 +10414,10 @@ function ocrGuessCorners(G) {
       if (x0 === 0 || y0 === 0 || x1 === w - 1 || y1 === h - 1) continue;   // the table or background round the page
       if (bw < w * .2 || bh < h * .15 || bw / bh > 1.6 || bh / bw > 1.6) continue;
       if (n > .7 * area) continue;                                          // a solid patch, not a frame
-      const q = [tl, tr, br, bl].map(p => [p[0], p[1]]);
+      // an extreme point far from its corner of the bounding box means that part
+      // of the frame didn't show up (faint print): use the box corner there
+      const box = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+      const q = [tl, tr, br, bl].map((p, k) => Math.hypot(p[0] - box[k][0], p[1] - box[k][1]) > .2 * Math.min(bw, bh) ? box[k] : [p[0], p[1]]);
       if (!pick || area > pick.area) pick = { area, q, dark };
     }
     if (pick) break;        // the whole-photo threshold found a board: the local one is only a fallback
@@ -10460,17 +10465,69 @@ function ocrRead(G, q, flipped) {
     const fx = Math.min(1, Math.max(0, x - xi)), fy = Math.min(1, Math.max(0, y - yi)), i = yi * G.w + xi;
     board[v * N + u] = G.px[i] * (1 - fx) * (1 - fy) + G.px[i + 1] * fx * (1 - fy) + G.px[i + G.w] * (1 - fx) * fy + G.px[i + G.w + 1] * fx * fy;
   }
-  const pos = new Map(), unsure = [];
+  const probs = [];
   const sq = new Float32Array(OCR_SQ * OCR_SQ);
   for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
     for (let y = 0; y < OCR_SQ; y++) for (let x = 0; x < OCR_SQ; x++) sq[y * OCR_SQ + x] = board[(r * OCR_SQ + y) * N + f * OCR_SQ + x];
-    const p = ocrClassify(sq);
-    let k = 0; for (let i = 1; i < 13; i++) if (p[i] > p[k]) k = i;
+    probs.push(ocrClassify(sq));
+  }
+  const cls = ocrDecode(probs, flipped);
+  const pos = new Map(), unsure = [];
+  for (let i = 0; i < 64; i++) {
+    const r = i >> 3, f = i & 7, k = cls[i];
     const name = flipped ? FILES[7 - f] + (r + 1) : FILES[f] + (8 - r);
     if (k) pos.set(name, { color: OCR_PIECES[k][0], type: OCR_PIECES[k][1] });
-    if (p[k] < .8) unsure.push(name);
+    // unsure: the network wasn't confident, or the position check overruled it
+    if (probs[i][k] < .6 || probs[i].indexOf(Math.max(...probs[i])) !== k) unsure.push(name);
   }
   return { pos, unsure };
+}
+
+/* The network reads each square on its own. A position has rules it doesn't
+   know: one king each, no pawns on the first or last rank, at most 8 pawns, and
+   extra queens, rooks, knights or same-coloured bishops only by promoting a
+   pawn, which is rare in a diagram. So pick the reading that best balances the
+   network's confidence against those: a small cost for each promoted piece, a
+   large one for anything impossible. Starts from the network's own best guess
+   and changes one square at a time while that improves the total. Diagram rows
+   run from rank 8 down (flipped: rank 1 down). */
+function ocrDecode(probs, flipped) {
+  const HARD = 12, PROMO = 2.5;
+  const lp = probs.map(p => Array.from(p, v => Math.log(v + 1e-6)));
+  const penalty = cls => {
+    let pen = 0;
+    for (const c0 of [1, 7]) {
+      const cnt = [0, 0, 0, 0, 0, 0], bl = [0, 0];
+      cls.forEach((k, i) => {
+        if (k < c0 || k >= c0 + 6) return;
+        const t = k - c0, r = i >> 3, f = i & 7;
+        cnt[t]++;
+        if (t === 5 && (r === 0 || r === 7)) pen += HARD;
+        if (t === 3) bl[(r + f) % 2]++;
+      });
+      const [K, Q, R, , Nn, P] = cnt;
+      pen += HARD * Math.abs(K - 1) + HARD * Math.max(0, P - 8);
+      const extra = Math.max(0, Q - 1) + Math.max(0, R - 2) + Math.max(0, Nn - 2) + Math.max(0, bl[0] - 1) + Math.max(0, bl[1] - 1);
+      pen += PROMO * extra + HARD * Math.max(0, extra - (8 - P));
+    }
+    return pen;
+  };
+  const cls = probs.map(p => p.indexOf(Math.max(...p)));
+  const score = c => c.reduce((a, k, i) => a + lp[i][k], 0) - penalty(c);
+  let cur = score(cls);
+  for (let it = 0; it < 64; it++) {
+    let best = 0, move = null;
+    for (let i = 0; i < 64; i++) for (let k = 0; k < 13; k++) {
+      if (k === cls[i] || probs[i][k] < .005) continue;
+      const old = cls[i]; cls[i] = k;
+      const d = score(cls) - cur;
+      cls[i] = old;
+      if (d > best + 1e-9) { best = d; move = [i, k]; }
+    }
+    if (!move) break;
+    cls[move[0]] = move[1]; cur += best;
+  }
+  return cls;
 }
 
 // the photo screen: corners to adjust, then Read

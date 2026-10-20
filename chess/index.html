@@ -1229,6 +1229,29 @@
   .setup-msg.bad { color: var(--danger); }
   .setup .lsec { margin-top: 14px; }
 
+  /* ---- a position from a photo ---- */
+  .photo-ui {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--ground);
+    display: flex; flex-direction: column;
+    padding: 12px 12px 16px;
+  }
+  .photo-ui .stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .photo-ui canvas { max-width: 100%; max-height: 100%; display: block; }
+  .photo-ui svg.quad { position: absolute; pointer-events: none; overflow: visible; }
+  .photo-ui .handle {
+    position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+    border: 2px solid var(--brass); border-radius: 50%; background: rgba(200,163,91,.18);
+    touch-action: none; cursor: grab;
+  }
+  .photo-ui .hint { font-size: 12px; color: var(--muted); margin: 0 0 8px; line-height: 1.5; }
+  .photo-ui .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+  .photo-ui .row button { padding: 9px 14px; font-size: 12px; }
+  .photo-ui .row button.go { border-color: var(--brass); color: var(--brass); }
+  .photo-ui label.ck { font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  .photo-ui label.ck input { accent-color: var(--brass); }
+  #setupBoard .sq.unsure::after { content: ""; position: absolute; inset: 2px; border: 2px dashed var(--danger); }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1335,6 +1358,8 @@
     <div class="board" id="setupBoard" aria-label="Set-up board"></div>
     <div class="shelf" id="shelf" aria-label="Pieces to drag onto the board"></div>
     <div class="setup-row">
+      <button id="setupPhoto">From a photo</button>
+      <input type="file" id="setupPhotoFile" accept="image/*" class="hidden">
       <button id="setupClear">Clear</button>
       <button id="setupStart">Starting position</button>
       <button id="setupFlip">Flip board</button>
@@ -3192,7 +3217,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-20.4-setup';
+const VERSION = '2026-10-21.2-photo';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -10080,6 +10105,7 @@ function drawSetup() {
   store.set('table:setupFen', fen);
   if (su.drag && su.drag.over) bd.querySelector(`[data-sq="${su.drag.over}"]`)?.classList.add('dragover');
   if (su.drag && su.drag.from) bd.querySelector(`[data-sq="${su.drag.from}"]`)?.classList.add('dragfrom');
+  for (const sq of su.unsure || []) bd.querySelector(`[data-sq="${sq}"]`)?.classList.add('unsure');
 }
 
 function drawSavedPositions() {
@@ -10139,6 +10165,7 @@ function suUp(e, cancel = false) {
   const d = su.drag;
   if (!d || e.pointerId !== d.id) return;
   su.drag = null;
+  if (su.unsure) { su.unsure.delete(d.from); const t = suSqAt(e.clientX, e.clientY); if (t) su.unsure.delete(t); }
   d.ghost.remove();
   const to = cancel ? null : suSqAt(e.clientX, e.clientY);
   if (!cancel) {
@@ -10228,6 +10255,357 @@ function startFromSetup(mode) {
   setHash(mine);
   begin();
 }
+
+/* ================= a position from a photo =================
+   For book diagrams. Steps: load the photo; find the board's four corners (a
+   guess you can correct by dragging the handles); straighten the board into an
+   8x8 grid; a small trained network (diagram-model.bin, about 250 KB, fetched
+   the first time) reads each square as empty or one of the 12 pieces. The
+   result goes into the editor, where squares it was unsure of are marked with
+   a dashed ring for you to check. Everything runs on this device.
+
+   The network: 40x40 grey square, normalised -> conv3x3 16, pool -> conv3x3 32,
+   pool -> conv3x3 64, pool -> conv3x3 64, global average -> linear 13. Batch
+   norm is already folded into the convolutions. Classes: empty, then white
+   K Q R B N P, then black k q r b n p. Trained on synthetic book diagrams.
+   Its square-by-square reading is then checked against what positions can
+   look like (ocrDecode). */
+const OCR_SQ = 40;
+const OCR_LAYERS = [[1, 16], [16, 32], [32, 64], [64, 64]];
+const OCR_PIECES = [null, ...'KQRBNP'.split('').map(t => ['w', t.toLowerCase()]), ...'KQRBNP'.split('').map(t => ['b', t.toLowerCase()])];
+let ocrNet = null;
+
+async function ocrLoad() {
+  if (ocrNet) return ocrNet;
+  const r = await fetch('diagram-model.bin');
+  if (!r.ok) throw new Error('model ' + r.status);
+  const f = new Float32Array(await r.arrayBuffer());
+  let at = 0;
+  const take = n => { const a = f.subarray(at, at + n); at += n; return a; };
+  const conv = OCR_LAYERS.map(([ci, co]) => ({ ci, co, w: take(co * ci * 9), b: take(co) }));
+  const fc = { w: take(13 * 64), b: take(13) };
+  if (at !== f.length) throw new Error('model size');
+  return (ocrNet = { conv, fc });
+}
+
+// one 3x3 convolution with padding 1, plus bias and relu
+function ocrConv(x, H, W, L) {
+  const { ci, co, w, b } = L, out = new Float32Array(co * H * W);
+  for (let o = 0; o < co; o++) {
+    const oo = o * H * W;
+    out.fill(b[o], oo, oo + H * W);
+    for (let c = 0; c < ci; c++) {
+      const xc = c * H * W, wk = (o * ci + c) * 9;
+      for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) {
+        const k = w[wk + (ky + 1) * 3 + kx + 1];
+        if (!k) continue;
+        for (let y = Math.max(0, -ky); y < Math.min(H, H - ky); y++) {
+          const row = oo + y * W, src = xc + (y + ky) * W + kx;
+          for (let xx = Math.max(0, -kx); xx < Math.min(W, W - kx); xx++) out[row + xx] += k * x[src + xx];
+        }
+      }
+    }
+  }
+  for (let i = 0; i < out.length; i++) if (out[i] < 0) out[i] = 0;
+  return out;
+}
+function ocrPool(x, C, H, W) {
+  const h = H >> 1, w = W >> 1, out = new Float32Array(C * h * w);
+  for (let c = 0; c < C; c++) for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
+    const i = c * H * W + 2 * y * W + 2 * xx;
+    out[c * h * w + y * w + xx] = Math.max(x[i], x[i + 1], x[i + W], x[i + W + 1]);
+  }
+  return out;
+}
+// probabilities for one square: pixels 0..255, OCR_SQ x OCR_SQ
+function ocrClassify(px) {
+  const n = OCR_SQ * OCR_SQ;
+  let x = new Float32Array(n), m = 0;
+  for (let i = 0; i < n; i++) { x[i] = px[i] / 255; m += x[i]; }
+  m /= n;
+  let v = 0;
+  for (let i = 0; i < n; i++) v += (x[i] - m) ** 2;
+  const sd = Math.sqrt(v / n) + 0.05;
+  for (let i = 0; i < n; i++) x[i] = (x[i] - m) / sd;
+  let H = OCR_SQ, W = OCR_SQ;
+  ocrNet.conv.forEach((L, li) => {
+    x = ocrConv(x, H, W, L);
+    if (li < 3) { x = ocrPool(x, L.co, H, W); H >>= 1; W >>= 1; }
+  });
+  const g = new Float32Array(64);
+  for (let c = 0; c < 64; c++) { let s = 0; for (let i = 0; i < H * W; i++) s += x[c * H * W + i]; g[c] = s / (H * W); }
+  const z = new Float32Array(13);
+  for (let k = 0; k < 13; k++) { let s = ocrNet.fc.b[k]; for (let c = 0; c < 64; c++) s += ocrNet.fc.w[k * 64 + c] * g[c]; z[k] = s; }
+  const mx = Math.max(...z); let tot = 0;
+  for (let k = 0; k < 13; k++) { z[k] = Math.exp(z[k] - mx); tot += z[k]; }
+  for (let k = 0; k < 13; k++) z[k] /= tot;
+  return z;
+}
+
+// the photo as grey pixels, at most `max` pixels on the long side
+function ocrGrey(img, max) {
+  const k = Math.min(1, max / Math.max(img.width, img.height));
+  const w = Math.round(img.width * k), h = Math.round(img.height * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, out = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) out[i] = (d[4 * i] * 299 + d[4 * i + 1] * 587 + d[4 * i + 2] * 114) / 1000;
+  return { px: out, w, h, k };
+}
+
+/* A first guess at the corners. Book diagrams have a dark frame round the
+   board; hatched squares and pieces join on to it. Two ways of deciding what is
+   "dark" are tried (one threshold for the whole photo, and one against each
+   pixel's surroundings, for uneven light, used only if the first finds
+   nothing). The biggest dark blob that is roughly square and not touching the
+   photo's edge is taken as the frame; its extreme points give four corners.
+   Then step inward by the frame's thickness.
+   Returned as fractions of the image: TL TR BR BL. */
+function ocrGuessCorners(G) {
+  const { px, w, h } = G;
+  // global threshold (Otsu)
+  const hist = new Array(256).fill(0);
+  for (const v of px) hist[v]++;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sB = 0, wB = 0, best = 0, th = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    const wF = px.length - wB; if (!wF) break;
+    sB += t * hist[t];
+    const between = wB * wF * (sB / wB - (sum - sB) / wF) ** 2;
+    if (between > best) { best = between; th = t; }
+  }
+  const dGlobal = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) dGlobal[i] = px[i] < th ? 1 : 0;
+  // local threshold
+  const I = new Float64Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += px[y * w + x]; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + row; } }
+  const R = Math.max(6, Math.round(Math.max(w, h) / 40));
+  const dLocal = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const xa = Math.max(0, x - R), xb = Math.min(w, x + R + 1), ya = Math.max(0, y - R), yb = Math.min(h, y + R + 1);
+    const mean = (I[yb * (w + 1) + xb] - I[ya * (w + 1) + xb] - I[yb * (w + 1) + xa] + I[ya * (w + 1) + xa]) / ((xb - xa) * (yb - ya));
+    dLocal[y * w + x] = px[y * w + x] < mean * .9 ? 1 : 0;
+  }
+  const seen = new Uint8Array(w * h), stack = new Int32Array(w * h);
+  let pick = null;
+  for (const dark of [dGlobal, dLocal]) {
+    seen.fill(0);
+    for (let s0 = 0; s0 < w * h; s0++) {
+      if (!dark[s0] || seen[s0]) continue;
+      let n = 0, top = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+      let tl = [0, 0, Infinity], tr = [0, 0, -Infinity], br = [0, 0, -Infinity], bl = [0, 0, Infinity];
+      stack[top++] = s0; seen[s0] = 1;
+      while (top) {
+        const i = stack[--top], x = i % w, y = (i / w) | 0;
+        n++;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x + y < tl[2]) tl = [x, y, x + y];
+        if (x - y > tr[2]) tr = [x, y, x - y];
+        if (x + y > br[2]) br = [x, y, x + y];
+        if (x - y < bl[2]) bl = [x, y, x - y];
+        if (x > 0 && dark[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; stack[top++] = i - 1; }
+        if (x < w - 1 && dark[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; stack[top++] = i + 1; }
+        if (y > 0 && dark[i - w] && !seen[i - w]) { seen[i - w] = 1; stack[top++] = i - w; }
+        if (y < h - 1 && dark[i + w] && !seen[i + w]) { seen[i + w] = 1; stack[top++] = i + w; }
+      }
+      const bw = x1 - x0, bh = y1 - y0, area = bw * bh;
+      if (x0 === 0 || y0 === 0 || x1 === w - 1 || y1 === h - 1) continue;   // the table or background round the page
+      if (bw < w * .2 || bh < h * .15 || bw / bh > 1.6 || bh / bw > 1.6) continue;
+      if (n > .7 * area) continue;                                          // a solid patch, not a frame
+      // an extreme point far from its corner of the bounding box means that part
+      // of the frame didn't show up (faint print): use the box corner there
+      const box = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+      const q = [tl, tr, br, bl].map((p, k) => Math.hypot(p[0] - box[k][0], p[1] - box[k][1]) > .2 * Math.min(bw, bh) ? box[k] : [p[0], p[1]]);
+      if (!pick || area > pick.area) pick = { area, q, dark };
+    }
+    if (pick) break;        // the whole-photo threshold found a board: the local one is only a fallback
+  }
+  if (!pick) return [[.15, .15], [.85, .15], [.85, .85], [.15, .85]];
+  // the frame's thickness: from the middle of each side, count dark pixels going inward
+  const q = pick.q, dark = pick.dark, cx = q.reduce((a, p) => a + p[0], 0) / 4, cy = q.reduce((a, p) => a + p[1], 0) / 4;
+  const thick = [];
+  for (let e = 0; e < 4; e++) {
+    const a = q[e], b = q[(e + 1) % 4], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    const dx = cx - mx, dy = cy - my, L = Math.hypot(dx, dy) || 1;
+    let t = 0;
+    while (t < 20) {
+      const x = Math.round(mx + dx / L * t), y = Math.round(my + dy / L * t);
+      if (x < 0 || y < 0 || x >= w || y >= h || !dark[y * w + x]) break;
+      t++;
+    }
+    thick.push(t);
+  }
+  const t = Math.min(12, thick.sort((a, b) => a - b)[1]);   // a typical side, ignoring one that ran into a piece
+  return q.map(([x, y]) => {
+    const dx = cx - x, dy = cy - y, L = Math.hypot(dx, dy) || 1;
+    return [(x + dx / L * t * Math.SQRT2) / w, (y + dy / L * t * Math.SQRT2) / h];
+  });
+}
+
+// homography taking the unit square (0,0)(1,0)(1,1)(0,1) to the four corners
+function ocrHomography(q) {
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
+  const dx1 = x1 - x2, dx2 = x3 - x2, dy1 = y1 - y2, dy2 = y3 - y2;
+  const sx = x0 - x1 + x2 - x3, sy = y0 - y1 + y2 - y3;
+  const den = dx1 * dy2 - dx2 * dy1;
+  const g = (sx * dy2 - dx2 * sy) / den, hh = (dx1 * sy - sx * dy1) / den;
+  return [x1 - x0 + g * x1, x3 - x0 + hh * x3, x0, y1 - y0 + g * y1, y3 - y0 + hh * y3, y0, g, hh];
+}
+
+// read the position: straighten the board and classify each square
+function ocrRead(G, q, flipped) {
+  const H = ocrHomography(q.map(([x, y]) => [x * G.w, y * G.h]));
+  const N = 8 * OCR_SQ, board = new Float32Array(N * N);
+  for (let v = 0; v < N; v++) for (let u = 0; u < N; u++) {
+    const a = (u + .5) / N, b = (v + .5) / N, d = H[6] * a + H[7] * b + 1;
+    const x = (H[0] * a + H[1] * b + H[2]) / d - .5, y = (H[3] * a + H[4] * b + H[5]) / d - .5;
+    const xi = Math.max(0, Math.min(G.w - 2, Math.floor(x))), yi = Math.max(0, Math.min(G.h - 2, Math.floor(y)));
+    const fx = Math.min(1, Math.max(0, x - xi)), fy = Math.min(1, Math.max(0, y - yi)), i = yi * G.w + xi;
+    board[v * N + u] = G.px[i] * (1 - fx) * (1 - fy) + G.px[i + 1] * fx * (1 - fy) + G.px[i + G.w] * (1 - fx) * fy + G.px[i + G.w + 1] * fx * fy;
+  }
+  const probs = [];
+  const sq = new Float32Array(OCR_SQ * OCR_SQ);
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+    for (let y = 0; y < OCR_SQ; y++) for (let x = 0; x < OCR_SQ; x++) sq[y * OCR_SQ + x] = board[(r * OCR_SQ + y) * N + f * OCR_SQ + x];
+    probs.push(ocrClassify(sq));
+  }
+  const cls = ocrDecode(probs, flipped);
+  const pos = new Map(), unsure = [];
+  for (let i = 0; i < 64; i++) {
+    const r = i >> 3, f = i & 7, k = cls[i];
+    const name = flipped ? FILES[7 - f] + (r + 1) : FILES[f] + (8 - r);
+    if (k) pos.set(name, { color: OCR_PIECES[k][0], type: OCR_PIECES[k][1] });
+    // unsure: the network wasn't confident, or the position check overruled it
+    if (probs[i][k] < .6 || probs[i].indexOf(Math.max(...probs[i])) !== k) unsure.push(name);
+  }
+  return { pos, unsure };
+}
+
+/* The network reads each square on its own. A position has rules it doesn't
+   know: one king each, no pawns on the first or last rank, at most 8 pawns, and
+   extra queens, rooks, knights or same-coloured bishops only by promoting a
+   pawn, which is rare in a diagram. So pick the reading that best balances the
+   network's confidence against those: a small cost for each promoted piece, a
+   large one for anything impossible. Starts from the network's own best guess
+   and changes one square at a time while that improves the total. Diagram rows
+   run from rank 8 down (flipped: rank 1 down). */
+function ocrDecode(probs, flipped) {
+  const HARD = 12, PROMO = 2.5;
+  const lp = probs.map(p => Array.from(p, v => Math.log(v + 1e-6)));
+  const penalty = cls => {
+    let pen = 0;
+    for (const c0 of [1, 7]) {
+      const cnt = [0, 0, 0, 0, 0, 0], bl = [0, 0];
+      cls.forEach((k, i) => {
+        if (k < c0 || k >= c0 + 6) return;
+        const t = k - c0, r = i >> 3, f = i & 7;
+        cnt[t]++;
+        if (t === 5 && (r === 0 || r === 7)) pen += HARD;
+        if (t === 3) bl[(r + f) % 2]++;
+      });
+      const [K, Q, R, , Nn, P] = cnt;
+      pen += HARD * Math.abs(K - 1) + HARD * Math.max(0, P - 8);
+      const extra = Math.max(0, Q - 1) + Math.max(0, R - 2) + Math.max(0, Nn - 2) + Math.max(0, bl[0] - 1) + Math.max(0, bl[1] - 1);
+      pen += PROMO * extra + HARD * Math.max(0, extra - (8 - P));
+    }
+    return pen;
+  };
+  const cls = probs.map(p => p.indexOf(Math.max(...p)));
+  const score = c => c.reduce((a, k, i) => a + lp[i][k], 0) - penalty(c);
+  let cur = score(cls);
+  for (let it = 0; it < 64; it++) {
+    let best = 0, move = null;
+    for (let i = 0; i < 64; i++) for (let k = 0; k < 13; k++) {
+      if (k === cls[i] || probs[i][k] < .005) continue;
+      const old = cls[i]; cls[i] = k;
+      const d = score(cls) - cur;
+      cls[i] = old;
+      if (d > best + 1e-9) { best = d; move = [i, k]; }
+    }
+    if (!move) break;
+    cls[move[0]] = move[1]; cur += best;
+  }
+  return cls;
+}
+
+// the photo screen: corners to adjust, then Read
+function ocrOpen(img) {
+  const ui = document.createElement('div');
+  ui.className = 'photo-ui';
+  ui.innerHTML = `
+    <p class="hint">Drag the four circles onto the corners of the board itself (inside any frame). Then Read.</p>
+    <div class="stage"><canvas></canvas><svg class="quad"><polygon fill="rgba(200,163,91,.12)" stroke="#c8a35b" stroke-width="2"/></svg></div>
+    <div class="row">
+      <label class="ck"><input type="checkbox" id="ocrFlip"> Diagram is from Black’s side</label>
+    </div>
+    <div class="row">
+      <button class="go" id="ocrGo">Read</button>
+      <button id="ocrCancel">Cancel</button>
+      <span class="hint" id="ocrState" style="margin:0"></span>
+    </div>`;
+  document.body.appendChild(ui);
+  const canvas = ui.querySelector('canvas'), stage = ui.querySelector('.stage'), poly = ui.querySelector('polygon'), svg = ui.querySelector('svg');
+  const G = ocrGrey(img, 1600), small = ocrGrey(img, 500);
+  canvas.width = G.w; canvas.height = G.h;
+  canvas.getContext('2d').drawImage(img, 0, 0, G.w, G.h);
+  let q = ocrGuessCorners(small);
+  const handles = q.map(() => { const h = document.createElement('div'); h.className = 'handle'; stage.appendChild(h); return h; });
+  const place = () => {
+    const r = canvas.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    const ox = r.left - s.left, oy = r.top - s.top;
+    svg.setAttribute('width', s.width); svg.setAttribute('height', s.height);
+    svg.style.left = svg.style.top = '0';
+    poly.setAttribute('points', q.map(([x, y]) => `${ox + x * r.width},${oy + y * r.height}`).join(' '));
+    handles.forEach((h, i) => { h.style.left = ox + q[i][0] * r.width + 'px'; h.style.top = oy + q[i][1] * r.height + 'px'; });
+  };
+  requestAnimationFrame(place);
+  window.addEventListener('resize', place);
+  handles.forEach((h, i) => {
+    h.addEventListener('pointerdown', e => { e.preventDefault(); h.setPointerCapture(e.pointerId); h.dataset.drag = '1'; });
+    h.addEventListener('pointermove', e => {
+      if (!h.dataset.drag) return;
+      const r = canvas.getBoundingClientRect();
+      q[i] = [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))];
+      place();
+    });
+    h.addEventListener('pointerup', () => { delete h.dataset.drag; });
+  });
+  const close = () => { window.removeEventListener('resize', place); ui.remove(); };
+  ui.querySelector('#ocrCancel').onclick = close;
+  ui.querySelector('#ocrGo').onclick = async () => {
+    const state = ui.querySelector('#ocrState');
+    state.textContent = 'Reading…';
+    try { await ocrLoad(); }
+    catch { state.textContent = 'The recogniser couldn’t load (diagram-model.bin, beside this page). Check the connection and try again.'; return; }
+    await new Promise(r => setTimeout(r, 30));          // let 'Reading…' show
+    const { pos, unsure } = ocrRead(G, q, ui.querySelector('#ocrFlip').checked);
+    close();
+    su.pos = pos;
+    su.castleOff.clear();
+    su.unsure = new Set(unsure);
+    drawSetup();
+    el('setupMsg').textContent = (unsure.length
+      ? `Read from the photo. Check the ${unsure.length} square${unsure.length === 1 ? '' : 's'} marked with a dashed ring, then set who is to move. `
+      : 'Read from the photo. Check it against the diagram, then set who is to move. ') + (suProblem() || '');
+  };
+}
+
+el('setupPhoto').onclick = () => el('setupPhotoFile').click();
+if (/[?&#]debug\b/.test(location.href)) window.ocrDebug = { ocrGrey, ocrGuessCorners, ocrRead, ocrLoad, ocrClassify };
+el('setupPhotoFile').onchange = async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const img = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    ocrOpen(img);
+  } catch {
+    el('setupMsg').textContent = 'That image couldn’t be opened.';
+  }
+};
+
 el('setupPlay').onclick = () => startFromSetup('computer');
 el('setupBoth').onclick = () => startFromSetup('both');
 
