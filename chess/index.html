@@ -3085,7 +3085,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-19.8-games-idb';
+const VERSION = '2026-10-19.9-migrations';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3245,8 +3245,8 @@ let solo = false;              // playing the engine, no peer, no relays
 let seatClash = false;         // both ended up on the same side
 let takebackAsked = false;     // we have a request outstanding
 /* Move sounds: a style (or 'off') and a volume, chosen in Settings → Sound.
-   Older builds stored only on/off under table:sound; off carries over. */
-let sfxStyle = store.get('table:sfx') || (store.get('table:sound') === false ? 'off' : 'wood');
+   (Older builds' on/off setting is carried over under Migrations, near the end.) */
+let sfxStyle = store.get('table:sfx') || 'wood';
 let sfxVol = Number.isFinite(store.get('table:sfxVol')) ? store.get('table:sfxVol') : .7;
 let soundOn = sfxStyle !== 'off';
 let audioCtx = null;
@@ -3736,16 +3736,6 @@ function persist() {
   store.set('table:' + code, { history: game.history(), myColor, result, gameId,
     setting: code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : undefined });
 }
-
-// tidy up: finished online tables saved by earlier builds (the game is in your history)
-try {
-  for (let k = localStorage.length - 1; k >= 0; k--) {
-    const key = localStorage.key(k);
-    if (!key || !key.startsWith('table:') || !ownTable(key.slice(6))) continue;
-    const v = store.get(key);
-    if (v && Array.isArray(v.history) && v.result) localStorage.removeItem(key);
-  }
-} catch {}
 
 function restore() {
   const saved = store.get('table:' + code);
@@ -8800,7 +8790,6 @@ el('lookPanel').addEventListener('click', e => {
     sfxStyle = opt.dataset.sfx;
     soundOn = sfxStyle !== 'off';
     store.set('table:sfx', sfxStyle);
-    store.set('table:sound', soundOn);
     playSfx('move');
   }
   if (opt.dataset.set) {
@@ -9111,11 +9100,8 @@ const pzDb = {
   del: ids => idb.del('pzbuf', ids).catch(() => {}),
 };
 
-// Load the saved buffer once. Older builds kept it with the rest of your progress: move it over.
-const pzBufReady = pzDb.all().catch(() => []).then(list => {
-  const old = Array.isArray(pzSaved.queue) ? pzSaved.queue : [];
-  pzBufAdd([...(list || []), ...old], !!old.length);
-});
+// Load the saved buffer once.
+const pzBufReady = pzDb.all().catch(() => []).then(list => { pzBufAdd(list || [], false); });
 
 function pzBufAdd(list, save = true) {
   const have = new Set(pz.queue.map(q => q.puzzle.id)), added = [];
@@ -9730,6 +9716,38 @@ function begin() {
   setLink();
   if (code === 'puzzle') pzStart();
 }
+
+/* ================= Migrations: remove after 2026-12-01 =================
+   One-off clean-ups of what builds before 2026-10-19 left in this browser.
+   Each does nothing once a device has loaded this build, so by that date the
+   whole section can go. (Not in here, because it stays for good: copying game
+   history from localStorage into IndexedDB in gamesReady. That code is also how
+   games saved while IndexedDB was unavailable get moved across later.) */
+
+// The puzzle buffer used to be saved inside table:pz. Move it into IndexedDB;
+// the next save of your puzzle progress drops the old copy.
+if (Array.isArray(pzSaved.queue) && pzSaved.queue.length) pzBufReady.then(() => pzBufAdd(pzSaved.queue));
+
+// Finished online tables kept their own copy forever. The games are in your history.
+try {
+  for (let k = localStorage.length - 1; k >= 0; k--) {
+    const key = localStorage.key(k);
+    if (!key || !key.startsWith('table:') || !ownTable(key.slice(6))) continue;
+    const v = store.get(key);
+    if (v && Array.isArray(v.history) && v.result) localStorage.removeItem(key);
+  }
+} catch {}
+
+// Sound used to be on/off under table:sound. Off becomes the 'Off' style.
+if (store.get('table:sound') !== null) {
+  if (store.get('table:sound') === false && !store.get('table:sfx')) {
+    sfxStyle = 'off';
+    soundOn = false;
+    store.set('table:sfx', 'off');
+  }
+  try { localStorage.removeItem('table:sound'); } catch {}
+}
+/* ======================= end of Migrations ======================= */
 
 const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash } = parseHash();
 if (localHash) {
