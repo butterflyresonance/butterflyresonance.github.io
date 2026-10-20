@@ -3108,7 +3108,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-20.1-drag-test';
+const VERSION = '2026-10-20.2-drag-test';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8458,10 +8458,11 @@ const sqAt = (x, y) => {
   const sq = cell && cell.closest && cell.closest('.board .sq');
   return sq ? sq.dataset.sq : null;
 };
+// The piece sits centred under the pointer, and lands on the square under it:
+// what you see is where it goes.
 function dragPlace(x, y) {
-  const lift = drag.touch ? drag.size * .55 : 0;       // above the finger, so you can see it
-  drag.ghost.style.transform = `translate(${x - drag.size / 2}px, ${y - drag.size / 2 - lift}px)`;
-  const over = sqAt(x, y - lift);
+  drag.ghost.style.transform = `translate(${x - drag.size / 2}px, ${y - drag.size / 2}px)`;
+  const over = sqAt(x, y);
   if (over !== drag.over) {
     boardEl.querySelector('.sq.dragover')?.classList.remove('dragover');
     if (over) boardEl.querySelector(`[data-sq="${over}"]`)?.classList.add('dragover');
@@ -8480,7 +8481,7 @@ function dragEnd(commit, x, y) {
   d.ghost.remove();
   dragJustDropped = true;
   setTimeout(() => { dragJustDropped = false; }, 0);
-  const to = commit ? sqAt(x, y - (d.touch ? d.size * .55 : 0)) : null;
+  const to = commit ? sqAt(x, y) : null;
   const moves = to && to !== d.from ? game.moves({ square: d.from, verbose: true }).filter(m => m.to === to) : [];
   if (moves.length) {
     if (moves.some(m => m.promotion)) { selected = d.from; drawBoard(); askPromotion(d.from, to); return; }
