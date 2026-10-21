@@ -3249,7 +3249,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-21.4-camera';
+const VERSION = '2026-10-21.5-takeback';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3809,7 +3809,7 @@ function adopt(history, remoteResult, force = false) {
     if (history.length === game.history().length && !remoteResult) return;
   }
 
-  const fresh = new Chess();
+  const fresh = newGameFrom();          // a set-up position replays from where it started
   for (const san of history) {
     try { fresh.move(san); } catch { return; }
   }
@@ -6179,7 +6179,7 @@ function draw() {
   drawPuzzle();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
-  el('takebackBtn').disabled = !!result || game.history().length === 0 || (!solo && !peers.size);
+  el('takebackBtn').disabled = (!!result && !solo) || game.history().length === 0 || (!solo && !peers.size);
   el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
   el('autoBtn').classList.toggle('hidden', solo);
   el('autoLabel').classList.toggle('hidden', solo);
@@ -8944,7 +8944,9 @@ el('resignBtn').onclick = async () => {
 el('rematchBtn').onclick = rematch;
 
 el('takebackBtn').onclick = () => {
-  if (!game.history().length || result) return;
+  // against the computer or on one device, a finished game can be taken back too:
+  // useful for trying the other lines a book gives from a position
+  if (!game.history().length || (result && !solo)) return;
 
   if (solo) {                    // no one to ask
     const hist = game.history();
