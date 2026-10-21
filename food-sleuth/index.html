@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Food Sleuth</title>
+<meta name="description" content="Keep a list of foods with their protein, fat, carbs and energy, read straight off a photo of the nutrition panel, and combine them into meals.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#15181b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #15181b;
+    --panel: #1c2024;
+    --raise: #232830;
+    --edge: #2b3238;
+    --brass: #c8a35b;
+    --brass-dim: #8a7140;
+    --text: #e8e6e1;
+    --muted: #8b9198;
+    --good: #7fb48a;
+    --warn: #e0a85a;
+    --bad: #d9776b;
+    --protein: #c8a35b;
+    --carbs: #7fa7c9;
+    --fat: #c98f7f;
+    --display: "Bodoni Moda", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #f3efe7;
+      --panel: #fbf8f2;
+      --raise: #ece6da;
+      --edge: #d3cbbd;
+      --brass: #8a672a;
+      --brass-dim: #b39a6a;
+      --text: #22262a;
+      --muted: #666c73;
+      --good: #3f7a4c;
+      --warn: #9a6512;
+      --bad: #a8463a;
+      --protein: #8a672a;
+      --carbs: #3d6f99;
+      --fat: #9b5443;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  button, input, select { font: inherit; color: inherit; }
+  .hidden { display: none !important; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 32px; }
+  header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h1 { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 0; color: var(--brass); letter-spacing: .01em; }
+  h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+
+  /* buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid var(--edge); background: var(--raise); cursor: pointer;
+  }
+  .btn:hover { border-color: var(--brass-dim); }
+  .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .btn.primary { background: var(--brass); border-color: var(--brass); color: var(--ground); font-weight: 600; }
+  .btn.ghost { background: transparent; }
+  .btn.danger { color: var(--bad); }
+  .btn.wide { width: 100%; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row > .grow { flex: 1 1 0; min-width: 0; }
+
+  /* tabs */
+  nav.tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 4px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--ground) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--edge);
+  }
+  nav.tabs button {
+    flex: 1 1 0; max-width: 200px; min-height: 44px; border-radius: 8px;
+    border: 1px solid transparent; background: transparent; cursor: pointer; color: var(--muted);
+  }
+  nav.tabs button[aria-selected="true"] { color: var(--brass); border-color: var(--edge); background: var(--panel); }
+
+  /* list */
+  .tools { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tools input[type=search] { flex: 1 1 auto; min-width: 0; }
+  input[type=text], input[type=search], input[type=number], select {
+    min-height: 40px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--edge); background: var(--panel); width: 100%;
+  }
+  input[type=number] { font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 7px 11px; cursor: pointer; color: var(--muted); min-height: 36px; }
+  .seg button[aria-pressed="true"] { background: var(--raise); color: var(--text); }
+  .listbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 8px; flex-wrap: wrap; }
+
+  ul.foods { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--edge); }
+  ul.foods > li { border-bottom: 1px solid var(--edge); }
+  .food {
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; width: 100%;
+    padding: 12px 2px; background: none; border: 0; text-align: left; cursor: pointer;
+  }
+  .food .name { font-family: var(--display); font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
+  .food .name .tag { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--edge); border-radius: 4px; padding: 0 5px; margin-left: 6px; vertical-align: 2px; }
+  .food .line { grid-column: 1; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .food .line b { color: var(--text); font-weight: 500; }
+  .pct { grid-column: 2; grid-row: 1 / span 2; align-self: center; text-align: right; }
+  .pct .n { font-family: var(--display); font-size: 26px; color: var(--protein); line-height: 1; }
+  .pct .l { display: block; font-size: 10.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .bar { grid-column: 1 / -1; display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 6px; background: var(--edge); }
+  .bar span { display: block; height: 100%; }
+  .bar .p { background: var(--protein); } .bar .c { background: var(--carbs); } .bar .f { background: var(--fat); }
+  .detail { padding: 4px 2px 16px; }
+  .detail table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+  .detail th, .detail td { padding: 5px 4px; text-align: right; border-bottom: 1px solid var(--edge); font-weight: 400; }
+  .detail th:first-child, .detail td:first-child { text-align: left; color: var(--muted); }
+  .detail thead th { color: var(--muted); font-size: 12px; }
+  .detail .ing { margin: 0 0 12px; padding: 0; list-style: none; font-size: 12.5px; color: var(--muted); }
+  .detail .ing li { padding: 2px 0; }
+  .howmuch { display: grid; grid-template-columns: auto 110px auto; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .empty { padding: 32px 4px; color: var(--muted); }
+  .empty p { margin: 0 0 12px; }
+
+  /* sheet (add/edit) */
+  .sheet {
+    position: fixed; inset: 0; z-index: 20; background: var(--ground);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .sheet main { padding-bottom: 120px; }
+  .sheet .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .photo-box {
+    border: 1px dashed var(--brass-dim); border-radius: 10px; padding: 14px; margin-bottom: 18px;
+    background: color-mix(in srgb, var(--brass) 6%, transparent);
+  }
+  .photo-box p { margin: 0 0 10px; }
+  .field { margin-bottom: 14px; }
+  .field > label, .field > .lab { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; letter-spacing: .02em; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .macro input { padding-right: 34px; }
+  #wKcal { grid-column: 1 / -1; }
+  .withunit { position: relative; }
+  .withunit .u { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 12px; }
+  .flag-sure input { border-color: var(--good); }
+  .flag-check input { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--panel)); }
+  .flagnote { font-size: 11px; margin-top: 3px; }
+  .flag-sure .flagnote { color: var(--good); }
+  .flag-check .flagnote { color: var(--warn); }
+  .notes { margin: 0 0 16px; padding: 10px 12px 10px 28px; border-radius: 8px; background: var(--panel); border: 1px solid var(--edge); font-size: 12.5px; }
+  .notes li { margin: 2px 0; }
+  details.raw { margin: 0 0 16px; font-size: 12px; }
+  details.raw pre { white-space: pre-wrap; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; }
+  .preview { border: 1px solid var(--edge); border-radius: 10px; padding: 12px; background: var(--panel); margin: 6px 0 18px; font-variant-numeric: tabular-nums; }
+  .preview .big { font-family: var(--display); font-size: 24px; color: var(--protein); }
+  .msg { min-height: 1.5em; font-size: 12.5px; color: var(--muted); }
+  .msg.bad { color: var(--bad); }
+  .sticky-actions {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--ground) 94%, transparent); border-top: 1px solid var(--edge);
+  }
+  .sticky-actions .inner { max-width: 640px; margin: 0 auto; display: flex; gap: 8px; }
+  .sticky-actions .inner .btn { flex: 1 1 0; }
+
+  /* combine */
+  .parts { list-style: none; margin: 0 0 12px; padding: 0; }
+  .part { display: grid; grid-template-columns: 1fr 86px 104px 40px; gap: 6px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--edge); }
+  .part .pname { overflow-wrap: anywhere; }
+  .part .psub { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); margin-top: -2px; font-variant-numeric: tabular-nums; }
+  .part .x { min-height: 40px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .picker { position: relative; margin-bottom: 14px; }
+  .picker ul { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel); max-height: 260px; overflow-y: auto; }
+  .picker li button { width: 100%; text-align: left; border: 0; background: none; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--edge); }
+  .picker li button:hover, .picker li button:focus-visible { background: var(--raise); }
+  .picker li:last-child button { border-bottom: 0; }
+  .totals { border: 1px solid var(--edge); border-radius: 10px; background: var(--panel); padding: 12px; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+  .totals table { width: 100%; border-collapse: collapse; }
+  .totals th, .totals td { text-align: right; padding: 4px; font-weight: 400; border-bottom: 1px solid var(--edge); }
+  .totals th:first-child, .totals td:first-child { text-align: left; color: var(--muted); }
+  .totals thead th { color: var(--muted); font-size: 12px; }
+
+  /* camera + crop */
+  .cam-ui, .crop-ui { position: fixed; inset: 0; z-index: 40; background: #000; display: flex; flex-direction: column; color: #eee; }
+  .cam-ui .view, .crop-ui .view { position: relative; flex: 1 1 auto; overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .cam-ui video { width: 100%; height: 100%; object-fit: contain; }
+  .cam-ui .guide { position: absolute; border: 2px solid rgba(255,255,255,.85); border-radius: 6px; box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none; }
+  .cam-ui .tip, .crop-ui .tip { position: absolute; left: 12px; right: 12px; top: 12px; margin: 0; text-align: center; font-size: 13px; text-shadow: 0 1px 3px #000; }
+  .cam-ui .bar, .crop-ui .bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: #111; }
+  .cam-ui .bar button, .crop-ui .bar button { min-height: 44px; padding: 8px 14px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
+  .crop-ui .bar .go { background: #c8a35b; color: #15181b; border-color: #c8a35b; font-weight: 600; }
+  .shutter { width: 68px; height: 68px; border-radius: 50% !important; border: 4px solid #fff !important; background: rgba(255,255,255,.2) !important; padding: 0 !important; }
+  .crop-ui canvas { position: absolute; left: 0; top: 0; }
+  .crop-ui .box { position: absolute; border: 2px solid #c8a35b; box-shadow: 0 0 0 9999px rgba(0,0,0,.5); cursor: move; }
+  .crop-ui .h { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: #c8a35b; border: 3px solid #15181b; touch-action: none; }
+  .busy { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .busy .card { background: var(--panel); border: 1px solid var(--edge); border-radius: 12px; padding: 20px; width: min(360px, 100%); }
+  .busy .track { height: 6px; background: var(--edge); border-radius: 3px; overflow: hidden; margin: 12px 0 6px; }
+  .busy .fill { height: 100%; width: 0; background: var(--brass); transition: width .2s; }
+
+  .footer-tools { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--edge); display: flex; gap: 8px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--raise); border: 1px solid var(--edge); padding: 10px 14px; border-radius: 8px; max-width: calc(100% - 32px); }
+  @media (max-width: 420px) {
+    .part { grid-template-columns: 1fr 76px 96px 36px; }
+    .grid2 { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ Foods ============ -->
+<main id="viewFoods">
+  <header class="top">
+    <h1>Food Sleuth</h1>
+    <button class="btn primary" id="addBtn">+ Add food</button>
+  </header>
+  <div class="tools">
+    <input type="search" id="search" placeholder="Search foods" aria-label="Search foods">
+  </div>
+  <div class="listbar">
+    <div class="seg" role="group" aria-label="Show values">
+      <button data-show="serve" aria-pressed="true">Per serve</button>
+      <button data-show="100" aria-pressed="false">Per 100</button>
+    </div>
+    <div class="seg" role="group" aria-label="Sort">
+      <button data-sort="name" aria-pressed="true">A–Z</button>
+      <button data-sort="protein" aria-pressed="false">Protein %</button>
+      <button data-sort="recent" aria-pressed="false">Newest</button>
+    </div>
+  </div>
+  <ul class="foods" id="foodList"></ul>
+  <div class="empty hidden" id="emptyFoods">
+    <p>No foods yet.</p>
+    <p>Add one with <b>+ Add food</b>. You can photograph the nutrition panel and the numbers are filled in for you to check.</p>
+  </div>
+  <div class="footer-tools">
+    <button class="btn ghost small" id="exportBtn">Save a backup</button>
+    <button class="btn ghost small" id="importBtn">Restore a backup</button>
+    <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+  </div>
+</main>
+
+<!-- ============ Combine ============ -->
+<main id="viewCombine" class="hidden">
+  <header class="top"><h1>Combine</h1></header>
+  <p class="muted small" style="margin-top:-8px">Put stored foods together into a new one, such as a smoothie or a meal you make often.</p>
+  <div class="field">
+    <label for="mixName">Name</label>
+    <input type="text" id="mixName" placeholder="e.g. Berry smoothie" autocomplete="off">
+  </div>
+  <div class="lab muted small" style="margin-bottom:4px">Ingredients</div>
+  <ul class="parts" id="mixParts"></ul>
+  <div class="picker">
+    <input type="search" id="mixSearch" placeholder="Add an ingredient: type to search" aria-label="Add an ingredient" autocomplete="off">
+    <ul id="mixPick" class="hidden"></ul>
+  </div>
+  <div class="field" style="max-width:220px">
+    <label for="mixServes">This makes how many serves?</label>
+    <input type="number" id="mixServes" min="1" step="1" value="1" inputmode="numeric">
+  </div>
+  <div class="totals" id="mixTotals"></div>
+  <div class="row">
+    <button class="btn primary grow" id="mixSave">Save as a food</button>
+    <button class="btn ghost" id="mixClear">Clear</button>
+  </div>
+  <p class="msg" id="mixMsg"></p>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" id="tabFoods" aria-selected="true">Foods</button>
+  <button role="tab" id="tabCombine" aria-selected="false">Combine</button>
+</nav>
+
+<!-- ============ Add / edit sheet ============ -->
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <main>
+    <div class="head">
+      <h2 id="sheetTitle" style="margin:0">Add a food</h2>
+      <button class="btn ghost" id="sheetClose">Cancel</button>
+    </div>
+
+    <div class="photo-box" id="photoBox">
+      <p>Read the numbers from a photo of the nutrition panel. It all happens on this phone; nothing is sent anywhere.</p>
+      <div class="row">
+        <button class="btn primary" id="photoTake">Photograph label</button>
+        <button class="btn" id="photoPick">Choose a photo</button>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" capture="environment" class="hidden">
+      <input type="file" id="photoPickFile" accept="image/*" class="hidden">
+      <p class="msg" id="photoMsg" style="margin:8px 0 0"></p>
+    </div>
+
+    <ul class="notes hidden" id="readNotes"></ul>
+    <details class="raw hidden" id="readRaw"><summary>What the reader saw</summary><pre></pre></details>
+
+    <div class="field">
+      <label for="fName">Name</label>
+      <input type="text" id="fName" placeholder="e.g. Rolled oats" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <span class="lab">The numbers below are</span>
+      <div class="seg" role="group" aria-label="Basis">
+        <button data-basis="100" aria-pressed="true">per 100 g</button>
+        <button data-basis="serve" aria-pressed="false">per serve</button>
+      </div>
+      <div class="seg" role="group" aria-label="Measured in" style="margin-left:6px">
+        <button data-unit="g" aria-pressed="true">grams</button>
+        <button data-unit="ml" aria-pressed="false">mL</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field" id="wServe">
+        <label for="fServe">Serving size</label>
+        <div class="withunit"><input type="number" id="fServe" min="0" step="any" inputmode="decimal" placeholder="optional"><span class="u" data-u>g</span></div>
+        <div class="flagnote"></div>
+      </div>
+      <div class="field">
+        <label for="fServeName">A serve is called</label>
+        <input type="text" id="fServeName" placeholder="serve, scoop, slice…" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field macro" id="wKcal">
+        <label for="fEnergy">Energy</label>
+        <div class="row" style="flex-wrap:nowrap">
+          <input type="number" id="fEnergy" min="0" step="any" inputmode="decimal" class="grow">
+          <div class="seg" role="group" aria-label="Energy unit">
+            <button data-eu="kj" aria-pressed="true">kJ</button>
+            <button data-eu="cal" aria-pressed="false">Cal</button>
+          </div>
+        </div>
+        <div class="flagnote"></div>
+      </div>
+      <div class="field macro" id="wProtein">
+        <label for="fProtein">Protein</label>
+        <div class="withunit"><input type="number" id="fProtein" min="0" step="any" inputmode="decimal"><span class="u">g</span></div>
+        <div class="flagnote"></div>
+      </div>
+      <div class="field macro" id="wCarbs">
+        <label for="fCarbs">Carbohydrate</label>
+        <div class="withunit"><input type="number" id="fCarbs" min="0" step="any" inputmode="decimal"><span class="u">g</span></div>
+        <div class="flagnote"></div>
+      </div>
+      <div class="field macro" id="wFat">
+        <label for="fFat">Fat</label>
+        <div class="withunit"><input type="number" id="fFat" min="0" step="any" inputmode="decimal"><span class="u">g</span></div>
+        <div class="flagnote"></div>
+      </div>
+    </div>
+
+    <div class="preview" id="fPreview"></div>
+    <p class="msg" id="sheetMsg"></p>
+    <button class="btn danger ghost hidden" id="fDelete">Delete this food</button>
+  </main>
+  <div class="sticky-actions"><div class="inner">
+    <button class="btn primary" id="fSave">Save</button>
+  </div></div>
+</div>
+
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script src="reader.js"></script>
+<script>
+'use strict';
+/* Food Sleuth
+
+   Foods are kept on this device (localStorage, key below), one object each:
+     { id, name, unit: 'g'|'ml', serve: grams or mL in one serve (or null),
+       serveName, per100: { kcal, protein, fat, carbs }, added,
+       parts?: [{ id, name, amount, how: 'g'|'serve' }], makes? }
+   Everything is stored per 100 g (or 100 mL); per-serve figures are worked
+   out from the serving size. Energy is stored in Calories (kcal); kJ entered
+   are divided by 4.184. "Protein %" is the share of the food's energy that
+   comes from protein, at 4 Cal per gram. A combined food keeps the list of
+   what went into it, as it was when saved. */
+
+const KEY = 'food-sleuth-v1';
+const KJ = 4.184;
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- storage ---------- */
+let db = { foods: [], prefs: { show: 'serve', sort: 'name', eu: 'kj' }, mix: null };
+function load() {
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const d = JSON.parse(s); db = { ...db, ...d, prefs: { ...db.prefs, ...(d.prefs || {}) } }; }
+  } catch { /* private window etc.: start empty */ }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+  catch { toast('Couldn’t save on this device. Save a backup so nothing is lost.'); return false; }
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* ---------- numbers ---------- */
+const u = f => (f.unit === 'ml' ? 'mL' : 'g');
+function scaled(f, amount) {   // nutrients in `amount` g/mL of food f
+  const k = amount / 100, p = f.per100;
+  return { kcal: p.kcal * k, protein: p.protein * k, fat: p.fat * k, carbs: p.carbs * k };
+}
+function proteinPct(n) { return n.kcal > 0 ? (n.protein * 4 / n.kcal) * 100 : 0; }
+function g1(x) { if (x == null || isNaN(x)) return '–'; return x >= 100 ? Math.round(x).toString() : (Math.round(x * 10) / 10).toString(); }
+function cal(x) { return x == null || isNaN(x) ? '–' : Math.round(x).toString(); }
+function serveWord(f, n = 1) {
+  const w = (f.serveName || 'serve').trim();
+  return n === 1 ? w : (/[^s]$/.test(w) && !/\s/.test(w) ? w + 's' : w);
+}
+function bar(n) {
+  const p = n.protein * 4, c = n.carbs * 4, f = n.fat * 9, t = p + c + f;
+  if (!t) return '<div class="bar"></div>';
+  return `<div class="bar" aria-hidden="true"><span class="p" style="width:${p / t * 100}%"></span><span class="c" style="width:${c / t * 100}%"></span><span class="f" style="width:${f / t * 100}%"></span></div>`;
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(s) {
+  const t = el('toast'); t.textContent = s; t.classList.remove('hidden');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), 3200);
+}
+
+/* ---------- tabs ---------- */
+function tab(which) {
+  el('viewFoods').classList.toggle('hidden', which !== 'foods');
+  el('viewCombine').classList.toggle('hidden', which !== 'combine');
+  el('tabFoods').setAttribute('aria-selected', which === 'foods');
+  el('tabCombine').setAttribute('aria-selected', which === 'combine');
+  if (which === 'combine') renderMix(); else renderList();
+  window.scrollTo(0, 0);
+}
+el('tabFoods').onclick = () => tab('foods');
+el('tabCombine').onclick = () => tab('combine');
+
+/* ---------- the list ---------- */
+let openId = null;
+function renderList() {
+  const q = el('search').value.trim().toLowerCase();
+  let foods = db.foods.filter(f => !q || f.name.toLowerCase().includes(q));
+  const s = db.prefs.sort;
+  foods.sort(s === 'protein' ? (a, b) => proteinPct(b.per100) - proteinPct(a.per100)
+    : s === 'recent' ? (a, b) => (b.added || 0) - (a.added || 0)
+    : (a, b) => a.name.localeCompare(b.name));
+  document.querySelectorAll('[data-show]').forEach(b => b.setAttribute('aria-pressed', b.dataset.show === db.prefs.show));
+  document.querySelectorAll('[data-sort]').forEach(b => b.setAttribute('aria-pressed', b.dataset.sort === s));
+  el('emptyFoods').classList.toggle('hidden', db.foods.length > 0);
+  el('foodList').innerHTML = foods.map(f => {
+    const perServe = db.prefs.show === 'serve' && f.serve;
+    const n = perServe ? scaled(f, f.serve) : f.per100;
+    const basis = perServe ? `1 ${esc(serveWord(f))} (${g1(f.serve)} ${u(f)})` : `100 ${u(f)}`;
+    return `<li data-id="${f.id}">
+      <button class="food" aria-expanded="${openId === f.id}">
+        <span class="name">${esc(f.name)}${f.parts ? '<span class="tag">combined</span>' : ''}</span>
+        <span class="pct"><span class="n">${Math.round(proteinPct(f.per100))}%</span><span class="l">protein</span></span>
+        <span class="line">${basis}: <b>${cal(n.kcal)} Cal</b> · P <b>${g1(n.protein)}</b> · C <b>${g1(n.carbs)}</b> · F <b>${g1(n.fat)}</b></span>
+        ${bar(f.per100)}
+      </button>
+      ${openId === f.id ? detail(f) : ''}
+    </li>`;
+  }).join('') || (db.foods.length ? '<li class="empty">Nothing matches that.</li>' : '');
+  if (openId) wireDetail();
+}
+
+function detail(f) {
+  const cols = [['100 ' + u(f), f.per100]];
+  if (f.serve) cols.unshift([`1 ${esc(serveWord(f))} · ${g1(f.serve)} ${u(f)}`, scaled(f, f.serve)]);
+  const row = (label, k, fmt, unit) => `<tr><td>${label}</td>${cols.map(c => `<td>${fmt(c[1][k])}${unit}</td>`).join('')}</tr>`;
+  const ing = f.parts ? `<p class="small muted" style="margin:0 0 4px">Made from${f.makes > 1 ? `, makes ${f.makes} serves` : ''}:</p><ul class="ing">${f.parts.map(p => `<li>${p.how === 'serve' ? `${g1(p.amount)} × ${esc(p.serveName || 'serve')}` : `${g1(p.amount)} ${p.unit === 'ml' ? 'mL' : 'g'}`} ${esc(p.name)}</li>`).join('')}</ul>` : '';
+  return `<div class="detail">
+    <table>
+      <thead><tr><th></th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${row('Energy', 'kcal', cal, ' Cal')}
+        ${row('', 'kcal', x => cal(x * KJ), ' kJ')}
+        ${row('Protein', 'protein', g1, ' g')}
+        ${row('Carbohydrate', 'carbs', g1, ' g')}
+        ${row('Fat', 'fat', g1, ' g')}
+      </tbody>
+    </table>
+    ${ing}
+    <div class="howmuch">
+      <label for="hm" class="small muted">How much?</label>
+      <div class="withunit"><input type="number" id="hm" min="0" step="any" inputmode="decimal" value="${f.serve ? g1(f.serve) : 100}"><span class="u">${u(f)}</span></div>
+      <span class="small" id="hmOut"></span>
+    </div>
+    <div class="row">
+      <button class="btn" data-act="edit">Edit</button>
+      <button class="btn" data-act="mix">Add to Combine</button>
+      ${f.parts ? '<button class="btn" data-act="remix">Change the recipe</button>' : ''}
+    </div>
+  </div>`;
+}
+
+function wireDetail() {
+  const li = el('foodList').querySelector(`li[data-id="${openId}"]`);
+  if (!li) return;
+  const f = db.foods.find(x => x.id === openId);
+  const hm = li.querySelector('#hm'), out = li.querySelector('#hmOut');
+  const upd = () => {
+    const a = parseFloat(hm.value);
+    if (!(a > 0)) { out.textContent = ''; return; }
+    const n = scaled(f, a);
+    out.innerHTML = `<b>${cal(n.kcal)} Cal</b> · P ${g1(n.protein)} · C ${g1(n.carbs)} · F ${g1(n.fat)}`;
+  };
+  hm.oninput = upd; upd();
+  li.querySelector('[data-act=edit]').onclick = () => openSheet(f);
+  li.querySelector('[data-act=mix]').onclick = () => { mixAdd(f); toast(`${f.name} added to Combine.`); };
+  const rm = li.querySelector('[data-act=remix]');
+  if (rm) rm.onclick = () => {
+    db.mix = { name: f.name, makes: f.makes || 1, editing: f.id, parts: f.parts.map(p => ({ id: p.id, amount: p.amount, how: p.how })).filter(p => db.foods.some(x => x.id === p.id)) };
+    const lost = f.parts.length - db.mix.parts.length;
+    save(); tab('combine');
+    if (lost) el('mixMsg').textContent = `${lost} ingredient${lost > 1 ? 's have' : ' has'} since been deleted and ${lost > 1 ? 'were' : 'was'} left out.`;
+  };
+}
+
+el('foodList').addEventListener('click', e => {
+  const b = e.target.closest('button.food');
+  if (!b) return;
+  const id = b.closest('li').dataset.id;
+  openId = openId === id ? null : id;
+  renderList();
+});
+el('search').oninput = renderList;
+document.querySelectorAll('[data-show]').forEach(b => b.onclick = () => { db.prefs.show = b.dataset.show; save(); renderList(); });
+document.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { db.prefs.sort = b.dataset.sort; save(); renderList(); });
+
+/* ---------- add / edit ---------- */
+let editing = null, basis = '100', unit = 'g', eu = 'kj', lastRead = null;
+const fields = ['fName', 'fServe', 'fServeName', 'fEnergy', 'fProtein', 'fCarbs', 'fFat'];
+
+function openSheet(f) {
+  editing = f || null;
+  el('sheetTitle').textContent = f ? 'Edit food' : 'Add a food';
+  fields.forEach(id => el(id).value = '');
+  clearFlags(); lastRead = null;
+  el('readNotes').classList.add('hidden'); el('readRaw').classList.add('hidden');
+  el('photoMsg').textContent = ''; el('sheetMsg').textContent = ''; el('sheetMsg').classList.remove('bad');
+  el('fDelete').classList.toggle('hidden', !f);
+  el('fDelete').textContent = 'Delete this food'; el('fDelete').dataset.armed = '';
+  eu = db.prefs.eu || 'kj';
+  if (f) {
+    basis = '100'; unit = f.unit;
+    el('fName').value = f.name;
+    el('fServe').value = f.serve ? g1(f.serve) : '';
+    el('fServeName').value = f.serveName || '';
+    el('fEnergy').value = eu === 'kj' ? Math.round(f.per100.kcal * KJ) : Math.round(f.per100.kcal);
+    el('fProtein').value = g1(f.per100.protein);
+    el('fCarbs').value = g1(f.per100.carbs);
+    el('fFat').value = g1(f.per100.fat);
+  } else { basis = '100'; unit = 'g'; }
+  syncSegs(); preview();
+  el('sheet').classList.remove('hidden');
+  el('sheet').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  if (!f) setTimeout(() => el('photoTake').focus(), 50);
+}
+function closeSheet() { el('sheet').classList.add('hidden'); document.body.style.overflow = ''; }
+el('addBtn').onclick = () => openSheet(null);
+el('sheetClose').onclick = closeSheet;
+
+function syncSegs() {
+  document.querySelectorAll('[data-basis]').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.basis === basis);
+    if (b.dataset.basis === '100') b.textContent = `per 100 ${unit === 'ml' ? 'mL' : 'g'}`;
+  });
+  document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === unit));
+  document.querySelectorAll('[data-eu]').forEach(b => b.setAttribute('aria-pressed', b.dataset.eu === eu));
+  document.querySelector('[data-u]').textContent = unit === 'ml' ? 'mL' : 'g';
+}
+document.querySelectorAll('[data-basis]').forEach(b => b.onclick = () => { basis = b.dataset.basis; syncSegs(); preview(); });
+document.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { unit = b.dataset.unit; syncSegs(); preview(); });
+document.querySelectorAll('[data-eu]').forEach(b => b.onclick = () => {
+  if (b.dataset.eu === eu) return;
+  const v = parseFloat(el('fEnergy').value);
+  if (v >= 0) el('fEnergy').value = b.dataset.eu === 'cal' ? Math.round(v / KJ) : Math.round(v * KJ);
+  eu = b.dataset.eu; db.prefs.eu = eu; save(); syncSegs(); preview();
+});
+fields.forEach(id => el(id).addEventListener('input', () => { el(id).closest('.field')?.classList.remove('flag-sure', 'flag-check'); const n = el(id).closest('.field')?.querySelector('.flagnote'); if (n) n.textContent = ''; preview(); }));
+
+// What the form currently says, as a food (or an error message).
+function formFood() {
+  const num = id => { const v = el(id).value.trim(); return v === '' ? null : parseFloat(v); };
+  const name = el('fName').value.trim();
+  const serve = num('fServe');
+  let e = num('fEnergy'), p = num('fProtein'), c = num('fCarbs'), f = num('fFat');
+  if (e != null && eu === 'kj') e /= KJ;
+  const filled = [e, p, c, f].filter(x => x != null).length;
+  if (basis === 'serve' && !(serve > 0)) return { error: 'Per-serve numbers need the serving size.' };
+  if (filled === 0) return { error: 'Enter at least the energy or the protein, carbs and fat.' };
+  // Fill a blank energy from the macros, or leave blanks as 0.
+  if (e == null && p != null && c != null && f != null) e = 4 * p + 4 * c + 9 * f;
+  const k = basis === 'serve' ? 100 / serve : 1;
+  const per100 = { kcal: (e || 0) * k, protein: (p || 0) * k, carbs: (c || 0) * k, fat: (f || 0) * k };
+  return { name, unit, serve: serve > 0 ? serve : null, serveName: el('fServeName').value.trim(), per100 };
+}
+
+function preview() {
+  const f = formFood();
+  const box = el('fPreview');
+  if (f.error) { box.innerHTML = `<span class="muted small">${f.error === 'Per-serve numbers need the serving size.' ? f.error : 'The totals show here as you fill it in.'}</span>`; return; }
+  const est = 4 * f.per100.protein + 4 * f.per100.carbs + 9 * f.per100.fat;
+  const off = f.per100.kcal > 0 && est > 0 && Math.abs(est - f.per100.kcal) / f.per100.kcal > 0.2;
+  const s = f.serve ? scaled(f, f.serve) : null;
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline">
+      <span><span class="big">${Math.round(proteinPct(f.per100))}%</span> <span class="muted small">of energy from protein</span></span>
+    </div>
+    <div class="small" style="margin-top:6px">
+      per 100 ${u(f)}: <b>${cal(f.per100.kcal)} Cal</b> · P ${g1(f.per100.protein)} · C ${g1(f.per100.carbs)} · F ${g1(f.per100.fat)}<br>
+      ${s ? `per ${esc(serveWord(f))} (${g1(f.serve)} ${u(f)}): <b>${cal(s.kcal)} Cal</b> · P ${g1(s.protein)} · C ${g1(s.carbs)} · F ${g1(s.fat)}` : ''}
+    </div>
+    ${off ? `<div class="small" style="color:var(--warn);margin-top:6px">Protein, carbs and fat add up to about ${Math.round(est)} Cal per 100, not ${Math.round(f.per100.kcal)}. Worth checking a number. (Fibre, alcohol and rounding account for small differences.)</div>` : ''}`;
+}
+
+el('fSave').onclick = () => {
+  const f = formFood();
+  const msg = el('sheetMsg');
+  msg.classList.add('bad');
+  if (!f.name) { msg.textContent = 'Give it a name.'; el('fName').focus(); return; }
+  if (f.error) { msg.textContent = f.error; return; }
+  msg.classList.remove('bad');
+  if (editing) {
+    Object.assign(editing, f);
+  } else {
+    db.foods.push({ id: uid(), added: Date.now(), ...f });
+  }
+  save(); closeSheet(); openId = null;
+  el('search').value = ''; renderList();
+  toast(editing ? 'Saved.' : `${f.name} added.`);
+};
+el('fDelete').onclick = () => {
+  const b = el('fDelete');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Tap again to delete'; return; }
+  db.foods = db.foods.filter(x => x !== editing);
+  save(); closeSheet(); openId = null; renderList(); toast('Deleted.');
+};
+
+function clearFlags() {
+  document.querySelectorAll('#sheet .field').forEach(w => { w.classList.remove('flag-sure', 'flag-check'); const n = w.querySelector('.flagnote'); if (n) n.textContent = ''; });
+}
+function flag(id, state, text) {
+  const w = el(id); w.classList.remove('flag-sure', 'flag-check');
+  if (state) w.classList.add('flag-' + state);
+  w.querySelector('.flagnote').textContent = text || '';
+}
+
+/* ---------- reading a label ----------
+   The photo is cropped (by you) to the panel, straightened if you rotate it,
+   scaled so the panel is about 1600 pixels across, cleaned (reader.js), and
+   read by Tesseract. Tesseract's files are in ./ocr/ beside this page: the
+   program (worker.min.js and a tesseract-core-*.wasm.js chosen for this
+   phone's processor) and the English model (eng.traineddata.gz). They load
+   the first time you read a label, about 6 MB, and are then kept. */
+let ocrWorker = null;
+async function ocrGet(progress) {
+  if (ocrWorker) return ocrWorker;
+  const base = new URL('ocr/', location.href).href;
+  ocrWorker = await Tesseract.createWorker('eng', 1, {
+    workerPath: base + 'worker.min.js',
+    corePath: base,
+    langPath: base.replace(/\/$/, ''),
+    workerBlobURL: false,
+    logger: m => progress && progress(m),
+  });
+  await ocrWorker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+  return ocrWorker;
+}
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (window.Tesseract) return res();
+    const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script'));
+    document.head.appendChild(s);
+  });
+}
+
+function busy(text) {
+  const d = document.createElement('div');
+  d.className = 'busy';
+  d.innerHTML = `<div class="card"><div id="busyText">${esc(text)}</div><div class="track"><div class="fill"></div></div><div class="small muted" id="busySub"></div></div>`;
+  document.body.appendChild(d);
+  return {
+    set(t, p, sub) { d.querySelector('#busyText').textContent = t; if (p != null) d.querySelector('.fill').style.width = Math.round(p * 100) + '%'; d.querySelector('#busySub').textContent = sub || ''; },
+    done() { d.remove(); },
+  };
+}
+
+async function readLabel(canvas) {
+  const b = busy('Getting the reader ready…');
+  try {
+    await loadScript('ocr/tesseract.min.js');
+    const w = await ocrGet(m => {
+      if (m.status === 'recognizing text') b.set('Reading the label…', m.progress);
+      else if (/load|initializ/.test(m.status)) b.set('Getting the reader ready…', m.progress, m.status === 'loading language traineddata' ? 'First time only: loading the English model' : '');
+    });
+    b.set('Reading the label…', 0);
+    const { data } = await w.recognize(canvas);
+    b.done();
+    return data.text;
+  } catch (err) {
+    b.done();
+    ocrWorker = null;
+    throw err;
+  }
+}
+
+function fillFromRead(text) {
+  const r = FoodReader.parseLabel(text);
+  lastRead = r;
+  const raw = el('readRaw');
+  raw.querySelector('pre').textContent = text.trim() || '(nothing)';
+  raw.classList.remove('hidden');
+  const notes = el('readNotes');
+  if (!r.ok) {
+    el('photoMsg').classList.add('bad');
+    el('photoMsg').textContent = 'No nutrition numbers could be read from that. Try again closer, straight on, in good light, with the crop just around the panel.';
+    notes.classList.add('hidden');
+    return;
+  }
+  el('photoMsg').classList.remove('bad');
+  basis = '100'; unit = r.unit; eu = 'kj';
+  syncSegs();
+  const p = r.per100;
+  el('fEnergy').value = p.kcal != null ? Math.round(p.kcal * KJ) : '';
+  el('fProtein').value = p.protein != null ? p.protein : '';
+  el('fCarbs').value = p.carbs != null ? p.carbs : '';
+  el('fFat').value = p.fat != null ? p.fat : '';
+  if (r.serve) el('fServe').value = r.serve;
+  clearFlags();
+  const ids = { kcal: 'wKcal', protein: 'wProtein', carbs: 'wCarbs', fat: 'wFat' };
+  for (const k of Object.keys(ids)) {
+    if (p[k] == null) flag(ids[k], 'check', 'Not read: please fill in');
+    else if (r.sure[k]) flag(ids[k], 'sure', 'Read, and it adds up');
+    else flag(ids[k], 'check', 'Check this one');
+  }
+  if (r.serve) flag('wServe', r.notes.some(n => /serving size/.test(n)) ? 'check' : 'sure', r.notes.some(n => /serving size/.test(n)) ? 'Worked out; check it' : 'Read');
+  const got = Object.values(p).filter(v => v != null).length;
+  el('photoMsg').textContent = `Read ${got} of 4 numbers${r.serve ? ' and the serving size' : ''}. Converted to per 100 ${r.unit === 'ml' ? 'mL' : 'g'}. Check anything marked, and add a name.`;
+  notes.innerHTML = r.notes.map(n => `<li>${esc(n)}</li>`).join('');
+  notes.classList.toggle('hidden', !r.notes.length);
+  preview();
+  el('fName').focus();
+}
+
+/* camera: kept inside the page (as in the chess app) so a phone low on memory
+   can't close the browser while a separate camera app is open */
+async function camOpen() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { el('photoFile').click(); return; }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1920 } }, audio: false });
+  } catch (err) {
+    el('photoMsg').classList.add('bad');
+    el('photoMsg').textContent = err && err.name === 'NotAllowedError'
+      ? 'The camera wasn’t allowed. Allow it for this site in the browser’s settings, or use Choose a photo.'
+      : 'The camera couldn’t be opened. Use Choose a photo instead.';
+    return;
+  }
+  const ui = document.createElement('div');
+  ui.className = 'cam-ui';
+  ui.innerHTML = `<div class="view"><video playsinline muted autoplay></video><div class="guide"></div>
+      <p class="tip">Fill the frame with the nutrition panel, straight on. Hold still.</p></div>
+    <div class="bar"><button id="camCancel">Cancel</button><button class="shutter" id="camShoot" aria-label="Take the photo"></button><span style="width:70px"></span></div>`;
+  document.body.appendChild(ui);
+  const video = ui.querySelector('video'), guide = ui.querySelector('.guide'), view = ui.querySelector('.view');
+  video.srcObject = stream;
+  const G = { w: .86, h: .8 };   // guide, as a share of the picture shown
+  const fit = () => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return;
+    const k = Math.min(view.clientWidth / vw, view.clientHeight / vh);
+    guide.style.width = vw * k * G.w + 'px';
+    guide.style.height = vh * k * G.h + 'px';
+  };
+  const stop = () => { stream.getTracks().forEach(t => t.stop()); window.removeEventListener('resize', fit); ui.remove(); };
+  video.addEventListener('loadedmetadata', fit);
+  window.addEventListener('resize', fit);
+  ui.querySelector('#camCancel').onclick = stop;
+  ui.querySelector('#camShoot').onclick = async () => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return;
+    const c = document.createElement('canvas'); c.width = vw; c.height = vh;
+    c.getContext('2d').drawImage(video, 0, 0, vw, vh);
+    stop();
+    cropOpen(await createImageBitmap(c), { x: (1 - G.w) / 2, y: (1 - G.h) / 2, w: G.w, h: G.h });
+  };
+}
+
+el('photoTake').onclick = camOpen;
+el('photoPick').onclick = () => el('photoPickFile').click();
+el('photoFile').onchange = el('photoPickFile').onchange = async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try { cropOpen(await createImageBitmap(file, { imageOrientation: 'from-image' })); }
+  catch { el('photoMsg').classList.add('bad'); el('photoMsg').textContent = 'That image couldn’t be opened.'; }
+};
+
+/* crop: drag the corners (or the box) to just around the panel; rotate if
+   the photo is sideways. The box is kept as fractions of the (rotated) image. */
+function cropOpen(img, start) {
+  let rot = 0, box = start ? { ...start } : { x: .05, y: .05, w: .9, h: .9 };
+  const ui = document.createElement('div');
+  ui.className = 'crop-ui';
+  ui.innerHTML = `<div class="view"><canvas></canvas><div class="box"></div>
+      ${[0, 1, 2, 3].map(i => `<div class="h" data-h="${i}"></div>`).join('')}
+      <p class="tip">Drag the corners to just around the nutrition panel.</p></div>
+    <div class="bar"><button data-a="cancel">Cancel</button><button data-a="rot" aria-label="Rotate a quarter turn">Rotate ↻</button><button class="go" data-a="go">Read it</button></div>`;
+  document.body.appendChild(ui);
+  const view = ui.querySelector('.view'), cv = ui.querySelector('canvas'), bx = ui.querySelector('.box'), hs = [...ui.querySelectorAll('.h')];
+  let geo = null;   // where the image is drawn in the view
+  const rw = () => rot % 2 ? img.height : img.width, rh = () => rot % 2 ? img.width : img.height;
+  function draw() {
+    const W = view.clientWidth, H = view.clientHeight, pad = 18;
+    const k = Math.min((W - 2 * pad) / rw(), (H - 2 * pad) / rh());
+    const w = rw() * k, h = rh() * k, x = (W - w) / 2, y = (H - h) / 2;
+    geo = { x, y, w, h };
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(rot * Math.PI / 2);
+    const dw = rot % 2 ? h : w, dh = rot % 2 ? w : h;
+    g.drawImage(img, -dw / 2, -dh / 2, dw, dh); g.restore();
+    place();
+  }
+  function place() {
+    const { x, y, w, h } = geo;
+    Object.assign(bx.style, { left: x + box.x * w + 'px', top: y + box.y * h + 'px', width: box.w * w + 'px', height: box.h * h + 'px' });
+    const pts = [[box.x, box.y], [box.x + box.w, box.y], [box.x + box.w, box.y + box.h], [box.x, box.y + box.h]];
+    hs.forEach((hd, i) => { hd.style.left = x + pts[i][0] * w + 'px'; hd.style.top = y + pts[i][1] * h + 'px'; });
+  }
+  // dragging
+  let drag = null;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  view.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.h');
+    if (!h && e.target !== bx) return;
+    e.preventDefault();
+    drag = { h: h ? +h.dataset.h : -1, sx: e.clientX, sy: e.clientY, b: { ...box } };
+    view.setPointerCapture(e.pointerId);
+  });
+  view.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = (e.clientX - drag.sx) / geo.w, dy = (e.clientY - drag.sy) / geo.h, b = drag.b, min = .06;
+    if (drag.h < 0) { box.x = clamp(b.x + dx, 0, 1 - b.w); box.y = clamp(b.y + dy, 0, 1 - b.h); }
+    else {
+      let x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.h;
+      if (drag.h === 0 || drag.h === 3) x0 = clamp(x0 + dx, 0, x1 - min); else x1 = clamp(x1 + dx, x0 + min, 1);
+      if (drag.h === 0 || drag.h === 1) y0 = clamp(y0 + dy, 0, y1 - min); else y1 = clamp(y1 + dy, y0 + min, 1);
+      box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
+    place();
+  });
+  const end = () => { drag = null; };
+  view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
+  const onResize = () => draw();
+  window.addEventListener('resize', onResize);
+  const close = () => { window.removeEventListener('resize', onResize); ui.remove(); };
+  ui.querySelector('[data-a=cancel]').onclick = close;
+  ui.querySelector('[data-a=rot]').onclick = () => {
+    rot = (rot + 1) % 4;
+    box = { x: 1 - box.y - box.h, y: box.x, w: box.h, h: box.w };   // turn the box with the picture
+    draw();
+  };
+  ui.querySelector('[data-a=go]').onclick = async () => {
+    const canvas = cropToCanvas(img, rot, box);
+    close();
+    try { fillFromRead(await readLabel(canvas)); }
+    catch (err) {
+      console.error(err);
+      el('photoMsg').classList.add('bad');
+      el('photoMsg').textContent = 'The reader couldn’t start (its files are in the ocr folder beside this page). Check the connection the first time, then try again.';
+    }
+  };
+  requestAnimationFrame(draw);
+}
+
+// The cropped panel, upright, about 1600 px across, cleaned for reading.
+function cropToCanvas(img, rot, box) {
+  const W0 = rot % 2 ? img.height : img.width, H0 = rot % 2 ? img.width : img.height;
+  const sw = box.w * W0, sh = box.h * H0;
+  let k = 1600 / sw;
+  if (sh * k > 3200) k = 3200 / sh;
+  const w = Math.round(sw * k), h = Math.round(sh * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingQuality = 'high';
+  g.scale(k, k);
+  g.translate(-box.x * W0, -box.y * H0);
+  g.translate(W0 / 2, H0 / 2); g.rotate(rot * Math.PI / 2);
+  g.drawImage(img, -img.width / 2, -img.height / 2);
+  const d = g.getImageData(0, 0, w, h);
+  d.data.set(FoodReader.clean(d.data, w, h));
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.putImageData(d, 0, 0);
+  return c;
+}
+
+/* ---------- combine ---------- */
+function mixState() { return db.mix || (db.mix = { name: '', makes: 1, parts: [] }); }
+function mixAdd(f) {
+  const m = mixState();
+  m.parts.push({ id: f.id, amount: f.serve ? 1 : 100, how: f.serve ? 'serve' : 'g' });
+  save();
+}
+function partGrams(p, f) { return p.how === 'serve' ? p.amount * (f.serve || 0) : p.amount; }
+
+function mixTotals() {
+  const m = mixState();
+  const t = { kcal: 0, protein: 0, fat: 0, carbs: 0, grams: 0, ml: 0, g: 0 };
+  for (const p of m.parts) {
+    const f = db.foods.find(x => x.id === p.id);
+    if (!f) continue;
+    const gr = partGrams(p, f), n = scaled(f, gr);
+    for (const k of ['kcal', 'protein', 'fat', 'carbs']) t[k] += n[k];
+    t.grams += gr; t[f.unit === 'ml' ? 'ml' : 'g'] += gr;
+  }
+  return t;
+}
+
+function renderMix() {
+  const m = mixState();
+  m.parts = m.parts.filter(p => db.foods.some(f => f.id === p.id));
+  el('mixName').value = m.name || '';
+  el('mixServes').value = m.makes || 1;
+  el('mixParts').innerHTML = m.parts.map((p, i) => {
+    const f = db.foods.find(x => x.id === p.id);
+    const n = scaled(f, partGrams(p, f));
+    return `<li class="part" data-i="${i}">
+      <span class="pname">${esc(f.name)}</span>
+      <input type="number" min="0" step="any" inputmode="decimal" value="${p.amount}" aria-label="Amount of ${esc(f.name)}" data-k="amount">
+      <select data-k="how" aria-label="Unit">
+        <option value="g" ${p.how === 'g' ? 'selected' : ''}>${u(f)}</option>
+        ${f.serve ? `<option value="serve" ${p.how === 'serve' ? 'selected' : ''}>${esc(serveWord(f, 2))} (${g1(f.serve)} ${u(f)})</option>` : ''}
+      </select>
+      <button class="x" data-k="del" aria-label="Remove ${esc(f.name)}">×</button>
+      <span class="psub">${cal(n.kcal)} Cal · P ${g1(n.protein)} · C ${g1(n.carbs)} · F ${g1(n.fat)}${p.how === 'serve' ? ` · ${g1(partGrams(p, f))} ${u(f)}` : ''}</span>
+    </li>`;
+  }).join('') || '<li class="muted small" style="padding:8px 0">Nothing added yet. Search below, or use “Add to Combine” on a food in the list.</li>';
+  renderMixTotals();
+}
+
+function renderMixTotals() {
+  const m = mixState(), t = mixTotals(), makes = Math.max(1, Math.round(+el('mixServes').value || 1));
+  if (!m.parts.length) { el('mixTotals').innerHTML = '<span class="muted small">Totals show here.</span>'; return; }
+  const per = { kcal: t.kcal / makes, protein: t.protein / makes, fat: t.fat / makes, carbs: t.carbs / makes };
+  const unitOut = t.ml && !t.g ? 'mL' : 'g';
+  const cols = [['Whole thing', t]];
+  if (makes > 1) cols.push(['Per serve', per]);
+  const r = (label, k, fmt, uu) => `<tr><td>${label}</td>${cols.map(c => `<td>${fmt(c[1][k])}${uu}</td>`).join('')}</tr>`;
+  el('mixTotals').innerHTML = `
+    <div style="margin-bottom:8px"><span style="font-family:var(--display);font-size:26px;color:var(--protein)">${Math.round(proteinPct(t))}%</span> <span class="muted small">of energy from protein</span></div>
+    <table><thead><tr><th></th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>
+      ${r('Energy', 'kcal', cal, ' Cal')}
+      ${r('', 'kcal', x => cal(x * KJ), ' kJ')}
+      ${r('Protein', 'protein', g1, ' g')}
+      ${r('Carbohydrate', 'carbs', g1, ' g')}
+      ${r('Fat', 'fat', g1, ' g')}
+    </tbody></table>
+    <div class="small muted" style="margin-top:8px">Weighs ${g1(t.grams)} ${unitOut}${makes > 1 ? `, ${g1(t.grams / makes)} ${unitOut} a serve` : ''}${t.ml && t.g ? ' (mL counted as grams)' : ''}.</div>`;
+}
+
+el('mixParts').addEventListener('input', e => {
+  const li = e.target.closest('.part'); if (!li) return;
+  const p = mixState().parts[+li.dataset.i];
+  if (e.target.dataset.k === 'amount') { p.amount = parseFloat(e.target.value) || 0; save(); updatePartSub(li, p); renderMixTotals(); }
+});
+el('mixParts').addEventListener('change', e => {
+  const li = e.target.closest('.part'); if (!li) return;
+  const p = mixState().parts[+li.dataset.i];
+  if (e.target.dataset.k === 'how') {
+    const f = db.foods.find(x => x.id === p.id);
+    // keep the same quantity when switching between grams and serves
+    p.amount = e.target.value === 'serve' ? Math.round(partGrams(p, f) / f.serve * 100) / 100 : Math.round(partGrams(p, f) * 10) / 10;
+    p.how = e.target.value; save(); renderMix();
+  }
+});
+el('mixParts').addEventListener('click', e => {
+  const b = e.target.closest('[data-k=del]'); if (!b) return;
+  mixState().parts.splice(+b.closest('.part').dataset.i, 1); save(); renderMix();
+});
+function updatePartSub(li, p) {
+  const f = db.foods.find(x => x.id === p.id), n = scaled(f, partGrams(p, f));
+  li.querySelector('.psub').textContent = `${cal(n.kcal)} Cal · P ${g1(n.protein)} · C ${g1(n.carbs)} · F ${g1(n.fat)}${p.how === 'serve' ? ` · ${g1(partGrams(p, f))} ${u(f)}` : ''}`;
+}
+el('mixName').oninput = () => { mixState().name = el('mixName').value; save(); };
+el('mixServes').oninput = () => { mixState().makes = Math.max(1, Math.round(+el('mixServes').value || 1)); save(); renderMixTotals(); };
+
+// ingredient search
+function renderPick() {
+  const q = el('mixSearch').value.trim().toLowerCase(), ul = el('mixPick');
+  if (!q && document.activeElement !== el('mixSearch')) { ul.classList.add('hidden'); return; }
+  const editingId = mixState().editing;
+  const hits = db.foods.filter(f => f.id !== editingId && (!q || f.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 30);
+  ul.innerHTML = hits.map(f => `<li><button data-id="${f.id}">${esc(f.name)} <span class="muted small">· ${Math.round(proteinPct(f.per100))}% protein</span></button></li>`).join('')
+    || `<li><span class="muted small" style="display:block;padding:10px 12px">${db.foods.length ? 'No food by that name.' : 'Add some foods first.'}</span></li>`;
+  ul.classList.remove('hidden');
+}
+el('mixSearch').oninput = renderPick;
+el('mixSearch').onfocus = renderPick;
+el('mixSearch').onblur = () => setTimeout(() => el('mixPick').classList.add('hidden'), 180);
+el('mixPick').addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  mixAdd(db.foods.find(f => f.id === b.dataset.id));
+  el('mixSearch').value = ''; el('mixPick').classList.add('hidden');
+  renderMix();
+  const last = el('mixParts').querySelector('.part:last-child input'); if (last) { last.focus(); last.select(); }
+});
+
+el('mixSave').onclick = () => {
+  const m = mixState(), msg = el('mixMsg');
+  msg.classList.add('bad');
+  const name = (m.name || '').trim();
+  if (!m.parts.length) { msg.textContent = 'Add at least one ingredient.'; return; }
+  if (!name) { msg.textContent = 'Give it a name.'; el('mixName').focus(); return; }
+  const t = mixTotals();
+  if (!(t.grams > 0)) { msg.textContent = 'The amounts add up to nothing.'; return; }
+  msg.classList.remove('bad');
+  const makes = Math.max(1, m.makes || 1);
+  const k = 100 / t.grams;
+  const food = {
+    name, unit: t.ml && !t.g ? 'ml' : 'g', serve: t.grams / makes, serveName: 'serve', makes,
+    per100: { kcal: t.kcal * k, protein: t.protein * k, fat: t.fat * k, carbs: t.carbs * k },
+    parts: m.parts.map(p => { const f = db.foods.find(x => x.id === p.id); return { id: p.id, name: f.name, amount: p.amount, how: p.how, unit: f.unit, serveName: serveWord(f, p.amount) }; }),
+  };
+  const existing = m.editing && db.foods.find(f => f.id === m.editing);
+  if (existing) Object.assign(existing, food);
+  else db.foods.push({ id: uid(), added: Date.now(), ...food });
+  db.mix = null; save();
+  toast(existing ? `${name} updated.` : `${name} saved to your foods.`);
+  openId = null; tab('foods');
+};
+el('mixClear').onclick = () => { db.mix = null; save(); el('mixMsg').textContent = ''; renderMix(); };
+
+/* ---------- backup ---------- */
+el('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: 'food-sleuth', version: 1, saved: new Date().toISOString(), foods: db.foods }, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `food-sleuth-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+el('importBtn').onclick = () => el('importFile').click();
+el('importFile').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    const foods = (d.foods || []).filter(f => f && f.name && f.per100);
+    let added = 0, same = 0;
+    for (const f of foods) {
+      if (db.foods.some(x => x.id === f.id)) { same++; continue; }
+      db.foods.push(f); added++;
+    }
+    save(); renderList();
+    toast(`Restored ${added} food${added === 1 ? '' : 's'}${same ? `; ${same} already here` : ''}.`);
+  } catch { toast('That file isn’t a Food Sleuth backup.'); }
+};
+
+/* ---------- start ---------- */
+load();
+renderList();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (/[?&#]debug\b/.test(location.href)) window.fsDebug = { db: () => db, fillFromRead, cropToCanvas, readLabel, cropOpen };
+</script>
+</body>
+</html>
