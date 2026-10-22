@@ -1419,6 +1419,9 @@
       <button id="setupSave">Save</button>
       <button id="setupDelete">Delete</button>
     </div>
+    <div class="setup-row hidden" id="setupResumeRow">
+      <button class="primary" id="setupResume" style="width:100%"></button>
+    </div>
     <p class="setup-msg" id="setupMsg"></p>
     <div class="lsec">
       <h2 class="lhead">Play it out</h2>
@@ -1530,6 +1533,10 @@
                 <span id="revTheirsLabel">Their badges</span>
                 <button id="revTheirsBtn">On</button>
               </div>
+              <div class="setrow" id="bestRow">
+                <span id="hintLabel">Hints</span>
+                <button id="hintBtn">Off</button>
+              </div>
               <div id="reviewBody"></div>
             </section>
             <!-- The old tactics coach. Its code is still below and still tested;
@@ -1553,9 +1560,12 @@
             </div>
           </div>
           <div class="pane" data-pane="set">
+            <div class="setrow" id="posRow">
+              <span>Position</span>
+              <button id="posSaveBtn">Save</button>
+              <button id="posOpenBtn">Open saved</button>
+            </div>
             <div class="setrow" id="hintRow">
-              <span id="hintLabel">Hints</span>
-              <button id="hintBtn">Off</button>
               <span id="autoLabel">Engine plays</span>
               <button id="autoBtn">Off</button>
             </div>
@@ -3249,7 +3259,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.2-bestmove';
+const VERSION = '2026-10-22.3-positions';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3909,6 +3919,8 @@ function persist() {
   if (ownTable(code) && result) { try { localStorage.removeItem('table:' + code); } catch {} return; }
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
+  if (startFen && (code === 'local' || code === 'solo') && game.history().length)
+    store.set('table:lastLine', { name: 'Where you left off', fen: startFen, moves: game.history(), mode: code, myColor, at: Date.now() });
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
@@ -6183,6 +6195,10 @@ function draw() {
   el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
   el('autoBtn').classList.toggle('hidden', solo);
   el('autoLabel').classList.toggle('hidden', solo);
+  el('hintRow').classList.toggle('hidden', solo);                       // only Engine plays is left in it
+  el('posRow').classList.toggle('hidden', code !== 'local' && code !== 'solo');
+  // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
+  el('hintLabel').textContent = (isLocal() || startFen) ? 'Best move' : 'Hints';
   el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
   el('rematchBtn').classList.toggle('hidden', !result);
   el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
@@ -10011,8 +10027,6 @@ function begin() {
   document.body.classList.toggle('localmode', code === 'local');
   showTab(activeTab);
   if (code !== 'puzzle') { restore(); showTab(activeTab); }   // a set-up game hides Openings
-  // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
-  el('hintLabel').textContent = (code === 'local' || startFen) ? 'Best move' : 'Hints';
   if (!solo) {
     connect();
     el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
@@ -10146,9 +10160,55 @@ function drawSetup() {
 }
 
 function drawSavedPositions() {
-  const list = store.get('table:positions') || [];
-  el('setupSaved').innerHTML = '<option value="">' + (list.length ? 'Choose a saved position' : 'None saved yet') + '</option>' +
-    list.map((x, i) => `<option value="${i}">${escText(x.name)}</option>`).join('');
+  const list = store.get('table:positions') || [], last = store.get('table:lastLine');
+  el('setupSaved').innerHTML = '<option value="">' + (list.length || last ? 'Choose a saved position' : 'None saved yet') + '</option>' +
+    (last ? `<option value="last">Where you left off (${lineMoves(last)})</option>` : '') +
+    list.map((x, i) => `<option value="${i}">${escText(x.name)}${x.moves && x.moves.length ? ' (' + lineMoves(x) + ')' : ''}</option>`).join('');
+  el('setupResumeRow').classList.add('hidden');
+}
+
+/* A saved position is where it started (fen) and the moves played from there,
+   so it can be carried on from where it got to, with takebacks back to the start. */
+const STD_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+function lineMoves(x) { const n = (x.moves || []).length; return n + (n === 1 ? ' move' : ' moves'); }
+function lineEnd(x) {
+  try { const g = new Chess(x.fen); for (const m of x.moves || []) g.move(m); return g; } catch { return null; }
+}
+function savedLine(v) {
+  if (v === 'last') return store.get('table:lastLine');
+  return (store.get('table:positions') || [])[+v] || null;
+}
+function namePrompt(title) {
+  return openModal({
+    title,
+    body: '<p>A name you’ll recognise, like the book and page.</p><input id="suName" class="fen" style="width:100%" autocomplete="off">',
+    actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'go', run: () => { closeModal((el('suName').value || '').trim() || 'Position'); return true; } }],
+    onOpen: b => { const i = b.querySelector('#suName'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') closeModal((i.value || '').trim() || 'Position'); }); },
+  });
+}
+// start a game from a saved line: 'local' plays both sides, 'solo' against the computer
+function playLine(x, mode) {
+  const end = lineEnd(x);
+  if (!end) return false;
+  const local = mode === 'local';
+  const mine = local ? 'w' : (x.mode === 'solo' && x.myColor) || end.turn();
+  document.body.classList.remove('insetup');
+  el('setup').classList.add('hidden');
+  const inGame = !el('game').classList.contains('hidden') && code === mode;
+  solo = true; onePiece = false; code = mode;
+  if (inGame) {                          // already at the board: swap the game in place
+    startFen = x.fen;
+    startFresh(mine);
+    if ((x.moves || []).length) adopt(x.moves, null, true);
+    showTab(activeTab);
+    return true;
+  }
+  store.set('table:' + mode, { history: x.moves || [], myColor: mine, result: null, gameId: null, fen: x.fen,
+    setting: 'setup:' + (local ? 'local' : opponent) });
+  myColor = mine;
+  setHash(mine);
+  begin();
+  return true;
 }
 
 function openSetup() {
@@ -10247,17 +10307,20 @@ el('setupFen').addEventListener('keydown', e => { if (e.key === 'Enter') el('set
 el('setupFenCopy').onclick = async e => { if (!await copyText(suFen(), e.currentTarget)) showTextModal('FEN', suFen()); };
 
 el('setupSaved').onchange = () => {
-  const list = store.get('table:positions') || [];
-  const x = list[+el('setupSaved').value];
-  if (x && suFromFen(x.fen)) drawSetup();
+  const x = el('setupSaved').value === '' ? null : savedLine(el('setupSaved').value);
+  const end = x && lineEnd(x);
+  const n = x ? (x.moves || []).length : 0;
+  // the editor shows where the line got to; Carry on picks it up with its moves
+  if (end && suFromFen(end.fen())) drawSetup();
+  el('setupResumeRow').classList.toggle('hidden', !n);
+  if (n) el('setupResume').textContent = `Carry on from move ${Math.ceil(n / 2)}, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
+};
+el('setupResume').onclick = () => {
+  const x = savedLine(el('setupSaved').value);
+  if (x) playLine(x, x.mode === 'solo' ? 'solo' : 'local');
 };
 el('setupSave').onclick = async () => {
-  const name = await openModal({
-    title: 'Save this position',
-    body: '<p>A name you’ll recognise, like the book and page.</p><input id="suName" class="fen" style="width:100%" autocomplete="off">',
-    actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'go', run: () => { closeModal((el('suName').value || '').trim() || 'Position'); return true; } }],
-    onOpen: b => { const i = b.querySelector('#suName'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') closeModal((i.value || '').trim() || 'Position'); }); },
-  });
+  const name = await namePrompt('Save this position');
   if (!name) return;
   const list = store.get('table:positions') || [];
   list.push({ name, fen: suFen(), at: Date.now() });
@@ -10265,9 +10328,40 @@ el('setupSave').onclick = async () => {
   drawSavedPositions();
   el('setupSaved').value = String(list.length - 1);
 };
+el('posSaveBtn').onclick = async () => {
+  const name = await namePrompt(game.history().length ? 'Save this position and its moves' : 'Save this position');
+  if (!name) return;
+  const list = store.get('table:positions') || [];
+  list.push({ name, fen: startFen || STD_FEN, moves: game.history(), mode: code === 'local' ? 'local' : 'solo', myColor, at: Date.now() });
+  store.set('table:positions', list);
+  el('posSaveBtn').textContent = 'Saved';
+  setTimeout(() => { el('posSaveBtn').textContent = 'Save'; }, 1600);
+};
+el('posOpenBtn').onclick = async () => {
+  const list = store.get('table:positions') || [];
+  const last = store.get('table:lastLine');
+  const items = (last ? [['last', last]] : []).concat(list.map((x, i) => [String(i), x]));
+  if (!items.length) { await openModal({ title: 'No saved positions', body: '<p>Save one with Save, here or on the Set up a position page.</p>' }); return; }
+  const v = await openModal({
+    title: 'Open a saved position',
+    body: `<p>It replaces the game on the board${isLocal() ? '' : ', against the same computer opponent'}. This game stays in Your games.</p>` +
+      items.map(([k, x]) => `<button type="button" class="posPick" data-k="${k}" style="display:block;width:100%;text-align:left;margin:6px 0">${escText(x.name)}${(x.moves || []).length ? ' · ' + lineMoves(x) : ''}</button>`).join(''),
+    actions: [{ label: 'Cancel', value: null }],
+    onOpen: b => b.querySelectorAll('.posPick').forEach(btn => btn.onclick = () => closeModal(btn.dataset.k)),
+  });
+  if (v === null || v === undefined) return;
+  const x = savedLine(v);
+  if (x) playLine(x, code === 'local' ? 'local' : 'solo');
+};
 el('setupDelete').onclick = async () => {
   const list = store.get('table:positions') || [];
   const i = +el('setupSaved').value;
+  if (el('setupSaved').value === 'last') {
+    if (!await confirmModal('Forget where you left off?', 'The game itself stays in Your games.', 'Forget', { danger: true })) return;
+    store.set('table:lastLine', null);
+    drawSavedPositions();
+    return;
+  }
   if (el('setupSaved').value === '' || !list[i]) return;
   if (!await confirmModal('Delete this position?', `“${list[i].name}” will be removed from your saved positions.`, 'Delete', { danger: true })) return;
   list.splice(i, 1);
