@@ -1321,6 +1321,10 @@
   .choice.carry .ct { font-size: 16px; }
   .carryhead { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
   #carryOn:not(:empty) { margin-bottom: 22px; }
+  .carryrow { display: flex; gap: 8px; align-items: stretch; margin: 0 0 12px; }
+  .carryrow button.choice { margin: 0; flex: 1; min-width: 0; }
+  .carryx { flex: none; width: 44px; padding: 0; font-size: 20px; line-height: 1; color: var(--muted); }
+  .carryx:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
   .lfoot { margin-top: 18px; }
   .lsec.first { border-top: 0; padding-top: 0; }
   .lsec.first .note + button.primary { margin-top: 12px; }
@@ -1375,7 +1379,7 @@
       <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
       <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
       <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
-      <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Your games</button></div>
+      <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button></div>
     </div>
 
     <div class="scr hidden" id="scrPlay">
@@ -3364,7 +3368,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.13-reviewparts';
+const VERSION = '2026-10-22.14-carryx';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4559,7 +4563,7 @@ async function showGames() {
 
   const empty = !games.length;
   return openModal({
-    title: 'Your games',
+    title: 'Game history',
     body: wrap,
     onOpen: refresh,
     actions: [
@@ -9156,7 +9160,7 @@ if (/[?&#]debug\b/.test(location.href)) toggleDebug();
    being played and was set up the way the start screen is set up now (same
    opponent or piece, and the same colour unless Toss is picked). A finished
    game, or a different choice, starts a new game. Finished games stay in
-   "Your games" either way. */
+   "Game history" either way. */
 function soloStart(saveKey, choice, setting) {
   const saved = store.get('table:' + saveKey);
   const live = saved && Array.isArray(saved.history) && saved.history.length > 0 && !saved.result;
@@ -9268,9 +9272,9 @@ el('resignBtn').onclick = async () => {
   if (solo) actions.push({ label: isLocal() ? 'Resign & new game' : 'Resign & rematch', value: 'again', kind: 'danger' });
   const choice = await openModal({
     title: isLocal() ? `${game.turn() === 'w' ? 'White' : 'Black'} resigns?` : 'Resign?',
-    body: isLocal() ? '<p>The side to move resigns. The game is saved to your games.</p>' : solo
-      ? '<p>The game is saved to your games as a loss either way. A rematch swaps colours.</p>'
-      : '<p>They’ll be told straight away. The game is saved to your games as a loss.</p>',
+    body: isLocal() ? '<p>The side to move resigns. The game is saved to your game history.</p>' : solo
+      ? '<p>The game is saved to your game history as a loss either way. A rematch swaps colours.</p>'
+      : '<p>They’ll be told straight away. The game is saved to your game history as a loss.</p>',
     actions
   });
   if (!choice || result) return;
@@ -10667,6 +10671,11 @@ function oppTitle(id) {
   return o ? o.textContent : 'the computer';
 }
 const movesIn = n => `${n} move${n === 1 ? '' : 's'} in`;
+// removing a set-up game also forgets it as 'where you left off', when that's the same line
+function dropLast(t) {
+  const last = store.get('table:lastLine');
+  if (last && last.fen === t.fen && (last.moves || []).join() === (t.history || []).join()) store.set('table:lastLine', null);
+}
 function carryOnItems() {
   const out = [];
   const live = x => x && Array.isArray(x.history) && x.history.length > 0 && !x.result;
@@ -10676,27 +10685,27 @@ function carryOnItems() {
     out.push({ at: 3, title: (solo_.fen ? 'Your position against ' : 'Against ') + oppTitle(opp), sub: movesIn(solo_.history.length), go: () => {
       if (opp) setOpponent(opp);
       solo = true; code = 'solo'; myColor = solo_.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
-    } });
+    }, drop: () => { store.set('table:solo', null); if (solo_.fen) dropLast(solo_); } });
   }
   const one = store.get('table:onepiece');
   if (live(one) && ONLY_WORD[one.setting]) {
     out.push({ at: 2, title: `One-piece challenge (${ONLY_WORD[one.setting]}s)`, sub: movesIn(one.history.length), go: () => {
       solo = true; onePiece = true; oppOnly = one.setting; store.set('table:oppOnly', oppOnly);
       code = 'onepiece'; myColor = one.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
-    } });
+    }, drop: () => store.set('table:onepiece', null) });
   }
   const loc = store.get('table:local');
   if (live(loc)) {
     out.push({ at: 4, title: loc.fen ? 'Your position, playing both sides' : 'On this device', sub: movesIn(loc.history.length), go: () => {
       solo = true; code = 'local'; myColor = 'w'; setHash('w'); begin();
-    } });
+    }, drop: () => { store.set('table:local', null); if (loc.fen) dropLast(loc); } });
   }
   // a set-up line that has since been replaced by another game of the same kind
   const last = store.get('table:lastLine');
   const same = x => x && x.fen === last.fen && Array.isArray(x.history) && x.history.join() === (last.moves || []).join();
   if (last && (last.moves || []).length && !same(last.mode === 'solo' ? solo_ : loc)) {
     out.push({ at: 1, title: 'Where you left off in a position', sub: `${last.mode === 'solo' ? 'against the computer' : 'playing both sides'}, ${movesIn(last.moves.length)}`,
-      go: () => playLine(last, last.mode === 'solo' ? 'solo' : 'local') });
+      go: () => playLine(last, last.mode === 'solo' ? 'solo' : 'local'), drop: () => store.set('table:lastLine', null) });
   }
   // online tables with a game under way
   try {
@@ -10706,7 +10715,8 @@ function carryOnItems() {
       if (!m) continue;
       const t = store.get(k);
       if (live(t)) out.push({ at: 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`, sub: movesIn(t.history.length),
-        go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }) });
+        go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }),
+        drop: () => { try { localStorage.removeItem(k); } catch {} } });
     }
   } catch {}
   return out.sort((a, b) => b.at - a.at).slice(0, 4);
@@ -10715,8 +10725,15 @@ function drawCarryOn() {
   const items = carryOnItems();
   const box = el('carryOn');
   box.innerHTML = items.length ? '<p class="carryhead">Carry on</p>' + items.map((x, i) =>
-    `<button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span><span class="cd">${escText(x.sub)}</span></button>`).join('') : '';
-  box.querySelectorAll('button').forEach(b => b.onclick = () => items[+b.dataset.i].go());
+    `<div class="carryrow"><button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span><span class="cd">${escText(x.sub)}</span></button>` +
+    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from Carry on" title="Remove from Carry on">×</button></div>`).join('') : '';
+  box.querySelectorAll('button.carry').forEach(b => b.onclick = () => items[+b.dataset.i].go());
+  box.querySelectorAll('button.carryx').forEach(b => b.onclick = async () => {
+    const x = items[+b.dataset.x];
+    if (!await confirmModal('Remove from Carry on?', `“${x.title}” won’t be offered here any more. Its moves so far stay in Game history.`, 'Remove')) return;
+    x.drop();
+    drawCarryOn();
+  });
 }
 el('setupBack').onclick = () => goBack();
 el('setupClear').onclick = () => { su.pos = new Map(); su.castleOff.clear(); drawSetup(); };
@@ -10776,7 +10793,7 @@ el('posOpenBtn').onclick = async () => {
   if (!items.length) { await openModal({ title: 'No saved positions', body: '<p>Save one with Save, here or on the Set up a position page.</p>' }); return; }
   const v = await openModal({
     title: 'Open a saved position',
-    body: `<p>It replaces the game on the board${isLocal() ? '' : ', against the same computer opponent'}. This game stays in Your games.</p>` +
+    body: `<p>It replaces the game on the board${isLocal() ? '' : ', against the same computer opponent'}. This game stays in Game history.</p>` +
       items.map(([k, x]) => `<button type="button" class="posPick" data-k="${k}" style="display:block;width:100%;text-align:left;margin:6px 0">${escText(x.name)}${(x.moves || []).length ? ' · ' + lineMoves(x) : ''}</button>`).join(''),
     actions: [{ label: 'Cancel', value: null }],
     onOpen: b => b.querySelectorAll('.posPick').forEach(btn => btn.onclick = () => closeModal(btn.dataset.k)),
@@ -10789,7 +10806,7 @@ el('setupDelete').onclick = async () => {
   const list = store.get('table:positions') || [];
   const i = +el('setupSaved').value;
   if (el('setupSaved').value === 'last') {
-    if (!await confirmModal('Forget where you left off?', 'The game itself stays in Your games.', 'Forget', { danger: true })) return;
+    if (!await confirmModal('Forget where you left off?', 'The game itself stays in Game history.', 'Forget', { danger: true })) return;
     store.set('table:lastLine', null);
     drawSavedPositions();
     return;
@@ -11295,10 +11312,7 @@ if (localHash) {
   renderScreen(history.state && history.state.scr || 'home');
 }
 
-{
-  const w = document.querySelector('.wrap');
-  if (!calm()) { w.classList.add('away'); requestAnimationFrame(() => requestAnimationFrame(() => w.classList.remove('away'))); }
-}
+// a freshly loaded page simply appears: fading it in meant drawing it, hiding it, then fading it back (a flash)
 
 window.addEventListener('hashchange', () => {
   if (navigating) { navigating = false; return; }
