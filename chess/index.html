@@ -92,7 +92,9 @@
     align-items: center;
   }
 
-  .wrap { width: 100%; max-width: 460px; }
+  .wrap { width: 100%; max-width: 460px; transition: opacity .15s ease, transform .15s ease; }
+  /* moving between screens: what's on the page fades out, the next screen fades in; the background stays */
+  .wrap.away { opacity: 0; transform: translateY(4px); }
 
   /* ---- connection thread ---- */
   .thread {
@@ -1289,6 +1291,37 @@
   .cam-ui .shutter { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--brass); background: rgba(200,163,91,.15); padding: 0; }
   .cam-ui .bar button:not(.shutter) { padding: 9px 14px; font-size: 12px; }
 
+  /* ---- home and its screens ---- */
+  .scr .topbar { margin-bottom: 14px; }
+  button.choice {
+    display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 16px 18px;
+    border: 1px solid var(--edge); background: none; color: var(--text);
+  }
+  button.choice:hover:not(:disabled) { border-color: var(--brass); }
+  .choice .ct { display: block; font-family: var(--display); font-size: 20px; color: var(--brass); margin-bottom: 4px; letter-spacing: 0; text-transform: none; }
+  .choice .cd { display: block; font-size: 12.5px; line-height: 1.55; color: var(--muted); letter-spacing: 0; text-transform: none; }
+  button.choice.carry { border-color: var(--brass-dim); }
+  .choice.carry .ct { font-size: 16px; }
+  .carryhead { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  #carryOn:not(:empty) { margin-bottom: 22px; }
+  .lfoot { margin-top: 18px; }
+  .lsec.first { border-top: 0; padding-top: 0; }
+  .lsec.first .note + button.primary { margin-top: 12px; }
+  .sideslot fieldset { margin-bottom: 14px; }
+  body.lobbysub header, body.lobbysub .verstamp, body.lobbysub #debugPanel { display: none; }
+  body.lobbysub .lobby { margin-top: 0; }
+  /* screens come in with a short fade */
+  .fadein { animation: fadein .16s ease-out; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .fadein { animation: none; } }
+  /* waiting for a friend online: the connection is the whole screen; the board comes when they do */
+  body.connecting .boardcol { display: none !important; }
+  body.connecting .wrap { max-width: 560px !important; }
+  body.connecting .game-grid { display: flex !important; flex-direction: column; }
+  .dropbar { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--brass-dim); font-size: 12px; color: var(--text); flex: none; }
+  .dropbar span { flex: 1; min-width: 0; }
+  .dropbar button { padding: 6px 10px; font-size: 12px; }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1317,52 +1350,40 @@
     </div>
   </section>
 
-  <!-- LOBBY -->
+  <!-- LOBBY: a home screen with three choices, each leading to a short screen of its own -->
   <section class="lobby" id="lobby">
-    <p class="lede">Chess practice: solve puzzles, play the computer or a friend, and see why each move was good or bad.</p>
-
-    <div class="lsec">
-      <h2 class="lhead">Puzzles</h2>
-      <button class="primary" id="pzBtn">Solve puzzles</button>
-      <p class="note">Positions from real games on Lichess where one move wins. They adapt to your level, and a wrong move shows you why it fails. Needs an internet connection.</p>
+    <div class="scr" id="scrHome">
+      <p class="lede">Chess practice, with feedback on every move.</p>
+      <div id="carryOn"></div>
+      <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
+      <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
+      <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
+      <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Your games</button></div>
     </div>
 
-    <div class="lsec side">
-    <fieldset>
-      <legend>You play (in games)</legend>
-      <div class="choices">
-        <label><input type="radio" name="side" value="w" checked><span>White</span></label>
-        <label><input type="radio" name="side" value="b"><span>Black</span></label>
-        <label><input type="radio" name="side" value="r"><span>Toss</span></label>
+    <div class="scr hidden" id="scrPlay">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Play a game</div>
       </div>
-    </fieldset>
+      <button class="choice" id="goComputer"><span class="ct">Against the computer</span><span class="cd">Pick an opponent, from a gentle Stockfish to full strength. No waiting, and every move can be reviewed.</span></button>
+      <button class="choice" id="goPerson"><span class="ct">Against a person</span><span class="cd">A friend on this device, or online with a link you send them.</span></button>
     </div>
 
+    <div class="scr hidden" id="scrComputer">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Against the computer</div>
+      </div>
+      <div class="sideslot"></div>
+      <div class="lsec first">
+        <label class="label" for="oppLobby">Opponent</label>
+        <select class="opp" id="oppLobby"></select>
+        <p class="note" id="oppNote"></p>
+        <button class="primary" id="soloBtn">Play</button>
+      </div>
     <div class="lsec">
-      <h2 class="lhead">Computer</h2>
-      <label class="label" for="oppLobby">Opponent</label>
-      <select class="opp" id="oppLobby"></select>
-      <button class="primary alt" id="soloBtn">Play the computer</button>
-      <p class="note" id="oppNote"></p>
-    </div>
-
-
-    <div class="lsec">
-      <h2 class="lhead">Friend</h2>
-      <button class="primary alt" id="startBtn">Open a table</button>
-      <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
-      <button class="primary alt" id="localBtn">Play on this device</button>
-      <p class="note">Both of you on one phone, no link needed. The board faces White; Black sits opposite and reads it upside down.</p>
-      <details class="how">
-        <summary>How this works</summary>
-        <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
-        <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
-        <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
-      </details>
-    </div>
-
-    <div class="lsec">
-      <h2 class="lhead">One-piece challenge</h2>
+      <h2 class="lhead">Or: the one-piece challenge</h2>
       <label class="label" for="onlyLobby">The computer may move only</label>
       <select class="opp" id="onlyLobby">
         <option value="k">the king</option>
@@ -1372,17 +1393,46 @@
         <option value="n">knights</option>
         <option value="p">pawns</option>
       </select>
-      <button class="primary alt" id="oneBtn">Play the one-piece challenge</button>
+      <button class="primary alt" id="oneBtn">Play the challenge</button>
       <p class="note">A party trick, played by the Étude engine. It moves only that piece and plays for chances rather than safety. If it loses every one of them, it resigns. If you are left with a bare king, its whole army is freed.</p>
     </div>
-
-    <div class="lsec">
-      <h2 class="lhead">Positions</h2>
-      <button class="primary alt" id="setupBtn">Set up a position</button>
-      <p class="note">Drag pieces onto a board, or paste a FEN, to set up a position from a book or a lesson. Then play it out against the computer or work through it yourself.</p>
     </div>
 
-    <button class="linkish" id="gamesLobbyBtn">Your games</button>
+    <div class="scr hidden" id="scrPerson">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Against a person</div>
+      </div>
+      <button class="choice" id="localBtn"><span class="ct">On this device</span><span class="cd">Both of you on one phone or tablet, taking turns. The board faces White.</span></button>
+      <button class="choice" id="goOnline"><span class="ct">Online</span><span class="cd">Send your friend a link. Your two devices connect directly while you both have the page open.</span></button>
+    </div>
+
+    <div class="scr hidden" id="scrOnline">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Play online</div>
+      </div>
+      <div class="sideslot"></div>
+      <div class="lsec first">
+        <button class="primary" id="startBtn">Open a table</button>
+        <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+      </div>
+      <details class="how">
+        <summary>How this works</summary>
+        <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+        <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
+        <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+      </details>
+    </div>
+
+    <fieldset id="sideField">
+      <legend>You play</legend>
+      <div class="choices">
+        <label><input type="radio" name="side" value="w" checked><span>White</span></label>
+        <label><input type="radio" name="side" value="b"><span>Black</span></label>
+        <label><input type="radio" name="side" value="r"><span>Toss</span></label>
+      </div>
+    </fieldset>
   </section>
 
 
@@ -1475,6 +1525,7 @@
         <div class="taken" id="takenBottom"></div>
       </div>
       <div class="side">
+        <div class="dropbar hidden" id="dropBar"><span id="dropText"></span><button id="dropRetry">Reconnect</button></div>
         <div class="hintpanel hidden" id="hintPanel">
           <div class="evalbar"><span id="evalFill"></span></div>
           <div class="hintline">
@@ -3286,7 +3337,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.6-table';
+const VERSION = '2026-10-22.8-fade';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3691,6 +3742,7 @@ function connect() {
   healthTimer = setInterval(() => {
     if (peers.size && Date.now() - lastPing >= PING_MS) ping();
     drawConn();
+    drawDrop();
     drawStatus();
   }, 1000);
 }
@@ -3729,6 +3781,51 @@ function drawConn() {
   line.classList.toggle('warn', silent || peerVersion !== VERSION);
   el('topState').textContent = silent && quiet != null ? 'no reply' : 'connected';
 }
+/* Before the first move, until something has actually arrived from them, the
+   screen is only the table: the code to send and the connection. The board
+   comes in when they do. A game already under way keeps its board; losing
+   them then shows a bar with Reconnect instead. */
+function updateConnecting() {
+  const online = !solo && !!code && code !== 'puzzle';
+  const connecting = online && game.history().length === 0 && (!peers.size || !peerSeen);
+  const was = document.body.classList.contains('connecting');
+  document.body.classList.toggle('online', online);
+  document.body.classList.toggle('connecting', connecting);
+  if (connecting && activeTab !== 'table') { prevTab = activeTab; showTab('table'); }
+  else if (!connecting && was) {
+    if (activeTab === 'table') showTab(prevTab || store.get('table:tab') || 'open');
+    fadeIn(document.querySelector('.game-grid'));
+    draw();
+  }
+}
+function drawDrop() {
+  const online = !solo && !!code && code !== 'puzzle';
+  const quiet = peerSeen ? Date.now() - peerSeen : Infinity;
+  const show = online && !document.body.classList.contains('connecting') && !result && (!peers.size || quiet > SILENT_MS);
+  el('dropBar').classList.toggle('hidden', !show);
+  if (show) el('dropText').textContent = !peers.size ? 'They’re not connected. Moves will cross when you both have the page open.'
+    : `Nothing heard from them for ${fmtSecs(Math.round(quiet / 1000))}.`;
+}
+/* Fade the page's contents out, change screen, fade them back in. */
+const FADE_MS = 150;
+const calm = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function swapScreen(change) {
+  const w = document.querySelector('.wrap');
+  if (calm() || w.classList.contains('away')) { change(); w.classList.remove('away'); return; }
+  w.classList.add('away');
+  setTimeout(() => {
+    change();
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => w.classList.remove('away'));
+  }, FADE_MS);
+}
+function fadeIn(node) {
+  if (!node) return;
+  node.classList.remove('fadein');
+  void node.offsetWidth;            // restart the animation
+  node.classList.add('fadein');
+}
+
 function showDiag(slot) {
   const panel = el('debugPanel');
   const here = panel.parentElement === el(slot);
@@ -3801,7 +3898,9 @@ function sendState() {
 
 function handleMessage(msg) {
   if (!msg || typeof msg !== 'object') return;
+  const first = !peerSeen;
   peerSeen = Date.now();
+  if (first) updateConnecting();
 
   if (msg.t === 'ping') {
     const changed = peerVersion !== msg.v;
@@ -4011,7 +4110,10 @@ function persist() {
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
   if (startFen && (code === 'local' || code === 'solo') && game.history().length)
+  {
     store.set('table:lastLine', { name: 'Where you left off', fen: startFen, moves: game.history(), mode: code, myColor, flip: flipView, at: Date.now() });
+    store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
+  }
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
@@ -6461,6 +6563,11 @@ function drawStatus() {
   }
 
   const check = game.isCheck() ? ' You’re in check.' : '';
+  if (document.body.classList.contains('connecting')) {
+    s.textContent = peers.size ? 'Found them…' : 'Waiting for your friend';
+    el('gameNote').textContent = '';
+    return;
+  }
   if (engineToMove() && ((engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) ||
       (oppHold && oppHold.fen === game.fen()) || forcedTimer)) {
     // At long budgets an idle board is indistinguishable from a crash.
@@ -6495,7 +6602,6 @@ function drawStatus() {
     note.textContent = seatClash
       ? 'You’re both on the same side. One of you should open the link from the share button.'
       : peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
-      : peerSeen && Date.now() - peerSeen > SILENT_MS ? 'Nothing heard from them for a while. The Table tab has Reconnect.'
       : '';
     note.removeAttribute('title');
   } else {
@@ -8675,13 +8781,8 @@ function setLink() {
   el('topState').textContent = el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
-  // not connected: only the Table. Connected: back to the game, with Table still a tab away
-  const online = !!code, connecting = online && !peers.size;
-  const was = document.body.classList.contains('connecting');
-  document.body.classList.toggle('online', online);
-  document.body.classList.toggle('connecting', connecting);
-  if (connecting && activeTab !== 'table') { prevTab = activeTab; showTab('table'); }
-  else if (!connecting && was && activeTab === 'table') showTab(prevTab || store.get('table:tab') || 'open');
+  updateConnecting();
+  el('invite').querySelector('.label').textContent = `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
   drawConn();
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
@@ -8963,6 +9064,7 @@ el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = f
 el('connDiag').onclick = () => showDiag('connDebugSlot');
 el('setDiag').onclick = () => showDiag('diagSlot');
 // leave the room and join it again from scratch: new relay sockets, new handshakes
+el('dropRetry').onclick = () => el('connRetry').click();
 el('connRetry').onclick = () => {
   console.warn('reconnect pressed');
   lastRejoin = Date.now();
@@ -9036,7 +9138,7 @@ el('pzBtn').onclick = () => {
 
 /* Back to the start screen. Every game is saved as it goes, so this only
    leaves; opening the same mode or link again picks the game up. */
-el('backBtn').onclick = () => { location.href = location.pathname + location.search; };
+el('backBtn').onclick = () => swapScreen(() => { location.href = location.pathname + location.search; });
 
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
@@ -10167,10 +10269,14 @@ function pzStart() {
   else { pz.cur = null; pzNext(); }
 }
 
-function begin() {
+function begin(now) {
+  // from a start screen: fade across; on first load it just appears (the page fades in as a whole)
+  const from = !el('lobby').classList.contains('hidden') || !el('setup').classList.contains('hidden');
+  if (from && !now) { swapScreen(() => begin(true)); return; }
   el('lobby').classList.add('hidden');
   el('setup').classList.add('hidden');
   el('game').classList.remove('hidden');
+  document.body.classList.remove('lobbysub', 'insetup');
   document.body.classList.add('ingame');
   // the invite card, the version stamp and diagnostics move into the game layout
   el('inviteSlot').appendChild(el('invite'));
@@ -10373,6 +10479,11 @@ function openSetup() {
   fillOppSelects();
   if (!suFromFen(store.get('table:setupFen') || '8/8/8/8/8/8/8/8 w - - 0 1')) suFromFen('8/8/8/8/8/8/8/8 w - - 0 1');
   drawSavedPositions();
+  const last = store.get('table:lastLine');
+  if (last && (last.moves || []).length && (!store.get('table:setupFen') || store.get('table:setupFen') === last.fen)) {
+    el('setupSaved').value = 'last';
+    el('setupSaved').onchange();
+  }
   drawSetup();
   window.scrollTo(0, 0);
 }
@@ -10440,8 +10551,102 @@ for (const id of ['setupBoard', 'shelf']) {
   n.addEventListener('contextmenu', e => e.preventDefault());
 }
 
-el('setupBtn').onclick = openSetup;
-el('setupBack').onclick = () => { document.body.classList.remove('insetup'); el('setup').classList.add('hidden'); el('lobby').classList.remove('hidden'); };
+/* ---------- the start screens ----------
+   Home has three choices; each opens a short screen of its own. They are
+   entries in the browser history, so the phone's back gesture steps back
+   through them. Games themselves still live in the address (#solo=1, #r=...). */
+const SCREENS = { home: 'scrHome', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
+function renderScreen(name) {
+  if (!SCREENS[name] && name !== 'setup') name = 'home';
+  document.body.classList.toggle('lobbysub', name !== 'home');
+  if (name === 'setup') { openSetup(); return; }
+  document.body.classList.remove('insetup');
+  el('setup').classList.add('hidden');
+  el('lobby').classList.remove('hidden');
+  for (const [k, id] of Object.entries(SCREENS)) el(id).classList.toggle('hidden', k !== name);
+  const slot = el(SCREENS[name]).querySelector('.sideslot');
+  if (slot) slot.appendChild(el('sideField'));
+  el('sideField').classList.toggle('hidden', !slot);
+  if (name === 'home') drawCarryOn();
+  window.scrollTo(0, 0);
+}
+function showScreen(name) {
+  history.pushState({ scr: name }, '', location.pathname + location.search);
+  swapScreen(() => renderScreen(name));
+}
+function goBack() {
+  if (history.state && history.state.scr) history.back();
+  else { history.replaceState(null, '', location.pathname + location.search); swapScreen(() => renderScreen('home')); }
+}
+window.addEventListener('popstate', e => {
+  if (location.hash || el('lobby').classList.contains('hidden') && el('setup').classList.contains('hidden')) return;
+  swapScreen(() => renderScreen(e.state && e.state.scr || 'home'));
+});
+document.querySelectorAll('#lobby [data-back]').forEach(b => b.onclick = goBack);
+el('goPlay').onclick = () => showScreen('play');
+el('goComputer').onclick = () => showScreen('computer');
+el('goPerson').onclick = () => showScreen('person');
+el('goOnline').onclick = () => showScreen('online');
+el('goAnalyse').onclick = () => showScreen('setup');
+
+/* Carry on: whatever is unfinished, at the top of home, so coming back is one tap. */
+function oppTitle(id) {
+  const o = el('oppLobby').querySelector(`option[value="${id}"]`);
+  return o ? o.textContent : 'the computer';
+}
+const movesIn = n => `${n} move${n === 1 ? '' : 's'} in`;
+function carryOnItems() {
+  const out = [];
+  const live = x => x && Array.isArray(x.history) && x.history.length > 0 && !x.result;
+  const solo_ = store.get('table:solo');
+  if (live(solo_)) {
+    const opp = String(solo_.setting || '').replace(/^setup:/, '');
+    out.push({ at: 3, title: (solo_.fen ? 'Your position against ' : 'Against ') + oppTitle(opp), sub: movesIn(solo_.history.length), go: () => {
+      if (opp) setOpponent(opp);
+      solo = true; code = 'solo'; myColor = solo_.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
+    } });
+  }
+  const one = store.get('table:onepiece');
+  if (live(one) && ONLY_WORD[one.setting]) {
+    out.push({ at: 2, title: `One-piece challenge (${ONLY_WORD[one.setting]}s)`, sub: movesIn(one.history.length), go: () => {
+      solo = true; onePiece = true; oppOnly = one.setting; store.set('table:oppOnly', oppOnly);
+      code = 'onepiece'; myColor = one.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
+    } });
+  }
+  const loc = store.get('table:local');
+  if (live(loc)) {
+    out.push({ at: 4, title: loc.fen ? 'Your position, playing both sides' : 'On this device', sub: movesIn(loc.history.length), go: () => {
+      solo = true; code = 'local'; myColor = 'w'; setHash('w'); begin();
+    } });
+  }
+  // a set-up line that has since been replaced by another game of the same kind
+  const last = store.get('table:lastLine');
+  const same = x => x && x.fen === last.fen && Array.isArray(x.history) && x.history.join() === (last.moves || []).join();
+  if (last && (last.moves || []).length && !same(last.mode === 'solo' ? solo_ : loc)) {
+    out.push({ at: 1, title: 'Where you left off in a position', sub: `${last.mode === 'solo' ? 'against the computer' : 'playing both sides'}, ${movesIn(last.moves.length)}`,
+      go: () => playLine(last, last.mode === 'solo' ? 'solo' : 'local') });
+  }
+  // online tables with a game under way
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      const m = /^table:([a-z0-9]{9})$/.exec(k || '');
+      if (!m) continue;
+      const t = store.get(k);
+      if (live(t)) out.push({ at: 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`, sub: movesIn(t.history.length),
+        go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }) });
+    }
+  } catch {}
+  return out.sort((a, b) => b.at - a.at).slice(0, 4);
+}
+function drawCarryOn() {
+  const items = carryOnItems();
+  const box = el('carryOn');
+  box.innerHTML = items.length ? '<p class="carryhead">Carry on</p>' + items.map((x, i) =>
+    `<button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span><span class="cd">${escText(x.sub)}</span></button>`).join('') : '';
+  box.querySelectorAll('button').forEach(b => b.onclick = () => items[+b.dataset.i].go());
+}
+el('setupBack').onclick = () => goBack();
 el('setupClear').onclick = () => { su.pos = new Map(); su.castleOff.clear(); drawSetup(); };
 el('setupStart').onclick = () => { suFromFen(SETUP_START); drawSetup(); };
 el('setupFlip').onclick = () => { su.flip = !su.flip; drawSetup(); };
@@ -10468,7 +10673,7 @@ el('setupSaved').onchange = () => {
   // the editor shows where the line got to; Carry on picks it up with its moves
   if (end && suFromFen(end.fen())) drawSetup();
   el('setupResumeRow').classList.toggle('hidden', !n);
-  if (n) el('setupResume').textContent = `Carry on from move ${Math.ceil(n / 2)}, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
+  if (n) el('setupResume').textContent = `Carry on, ${n} move${n === 1 ? '' : 's'} in, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
 };
 el('setupResume').onclick = () => {
   const x = savedLine(el('setupSaved').value);
@@ -11015,6 +11220,12 @@ if (localHash) {
   begin();
 } else {
   setLink();
+  renderScreen(history.state && history.state.scr || 'home');
+}
+
+{
+  const w = document.querySelector('.wrap');
+  if (!calm()) { w.classList.add('away'); requestAnimationFrame(() => requestAnimationFrame(() => w.classList.remove('away'))); }
 }
 
 window.addEventListener('hashchange', () => {
