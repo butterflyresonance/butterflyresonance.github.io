@@ -3249,7 +3249,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-21.5-takeback';
+const VERSION = '2026-10-22.1-takeback';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -8044,7 +8044,7 @@ function reasonText(f, st, hist) {
 
 /* ---------- the opponent plays along ---------- */
 function forcedReply() {
-  if (!solo || !openForce || !openPick || result || !FAM[openPick] || onlyActive()) return null;
+  if (!solo || startFen || !openForce || !openPick || result || !FAM[openPick] || onlyActive()) return null;
   if (game.turn() === myColor) return null;
   const hist = game.history({ verbose: true });
   if (hist.length > 30) return null;
@@ -8165,7 +8165,8 @@ function drawOpenings() {
   // Against a person too: it names what is on the board and what each of you
   // can still steer for, and suggests no moves, so it needs nobody's consent.
   // Only "Opponent plays along" is the computer's to offer.
-  const show = !!code && code !== 'puzzle';
+  // not for a set-up position: openings are tracked from the starting position
+  const show = !!code && code !== 'puzzle' && !startFen;
   blk.classList.toggle('hidden', !show);
   if (!show) return;
   ensureBook();
