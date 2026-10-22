@@ -802,7 +802,7 @@
   .pane { display: none; }
   /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
   body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.localmode #hintRow, body.localmode #thinkRow, body.localmode #revTheirsBtn, body.localmode #revTheirsLabel,
+  body.localmode #autoLabel, body.localmode #autoBtn, body.localmode #thinkRow, body.localmode #revTheirsBtn, body.localmode #revTheirsLabel,
   body.localmode .oforce { display: none !important; }
   body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
   .pzdelta { font-weight: 600; }
@@ -1554,7 +1554,7 @@
           </div>
           <div class="pane" data-pane="set">
             <div class="setrow" id="hintRow">
-              <span>Hints</span>
+              <span id="hintLabel">Hints</span>
               <button id="hintBtn">Off</button>
               <span id="autoLabel">Engine plays</span>
               <button id="autoBtn">Off</button>
@@ -3249,7 +3249,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.1-takeback';
+const VERSION = '2026-10-22.2-bestmove';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4666,14 +4666,14 @@ function onEngineSilent() {
    position on the board is the hint, and it keeps deepening while you think,
    so the suggestion can change as it looks further. The table engine is only
    the fallback, for when Stockfish can't run (opened from disk, or it failed). */
-const hintWanted = () => hintsOn && !!code && !result && game.turn() === myColor;
+const hintWanted = () => hintsOn && !!code && !result && game.turn() === moverColor();
 
 function sfHint() {
   if (!hintWanted()) return null;
   const e = anCache.get(posKey(game.fen()));
   const l = e && e.lines[0];
   if (!l || !l.uci || !e.depth) return null;
-  const sign = myColor === 'w' ? 1 : -1;
+  const sign = moverColor() === 'w' ? 1 : -1;       // the score is for the side being advised
   const mate = Math.abs(l.score) >= MATE_S / 2;
   return { from: l.uci.slice(0, 2), to: l.uci.slice(2, 4), promotion: l.uci[4], san: sanOf(game.fen(), l.uci),
            score: l.score * sign, depth: e.depth, mate, mateN: mate ? MATE_S - Math.abs(l.score) : null, sf: true };
@@ -4681,7 +4681,7 @@ function sfHint() {
 const currentHint = () => anBroken ? hint : sfHint();
 
 function requestHint() {
-  if (!hintsOn || result || game.turn() !== myColor) { hint = null; hintFen = null; return; }
+  if (!hintsOn || result || game.turn() !== moverColor()) { hint = null; hintFen = null; return; }
   if (!anBroken) { hint = null; hintFen = null; return; }   // read off the analysis engine instead
   const fen = game.fen();
   if (hintFen === fen) return;          // already asked about this position
@@ -6474,7 +6474,7 @@ function drawHint() {
     el('hintMeta').textContent = '';
     return;
   }
-  if (game.turn() !== myColor) {
+  if (game.turn() !== moverColor()) {
     el('hintMove').textContent = 'their move';
     el('hintMeta').textContent = '';
     return;
@@ -6485,7 +6485,8 @@ function drawHint() {
     return;
   }
 
-  el('hintMove').textContent = hint.san;
+  const both = isLocal(), flip = both && game.turn() === 'b' ? -1 : 1;
+  el('hintMove').textContent = (both ? (game.turn() === 'w' ? 'White: ' : 'Black: ') : '') + hint.san;
 
   if (hint.forced) {
     el('hintMeta').textContent = 'only move';
@@ -6495,13 +6496,13 @@ function drawHint() {
   if (hint.mate) {
     const n = hint.mateN ?? Math.ceil((100000 - Math.abs(hint.score)) / 2);   // Stockfish counts moves, the table engine plies
     el('hintMeta').textContent = (hint.score > 0 ? 'mate in ' : 'mated in ') + n;
-    el('evalFill').style.width = (hint.score > 0 ? 100 : 0) + '%';
+    el('evalFill').style.width = (hint.score * flip > 0 ? 100 : 0) + '%';
     return;
   }
 
-  const pawns = hint.score / 100;
+  const pawns = hint.score * flip / 100;
   el('hintMeta').textContent =
-    `${pawns >= 0 ? '+' : ''}${pawns.toFixed(1)} · depth ${hint.depth}${hint.sf ? ' · Stockfish' : ''}`;
+    `${pawns >= 0 ? '+' : ''}${pawns.toFixed(1)}${both ? ' for White' : ''} · depth ${hint.depth}${hint.sf ? ' · Stockfish' : ''}`;
   // squash the score into a bar; ±4 pawns is near the end of the scale
   el('evalFill').style.width = (50 + 50 * Math.tanh(pawns / 4)).toFixed(1) + '%';
 }
@@ -10010,6 +10011,8 @@ function begin() {
   document.body.classList.toggle('localmode', code === 'local');
   showTab(activeTab);
   if (code !== 'puzzle') { restore(); showTab(activeTab); }   // a set-up game hides Openings
+  // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
+  el('hintLabel').textContent = (code === 'local' || startFen) ? 'Best move' : 'Hints';
   if (!solo) {
     connect();
     el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
