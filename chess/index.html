@@ -547,7 +547,7 @@
     text-transform: uppercase;
     color: var(--muted);
   }
-  .setrow { flex-wrap: wrap; }
+  .setrow { flex-wrap: wrap; min-height: 34px; }
   .thinkrow { gap: 12px; }
   .thinkrow input[type="range"] {
     flex: 1;
@@ -797,8 +797,14 @@
   /* until the other person is here, the table is all there is: the code to send and the connection */
   body.connecting .tabs, body.connecting .side .controls, body.connecting .side .hintpanel { display: none !important; }
   .conn-line { font-size: 11.5px; line-height: 1.6; color: var(--muted); margin: 0 0 8px; }
-  .conn .invite-actions button { padding-left: 4px; padding-right: 4px; min-width: 0; font-size: 12px; }
+  .conn .invite-actions { flex-wrap: wrap; }
+  .conn .invite-actions button { flex: 1 1 0; padding-left: 4px; padding-right: 4px; min-width: 0; font-size: 12px; white-space: nowrap; }
+  /* the invite card already has Copy link before the first move */
+  body.connecting #connCopy { display: none; }
+  /* four buttons don't fit a phone in one row: two by two */
+  @media (max-width: 520px) { body:not(.connecting) .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
   .conn .debug { margin-top: 10px; }
+  #connDebugSlot #reloadBtn, #diagSlot #reloadBtn { display: none; }
   .invite-slot .invite .code { font-size: 26px; margin: 4px 0 10px; }
   .invite-slot .invite .note { margin-top: 8px; }
 
@@ -1064,6 +1070,16 @@
   .vnum.bot { bottom: 4px; }
   .vnum.top { top: 4px; }
   .vnum.onwhite { color: #1d2226; }
+  /* under the board: a flat bar, White's share from the left (from the right when the board is flipped) */
+  .boardcol.withbar.barbelow { --barw: -22px; }
+  .boardcol.withbar.barbelow .taken { margin-left: 0; }
+  .barbelow .boardrow { flex-direction: column; gap: 9px; }
+  .barbelow .vbar { width: auto; height: 13px; order: 2; }
+  .barbelow .vfill { top: 0; bottom: 0; left: 0; right: auto; height: auto; width: 50%; transition: width .45s ease; }
+  .barbelow .vbar.flip .vfill { top: 0; left: auto; right: 0; }
+  .barbelow .vnum { top: 50%; bottom: auto; left: auto; right: auto; transform: translateY(-50%); }
+  .barbelow .vnum.bot { left: 5px; }
+  .barbelow .vnum.top { right: 5px; }
   .vnum.onblack { color: #e8e6e1; }
 
   .badge {
@@ -1113,7 +1129,8 @@
 
   .reviewblock { margin-top: 18px; }
   .reviewblock .setrow { margin-top: 0; }
-  .reviewblock .revopts { margin-top: 8px; }
+  /* the same gap between every row, as in Settings */
+  .reviewblock .setrow + .setrow { margin-top: 18px; }
   .revrow.hid { cursor: default; }
   .revrow.hid .rlab { color: var(--muted); }
   .reviewblock .state { color: var(--brass); letter-spacing: .04em; text-transform: none; }
@@ -1440,8 +1457,8 @@
   <section class="setup hidden" id="setup">
     <div class="topbar">
       <button class="backbtn" id="setupBack" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
-      <div class="status">Set up a position</div>
-      <span class="topstate">editor</span>
+      <div class="status">Analyse a position</div>
+      <span class="topstate">set up</span>
     </div>
     <div class="board" id="setupBoard" aria-label="Set-up board"></div>
     <div class="shelf" id="shelf" aria-label="Pieces to drag onto the board"></div>
@@ -1483,7 +1500,7 @@
     <p class="setup-msg" id="setupMsg"></p>
     <div class="lsec">
       <h2 class="lhead">Play it out</h2>
-      <label class="label" for="oppSetup">Computer opponent (you play the side to move)</label>
+      <label class="label" for="oppSetup">Opponent · you play the side to move</label>
       <select class="opp" id="oppSetup"></select>
       <button class="primary" id="setupPlay">Play the computer</button>
       <button class="primary alt" id="setupBoth">Play both sides</button>
@@ -1555,6 +1572,7 @@
           <section class="conn hidden" id="connBox">
             <p class="conn-line" id="connLine"></p>
             <div class="invite-actions">
+              <button id="connCopy">Copy link</button>
               <button id="connRetry">Reconnect</button>
               <button id="connDiag">Diagnostics</button>
               <button id="connReload">Force reload</button>
@@ -1599,11 +1617,20 @@
                 <button id="reviewBtn">On</button>
                 <span class="state" id="reviewState"></span>
               </div>
-              <div class="setrow revopts" id="revOpts">
+              <div class="setrow revopt">
                 <span>Eval bar</span>
                 <button id="revBarBtn">On</button>
-                <span id="revTheirsLabel">Their badges</span>
+                <button id="revBarPosBtn" title="Where the eval bar sits">Beside</button>
+              </div>
+              <div class="setrow revopt">
+                <span>Badges</span>
+                <button id="revBadgesBtn">On</button>
+                <span id="revTheirsLabel">Their moves</span>
                 <button id="revTheirsBtn">On</button>
+              </div>
+              <div class="setrow revopt">
+                <span>Explanations</span>
+                <button id="revExplainBtn">On</button>
               </div>
               <div class="setrow" id="bestRow">
                 <span id="hintLabel">Hints</span>
@@ -3337,7 +3364,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.8-fade';
+const VERSION = '2026-10-22.13-reviewparts';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3350,9 +3377,15 @@ function logLine(kind, parts) {
       p instanceof Error ? p.message :
       JSON.stringify(p)).join(' ');
   } catch { text = '[unserialisable]'; }
-  logBuf.push(`${t} ${kind} ${text.slice(0, 300)}`);
+  text = `${kind} ${text.slice(0, 300)}`;
+  // the same line over and over (a relay refusing every few seconds) becomes one line with a count,
+  // so it can't push the one line that matters out of the report
+  const prev = logBuf.length && logBuf[logBuf.length - 1];
+  if (prev && prev.text === text) { prev.n++; prev.last = t; return; }
+  logBuf.push({ t, text, n: 1, last: t });
   if (logBuf.length > LOG_MAX) logBuf.shift();
 }
+const logLines = n => logBuf.slice(-n).map(e => `${e.t} ${e.text}` + (e.n > 1 ? `  (×${e.n}, last ${e.last})` : ''));
 
 // Capture warnings from here *and* from Trystero — relay failures and
 // "could not connect to peer" are exactly what needs reporting.
@@ -6763,7 +6796,11 @@ const MATE_S = 100000;
 
 let reviewOn = store.get('table:review') !== false;
 let revBar = store.get('table:revBar') !== false;         // show the eval bar
-let revTheirs = store.get('table:revTheirs') !== false;   // show the badges on their moves
+let revTheirs = store.get('table:revTheirs') !== false;   // judge their moves too (badges and explanations)
+let revBadges = store.get('table:revBadges') !== false;   // badges on the board's squares
+let revExplain = store.get('table:revExplain') !== false; // the list of moves, and what was better
+let revBarBelow = store.get('table:revBarPos') === 'below'; // the eval bar under the board instead of beside it
+const theirsWanted = () => revTheirs && (revBadges || revExplain);
 /* Spotting their mistake yourself is part of the exercise, so their badges can
    be held back. Only while the game is on: once it ends, everything shows. */
 const theirsHidden = m => !isLocal() && !revTheirs && !result && !!m && m.color !== myColor;
@@ -7055,7 +7092,7 @@ function anSync() {
   todo.push(cur);
   // Their reply is chosen but not on the board yet: read where it leads, after
   // everything the badges already on the way still need.
-  if (oppHold && oppHold.fen === game.fen() && oppHold.after && revTheirs) {
+  if (oppHold && oppHold.fen === game.fen() && oppHold.after && theirsWanted()) {
     const next = anEntry(oppHold.after);
     const j = todo.indexOf(next);
     if (j >= 0) todo.splice(j, 1);
@@ -7225,7 +7262,7 @@ function playOpponent(fen, from, to, promotion) {
 function holdReady(h) {
   if (gateHolding()) return false;
   if (lineState()) return false;          // you're looking at a line: the reply waits until you close it
-  if (!solo || !reviewActive() || !h.after || !revTheirs) return true;
+  if (!solo || !reviewActive() || !h.after || !theirsWanted()) return true;
   if (Date.now() - h.at >= AN_HOLD_MS) return true;      // a slow machine: let the game go on
   const b = anCache.get(posKey(h.fen)), a = anCache.get(posKey(h.after));
   return !!(b && a && b.lines.length && anSatisfied(b) && anSatisfied(a));
@@ -7581,6 +7618,7 @@ function drawEvalBar() {
   const on = reviewActive();
   bar.classList.toggle('hidden', !(on && revBar));
   el('boardcol').classList.toggle('withbar', on && revBar);
+  el('boardcol').classList.toggle('barbelow', on && revBar && revBarBelow);
   if (!on || !revBar) return;
   bar.classList.toggle('flip', viewColor() === 'b');
   const ls = lineState();
@@ -7590,7 +7628,8 @@ function drawEvalBar() {
   if (ls && !(e && e.depth) && ls.L.scoreW != null) e = { score: ls.L.scoreW, depth: ls.r.depth };
   if (!e || !e.depth) { el('vnum').textContent = ''; bar.title = 'Reading the position…'; return; }
   const w = winPct(e.score);
-  el('vfill').style.height = w.toFixed(1) + '%';
+  el('vfill').style.height = revBarBelow ? '' : w.toFixed(1) + '%';
+  el('vfill').style.width = revBarBelow ? w.toFixed(1) + '%' : '';
   const num = el('vnum');
   // the bar is narrow: from 10 pawns up the tenths go, so '22' rather than a clipped '22.0'
   const big = Math.abs(e.score) >= 1000 && Math.abs(e.score) < MATE_S / 2;
@@ -7606,7 +7645,7 @@ function drawEvalBar() {
 function boardBadges() {
   if (code === 'puzzle') return pzBadges();
   const out = new Map();
-  if (!reviewActive() || viewPly != null || lineState()) return out;
+  if (!reviewActive() || !revBadges || viewPly != null || lineState()) return out;
   const hist = game.history({ verbose: true });
   // Newest first, and a square belongs to the newest move that landed on it
   // whether or not that move is graded yet: after a recapture the badge of the
@@ -7666,8 +7705,12 @@ function drawReviewState() {
 function drawReview() {
   const blk = el('reviewBlock');
   el('reviewBtn').textContent = reviewOn ? 'On' : 'Off';
-  el('revOpts').classList.toggle('hidden', !reviewOn);
+  document.querySelectorAll('#reviewBlock .revopt').forEach(r => r.classList.toggle('hidden', !reviewOn));
   el('revBarBtn').textContent = revBar ? 'On' : 'Off';
+  el('revBarPosBtn').textContent = revBarBelow ? 'Below' : 'Beside';
+  el('revBarPosBtn').classList.toggle('hidden', !revBar);
+  el('revBadgesBtn').textContent = revBadges ? 'On' : 'Off';
+  el('revExplainBtn').textContent = revExplain ? 'On' : 'Off';
   el('revTheirsBtn').textContent = revTheirs ? 'On' : 'Off';
   drawReviewState();
   const body = el('reviewBody');
@@ -7678,7 +7721,11 @@ function drawReview() {
     return;
   }
   const hist = game.history({ verbose: true });
-  if (revPick != null && (revPick >= hist.length || theirsHidden(hist[revPick]))) { revPick = null; viewPly = null; }
+  if (revPick != null && (!revExplain || revPick >= hist.length || theirsHidden(hist[revPick]))) { revPick = null; viewPly = null; }
+  if (!revExplain) {
+    body.innerHTML = revBadges ? tallyHTML(hist) : '';
+    return;
+  }
 
   const row = i => {
     const m = hist[i];
@@ -7689,8 +7736,9 @@ function drawReview() {
     }
     const r = reviews.get(moveId(m));
     const mine = m.color === myColor;
-    const badge = r ? badgeHTML(r.cls) : '<span class="badge g-pending">…</span>';
-    const label = r ? GRADES[r.cls].label : 'checking…';
+    // with badges off the verdict waits until you open the move
+    const badge = !revBadges ? '<span class="badge g-pending">·</span>' : r ? badgeHTML(r.cls) : '<span class="badge g-pending">…</span>';
+    const label = !revBadges ? (r ? 'tap to see' : 'checking…') : r ? GRADES[r.cls].label : 'checking…';
     return `<button class="revrow${revPick === i ? ' on' : ''}" data-ply="${i}">${badge}
       <span class="rwho">${isLocal() ? (m.color === 'w' ? 'White' : 'Black') : mine ? 'You' : 'They'}</span>
       <span class="rsan">${esc(moveLabel(i, m.san))}</span>
@@ -7699,7 +7747,7 @@ function drawReview() {
 
   let html = '';
   if (!hist.length) {
-    html = '<p class="coach-note">Make a move. Each one gets a badge on its square as soon as the engine has judged it, and theirs do too. Tap a move here or in the list for what was better.</p>';
+    html = `<p class="coach-note">Make a move. ${revBadges ? 'Each one gets a badge on its square as soon as the engine has judged it. ' : ''}Tap a move here or in the list for what was better.</p>`;
   } else {
     const shown = [];
     for (let i = hist.length - 1; i >= Math.max(0, hist.length - 2); i--) shown.push(i);
@@ -7717,7 +7765,12 @@ function drawReview() {
     }
   }
 
-  // how your moves have gone this game
+  if (revBadges) html += tallyHTML(hist);
+  body.innerHTML = html;
+}
+
+// how your moves have gone this game
+function tallyHTML(hist) {
   const tally = {};
   for (const m of hist) {
     if (m.color !== myColor) continue;
@@ -7726,8 +7779,7 @@ function drawReview() {
   }
   const chips = GRADE_ORDER.filter(k => tally[k]).map(k =>
     `<span class="tally">${badgeHTML(k)} ${tally[k]} ${esc(GRADES[k].label.toLowerCase())}</span>`).join('');
-  if (chips) html += `<div class="revtally">${chips}</div>`;
-  body.innerHTML = html;
+  return chips ? `<div class="revtally">${chips}</div>` : '';
 }
 
 function openReview(ply) {
@@ -7770,6 +7822,24 @@ el('revBarBtn').onclick = () => {
   store.set('table:revBar', revBar);
   draw();
 };
+el('revBarPosBtn').onclick = () => {
+  revBarBelow = !revBarBelow;
+  store.set('table:revBarPos', revBarBelow ? 'below' : 'side');
+  draw();
+};
+el('revBadgesBtn').onclick = () => {
+  revBadges = !revBadges;
+  store.set('table:revBadges', revBadges);
+  if (!theirsWanted()) pokeHold();
+  draw();
+};
+el('revExplainBtn').onclick = () => {
+  revExplain = !revExplain;
+  store.set('table:revExplain', revExplain);
+  if (!revExplain) { revPick = null; viewPly = null; lineView = null; }
+  if (!theirsWanted()) pokeHold();
+  draw();
+};
 el('revTheirsBtn').onclick = () => {
   revTheirs = !revTheirs;
   store.set('table:revTheirs', revTheirs);
@@ -7779,7 +7849,7 @@ el('revTheirsBtn').onclick = () => {
 
 el('ledgerBody').addEventListener('click', e => {
   const b = e.target.closest('[data-ply]');
-  if (b && reviewActive()) openReview(Number(b.dataset.ply));
+  if (b && reviewActive() && revExplain) openReview(Number(b.dataset.ply));
 });
 
 el('reviewBtn').onclick = () => {
@@ -9020,7 +9090,7 @@ function diagnostics() {
     `agent       ${navigator.userAgent}`,
     ``,
     `--- log ---`,
-    ...logBuf.slice(-40)
+    ...logLines(40)
   ].filter(l => l !== ``).join('\n');
 }
 
@@ -9065,6 +9135,8 @@ el('connDiag').onclick = () => showDiag('connDebugSlot');
 el('setDiag').onclick = () => showDiag('diagSlot');
 // leave the room and join it again from scratch: new relay sockets, new handshakes
 el('dropRetry').onclick = () => el('connRetry').click();
+// the link again, for when they've lost it: the same link the invite card gives out
+el('connCopy').onclick = async e => { if (!await copyText(inviteUrl(), e.currentTarget)) showTextModal('Link for the other player', inviteUrl()); };
 el('connRetry').onclick = () => {
   console.warn('reconnect pressed');
   lastRejoin = Date.now();
