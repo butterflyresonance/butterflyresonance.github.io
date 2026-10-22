@@ -788,8 +788,15 @@
   .gnote { margin: 6px 0 0; flex: none; }
   .gnote:empty { display: none; }
   /* the invite card shrinks and scrolls rather than pushing the tabs off a short screen */
-  .invite-slot { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-  .invite-slot .invite { margin-top: 10px; }
+  .invite-slot .invite { margin-top: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
+  .conn { margin-top: 10px; padding-bottom: 12px; }
+  .conn-line.warn { color: var(--text); }
+  body:not(.online) .tabs [data-tab="table"] { display: none; }
+  /* until the other person is here, the table is all there is: the code to send and the connection */
+  body.connecting .tabs, body.connecting .side .controls, body.connecting .side .hintpanel { display: none !important; }
+  .conn-line { font-size: 11.5px; line-height: 1.6; color: var(--muted); margin: 0 0 8px; }
+  .conn .invite-actions button { padding-left: 4px; padding-right: 4px; min-width: 0; font-size: 12px; }
+  .conn .debug { margin-top: 10px; }
   .invite-slot .invite .code { font-size: 26px; margin: 4px 0 10px; }
   .invite-slot .invite .note { margin-top: 8px; }
 
@@ -1483,8 +1490,8 @@
         </div>
         <p class="note gnote hidden" id="peerHint">They have hints switched on.</p>
         <p class="note gnote" id="gameNote"></p>
-        <div class="invite-slot" id="inviteSlot"></div>
         <div class="tabs" role="tablist">
+          <button role="tab" data-tab="table">Table</button>
           <button role="tab" data-tab="puzzle">Puzzle</button>
           <button role="tab" data-tab="open">Openings</button>
           <button role="tab" data-tab="review">Review</button>
@@ -1492,6 +1499,18 @@
           <button role="tab" data-tab="set">Settings</button>
         </div>
         <div class="panes" id="panes">
+          <div class="pane" data-pane="table">
+          <div class="invite-slot" id="inviteSlot"></div>
+          <section class="conn hidden" id="connBox">
+            <p class="conn-line" id="connLine"></p>
+            <div class="invite-actions">
+              <button id="connRetry">Reconnect</button>
+              <button id="connDiag">Diagnostics</button>
+              <button id="connReload">Force reload</button>
+            </div>
+            <div id="connDebugSlot"></div>
+          </section>
+          </div>
           <div class="pane" data-pane="puzzle">
             <section class="pzblock">
               <div class="setrow">
@@ -1639,7 +1658,13 @@
                 <button id="lookDone">Done</button>
               </div>
             </div>
-            <div class="diag-slot" id="diagSlot"></div>
+            <div class="diag-slot" id="diagSlot">
+              <div class="setrow">
+                <span>Diagnostics</span>
+                <button id="setDiag">Show</button>
+                <button id="setReload">Force reload</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3261,7 +3286,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.4-flip';
+const VERSION = '2026-10-22.6-table';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3655,13 +3680,19 @@ function connect() {
       setLink();
       sendState();
       announce();
+      ping();
     };
     room.onPeerLeave = id => { peers.delete(id); setLink(); };
   }
 
   setLink();
+  joinedAt = Date.now();
   clearInterval(healthTimer);
-  healthTimer = setInterval(() => { if (!peers.size) drawStatus(); }, 2500);
+  healthTimer = setInterval(() => {
+    if (peers.size && Date.now() - lastPing >= PING_MS) ping();
+    drawConn();
+    drawStatus();
+  }, 1000);
 }
 
 /* ---------- coming back from the background ----------
@@ -3669,7 +3700,48 @@ function connect() {
    either way the connection may be gone with nothing on screen to say so. When
    the page comes back and nobody is connected, drop the old rooms and rejoin
    rather than waiting for a stale connection to notice it's dead. */
+let joinedAt = 0;              // when this page last joined the table's room
+let peerSeen = 0, peerVersion = null, lastPing = 0;
+const PING_MS = 3000, SILENT_MS = 12000;
+function ping() { lastPing = Date.now(); broadcast({ t: 'ping', ply: game.history().length, v: VERSION }); }
+const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;
+function drawConn() {
+  const show = !solo && !!code && code !== 'puzzle';
+  el('connBox').classList.toggle('hidden', !show);
+  if (!show) return;
+  const line = el('connLine');
+  if (!peers.size) {
+    const { open, total } = relayHealth();
+    const secs = joinedAt ? Math.round((Date.now() - joinedAt) / 1000) : 0;
+    line.textContent = `Looking for ${fmtSecs(secs)} · ${open} of ${total} relays reachable · build ${VERSION}` +
+      (secs >= 30 ? '. Not connecting? Both press Force reload and check your builds match, then Reconnect.' : '');
+    line.classList.toggle('warn', secs >= 30);
+    return;
+  }
+  const quiet = peerSeen ? Math.round((Date.now() - peerSeen) / 1000) : null;
+  const silent = quiet == null || quiet * 1000 > SILENT_MS;
+  const builds = !peerVersion ? 'their build: older than this one (it doesn’t say), so they should Force reload'
+    : peerVersion === VERSION ? `both on build ${VERSION}`
+    : `their build ${peerVersion}, yours ${VERSION}: both press Force reload`;
+  line.textContent = (quiet == null ? 'Connected, but nothing heard from them yet'
+      : silent ? `Connected, but nothing heard from them for ${fmtSecs(quiet)}. Try Reconnect`
+      : `Connected · heard from them ${quiet}s ago`) + ' · ' + builds + '.';
+  line.classList.toggle('warn', silent || peerVersion !== VERSION);
+  el('topState').textContent = silent && quiet != null ? 'no reply' : 'connected';
+}
+function showDiag(slot) {
+  const panel = el('debugPanel');
+  const here = panel.parentElement === el(slot);
+  if (!here) el(slot).appendChild(panel);
+  if (panel.classList.contains('hidden') || !here) {
+    panel.classList.add('hidden');      // toggleDebug shows it and starts the refresh
+    toggleDebug();
+  } else toggleDebug();
+}
+
 function teardown() {
+  peerSeen = 0;
+  peerVersion = null;
   clearInterval(healthTimer);
   healthTimer = null;
   for (const room of rooms) {
@@ -3729,6 +3801,21 @@ function sendState() {
 
 function handleMessage(msg) {
   if (!msg || typeof msg !== 'object') return;
+  peerSeen = Date.now();
+
+  if (msg.t === 'ping') {
+    const changed = peerVersion !== msg.v;
+    peerVersion = typeof msg.v === 'string' ? msg.v.slice(0, 40) : null;
+    // a move that went missing: whoever is behind asks, whoever is ahead sends the game
+    const ply = game.history().length;
+    if (typeof msg.ply === 'number') {
+      if (msg.ply > ply) broadcast({ t: 'sync' });
+      else if (msg.ply < ply) sendState();
+    }
+    if (changed) drawStatus();
+    drawConn();
+    return;
+  }
 
   if (msg.t === 'state') {
     // Shouldn't happen — the share button hands out the opposite seat — but if
@@ -6407,6 +6494,8 @@ function drawStatus() {
   if (peers.size) {
     note.textContent = seatClash
       ? 'You’re both on the same side. One of you should open the link from the share button.'
+      : peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
+      : peerSeen && Date.now() - peerSeen > SILENT_MS ? 'Nothing heard from them for a while. The Table tab has Reconnect.'
       : '';
     note.removeAttribute('title');
   } else {
@@ -8577,6 +8666,8 @@ function setLink() {
     el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
+    document.body.classList.remove('online', 'connecting');
+    drawConn();
     return;
   }
   const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
@@ -8584,6 +8675,14 @@ function setLink() {
   el('topState').textContent = el('linkState').textContent =
     state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
+  // not connected: only the Table. Connected: back to the game, with Table still a tab away
+  const online = !!code, connecting = online && !peers.size;
+  const was = document.body.classList.contains('connecting');
+  document.body.classList.toggle('online', online);
+  document.body.classList.toggle('connecting', connecting);
+  if (connecting && activeTab !== 'table') { prevTab = activeTab; showTab('table'); }
+  else if (!connecting && was && activeTab === 'table') showTab(prevTab || store.get('table:tab') || 'open');
+  drawConn();
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
     : peerHints ? 'They have hints switched on.'
@@ -8762,6 +8861,28 @@ function askPromotion(from, to) {
    and the engine are doing. */
 let debugTimer = null;
 
+const RS = ['connecting', 'open', 'closing', 'closed'];
+function relayLines() {
+  const out = [];
+  for (const [kind, get] of [['nostr', nostrSockets], ['mqtt', mqttSockets]]) {
+    try {
+      const socks = get() || {};
+      for (const url of Object.keys(socks)) out.push(`  ${kind.padEnd(5)} ${RS[socks[url] && socks[url].readyState] || '?'}  ${url.replace(/^wss:\/\/(public:public@)?/, '')}`);
+    } catch {}
+  }
+  return out;
+}
+function linkLines() {
+  const out = [];
+  for (const room of rooms) {
+    try {
+      for (const [id, pc] of Object.entries(room.getPeers() || {}))
+        out.push(`  peer ${id.slice(0, 6)}  ${pc.connectionState || '?'} / ice ${pc.iceConnectionState || '?'}`);
+    } catch {}
+  }
+  return out;
+}
+
 function diagnostics() {
   const { open, total } = relayHealth();
   const link = document.body.dataset.link;
@@ -8776,8 +8897,11 @@ function diagnostics() {
     `room        ${code || '(none)'}`,
     `you         ${myColor === 'w' ? 'white' : 'black'}`,
     `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
-    `peers       ${peers.size}`,
+    `peers       ${peers.size}${peers.size ? `, heard from ${peerSeen ? Math.round((Date.now() - peerSeen) / 1000) + 's ago' : 'never'}, their build ${peerVersion || 'unknown'}` : ''}`,
     `relays      ${open}/${total} open`,
+    ...relayLines(),
+    `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`,
+    ...linkLines(),
     `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
     `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
     ``,
@@ -8830,10 +8954,23 @@ el('copyDiagBtn').onclick = async () => {
 
 // Bypasses the CDN and the browser cache, which is the usual reason two people
 // are looking at different builds.
-el('reloadBtn').onclick = () => {
+function forceReload() {
   const u = new URL(location.href);
   u.searchParams.set('v', Date.now().toString(36));
   location.replace(u.toString());
+}
+el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = forceReload;
+el('connDiag').onclick = () => showDiag('connDebugSlot');
+el('setDiag').onclick = () => showDiag('diagSlot');
+// leave the room and join it again from scratch: new relay sockets, new handshakes
+el('connRetry').onclick = () => {
+  console.warn('reconnect pressed');
+  lastRejoin = Date.now();
+  handshakeFailed = false;
+  teardown();
+  connect();
+  drawStatus();
+  drawConn();
 };
 
 // ?debug or #...&debug opens it straight away, for someone who can't be talked
@@ -9161,7 +9298,8 @@ preloadSet(pieceSet);
 
 /* ---------- boot ---------- */
 /* ---------- the tabbed panel ---------- */
-const TABS = ['puzzle', 'open', 'review', 'moves', 'set'];
+const TABS = ['table', 'puzzle', 'open', 'review', 'moves', 'set'];
+let prevTab = null;              // where to go back to once connected
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
 document.addEventListener('keydown', e => {
   if (!lineView || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -9178,8 +9316,9 @@ function showTab(t) {
   // puzzles have their own tab in place of Openings and Review, which would give answers away
   if (code === 'puzzle' && (activeTab === 'open' || activeTab === 'review')) activeTab = 'puzzle';
   if (code !== 'puzzle' && activeTab === 'puzzle') activeTab = 'open';
+  if (activeTab === 'table' && !document.body.classList.contains('online')) activeTab = 'open';
   if (lineView && activeTab !== 'review') { lineView = null; draw(); }
-  if (code !== 'puzzle') store.set('table:tab', activeTab);
+  if (code !== 'puzzle' && activeTab !== 'table') store.set('table:tab', activeTab);
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === activeTab));
   for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.dataset.pane === activeTab);
   el('panes').scrollTop = activeTab === 'moves' ? el('panes').scrollHeight : 0;
