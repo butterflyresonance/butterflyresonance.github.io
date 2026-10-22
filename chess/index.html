@@ -805,6 +805,10 @@
   @media (max-width: 520px) { body:not(.connecting) .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
   .conn .debug { margin-top: 10px; }
   #connDebugSlot #reloadBtn, #diagSlot #reloadBtn { display: none; }
+  /* the version is in the Version row; an online table has its connection tools in the Table tab instead */
+  #diagSlot .verstamp, #diagSlot #debugPanel { display: none !important; }
+  body.online #diagSlot { display: none; }
+  .verval { color: var(--muted); letter-spacing: .04em; text-transform: none; font-size: 11px; }
   .invite-slot .invite .code { font-size: 26px; margin: 4px 0 10px; }
   .invite-slot .invite .note { margin-top: 8px; }
 
@@ -1227,7 +1231,8 @@
   .oseq.onext { font-size: 11.5px; line-height: 1.75; margin-top: 3px; }
 
   /* ---- set up a position ---- */
-  body.fromsetup .tabs [data-tab="open"], body.fromsetup .pane[data-pane="open"] { display: none !important; }
+  body.fromsetup .tabs [data-tab="open"], body.fromsetup .pane[data-pane="open"],
+  body.onepiecemode .tabs [data-tab="open"], body.onepiecemode .pane[data-pane="open"] { display: none !important; }
   .setup .board { margin-top: 6px; }
   .shelf {
     display: grid;
@@ -1560,7 +1565,7 @@
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
         </div>
-        <p class="note gnote hidden" id="peerHint">They have hints switched on.</p>
+        <p class="note gnote hidden" id="peerHint">They have Best move switched on.</p>
         <p class="note gnote" id="gameNote"></p>
         <div class="tabs" role="tablist">
           <button role="tab" data-tab="table">Table</button>
@@ -1587,8 +1592,8 @@
           <div class="pane" data-pane="puzzle">
             <section class="pzblock">
               <div class="setrow">
-                <span>Theme</span>
-                <select class="opp" id="pzTheme" aria-label="Puzzle theme"></select>
+                <span>Puzzle type</span>
+                <select class="opp" id="pzTheme" aria-label="Puzzle type"></select>
               </div>
               <div class="setrow">
                 <span>Difficulty</span>
@@ -1637,7 +1642,7 @@
                 <button id="revExplainBtn">On</button>
               </div>
               <div class="setrow" id="bestRow">
-                <span id="hintLabel">Hints</span>
+                <span id="hintLabel">Best move</span>
                 <button id="hintBtn">Off</button>
               </div>
               <div id="reviewBody"></div>
@@ -1742,8 +1747,8 @@
             </div>
             <div class="diag-slot" id="diagSlot">
               <div class="setrow">
-                <span>Diagnostics</span>
-                <button id="setDiag">Show</button>
+                <span>Version</span>
+                <span class="verval" id="verVal"></span>
                 <button id="setReload">Force reload</button>
               </div>
             </div>
@@ -3368,7 +3373,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.14-carryx';
+const VERSION = '2026-10-23.1-modes';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6429,7 +6434,7 @@ function draw() {
   el('hintRow').classList.toggle('hidden', solo);                       // only Engine plays is left in it
   el('posRow').classList.toggle('hidden', code !== 'local' && code !== 'solo');
   // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
-  el('hintLabel').textContent = (isLocal() || startFen) ? 'Best move' : 'Hints';
+  el('hintLabel').textContent = 'Best move';
   el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
   el('rematchBtn').classList.toggle('hidden', !result);
   el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
@@ -8860,7 +8865,7 @@ function setLink() {
   drawConn();
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
-    : peerHints ? 'They have hints switched on.'
+    : peerHints ? 'They have Best move switched on.'
     : peerCoach ? 'They have the tactics coach switched on.'
     : peerReview && !reviewOn ? 'They’ve switched the review on. It shows for both of you only if you switch it on too.'
     : peerReview && reviewOn ? 'The review is on for both of you.' : '';
@@ -9065,18 +9070,22 @@ function diagnostics() {
     : engineJob ? `busy (${engineJob.mode}, depth ${engineJob.depth || '-'})`
     : 'ready';
 
+  const online = !solo && !!code && code !== 'puzzle';
+  const MODE = { puzzle: 'puzzles', solo: 'against the computer', onepiece: 'one-piece challenge', local: 'on this device' };
   return [
     `Étude ${VERSION}`,
     `${new Date().toISOString()}`,
     ``,
-    `room        ${code || '(none)'}`,
+    `mode        ${!code ? 'start screen' : online ? 'online table' : MODE[code] || code}${startFen ? ', from a set-up position' : ''}`,
+    ...(online ? [
+    `room        ${code}`,
     `you         ${myColor === 'w' ? 'white' : 'black'}`,
     `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
     `peers       ${peers.size}${peers.size ? `, heard from ${peerSeen ? Math.round((Date.now() - peerSeen) / 1000) + 's ago' : 'never'}, their build ${peerVersion || 'unknown'}` : ''}`,
     `relays      ${open}/${total} open`,
     ...relayLines(),
     `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`,
-    ...linkLines(),
+    ...linkLines()] : []),
     `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
     `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
     ``,
@@ -9136,7 +9145,7 @@ function forceReload() {
 }
 el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = forceReload;
 el('connDiag').onclick = () => showDiag('connDebugSlot');
-el('setDiag').onclick = () => showDiag('diagSlot');
+el('verVal').textContent = VERSION;
 // leave the room and join it again from scratch: new relay sockets, new handshakes
 el('dropRetry').onclick = () => el('connRetry').click();
 // the link again, for when they've lost it: the same link the invite card gives out
@@ -9490,7 +9499,8 @@ document.addEventListener('keydown', e => {
 function showTab(t) {
   activeTab = TABS.includes(t) ? t : 'open';
   document.body.classList.toggle('fromsetup', !!startFen);
-  if (startFen && activeTab === 'open') activeTab = 'review';   // openings don't apply to a set-up position
+  document.body.classList.toggle('onepiecemode', code === 'onepiece');
+  if ((startFen || code === 'onepiece') && activeTab === 'open') activeTab = 'review';   // openings don't apply to a set-up position or the one-piece challenge
   // puzzles have their own tab in place of Openings and Review, which would give answers away
   if (code === 'puzzle' && (activeTab === 'open' || activeTab === 'review')) activeTab = 'puzzle';
   if (code !== 'puzzle' && activeTab === 'puzzle') activeTab = 'open';
@@ -10724,13 +10734,13 @@ function carryOnItems() {
 function drawCarryOn() {
   const items = carryOnItems();
   const box = el('carryOn');
-  box.innerHTML = items.length ? '<p class="carryhead">Carry on</p>' + items.map((x, i) =>
+  box.innerHTML = items.length ? '<p class="carryhead">Games to resume</p>' + items.map((x, i) =>
     `<div class="carryrow"><button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span><span class="cd">${escText(x.sub)}</span></button>` +
-    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from Carry on" title="Remove from Carry on">×</button></div>`).join('') : '';
+    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from this list" title="Remove from this list">×</button></div>`).join('') : '';
   box.querySelectorAll('button.carry').forEach(b => b.onclick = () => items[+b.dataset.i].go());
   box.querySelectorAll('button.carryx').forEach(b => b.onclick = async () => {
     const x = items[+b.dataset.x];
-    if (!await confirmModal('Remove from Carry on?', `“${x.title}” won’t be offered here any more. Its moves so far stay in Game history.`, 'Remove')) return;
+    if (!await confirmModal('Remove from Games to resume?', `“${x.title}” won’t be offered here any more. Its moves so far stay in Game history.`, 'Remove')) return;
     x.drop();
     drawCarryOn();
   });
@@ -10762,7 +10772,7 @@ el('setupSaved').onchange = () => {
   // the editor shows where the line got to; Carry on picks it up with its moves
   if (end && suFromFen(end.fen())) drawSetup();
   el('setupResumeRow').classList.toggle('hidden', !n);
-  if (n) el('setupResume').textContent = `Carry on, ${n} move${n === 1 ? '' : 's'} in, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
+  if (n) el('setupResume').textContent = `Resume, ${n} move${n === 1 ? '' : 's'} in, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
 };
 el('setupResume').onclick = () => {
   const x = savedLine(el('setupSaved').value);
