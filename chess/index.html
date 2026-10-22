@@ -533,6 +533,7 @@
 
   .controls { display: flex; gap: 8px; margin-top: 22px; }
   .controls button { flex: 1; }
+  .controls .flipbtn { flex: none; padding-left: 12px; padding-right: 12px; display: flex; align-items: center; justify-content: center; }
 
   .setrow {
     display: flex;
@@ -1475,6 +1476,7 @@
           </div>
         </div>
         <div class="controls">
+          <button id="flipBtn" class="flipbtn" aria-label="Flip the board" title="Flip the board"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2v11M2.5 10.5 5 13l2.5-2.5M11 14V3M8.5 5.5 11 3l2.5 2.5"/></svg></button>
           <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
@@ -3259,7 +3261,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-22.3-positions';
+const VERSION = '2026-10-22.4-flip';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3415,6 +3417,8 @@ let myColor = 'w';
    Whoever's turn it is moves; nothing is played by the engine. */
 const isLocal = () => code === 'local';
 const moverColor = () => isLocal() ? game.turn() : myColor;
+let flipView = false;              // the board turned round from your side
+const viewColor = () => flipView ? (myColor === 'w' ? 'b' : 'w') : myColor;
 let code = null;
 let result = null;
 let selected = null;
@@ -3920,8 +3924,8 @@ function persist() {
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
   if (startFen && (code === 'local' || code === 'solo') && game.history().length)
-    store.set('table:lastLine', { name: 'Where you left off', fen: startFen, moves: game.history(), mode: code, myColor, at: Date.now() });
-  store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined,
+    store.set('table:lastLine', { name: 'Where you left off', fen: startFen, moves: game.history(), mode: code, myColor, flip: flipView, at: Date.now() });
+  store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
@@ -3930,6 +3934,7 @@ function restore() {
   plyAt = Date.now();
   plyAway = document.hidden;
   startFen = null;
+  flipView = !!(saved && saved.flip && code !== 'puzzle');
   if (!saved || !Array.isArray(saved.history)) return;
   if (saved.fen && !ownTable(code)) startFen = saved.fen;
   const fresh = newGameFrom();
@@ -6234,8 +6239,9 @@ function drawBoard() {
   const marks = viewing ? new Map() : coachMarks();
   const badges = boardBadges();
 
-  const ranks = myColor === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
-  const files = myColor === 'w' ? [...FILES] : [...FILES].reverse();
+  const vc = viewColor();
+  const ranks = vc === 'w' ? [8,7,6,5,4,3,2,1] : [1,2,3,4,5,6,7,8];
+  const files = vc === 'w' ? [...FILES] : [...FILES].reverse();
 
   let html = '';
 
@@ -6268,8 +6274,8 @@ function drawBoard() {
       if (isTarget) inner += '<span class="dot"></span>';
       if (marks.has(sq)) inner += `<span class="mark ${marks.get(sq)}"></span>`;
       if (badges.has(sq)) inner += badgeHTML(badges.get(sq));
-      if (rank === (myColor === 'w' ? 1 : 8)) inner += `<span class="coord f">${file}</span>`;
-      if (file === (myColor === 'w' ? 'a' : 'h')) inner += `<span class="coord r">${rank}</span>`;
+      if (rank === (vc === 'w' ? 1 : 8)) inner += `<span class="coord f">${file}</span>`;
+      if (file === (vc === 'w' ? 'a' : 'h')) inner += `<span class="coord r">${rank}</span>`;
 
       const tab = (isTarget || canPick) ? ' tabindex="0"' : '';
       html += `<div class="${classes.join(' ')}" data-sq="${sq}"${tab}>${inner}</div>`;
@@ -6306,16 +6312,17 @@ function material(list) {
 }
 
 function drawTaken() {
-  const them = myColor === 'w' ? 'b' : 'w';
+  const me = viewColor();               // the side at the bottom of the board
+  const them = me === 'w' ? 'b' : 'w';
   const iTook = takenPieces(them);      // their pieces, sitting on my side
-  const theyTook = takenPieces(myColor);
+  const theyTook = takenPieces(me);
   const edge = material(iTook) - material(theyTook);
 
   const strip = (list, colour, lead) =>
     list.map(t => pieceSVG(t, colour)).join('') +
     (lead > 0 ? `<span class="adv">+${lead}</span>` : '');
 
-  el('takenTop').innerHTML = strip(theyTook, myColor, -edge);
+  el('takenTop').innerHTML = strip(theyTook, me, -edge);
   el('takenBottom').innerHTML = strip(iTook, them, edge);
 }
 
@@ -6450,8 +6457,9 @@ function drawLedger() {
 function squareXY(sq) {
   const file = FILES.indexOf(sq[0]);
   const rank = Number(sq[1]);
-  const col = myColor === 'w' ? file : 7 - file;
-  const row = myColor === 'w' ? 8 - rank : rank - 1;
+  const vc = viewColor();
+  const col = vc === 'w' ? file : 7 - file;
+  const row = vc === 'w' ? 8 - rank : rank - 1;
   return { x: col * 12.5 + 6.25, y: row * 12.5 + 6.25 };
 }
 
@@ -7379,7 +7387,7 @@ function drawEvalBar() {
   bar.classList.toggle('hidden', !(on && revBar));
   el('boardcol').classList.toggle('withbar', on && revBar);
   if (!on || !revBar) return;
-  bar.classList.toggle('flip', myColor === 'b');
+  bar.classList.toggle('flip', viewColor() === 'b');
   const ls = lineState();
   const fen = ls ? ls.fen : viewPly != null ? (game.history({ verbose: true })[viewPly] || {}).before : game.fen();
   let e = fen && anCache.get(posKey(fen));
@@ -7394,7 +7402,7 @@ function drawEvalBar() {
   num.textContent = big ? String(Math.round(Math.abs(e.score) / 100)) : fmtScore(e.score, false).replace(/^-/, '');
   // the number sits at the end of the side that's ahead, as it does on chess.com
   const whiteAhead = e.score >= 0;
-  const atBottom = (myColor === 'w') === whiteAhead;
+  const atBottom = (viewColor() === 'w') === whiteAhead;
   num.className = 'vnum ' + (atBottom ? 'bot' : 'top') + (whiteAhead ? ' onwhite' : ' onblack');
   bar.title = `${fmtScore(e.score)} · depth ${e.terminal ? '—' : e.depth}`;
 }
@@ -8961,6 +8969,12 @@ el('resignBtn').onclick = async () => {
 
 el('rematchBtn').onclick = rematch;
 
+el('flipBtn').onclick = () => {
+  flipView = !flipView;
+  persist();                  // remembered with the game
+  draw();
+};
+
 el('takebackBtn').onclick = () => {
   // against the computer or on one device, a finished game can be taken back too:
   // useful for trying the other lines a book gives from a position
@@ -10023,7 +10037,7 @@ function begin() {
   el('inviteSlot').appendChild(el('invite'));
   el('diagSlot').appendChild(el('verBtn'));
   el('diagSlot').appendChild(el('debugPanel'));
-  if (code === 'puzzle') activeTab = 'puzzle';
+  if (code === 'puzzle') { activeTab = 'puzzle'; flipView = false; }
   document.body.classList.toggle('localmode', code === 'local');
   showTab(activeTab);
   if (code !== 'puzzle') { restore(); showTab(activeTab); }   // a set-up game hides Openings
@@ -10198,12 +10212,14 @@ function playLine(x, mode) {
   solo = true; onePiece = false; code = mode;
   if (inGame) {                          // already at the board: swap the game in place
     startFen = x.fen;
+    flipView = !!x.flip && mine === (x.myColor || mine);
     startFresh(mine);
     if ((x.moves || []).length) adopt(x.moves, null, true);
     showTab(activeTab);
     return true;
   }
   store.set('table:' + mode, { history: x.moves || [], myColor: mine, result: null, gameId: null, fen: x.fen,
+    flip: (!!x.flip && mine === (x.myColor || mine)) || undefined,
     setting: 'setup:' + (local ? 'local' : opponent) });
   myColor = mine;
   setHash(mine);
@@ -10332,7 +10348,7 @@ el('posSaveBtn').onclick = async () => {
   const name = await namePrompt(game.history().length ? 'Save this position and its moves' : 'Save this position');
   if (!name) return;
   const list = store.get('table:positions') || [];
-  list.push({ name, fen: startFen || STD_FEN, moves: game.history(), mode: code === 'local' ? 'local' : 'solo', myColor, at: Date.now() });
+  list.push({ name, fen: startFen || STD_FEN, moves: game.history(), mode: code === 'local' ? 'local' : 'solo', myColor, flip: flipView, at: Date.now() });
   store.set('table:positions', list);
   el('posSaveBtn').textContent = 'Saved';
   setTimeout(() => { el('posSaveBtn').textContent = 'Save'; }, 1600);
@@ -10379,6 +10395,7 @@ function startFromSetup(mode) {
   const mine = local ? 'w' : su.turn;
   const key = local ? 'local' : 'solo';
   store.set('table:' + key, { history: [], myColor: mine, result: null, gameId: null, fen,
+    flip: ((su.flip ? 'b' : 'w') !== mine) || undefined,
     setting: 'setup:' + (local ? 'local' : opponent) });
   el('setup').classList.add('hidden');
   solo = true;
