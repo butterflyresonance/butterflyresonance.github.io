@@ -1403,8 +1403,7 @@
       <p class="lede">Chess practice, with feedback on every move.</p>
       <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
       <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
-      <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
-      <button class="choice" id="goFamous"><span class="ct">Famous games</span><span class="cd">Step through great games, each picked for something worth learning, with the engine’s view alongside. Or open one of your own.</span></button>
+      <button class="choice" id="goStudy"><span class="ct">Study</span><span class="cd">Step through famous games or games you import, or set up a position from a book and work through it.</span></button>
       <button class="choice hidden" id="goResume"><span class="ct">Resume a game</span><span class="cd" id="goResumeSub"></span></button>
       <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button></div>
     </div>
@@ -1418,6 +1417,16 @@
       <button class="linkish" id="resumeClear">Clear all</button>
     </div>
 
+    <div class="scr hidden" id="scrStudy">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Study</div>
+      </div>
+      <button class="choice" id="goFamous"><span class="ct">Famous games</span><span class="cd">Step through great games, each picked for something worth learning, with the engine’s view alongside.</span></button>
+      <button class="choice" id="goImport"><span class="ct">Import a game</span><span class="cd">Step through a finished game: paste its PGN, choose a .pgn file, or paste a Lichess game link. Your own games or anyone’s.</span></button>
+      <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
+    </div>
+
     <div class="scr hidden" id="scrFamous">
       <div class="topbar">
         <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
@@ -1425,10 +1434,6 @@
       </div>
       <div class="famfilter" id="famFilter"></div>
       <div id="famList"><p class="note">Loading…</p></div>
-      <div class="lsec">
-        <button class="primary alt" id="famImport">Open your own game</button>
-        <p class="note">Paste a game in PGN, choose a .pgn file, or paste a Lichess game link. On chess.com, finished games have Share, then PGN.</p>
-      </div>
     </div>
 
     <div class="scr hidden" id="scrPlay">
@@ -3377,7 +3382,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.9-famous';
+const VERSION = '2026-10-24.10-study';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -9217,7 +9222,7 @@ el('pzBtn').onclick = () => {
 /* Back to the start screen. Every game is saved as it goes, so this only
    leaves; opening the same mode or link again picks the game up. */
 el('backBtn').onclick = () => swapScreen(() => {
-  if (code === 'study' && study && study.g.id !== 'mine') { try { sessionStorage.setItem('etude:screen', 'famous'); } catch {} }
+  if (code === 'study' && study) { try { sessionStorage.setItem('etude:screen', study.g.id === 'mine' ? 'study' : 'study,famous'); } catch {} }
   location.href = location.pathname + location.search;
 });
 
@@ -10407,6 +10412,7 @@ async function drawFamous() {
   el('famList').querySelectorAll('button.fam').forEach(b => b.onclick = () => openStudy(games.find(g => g.id === b.dataset.id)));
 }
 el('goFamous').onclick = () => showScreen('famous');
+el('goStudy').onclick = () => showScreen('study');
 
 function openStudy(g, idx = 0) {
   if (!g || !Array.isArray(g.moves)) return;
@@ -10497,10 +10503,10 @@ async function lichessPgn(link) {
   if (!r.ok) throw new Error('Lichess said ' + r.status);
   return r.text();
 }
-el('famImport').onclick = async () => {
+el('goImport').onclick = async () => {
   const text = await openModal({
-    title: 'Open your own game',
-    body: '<div class="importbox"><p>Paste the PGN, or a Lichess game link.</p><textarea id="impText" spellcheck="false" autocomplete="off" placeholder="[Event &quot;…&quot;]\n1. e4 e5 2. Nf3 …"></textarea>' +
+    title: 'Import a game',
+    body: '<div class="importbox"><p>Paste the game’s PGN, or a Lichess game link. On chess.com, a finished game has Share, then PGN.</p><textarea id="impText" spellcheck="false" autocomplete="off" placeholder="[Event &quot;…&quot;]\n1. e4 e5 2. Nf3 …"></textarea>' +
       '<p><button type="button" id="impFile">Choose a .pgn file</button> <input type="file" id="impFileIn" accept=".pgn,text/plain" class="hidden"></p><p class="note" id="impMsg"></p></div>',
     actions: [{ label: 'Cancel', value: null }, { label: 'Open', kind: 'go', run: () => { closeModal(el('impText').value); return true; } }],
     onOpen: b => {
@@ -10819,7 +10825,7 @@ for (const id of ['setupBoard', 'shelf']) {
    Home has three choices; each opens a short screen of its own. They are
    entries in the browser history, so the phone's back gesture steps back
    through them. Games themselves still live in the address (#solo=1, #r=...). */
-const SCREENS = { home: 'scrHome', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
+const SCREENS = { home: 'scrHome', study: 'scrStudy', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
 function renderScreen(name) {
   if (!SCREENS[name] && name !== 'setup') name = 'home';
   document.body.classList.toggle('lobbysub', name !== 'home');
@@ -11558,7 +11564,13 @@ if (studyHash) {
   setLink();
   let back = null;
   try { back = sessionStorage.getItem('etude:screen'); sessionStorage.removeItem('etude:screen'); } catch {}
-  if (back) { history.replaceState(null, '', location.pathname + location.search); renderScreen('home'); showScreen(back); }
+  // e.g. 'study,famous': each screen on the way gets its own history entry, so back steps through them
+  if (back) {
+    const path = back.split(',');
+    history.replaceState(null, '', location.pathname + location.search);
+    for (const sc of path) history.pushState({ scr: sc }, '', location.pathname + location.search);
+    renderScreen(path[path.length - 1]);
+  }
   else renderScreen(history.state && history.state.scr || 'home');
 }
 
