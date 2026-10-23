@@ -1378,10 +1378,13 @@
   .chatmovenote { flex: none; margin: 0 0 8px; font-size: 12px; color: var(--brass); }
   .chatbtn { flex: none; position: relative; width: 38px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--muted); }
   .chatbtn:hover:not(:disabled) { color: var(--brass); }
-  .dot { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
+  .ndot { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
          background: var(--danger); color: #fff; font-size: 10px; line-height: 16px; text-align: center; font-family: var(--mono); }
-  .chatbtn .dot { animation: pop .25s ease-out; }
-  .gamebtn .dot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: -4px; right: -4px; }
+  .chatbtn .ndot { animation: pop .25s ease-out; }
+  .chatbtn.unread { color: var(--brass); border-color: var(--brass); animation: chatpulse 1.6s ease-in-out infinite; }
+  @keyframes chatpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,163,91,.55); } 50% { box-shadow: 0 0 0 7px rgba(200,163,91,0); } }
+  @media (prefers-reduced-motion: reduce) { .chatbtn.unread { animation: none; } }
+  .gamebtn .ndot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: -4px; right: -4px; }
   .chatlog:empty::before { content: 'Messages you send appear here, and theirs.'; color: var(--muted); font-size: 12px; }
   .chatmsg { max-width: 85%; padding: 6px 10px; border: 1px solid var(--edge); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
   .chatmsg.me { align-self: flex-end; border-color: var(--brass-dim); }
@@ -1599,7 +1602,7 @@
   <section class="chatscreen hidden" id="chatScreen" aria-label="Chat">
     <div class="chatwrap">
       <div class="topbar">
-        <button class="gamebtn" id="chatBack" aria-label="Back to the game"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg> Game<span class="dot hidden" id="gameDot"></span></button>
+        <button class="gamebtn" id="chatBack" aria-label="Back to the game"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg> Game<span class="ndot hidden" id="gameDot"></span></button>
         <div class="status">Chat</div>
         <span class="topstate" id="chatState"></span>
       </div>
@@ -1628,7 +1631,7 @@
       <div class="topbar">
         <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
-        <button class="chatbtn hidden" id="chatBtn" aria-label="Chat" title="Chat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 4h12v8H8l-4 3v-3H3z"/></svg><span class="dot hidden" id="chatDot"></span></button>
+        <button class="chatbtn hidden" id="chatBtn" aria-label="Chat" title="Chat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 4h12v8H8l-4 3v-3H3z"/></svg><span class="ndot hidden" id="chatDot"></span></button>
         <span class="topstate" id="topState"></span>
       </div>
       <div class="boardcol" id="boardcol">
@@ -3426,7 +3429,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.12-chatscreen';
+const VERSION = '2026-10-24.13-dots';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3990,7 +3993,7 @@ function chatReceive(msg) {
   if (list.some(m => m.id === msg.id)) { chatSeenNow(); return; }
   list.push({ id: msg.id, me: false, text: msg.text.slice(0, 500), at: Date.now(), told: false });
   chatSave(list);
-  if (!chatVisible()) { chatUnread++; try { navigator.vibrate && !document.hidden && navigator.vibrate(30); } catch {} }
+  if (!chatVisible()) { chatUnread++; chatChime(); try { navigator.vibrate && !document.hidden && navigator.vibrate([40, 60, 40]); } catch {} }
   drawChat();
   chatSeenNow();
 }
@@ -4042,6 +4045,8 @@ function drawChat() {
   el('chatDot').classList.toggle('hidden', !chatUnread);
   el('chatDot').textContent = chatUnread > 9 ? '9+' : String(chatUnread);
   el('chatBtn').setAttribute('aria-label', chatUnread ? `Chat, ${chatUnread} unread` : 'Chat');
+  el('chatBtn').classList.toggle('unread', !!chatUnread);
+  document.title = (chatUnread ? `(${chatUnread}) ` : '') + document.title.replace(/^\(\d+\) /, '');
   if (!chatOpen) return;
   // on the chat screen: has the game moved on while you were here?
   const hist = game.history({ verbose: true });
@@ -4932,6 +4937,18 @@ function playSfx(kind, style = sfxStyle) {
   } catch { /* no audio available */ }
 }
 // the sound for a move just played (a chess.js move object)
+function chatChime() {
+  if (sfxStyle === 'off') return;
+  try {
+    const ctx = sfxCtx(), t = ctx.currentTime;
+    for (const [f, d] of [[880, 0], [1320, .09]]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.25, t + d + .01); g.gain.exponentialRampToValueAtTime(.001, t + d + .35);
+      o.connect(g); g.connect(sfxBus); o.start(t + d); o.stop(t + d + .4);
+    }
+  } catch {}
+}
 function moveSound(m) {
   if (!m) return;
   playSfx(m.san.includes('#') ? 'mate' : m.san.includes('+') ? 'check' : m.captured ? 'capture' : 'move');
@@ -7078,8 +7095,9 @@ const GRADES = {
   blunder:    { sym: '??', label: 'Blunder' }
 };
 const GRADE_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'forced', 'inaccuracy', 'miss', 'mistake', 'blunder'];
+const BOOK_SVG = '<svg viewBox="0 0 10 10" width="62%" height="62%" aria-hidden="true"><path d="M2 3h6M2 5h6M2 7h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const badgeHTML = (cls, tag = 'span', extra = '') =>
-  `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${GRADES[cls].sym}</${tag}>`;
+  `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${cls === 'book' ? BOOK_SVG : GRADES[cls].sym}</${tag}>`;
 
 /* ---------- the analysis worker ---------- */
 function anEntry(fen) {
