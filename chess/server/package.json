@@ -1,0 +1,6 @@
+{
+  "name": "etude-tables",
+  "private": true,
+  "description": "Étude table server: passes moves between the two phones at a table.",
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

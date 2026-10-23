@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Table server setup</title>
+<style>
+  :root { --bg: #15181b; --text: #e8e6e1; --muted: #9aa0a6; --brass: #c8a35b; --edge: #2c3237; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, sans-serif; margin: 0; padding: 24px 16px 60px; }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-weight: 500; font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin: 34px 0 10px; font-weight: 600; }
+  p.lead { color: var(--muted); margin-top: 0; }
+  ol { padding-left: 22px; }
+  li { margin: 10px 0; }
+  code { background: #22272b; border: 1px solid var(--edge); padding: 1px 6px; border-radius: 3px; font-size: 14px; }
+  .box { border: 1px solid var(--edge); padding: 12px 16px; margin: 14px 0; }
+  .muted { color: var(--muted); }
+  a { color: var(--brass); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Setting up the table server</h1>
+  <p class="lead">About 10 minutes, once. Free. Nothing to install on your computer: Cloudflare builds the server from your GitHub repo.</p>
+
+  <h2>1 · Put the new files on GitHub</h2>
+  <ol>
+    <li>In your chess folder there is now a folder called <code>server</code> with three files: <code>worker.js</code>, <code>wrangler.toml</code> and <code>package.json</code>.</li>
+    <li>Commit and push them to GitHub the way you usually push the app (the same commit can include the updated <code>index.html</code>).</li>
+  </ol>
+
+  <h2>2 · Make a Cloudflare account</h2>
+  <ol>
+    <li>Go to <a href="https://dash.cloudflare.com/sign-up">dash.cloudflare.com/sign-up</a> and sign up with your email. The free plan is all this needs. No card is required.</li>
+    <li>Confirm your email address from the email they send.</li>
+  </ol>
+
+  <h2>3 · Create the Worker from your repo</h2>
+  <ol>
+    <li>In the Cloudflare dashboard, open <b>Workers &amp; Pages</b> (in the left menu, sometimes under <b>Compute</b>).</li>
+    <li>Click <b>Create</b>, then choose <b>Import a repository</b> (it may say <b>Connect to Git</b>).</li>
+    <li>Connect your GitHub account when asked, and pick the repository <code>butterflyresonance.github.io</code>.</li>
+    <li>Fill in the settings:
+      <div class="box">
+        Project / Worker name: <code>etude-tables</code> &nbsp;<span class="muted">(must be exactly this — it matches the file)</span><br>
+        Build command: leave empty<br>
+        Deploy command: <code>npx wrangler deploy</code> &nbsp;<span class="muted">(usually filled in already)</span><br>
+        Root directory / Path: <code>chess/server</code>
+      </div>
+    </li>
+    <li>Click <b>Create and deploy</b> (or <b>Deploy</b>). The first build takes a minute or two.</li>
+    <li>If Cloudflare asks you to choose a <b>workers.dev subdomain</b>, pick anything short — it becomes part of the address.</li>
+  </ol>
+  <p class="muted">The screens change from time to time, so the button names may differ slightly. What matters is: import from Git, that repo, name <code>etude-tables</code>, path <code>chess/server</code>.</p>
+
+  <h2>4 · Check it and send me the address</h2>
+  <ol>
+    <li>When the build finishes, Cloudflare shows the Worker's address, ending in <code>.workers.dev</code> — for example <code>https://etude-tables.yourname.workers.dev</code>.</li>
+    <li>Open that address in your browser. It should say <i>“Étude table server. Nothing to see here.”</i></li>
+    <li>Send me the address. I'll put it into the app, and from then on online games go through it.</li>
+  </ol>
+
+  <h2>If the build fails</h2>
+  <p>Open the failed build in the dashboard, copy the last 20 or so lines of its log, and paste them to me.</p>
+
+  <h2>Afterwards</h2>
+  <ul>
+    <li>Whenever you push to that repo, Cloudflare rebuilds the Worker automatically. That's harmless: if the server files haven't changed, nothing changes.</li>
+    <li>Usage is under the Worker's <b>Metrics</b> tab. A day of games should be a tiny fraction of the free 100,000 requests.</li>
+    <li>The server keeps nothing: no games, no accounts. It only passes messages between the two phones at a table, and only for pages on your site.</li>
+  </ul>
+</main>
+</body>
+</html>

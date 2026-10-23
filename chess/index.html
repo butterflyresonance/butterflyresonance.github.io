@@ -3373,7 +3373,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-23.1-modes';
+const VERSION = '2026-10-23.2-server';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3394,6 +3394,7 @@ function logLine(kind, parts) {
   logBuf.push({ t, text, n: 1, last: t });
   if (logBuf.length > LOG_MAX) logBuf.shift();
 }
+const note = (...a) => logLine('info', a);
 const logLines = n => logBuf.slice(-n).map(e => `${e.t} ${e.text}` + (e.n > 1 ? `  (×${e.n}, last ${e.last})` : ''));
 
 // Capture warnings from here *and* from Trystero — relay failures and
@@ -3724,6 +3725,73 @@ function makeCode() {
 }
 
 /* ---------- networking ---------- */
+/* The table server (server/worker.js, on Cloudflare). Both phones keep a
+   WebSocket open to it and it passes messages between them, so nothing depends
+   on the two phones reaching each other directly. The public relays below stay
+   on as a second route; a message arriving both ways is used once. */
+const TABLE_SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:server')) || ''; } catch { return ''; } })()
+  || '';                                  // set to 'wss://etude-tables.<you>.workers.dev' once it's deployed
+let srv = null, srvTimer = null, srvTries = 0, srvPeers = new Set();
+function srvState() { return !TABLE_SERVER ? 'not set up' : !srv ? 'closed' : ['connecting', 'open', 'closing', 'closed'][srv.readyState]; }
+function srvOpen() {
+  clearTimeout(srvTimer);
+  if (!TABLE_SERVER || !code || solo || code === 'puzzle') return;
+  let ws;
+  try { ws = new WebSocket(`${TABLE_SERVER}/table/${code}`); } catch (e) { console.warn('table server', e); srvRetry(); return; }
+  srv = ws;
+  ws.onopen = () => {
+    if (srv !== ws) return;
+    srvTries = 0;
+    note('table server: connected');
+    ws.keepAlive = setInterval(() => { try { ws.send('ping'); } catch {} }, 25000);
+    drawConn();
+  };
+  ws.onmessage = e => {
+    if (srv !== ws || e.data === 'pong') return;
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.k === 'join') {
+      const id = 's:' + m.id;
+      srvPeers.add(id); peers.add(id);
+      note('table server: they arrived');
+      handshakeFailed = false;
+      setLink(); sendState(); announce(); ping();
+    } else if (m.k === 'leave') {
+      const id = 's:' + m.id;
+      srvPeers.delete(id); peers.delete(id);
+      note('table server: they left');
+      setLink();
+    } else if (m.k === 'msg') {
+      let d; try { d = JSON.parse(m.data); } catch { return; }
+      handleMessage(d);
+    }
+  };
+  ws.onclose = e => {
+    clearInterval(ws.keepAlive);
+    if (srv !== ws) return;
+    srv = null;
+    for (const id of srvPeers) peers.delete(id);
+    srvPeers.clear();
+    note(`table server: closed (${e.code}${e.reason ? ' ' + e.reason : ''})`);
+    setLink();
+    srvRetry();
+  };
+  ws.onerror = () => {};
+}
+// try again after 1, 2, 4, 8, 16, then every 30 seconds
+function srvRetry() {
+  clearTimeout(srvTimer);
+  if (!TABLE_SERVER || !code || solo) return;
+  srvTimer = setTimeout(srvOpen, Math.min(30000, 1000 * 2 ** Math.min(srvTries++, 5)));
+}
+function srvClose() {
+  clearTimeout(srvTimer);
+  const ws = srv;
+  srv = null;
+  for (const id of srvPeers) peers.delete(id);
+  srvPeers.clear();
+  if (ws) { clearInterval(ws.keepAlive); try { ws.close(1000, 'leaving'); } catch {} }
+}
+
 function connect() {
   const base = { appId: APP_ID, password: code, turnConfig: TURN_SERVERS };
 
@@ -3767,26 +3835,52 @@ function connect() {
 
     rooms.push(room);
 
+    const via = join === joinNostr ? 'nostr' : 'mqtt';
     room.onPeerJoin = id => {
       peers.add(id);
+      note(`${via}: they connected directly`);
       handshakeFailed = false;
       setLink();
       sendState();
       announce();
       ping();
+      // record what happens to the direct link from here on
+      try {
+        const pc = (room.getPeers() || {})[id];
+        if (pc) pc.addEventListener('connectionstatechange', () => note(`${via}: direct link ${pc.connectionState}`));
+      } catch {}
     };
-    room.onPeerLeave = id => { peers.delete(id); setLink(); };
+    room.onPeerLeave = id => { peers.delete(id); note(`${via}: they left`); setLink(); };
   }
 
+  srvOpen();
   setLink();
   joinedAt = Date.now();
   clearInterval(healthTimer);
   healthTimer = setInterval(() => {
     if (peers.size && Date.now() - lastPing >= PING_MS) ping();
+    autoRejoin();
     drawConn();
     drawDrop();
     drawStatus();
   }, 1000);
+}
+
+/* Once the other person has been here, losing them starts a fresh attempt by
+   itself: after 20 seconds without them (or 12 without a word), then every 45
+   seconds, while the page is in view. Not while still waiting for them to
+   arrive the first time, which would only keep the relays busy. */
+let hadPeer = false;
+function autoRejoin() {
+  if (!hadPeer || document.hidden || !code || solo) return;
+  const silent = peers.size && peerSeen && Date.now() - peerSeen > SILENT_MS;
+  if (peers.size && !silent) return;
+  if (Date.now() - joinedAt < 20000 || Date.now() - lastRejoin < 45000) return;
+  note(silent ? 'nothing heard for a while: reconnecting by itself' : 'not connected: reconnecting by itself');
+  lastRejoin = Date.now();
+  teardown();
+  connect();
+  draw();
 }
 
 /* ---------- coming back from the background ----------
@@ -3796,6 +3890,9 @@ function connect() {
    rather than waiting for a stale connection to notice it's dead. */
 let joinedAt = 0;              // when this page last joined the table's room
 let peerSeen = 0, peerVersion = null, lastPing = 0;
+let peerPly = null;           // how many moves their phone has, from its last report
+let sentAt = 0;               // when our last move went out
+const seenIds = new Set();
 const PING_MS = 3000, SILENT_MS = 12000;
 function ping() { lastPing = Date.now(); broadcast({ t: 'ping', ply: game.history().length, v: VERSION }); }
 const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;
@@ -3807,7 +3904,7 @@ function drawConn() {
   if (!peers.size) {
     const { open, total } = relayHealth();
     const secs = joinedAt ? Math.round((Date.now() - joinedAt) / 1000) : 0;
-    line.textContent = `Looking for ${fmtSecs(secs)} · ${open} of ${total} relays reachable · build ${VERSION}` +
+    line.textContent = `Looking for ${fmtSecs(secs)} · ${TABLE_SERVER ? `table server ${srvState()} · ` : ''}${open} of ${total} relays reachable · build ${VERSION}` +
       (secs >= 30 ? '. Not connecting? Both press Force reload and check your builds match, then Reconnect.' : '');
     line.classList.toggle('warn', secs >= 30);
     return;
@@ -3881,6 +3978,8 @@ function showDiag(slot) {
 function teardown() {
   peerSeen = 0;
   peerVersion = null;
+  peerPly = null;
+  srvClose();
   clearInterval(healthTimer);
   healthTimer = null;
   for (const room of rooms) {
@@ -3902,8 +4001,15 @@ function rejoinIfDropped() {
 }
 
 document.addEventListener('visibilitychange', () => {
+  if (code && !solo) note(document.hidden ? 'page went into the background' : 'page back in view');
   if (!document.hidden) rejoinIfDropped();
 });
+window.addEventListener('offline', () => { if (code && !solo) note('device went offline'); });
+window.addEventListener('online', () => { if (code && !solo) note('device back online'); });
+try {
+  const nc = navigator.connection;
+  if (nc) nc.addEventListener('change', () => { if (code && !solo) note(`network changed (${nc.type || nc.effectiveType || '?'})`); });
+} catch {}
 // Page Lifecycle: fired when a frozen tab is brought back.
 document.addEventListener('resume', rejoinIfDropped);
 // bfcache restores don't fire visibilitychange.
@@ -3925,6 +4031,8 @@ function relayHealth() {
 }
 
 function broadcast(msg) {
+  msg._id = msg._id || Math.random().toString(36).slice(2, 10);
+  if (srv && srv.readyState === 1) { try { srv.send(JSON.stringify(msg)); } catch (e) { console.warn('send failed', e); } }
   for (const send of senders) {
     try {
       Promise.resolve(send(msg)).catch(e => console.warn('send failed', e));
@@ -3942,11 +4050,18 @@ function handleMessage(msg) {
   if (!msg || typeof msg !== 'object') return;
   const first = !peerSeen;
   peerSeen = Date.now();
+  hadPeer = true;
   if (first) updateConnecting();
+  if (msg._id) {
+    if (seenIds.has(msg._id)) return;
+    seenIds.add(msg._id);
+    if (seenIds.size > 300) seenIds.delete(seenIds.values().next().value);
+  }
 
   if (msg.t === 'ping') {
     const changed = peerVersion !== msg.v;
     peerVersion = typeof msg.v === 'string' ? msg.v.slice(0, 40) : null;
+    if (typeof msg.ply === 'number') peerPly = msg.ply;
     // a move that went missing: whoever is behind asks, whoever is ahead sends the game
     const ply = game.history().length;
     if (typeof msg.ply === 'number') {
@@ -3963,7 +4078,7 @@ function handleMessage(msg) {
     // someone passes on their own link instead, neither side can move and the
     // reason isn't visible. Say it plainly rather than trying to fix it.
     seatClash = msg.color === myColor;
-    if (Array.isArray(msg.history)) adopt(msg.history, msg.result, !!msg.force);
+    if (Array.isArray(msg.history)) { peerPly = msg.history.length; adopt(msg.history, msg.result, !!msg.force); }
     if (msg.force) takebackAsked = false;
     return;
   }
@@ -3979,6 +4094,7 @@ function handleMessage(msg) {
           persist();
           draw();
           moveSound(m);
+          ping();                  // straight back: tells them it arrived
         }
       } catch { sendState(); }
     } else if (msg.ply > ply) {
@@ -4095,6 +4211,7 @@ function afterLocalMove(m) {
   viewPly = null;
   lineView = null;
   setGate(m);
+  sentAt = Date.now();
   broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
   checkEnd();
   if (result) sendState();
@@ -6623,7 +6740,10 @@ function drawStatus() {
     s.textContent = 'Your move.' + check;
     s.classList.add('urgent');
   } else {
-    s.textContent = game.isCheck() ? 'They’re in check.' : 'Their move.';
+    // our move hasn't reached their phone yet (their count is behind ours)
+    const unsent = !solo && peerPly != null && peerPly < game.history().length && Date.now() - sentAt > 2500;
+    s.textContent = unsent ? 'Sent, waiting for their phone to receive it.'
+      : game.isCheck() ? 'They’re in check.' : 'Their move.';
   }
 
   const note = el('gameNote');
@@ -9082,6 +9202,7 @@ function diagnostics() {
     `you         ${myColor === 'w' ? 'white' : 'black'}`,
     `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
     `peers       ${peers.size}${peers.size ? `, heard from ${peerSeen ? Math.round((Date.now() - peerSeen) / 1000) + 's ago' : 'never'}, their build ${peerVersion || 'unknown'}` : ''}`,
+    `server      ${srvState()}`,
     `relays      ${open}/${total} open`,
     ...relayLines(),
     `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`,

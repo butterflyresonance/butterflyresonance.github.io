@@ -1,0 +1,13 @@
+# Étude table server. Cloudflare reads this when it builds the Worker from GitHub.
+name = "etude-tables"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "TABLES"
+class_name = "Table"
+
+# Durable Objects on the free plan must use the SQLite storage backend.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Table"]
