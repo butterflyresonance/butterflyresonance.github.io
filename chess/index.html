@@ -1318,9 +1318,11 @@
   .choice .ct { display: block; font-family: var(--display); font-size: 20px; color: var(--brass); margin-bottom: 4px; letter-spacing: 0; text-transform: none; }
   .choice .cd { display: block; font-size: 12.5px; line-height: 1.55; color: var(--muted); letter-spacing: 0; text-transform: none; }
   button.choice.carry { border-color: var(--brass-dim); }
-  .choice.carry .ct { font-size: 16px; }
+  .choice.carry .ct { font-size: 16px; margin-bottom: 3px; }
+  button.choice.carry { padding: 11px 16px; }
+  .choice.carry .cd { line-height: 1.5; }
   .carryhead { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
-  #carryOn:not(:empty) { margin-bottom: 22px; }
+  #resumeClear { margin-top: 10px; }
   .carryrow { display: flex; gap: 8px; align-items: stretch; margin: 0 0 12px; }
   .carryrow button.choice { margin: 0; flex: 1; min-width: 0; }
   .carryx { flex: none; width: 44px; padding: 0; font-size: 20px; line-height: 1; color: var(--muted); }
@@ -1375,11 +1377,20 @@
   <section class="lobby" id="lobby">
     <div class="scr" id="scrHome">
       <p class="lede">Chess practice, with feedback on every move.</p>
-      <div id="carryOn"></div>
       <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
       <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
       <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
+      <button class="choice hidden" id="goResume"><span class="ct">Resume a game</span><span class="cd" id="goResumeSub"></span></button>
       <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button></div>
+    </div>
+
+    <div class="scr hidden" id="scrResume">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Resume a game</div>
+      </div>
+      <div id="carryOn"></div>
+      <button class="linkish" id="resumeClear">Clear all</button>
     </div>
 
     <div class="scr hidden" id="scrPlay">
@@ -3311,52 +3322,6 @@ self.onmessage = e => {
 
 <script type="module">
 import { Chess } from 'https://esm.sh/chess.js@1.4.0';
-import { joinRoom as joinNostr, getRelaySockets as nostrSockets } from 'https://esm.sh/@trystero-p2p/nostr@0.25.3';
-import { joinRoom as joinMqtt, getRelaySockets as mqttSockets } from 'https://esm.sh/@trystero-p2p/mqtt@0.25.3';
-
-const APP_ID = 'table-chess-v1';
-
-// Trystero picks nostr relays by shuffling its defaults with a seed derived from
-// APP_ID, so the app name silently decides which 5 you get — and some of the 47
-// defaults are dead. Pin the big, well-maintained ones instead. All of these are
-// from Trystero's own list, so they're known to accept the event kinds it needs.
-const NOSTR_RELAYS = [
-  'wss://relay.damus.io',
-  'wss://nos.lol',
-  'wss://relay.mostr.pub',
-  'wss://purplerelay.com',
-  'wss://strfry.openhoofd.nl',
-  'wss://nostr.data.haus',
-  'wss://relay.froth.zone',
-  'wss://nostr-01.yakihonne.com'
-];
-
-const MQTT_BROKERS = [
-  'wss://broker.emqx.io:8084/mqtt',
-  'wss://broker.hivemq.com:8884/mqtt',
-  'wss://public:public@public.cloud.shiftr.io'
-];
-
-// Trystero only supplies STUN by default (Google + Cloudflare), which tells each
-// side its own public address but can't help when both ends sit behind a NAT that
-// refuses unsolicited inbound packets — symmetric NAT, most corporate networks,
-// a lot of mobile carriers. Then the two sides find each other through the relays
-// and still can't open a connection. TURN fixes that by relaying the traffic.
-//
-// These are Open Relay's free public servers: no signup, best-effort, and shared
-// with the whole internet. Port 443 over TCP is listed because some networks drop
-// UDP entirely. For something dependable, put your own credentials here — see the
-// README.
-const TURN_SERVERS = [
-  { urls: 'turn:openrelay.metered.ca:80',
-    username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443',
-    username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-    username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:staticauth.openrelay.metered.ca:80',
-    username: 'openrelayproject', credential: 'openrelayproject' }
-];
 
 const el = id => document.getElementById(id);
 const boardEl = el('board');
@@ -3365,7 +3330,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.1-pzscore';
+const VERSION = '2026-10-24.8-resume-tidy';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3534,13 +3499,11 @@ let code = null;
 let result = null;
 let selected = null;
 let lastMove = null;
-let senders = [];
 let peers = new Set();
 
 /* engine / hints */
 let hintsOn = false;
 let peerHints = false;
-let handshakeFailed = false;   // found each other, but no direct connection
 let navigating = false;        // true while we write our own hash
 let solo = false;              // playing the engine, no peer, no relays
 let seatClash = false;         // both ended up on the same side
@@ -3552,7 +3515,6 @@ let sfxVol = Number.isFinite(store.get('table:sfxVol')) ? store.get('table:sfxVo
 let soundOn = sfxStyle !== 'off';
 let audioCtx = null;
 let faviconState = null;
-let rooms = [];                // held so we can tear down and rejoin
 let healthTimer = null;
 let lastRejoin = 0;
 let engine = null;
@@ -3718,9 +3680,8 @@ function makeCode() {
 
 /* ---------- networking ---------- */
 /* The table server (server/worker.js, on Cloudflare). Both phones keep a
-   WebSocket open to it and it passes messages between them, so nothing depends
-   on the two phones reaching each other directly. The public relays below stay
-   on as a second route; a message arriving both ways is used once. */
+   WebSocket open to it and it passes messages between them. Messages carry an
+   id, so one that somehow arrives twice is only used once. */
 const TABLE_SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:server')) || ''; } catch { return ''; } })()
   || 'wss://etude-tables.subjectification.workers.dev';   // localStorage 'table:server' overrides it, for testing
 let srv = null, srvTimer = null, srvTries = 0, srvPeers = new Set();
@@ -3745,7 +3706,6 @@ function srvOpen() {
       const id = 's:' + m.id;
       srvPeers.add(id); peers.add(id);
       note('table server: they arrived');
-      handshakeFailed = false;
       setLink(); sendState(); announce(); ping();
     } else if (m.k === 'leave') {
       const id = 's:' + m.id;
@@ -3785,66 +3745,6 @@ function srvClose() {
 }
 
 function connect() {
-  const base = { appId: APP_ID, password: code, turnConfig: TURN_SERVERS };
-
-  const strategies = [
-    { join: joinNostr, urls: NOSTR_RELAYS },
-    { join: joinMqtt,  urls: MQTT_BROKERS }
-  ];
-
-  for (const { join, urls } of strategies) {
-    let room;
-    try {
-      room = join(
-        {
-          ...base,
-          relayConfig: {
-            urls,
-            redundancy: urls.length
-          }
-        },
-        code,
-        {
-          onJoinError: err => {
-            console.warn('join failed', err);
-            // "could not connect to peer" means signalling worked and the direct
-            // connection is what failed — a different problem, and worth saying so.
-            if (String(err && err.error).includes('could not connect to peer')) {
-              handshakeFailed = true;
-              drawStatus();
-            }
-          }
-        }
-      );
-    } catch (e) {
-      console.warn('strategy unavailable', e);
-      continue;
-    }
-
-    const action = room.makeAction('msg');
-    action.onMessage = data => handleMessage(data);
-    senders.push(data => action.send(data));
-
-    rooms.push(room);
-
-    const via = join === joinNostr ? 'nostr' : 'mqtt';
-    room.onPeerJoin = id => {
-      peers.add(id);
-      note(`${via}: they connected directly`);
-      handshakeFailed = false;
-      setLink();
-      sendState();
-      announce();
-      ping();
-      // record what happens to the direct link from here on
-      try {
-        const pc = (room.getPeers() || {})[id];
-        if (pc) pc.addEventListener('connectionstatechange', () => note(`${via}: direct link ${pc.connectionState}`));
-      } catch {}
-    };
-    room.onPeerLeave = id => { peers.delete(id); note(`${via}: they left`); setLink(); };
-  }
-
   srvOpen();
   setLink();
   joinedAt = Date.now();
@@ -3861,7 +3761,7 @@ function connect() {
 /* Once the other person has been here, losing them starts a fresh attempt by
    itself: after 20 seconds without them (or 12 without a word), then every 45
    seconds, while the page is in view. Not while still waiting for them to
-   arrive the first time, which would only keep the relays busy. */
+   arrive the first time: the server connection keeps itself open meanwhile. */
 let hadPeer = false;
 function autoRejoin() {
   if (!hadPeer || document.hidden || !code || solo) return;
@@ -3878,7 +3778,7 @@ function autoRejoin() {
 /* ---------- coming back from the background ----------
    A backgrounded tab can be frozen (tasks suspended) or discarded outright, and
    either way the connection may be gone with nothing on screen to say so. When
-   the page comes back and nobody is connected, drop the old rooms and rejoin
+   the page comes back and nobody is connected, drop the old connection and rejoin
    rather than waiting for a stale connection to notice it's dead. */
 let joinedAt = 0;              // when this page last joined the table's room
 let peerSeen = 0, peerVersion = null, lastPing = 0;
@@ -3894,9 +3794,8 @@ function drawConn() {
   if (!show) return;
   const line = el('connLine');
   if (!peers.size) {
-    const { open, total } = relayHealth();
     const secs = joinedAt ? Math.round((Date.now() - joinedAt) / 1000) : 0;
-    line.textContent = `Looking for ${fmtSecs(secs)} · ${TABLE_SERVER ? `table server ${srvState()} · ` : ''}${open} of ${total} relays reachable · build ${VERSION}` +
+    line.textContent = `Looking for ${fmtSecs(secs)} · table server ${srvState()} · build ${VERSION}` +
       (secs >= 30 ? '. Not connecting? Both press Force reload, and check your builds match.' : '');
     line.classList.toggle('warn', secs >= 30);
     return;
@@ -3974,14 +3873,8 @@ function teardown() {
   srvClose();
   clearInterval(healthTimer);
   healthTimer = null;
-  for (const room of rooms) {
-    try { Promise.resolve(room.leave()).catch(() => {}); } catch {}
-  }
-  rooms = [];
-  senders = [];
   peers.clear();
 }
-
 function rejoinIfDropped() {
   if (!code) return;
   if (peers.size) return;                       // still connected, leave it alone
@@ -4008,30 +3901,9 @@ document.addEventListener('resume', rejoinIfDropped);
 window.addEventListener('pageshow', e => { if (e.persisted) rejoinIfDropped(); });
 window.addEventListener('online', rejoinIfDropped);
 
-function relayHealth() {
-  let open = 0, total = 0;
-  for (const getSockets of [nostrSockets, mqttSockets]) {
-    try {
-      const sockets = getSockets() || {};
-      for (const url of Object.keys(sockets)) {
-        total++;
-        if (sockets[url] && sockets[url].readyState === 1) open++;
-      }
-    } catch {}
-  }
-  return { open, total };
-}
-
 function broadcast(msg) {
   msg._id = msg._id || Math.random().toString(36).slice(2, 10);
   if (srv && srv.readyState === 1) { try { srv.send(JSON.stringify(msg)); } catch (e) { console.warn('send failed', e); } }
-  for (const send of senders) {
-    try {
-      Promise.resolve(send(msg)).catch(e => console.warn('send failed', e));
-    } catch (e) {
-      console.warn('send failed', e);
-    }
-  }
 }
 
 function sendState() {
@@ -4224,7 +4096,13 @@ function checkEnd() {
   }
 }
 
-function startFresh(colorForMe) {
+function startFresh(colorForMe, keepLine = false) {
+  if (!keepLine && OFFLINE.includes(code) && lineId) {
+    const old = getLines().find(x => x.id === lineId) || {};
+    lineId = newLineId();
+    putLine({ id: lineId, name: old.name, fen: startFen || undefined, mode: code, moves: [], myColor: colorForMe,
+      opp: code === 'solo' ? opponent : undefined, only: code === 'onepiece' ? oppOnly : undefined, at: Date.now() });
+  }
   game = newGameFrom();
   myColor = colorForMe;
   seatClash = false;
@@ -4260,23 +4138,27 @@ function persist() {
   if (ownTable(code) && result) { try { localStorage.removeItem('table:' + code); } catch {} return; }
   // setting: what the game is being played against, so the start screen can
   // tell whether the choices made there still match this game
-  if (startFen && (code === 'local' || code === 'solo') && game.history().length)
-  {
-    store.set('table:lastLine', { name: 'Where you left off', fen: startFen, moves: game.history(), mode: code, myColor, flip: flipView, at: Date.now() });
-    store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
+  if (OFFLINE.includes(code) && lineId) {
+    const l = getLines().find(x => x.id === lineId);
+    if (l) putLine({ ...l, fen: startFen || undefined, moves: game.history(), mode: code, myColor, flip: flipView, result: result || null,
+      opp: code === 'solo' ? opponent : undefined, only: code === 'onepiece' ? oppOnly : undefined, at: Date.now() });
+    if (startFen) store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
   }
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
+    lineId: lineId || undefined, at: Date.now(),
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
 function restore() {
   const saved = store.get('table:' + code);
+  lineId = null;
   plyAt = Date.now();
   plyAway = document.hidden;
   startFen = null;
   flipView = !!(saved && saved.flip && code !== 'puzzle');
   if (!saved || !Array.isArray(saved.history)) return;
   if (saved.fen && !ownTable(code)) startFen = saved.fen;
+  lineId = OFFLINE.includes(code) ? saved.lineId || null : null;
   const fresh = newGameFrom();
   for (const san of saved.history) { try { fresh.move(san); } catch { return; } }
   game = fresh;
@@ -6759,19 +6641,14 @@ function drawStatus() {
       : '';
     note.removeAttribute('title');
   } else {
-    const { open, total } = relayHealth();
-    if (handshakeFailed) {
-      // The relays did their job; the direct link is what failed.
-      note.textContent = 'Found them, but couldn’t open a direct connection. ' +
-        'One of you switching between wifi and mobile data usually fixes it.';
-    } else if (total && !open && srvState() !== 'open') {
-      note.textContent = 'Can’t reach the network at the moment. ' +
-        'A firewall, VPN or browser extension may be blocking the connection.';
+    if (srvState() !== 'open' && joinedAt && Date.now() - joinedAt > 8000) {
+      note.textContent = 'Can’t reach the table server at the moment. ' +
+        'Check the internet connection; a firewall, VPN or browser extension may be blocking it.';
     } else {
       note.textContent = 'Waiting for them to open the link. ' +
         'You both need the page open for a move to cross.';
     }
-    note.title = `${open} of ${total} relays reachable`;
+    note.removeAttribute('title');
   }
 }
 
@@ -9143,30 +9020,7 @@ function askPromotion(from, to) {
    and the engine are doing. */
 let debugTimer = null;
 
-const RS = ['connecting', 'open', 'closing', 'closed'];
-function relayLines() {
-  const out = [];
-  for (const [kind, get] of [['nostr', nostrSockets], ['mqtt', mqttSockets]]) {
-    try {
-      const socks = get() || {};
-      for (const url of Object.keys(socks)) out.push(`  ${kind.padEnd(5)} ${RS[socks[url] && socks[url].readyState] || '?'}  ${url.replace(/^wss:\/\/(public:public@)?/, '')}`);
-    } catch {}
-  }
-  return out;
-}
-function linkLines() {
-  const out = [];
-  for (const room of rooms) {
-    try {
-      for (const [id, pc] of Object.entries(room.getPeers() || {}))
-        out.push(`  peer ${id.slice(0, 6)}  ${pc.connectionState || '?'} / ice ${pc.iceConnectionState || '?'}`);
-    } catch {}
-  }
-  return out;
-}
-
 function diagnostics() {
-  const { open, total } = relayHealth();
   const link = document.body.dataset.link;
   const eng = !engine ? 'not started'
     : engineJob ? `busy (${engineJob.mode}, depth ${engineJob.depth || '-'})`
@@ -9182,13 +9036,10 @@ function diagnostics() {
     ...(online ? [
     `room        ${code}`,
     `you         ${myColor === 'w' ? 'white' : 'black'}`,
-    `link        ${link}${handshakeFailed ? ' (handshake failed)' : ''}`,
+    `link        ${link}`,
     `peers       ${peers.size}${peers.size ? `, heard from ${peerSeen ? Math.round((Date.now() - peerSeen) / 1000) + 's ago' : 'never'}, their build ${peerVersion || 'unknown'}` : ''}`,
     `server      ${srvState()}`,
-    `relays      ${open}/${total} open`,
-    ...relayLines(),
-    `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`,
-    ...linkLines()] : []),
+    `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`] : []),
     `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
     `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
     ``,
@@ -9249,42 +9100,21 @@ function forceReload() {
 el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = forceReload;
 el('connDiag').onclick = () => showDiag('connDebugSlot');
 el('verVal').textContent = VERSION;
-// leave the room and join it again from scratch: new relay sockets, new handshakes
 // the link again, for when they've lost it: the same link the invite card gives out
 el('connCopy').onclick = async e => { if (!await copyText(inviteUrl(), e.currentTarget)) showTextModal('Link for the other player', inviteUrl()); };
-const reconnectNow = () => {
-  console.warn('reconnect pressed');
-  lastRejoin = Date.now();
-  handshakeFailed = false;
-  teardown();
-  connect();
-  drawStatus();
-  drawConn();
-};
 
 // ?debug or #...&debug opens it straight away, for someone who can't be talked
 // through tapping a version number.
 if (/[?&#]debug\b/.test(location.href)) toggleDebug();
 
 /* ---------- buttons ---------- */
-/* Play from the start screen: carry on the saved game only if it is still
-   being played and was set up the way the start screen is set up now (same
-   opponent or piece, and the same colour unless Toss is picked). A finished
-   game, or a different choice, starts a new game. Finished games stay in
-   "Game history" either way. */
-function soloStart(saveKey, choice, setting) {
-  const saved = store.get('table:' + saveKey);
-  const live = saved && Array.isArray(saved.history) && saved.history.length > 0 && !saved.result;
-  const sameSetting = saved && saved.setting === setting;   // a save that didn't record it can't be shown to match
-  const sameColour = choice === 'r' || (saved && saved.myColor === choice);
-  if (live && sameSetting && sameColour) return saved.myColor === 'b' ? 'b' : 'w';
-  store.set('table:' + saveKey, null);
-  return choice === 'r' ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b') : choice;
-}
+/* Play from the start screen: always a new game. Games under way are picked up
+   from Games to resume on the home screen, so nothing here looks for one. */
+const pickSide = choice => choice === 'r' ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b') : choice;
 
 el('soloBtn').onclick = () => {
-  const choice = document.querySelector('input[name=side]:checked').value;
-  const mine = soloStart('solo', choice, opponent);
+  const mine = pickSide(document.querySelector('input[name=side]:checked').value);
+  freshGame('solo', mine);
   solo = true;
   code = 'solo';
   myColor = mine;
@@ -9294,12 +9124,12 @@ el('soloBtn').onclick = () => {
 
 el('onlyLobby').value = ONLY_PICK();
 el('oneBtn').onclick = () => {
-  const choice = document.querySelector('input[name=side]:checked').value;
-  const mine = soloStart('onepiece', choice, el('onlyLobby').value);
+  const mine = pickSide(document.querySelector('input[name=side]:checked').value);
   solo = true;
   onePiece = true;
   oppOnly = el('onlyLobby').value;
   store.set('table:oppOnly', oppOnly);
+  freshGame('onepiece', mine);
   code = 'onepiece';                       // its own saved game
   myColor = mine;
   setHash(mine);
@@ -9307,13 +9137,12 @@ el('oneBtn').onclick = () => {
 };
 
 el('localBtn').onclick = () => {
-  const saved = store.get('table:local');
-  if (saved && saved.fen) store.set('table:local', null);     // a set-up position isn't carried into a normal game
+  freshGame('local', 'w');
   solo = true;
   code = 'local';
   myColor = 'w';
   setHash('w');
-  begin();          // an unfinished game on this device carries on; a finished one shows its result, with New game
+  begin();
 };
 
 el('pzBtn').onclick = () => {
@@ -10595,11 +10424,33 @@ function drawSetup() {
   for (const sq of su.unsure || []) bd.querySelector(`[data-sq="${sq}"]`)?.classList.add('unsure');
 }
 
+/* Set-up games ("lines"). Each position you set up and play gets its own entry,
+   named when you start it, holding where it started and the moves since, so
+   several can be under way at once and each picked up where it was left.
+   Kept under table:lines, newest first; the game on the board is lineId. */
+let lineId = null;
+const OFFLINE = ['solo', 'onepiece', 'local'];
+const getLines = () => (store.get('table:lines') || []).filter(x => x && x.id);
+const putLine = l => store.set('table:lines', [l, ...getLines().filter(x => x.id !== l.id)].slice(0, 40));
+const dropLine = id => store.set('table:lines', getLines().filter(x => x.id !== id));
+const newLineId = () => Math.random().toString(36).slice(2, 10);
+const lineHow = x => x.mode === 'solo' ? 'against the computer' : 'playing both sides';
+// a game started from the Play a game screens: a new line, and the mode's slot holds it
+function freshGame(kind, mine) {
+  lineId = newLineId();
+  putLine({ id: lineId, mode: kind, moves: [], myColor: mine, at: Date.now(),
+    opp: kind === 'solo' ? opponent : undefined, only: kind === 'onepiece' ? oppOnly : undefined });
+  store.set('table:' + kind, { history: [], myColor: mine, result: null, gameId: null, lineId, at: Date.now(),
+    setting: kind === 'local' ? 'local' : kind === 'onepiece' ? oppOnly : opponent });
+}
+
 function drawSavedPositions() {
-  const list = store.get('table:positions') || [], last = store.get('table:lastLine');
-  el('setupSaved').innerHTML = '<option value="">' + (list.length || last ? 'Choose a saved position' : 'None saved yet') + '</option>' +
-    (last ? `<option value="last">Where you left off (${lineMoves(last)})</option>` : '') +
-    list.map((x, i) => `<option value="${i}">${escText(x.name)}${x.moves && x.moves.length ? ' (' + lineMoves(x) + ')' : ''}</option>`).join('');
+  const list = store.get('table:positions') || [], lines = getLines().filter(x => x.fen);
+  el('setupSaved').innerHTML = '<option value="">' + (list.length || lines.length ? 'Choose a position' : 'None saved yet') + '</option>' +
+    (lines.length ? '<optgroup label="Being played">' + lines.map(x =>
+      `<option value="line:${x.id}">${escText(x.name)} (${lineMoves(x)}${x.result ? ', finished' : ''})</option>`).join('') + '</optgroup>' : '') +
+    (list.length ? '<optgroup label="Saved">' + list.map((x, i) =>
+      `<option value="${i}">${escText(x.name)}${x.moves && x.moves.length ? ' (' + lineMoves(x) + ')' : ''}</option>`).join('') + '</optgroup>' : '');
   el('setupResumeRow').classList.add('hidden');
 }
 
@@ -10611,15 +10462,15 @@ function lineEnd(x) {
   try { const g = new Chess(x.fen); for (const m of x.moves || []) g.move(m); return g; } catch { return null; }
 }
 function savedLine(v) {
-  if (v === 'last') return store.get('table:lastLine');
+  if (String(v).startsWith('line:')) return getLines().find(x => x.id === v.slice(5)) || null;
   return (store.get('table:positions') || [])[+v] || null;
 }
-function namePrompt(title) {
+function namePrompt(title, note = 'A name you’ll recognise, like the book and page.', ok = 'Save') {
   return openModal({
     title,
-    body: '<p>A name you’ll recognise, like the book and page.</p><input id="suName" class="fen" style="width:100%" autocomplete="off">',
-    actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'go', run: () => { closeModal((el('suName').value || '').trim() || 'Position'); return true; } }],
-    onOpen: b => { const i = b.querySelector('#suName'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') closeModal((i.value || '').trim() || 'Position'); }); },
+    body: `<p>${note}</p><input id="suName" class="fen" style="width:100%" autocomplete="off">`,
+    actions: [{ label: 'Cancel', value: null }, { label: ok, kind: 'go', run: () => { closeModal((el('suName').value || '').trim() || 'Position'); return true; } }],
+    onOpen: b => { const i = b.querySelector('#suName'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); closeModal((i.value || '').trim() || 'Position'); } }); },
   });
 }
 // start a game from a saved line: 'local' plays both sides, 'solo' against the computer
@@ -10627,22 +10478,29 @@ function playLine(x, mode) {
   const end = lineEnd(x);
   if (!end) return false;
   const local = mode === 'local';
-  const mine = local ? 'w' : (x.mode === 'solo' && x.myColor) || end.turn();
+  const mine = local ? 'w' : (x.mode === mode && x.myColor) || end.turn();
+  if (x.id) lineId = x.id;
+  else {
+    lineId = newLineId();
+    putLine({ id: lineId, name: x.name || 'Position', fen: x.fen, moves: x.moves || [], mode, myColor: mine, flip: !!x.flip, at: Date.now() });
+  }
+  if (mode === 'solo' && x.opp) setOpponent(x.opp);
+  if (mode === 'onepiece') { oppOnly = ONLY_KINDS.includes(x.only) && x.only !== 'any' ? x.only : 'k'; store.set('table:oppOnly', oppOnly); }
   document.body.classList.remove('insetup');
   el('setup').classList.add('hidden');
-  const inGame = !el('game').classList.contains('hidden') && code === mode;
-  solo = true; onePiece = false; code = mode;
+  const inGame = !el('game').classList.contains('hidden') && code === mode && mode !== 'onepiece';
+  solo = true; onePiece = mode === 'onepiece'; code = mode;
   if (inGame) {                          // already at the board: swap the game in place
-    startFen = x.fen;
+    startFen = x.fen || null;
     flipView = !!x.flip && mine === (x.myColor || mine);
-    startFresh(mine);
+    startFresh(mine, true);
     if ((x.moves || []).length) adopt(x.moves, null, true);
     showTab(activeTab);
     return true;
   }
-  store.set('table:' + mode, { history: x.moves || [], myColor: mine, result: null, gameId: null, fen: x.fen,
+  store.set('table:' + mode, { history: x.moves || [], myColor: mine, result: null, gameId: null, fen: x.fen || undefined, lineId, at: Date.now(),
     flip: (!!x.flip && mine === (x.myColor || mine)) || undefined,
-    setting: 'setup:' + (local ? 'local' : opponent) });
+    setting: (x.fen ? 'setup:' : '') + (local ? 'local' : mode === 'onepiece' ? oppOnly : opponent) });
   myColor = mine;
   setHash(mine);
   begin();
@@ -10656,9 +10514,10 @@ function openSetup() {
   fillOppSelects();
   if (!suFromFen(store.get('table:setupFen') || '8/8/8/8/8/8/8/8 w - - 0 1')) suFromFen('8/8/8/8/8/8/8/8 w - - 0 1');
   drawSavedPositions();
-  const last = store.get('table:lastLine');
-  if (last && (last.moves || []).length && (!store.get('table:setupFen') || store.get('table:setupFen') === last.fen)) {
-    el('setupSaved').value = 'last';
+  // opens on the line you were last playing, if that's what the editor was left on
+  const last = getLines().filter(x => x.fen)[0];
+  if (last && !last.result && (!store.get('table:setupFen') || store.get('table:setupFen') === last.fen)) {
+    el('setupSaved').value = 'line:' + last.id;
     el('setupSaved').onchange();
   }
   drawSetup();
@@ -10732,7 +10591,7 @@ for (const id of ['setupBoard', 'shelf']) {
    Home has three choices; each opens a short screen of its own. They are
    entries in the browser history, so the phone's back gesture steps back
    through them. Games themselves still live in the address (#solo=1, #r=...). */
-const SCREENS = { home: 'scrHome', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
+const SCREENS = { home: 'scrHome', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
 function renderScreen(name) {
   if (!SCREENS[name] && name !== 'setup') name = 'home';
   document.body.classList.toggle('lobbysub', name !== 'home');
@@ -10744,7 +10603,8 @@ function renderScreen(name) {
   const slot = el(SCREENS[name]).querySelector('.sideslot');
   if (slot) slot.appendChild(el('sideField'));
   el('sideField').classList.toggle('hidden', !slot);
-  if (name === 'home') drawCarryOn();
+  if (name === 'home') drawResumeChoice();
+  if (name === 'resume') drawCarryOn();
   window.scrollTo(0, 0);
 }
 function showScreen(name) {
@@ -10771,42 +10631,44 @@ function oppTitle(id) {
   const o = el('oppLobby').querySelector(`option[value="${id}"]`);
   return o ? o.textContent : 'the computer';
 }
-const movesIn = n => `${n} move${n === 1 ? '' : 's'} in`;
-// removing a set-up game also forgets it as 'where you left off', when that's the same line
-function dropLast(t) {
-  const last = store.get('table:lastLine');
-  if (last && last.fen === t.fen && (last.moves || []).join() === (t.history || []).join()) store.set('table:lastLine', null);
+// when it was last played, roughly
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'yesterday' : d < 14 ? `${d} days ago` : new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
+// the last move played, numbered: '12…Nf6'
+function lastMoveText(fen, moves) {
+  if (!moves || !moves.length) return '';
+  const f = (fen || STD_FEN).split(' ');
+  const blackFirst = f[1] === 'b', full = Number(f[5]) || 1, i = moves.length - 1 + (blackFirst ? 1 : 0);
+  return `${full + Math.floor(i / 2)}${i % 2 ? '…' : '.'}${moves[moves.length - 1]}`;
+}
+const movesIn = n => n ? `${n} move${n === 1 ? '' : 's'} in` : 'no moves yet';
 function carryOnItems() {
   const out = [];
-  const live = x => x && Array.isArray(x.history) && x.history.length > 0 && !x.result;
-  const solo_ = store.get('table:solo');
-  if (live(solo_)) {
-    const opp = String(solo_.setting || '').replace(/^setup:/, '');
-    out.push({ at: 3, title: (solo_.fen ? 'Your position against ' : 'Against ') + oppTitle(opp), sub: movesIn(solo_.history.length), go: () => {
-      if (opp) setOpponent(opp);
-      solo = true; code = 'solo'; myColor = solo_.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
-    }, drop: () => { store.set('table:solo', null); if (solo_.fen) dropLast(solo_); } });
-  }
-  const one = store.get('table:onepiece');
-  if (live(one) && ONLY_WORD[one.setting]) {
-    out.push({ at: 2, title: `One-piece challenge (${ONLY_WORD[one.setting]}s)`, sub: movesIn(one.history.length), go: () => {
-      solo = true; onePiece = true; oppOnly = one.setting; store.set('table:oppOnly', oppOnly);
-      code = 'onepiece'; myColor = one.myColor === 'b' ? 'b' : 'w'; setHash(myColor); begin();
-    }, drop: () => store.set('table:onepiece', null) });
-  }
-  const loc = store.get('table:local');
-  if (live(loc)) {
-    out.push({ at: 4, title: loc.fen ? 'Your position, playing both sides' : 'On this device', sub: movesIn(loc.history.length), go: () => {
-      solo = true; code = 'local'; myColor = 'w'; setHash('w'); begin();
-    }, drop: () => { store.set('table:local', null); if (loc.fen) dropLast(loc); } });
-  }
-  // a set-up line that has since been replaced by another game of the same kind
-  const last = store.get('table:lastLine');
-  const same = x => x && x.fen === last.fen && Array.isArray(x.history) && x.history.join() === (last.moves || []).join();
-  if (last && (last.moves || []).length && !same(last.mode === 'solo' ? solo_ : loc)) {
-    out.push({ at: 1, title: 'Where you left off in a position', sub: `${last.mode === 'solo' ? 'against the computer' : 'playing both sides'}, ${movesIn(last.moves.length)}`,
-      go: () => playLine(last, last.mode === 'solo' ? 'solo' : 'local'), drop: () => store.set('table:lastLine', null) });
+  // under way, or a set-up position that hasn't had its first move yet
+  const live = x => x && Array.isArray(x.history) && (x.history.length > 0 || !!x.fen) && !x.result;
+  // every game on this device that's under way (a set-up position counts before its first move)
+  for (const x of getLines()) {
+    const n = (x.moves || []).length;
+    if (x.result || !(n || x.fen)) continue;
+    const title = x.name || (x.mode === 'solo' ? 'Against ' + oppTitle(x.opp)
+      : x.mode === 'onepiece' ? `One-piece challenge (${ONLY_WORD[x.only] || 'king'}s)` : 'On this device');
+    const lm = lastMoveText(x.fen, x.moves);
+    // how it's being played, when the title doesn't say: the opponent, and your colour
+    const how = x.mode === 'local' ? (x.name ? 'playing both sides' : '')
+      : `${x.name && x.mode === 'solo' ? oppTitle(x.opp) + ' · ' : ''}you play ${x.myColor === 'b' ? 'Black' : 'White'}`;
+    out.push({ at: x.at || 0, title, how, sub: movesIn(n) + (lm ? ` · last ${lm}` : ''),
+      go: () => playLine(x, OFFLINE.includes(x.mode) ? x.mode : 'local'),
+      drop: () => {
+        dropLine(x.id);
+        for (const k of OFFLINE) { const t = store.get('table:' + k); if (t && t.lineId === x.id) store.set('table:' + k, null); }
+      } });
   }
   // online tables with a game under way
   try {
@@ -10815,23 +10677,41 @@ function carryOnItems() {
       const m = /^table:([a-z0-9]{9})$/.exec(k || '');
       if (!m) continue;
       const t = store.get(k);
-      if (live(t)) out.push({ at: 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`, sub: movesIn(t.history.length),
+      if (live(t)) out.push({ at: t.at || 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`,
+        how: `you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
+        sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
         go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }),
         drop: () => { try { localStorage.removeItem(k); } catch {} } });
     }
   } catch {}
-  return out.sort((a, b) => b.at - a.at).slice(0, 4);
+  return out.sort((a, b) => b.at - a.at);
 }
+// the home screen's fourth choice, shown only when there's something to resume
+function drawResumeChoice() {
+  const n = carryOnItems().length;
+  el('goResume').classList.toggle('hidden', !n);
+  if (n) el('goResumeSub').textContent = `${n} game${n === 1 ? '' : 's'} under way. Pick up where you left off.`;
+}
+el('goResume').onclick = () => showScreen('resume');
+el('resumeClear').onclick = async () => {
+  const items = carryOnItems();
+  if (!items.length) return;
+  if (!await confirmModal(`Remove all ${items.length} game${items.length === 1 ? '' : 's'}?`,
+    'None of them will be offered to resume any more. Their moves so far stay in Game history.', 'Remove all', { danger: true })) return;
+  for (const x of items) x.drop();
+  goBack();
+};
 function drawCarryOn() {
   const items = carryOnItems();
+  if (!items.length && !el('scrResume').classList.contains('hidden')) { goBack(); return; }   // nothing left: back home
   const box = el('carryOn');
-  box.innerHTML = items.length ? '<p class="carryhead">Games to resume</p>' + items.map((x, i) =>
-    `<div class="carryrow"><button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span><span class="cd">${escText(x.sub)}</span></button>` +
-    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from this list" title="Remove from this list">×</button></div>`).join('') : '';
+  box.innerHTML = items.map((x, i) =>
+    `<div class="carryrow"><button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span>${x.how ? `<span class="cd">${escText(x.how[0].toUpperCase() + x.how.slice(1))}</span>` : ''}<span class="cd">${escText(x.sub[0].toUpperCase() + x.sub.slice(1) + (x.at ? ' · ' + ago(x.at) : ''))}</span></button>` +
+    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from this list" title="Remove from this list">×</button></div>`).join('');
   box.querySelectorAll('button.carry').forEach(b => b.onclick = () => items[+b.dataset.i].go());
   box.querySelectorAll('button.carryx').forEach(b => b.onclick = async () => {
     const x = items[+b.dataset.x];
-    if (!await confirmModal('Remove from Games to resume?', `“${x.title}” won’t be offered here any more. Its moves so far stay in Game history.`, 'Remove')) return;
+    if (!await confirmModal('Remove this game?', `“${x.title}” won’t be offered to resume any more. Its moves so far stay in Game history.`, 'Remove')) return;
     x.drop();
     drawCarryOn();
   });
@@ -10862,8 +10742,9 @@ el('setupSaved').onchange = () => {
   const n = x ? (x.moves || []).length : 0;
   // the editor shows where the line got to; Carry on picks it up with its moves
   if (end && suFromFen(end.fen())) drawSetup();
-  el('setupResumeRow').classList.toggle('hidden', !n);
-  if (n) el('setupResume').textContent = `Resume, ${n} move${n === 1 ? '' : 's'} in, ${x.mode === 'solo' ? 'against the computer' : 'playing both sides'}`;
+  const resumable = !!x && (!!x.id || n > 0);
+  el('setupResumeRow').classList.toggle('hidden', !resumable);
+  if (resumable) el('setupResume').textContent = `${x.result ? 'Open' : 'Resume'} ${x.id ? '“' + x.name + '”, ' : ''}${movesIn(n)}, ${lineHow(x)}`;
 };
 el('setupResume').onclick = () => {
   const x = savedLine(el('setupSaved').value);
@@ -10889,8 +10770,7 @@ el('posSaveBtn').onclick = async () => {
 };
 el('posOpenBtn').onclick = async () => {
   const list = store.get('table:positions') || [];
-  const last = store.get('table:lastLine');
-  const items = (last ? [['last', last]] : []).concat(list.map((x, i) => [String(i), x]));
+  const items = getLines().filter(x => x.fen && !x.result && x.id !== lineId).map(x => ['line:' + x.id, x]).concat(list.map((x, i) => [String(i), x]));
   if (!items.length) { await openModal({ title: 'No saved positions', body: '<p>Save one with Save, here or on the Set up a position page.</p>' }); return; }
   const v = await openModal({
     title: 'Open a saved position',
@@ -10906,9 +10786,11 @@ el('posOpenBtn').onclick = async () => {
 el('setupDelete').onclick = async () => {
   const list = store.get('table:positions') || [];
   const i = +el('setupSaved').value;
-  if (el('setupSaved').value === 'last') {
-    if (!await confirmModal('Forget where you left off?', 'The game itself stays in Game history.', 'Forget', { danger: true })) return;
-    store.set('table:lastLine', null);
+  const v = el('setupSaved').value;
+  if (v.startsWith('line:')) {
+    const x = savedLine(v);
+    if (!x || !await confirmModal('Remove this position?', `“${x.name}” won’t be offered to resume any more. Its moves so far stay in Game history.`, 'Remove', { danger: true })) return;
+    dropLine(x.id);
     drawSavedPositions();
     return;
   }
@@ -10921,15 +10803,20 @@ el('setupDelete').onclick = async () => {
 el('oppSetup').onchange = e => setOpponent(e.target.value);
 
 // Play: the position is checked, then a game starts from it like any other
-function startFromSetup(mode) {
+async function startFromSetup(mode) {
   if (suProblem()) { drawSetup(); return; }
+  const name = await namePrompt('Name this position', 'So you can come back to it from the home screen. Something you’ll recognise, like the book and page.', 'Play');
+  if (!name) return;
   document.body.classList.remove('insetup');
   const fen = suFen();
   const local = mode === 'both';
   const mine = local ? 'w' : su.turn;
   const key = local ? 'local' : 'solo';
-  store.set('table:' + key, { history: [], myColor: mine, result: null, gameId: null, fen,
-    flip: ((su.flip ? 'b' : 'w') !== mine) || undefined,
+  const flip = (su.flip ? 'b' : 'w') !== mine;
+  lineId = newLineId();
+  putLine({ id: lineId, name, fen, moves: [], mode: key, myColor: mine, flip, opp: local ? undefined : opponent, at: Date.now() });
+  store.set('table:' + key, { history: [], myColor: mine, result: null, gameId: null, fen, lineId,
+    flip: flip || undefined,
     setting: 'setup:' + (local ? 'local' : opponent) });
   el('setup').classList.add('hidden');
   solo = true;
@@ -11383,6 +11270,25 @@ if (store.get('table:sound') !== null) {
   }
   try { localStorage.removeItem('table:sound'); } catch {}
 }
+
+// Set-up games had one 'where you left off' each (table:lastLine), and every mode
+// kept one game. Turn those into lines, so each can be resumed.
+try {
+  const last = store.get('table:lastLine');
+  for (const k of ['local', 'solo', 'onepiece']) {
+    const t = store.get('table:' + k);
+    if (t && !t.lineId && Array.isArray(t.history) && (t.history.length || t.fen)) {
+      const id = newLineId(), set = String(t.setting || '').replace(/^setup:/, '');
+      putLine({ id, name: t.fen ? 'Earlier position' : undefined, fen: t.fen, moves: t.history, mode: k, myColor: t.myColor || 'w', flip: !!t.flip,
+        result: t.result || null, opp: k === 'solo' ? set || opponent : undefined, only: k === 'onepiece' ? set : undefined, at: Date.now() - 1000 });
+      store.set('table:' + k, { ...t, lineId: id });
+    }
+  }
+  if (last && last.fen && !getLines().some(x => x.fen === last.fen && (x.moves || []).join() === (last.moves || []).join()))
+    putLine({ ...last, id: newLineId(), name: 'Where you left off', at: last.at || Date.now() - 2000 });
+  localStorage.removeItem('table:lastLine');
+  if (!el('lobby').classList.contains('hidden')) drawResumeChoice();
+} catch {}
 
 // The eval bar could sit under the board (builds of 2026-10-22 and 23). That
 // choice is gone; forget it.
