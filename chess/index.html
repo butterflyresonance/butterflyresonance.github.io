@@ -3429,7 +3429,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.13-dots';
+const VERSION = '2026-10-24.16-seats';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3768,7 +3768,7 @@ function setHash(colour) {
   navigating = true;          // our own write, not a jump to another game
   location.hash = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
     : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
-    : solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
+    : solo ? `solo=1&c=${colour}` : `r=${code}`;           // a table's colour lives on each device, not in the link
 }
 
 function makeCode() {
@@ -3961,6 +3961,7 @@ function fadeIn(node) {
    table server, 'delivered' when the other phone confirms it, 'seen' when they
    have the chat open on screen. Anything not delivered is sent again whenever
    they reappear. Kept on each device per table (table:chat:<code>), the last 200.
+   Each device is one player: testing needs two browsers, not two windows of one.
    The chat has a screen of its own over the game: the chat button in the top
    bar shows a count of unread messages, and the Game button on the chat screen
    shows when they've moved while you were chatting. */
@@ -4118,7 +4119,7 @@ function broadcast(msg) {
 }
 
 function sendState() {
-  broadcast({ t: 'state', history: game.history(), result, color: myColor });
+  broadcast({ t: 'state', history: game.history(), result, color: myColor, undecided: joinByCode, owner: tableOwner, dev: deviceId });
 }
 
 function handleMessage(msg) {
@@ -4149,18 +4150,19 @@ function handleMessage(msg) {
   }
 
   if (msg.t === 'state') {
-    // Shouldn't happen — the share button hands out the opposite seat — but if
-    // someone passes on their own link instead, neither side can move and the
-    // reason isn't visible. Say it plainly rather than trying to fix it.
-    if (joinByCode && (msg.color === 'w' || msg.color === 'b')) {
-      joinByCode = false;
-      if (msg.color === myColor) {             // joined by code as the colour the owner already has: take the other
-        myColor = msg.color === 'w' ? 'b' : 'w';
-        setHash(myColor);
-        sendState();
+    // colours: settle a clash by the rule above; an undecided side becomes decided either way
+    if (msg.color === 'w' || msg.color === 'b') {
+      let changed = joinByCode;
+      if (msg.color === myColor) {
+        const iSwitch = joinByCode !== !!msg.undecided ? joinByCode
+          : tableOwner !== !!msg.owner ? !tableOwner
+          : deviceId > String(msg.dev || '');
+        if (iSwitch) { myColor = myColor === 'w' ? 'b' : 'w'; changed = true; note(`colour settled: playing ${myColor === 'w' ? 'White' : 'Black'}`); }
       }
+      joinByCode = false;
+      if (changed) { persist(); setLink(); sendState(); draw(); }
     }
-    seatClash = msg.color === myColor;
+    seatClash = false;
     if (Array.isArray(msg.history)) { peerPly = msg.history.length; adopt(msg.history, msg.result, !!msg.force); }
     if (msg.force) takebackAsked = false;
     return;
@@ -4353,6 +4355,7 @@ const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle'].includes(c
 
 function persist() {
   if (!code || code === 'puzzle' || code === 'study') return;
+  if (ownTable(code) && joinByCode) return;      // colour not settled yet: nothing worth keeping either
   recordGame();
   /* An online table's own copy is only for picking the game up again. Once the
      game is over it's in your history in full, so the copy goes; opening the
@@ -4367,7 +4370,7 @@ function persist() {
     if (startFen) store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
   }
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
-    lineId: lineId || undefined, at: Date.now(),
+    lineId: lineId || undefined, at: Date.now(), owner: ownTable(code) && tableOwner || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
@@ -6884,9 +6887,7 @@ function drawStatus() {
   }
 
   if (peers.size) {
-    note.textContent = seatClash
-      ? 'You’re both on the same side. One of you should open the link from the share button.'
-      : peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
+    note.textContent = peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
       : '';
     note.removeAttribute('title');
   } else {
@@ -9089,7 +9090,7 @@ function setLink() {
   el('topState').textContent = state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
   updateConnecting();
-  el('invite').querySelector('.label').textContent = `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
+  el('invite').querySelector('.label').textContent = joinByCode ? 'Your table · your colour is set when they arrive' : `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
   drawConn();
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
@@ -9409,26 +9410,45 @@ el('backBtn').onclick = () => swapScreen(() => {
   location.href = location.pathname + location.search;
 });
 
-/* Join by code: a table the other person opened. The colour isn't in a code,
-   so this side starts as Black and, if the table's owner turns out to be Black,
-   takes White as soon as their first message says so. */
-let joinByCode = false;
+/* Colours at an online table. Each device keeps its colour with the table
+   (table:<code>.myColor). The one who opened the table chose theirs (owner).
+   A device arriving with no colour for this table (a link or code it hasn't
+   used before) is undecided: it takes whichever colour the other player
+   doesn't have, from their first message. If both end up claiming the same
+   colour anyway (old saved data, an old-style link), one rule, worked out
+   identically on both devices, says who switches: undecided before decided,
+   then the owner keeps theirs, then the device with the higher random id
+   switches. */
+let joinByCode = false;               // this device's colour for the table is still undecided
+let tableOwner = false;               // this device opened the table
+const deviceId = (() => {
+  let d = store.get('table:device');
+  if (!d) { d = Math.random().toString(36).slice(2, 12); store.set('table:device', d); }
+  return d;
+})();
 const CODE_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{9}$/;
 el('joinBtn').onclick = () => {
   const raw = el('joinCode').value.trim();
-  const link = /[#&]r=([a-z0-9]{9})(?:&c=([wb]))?/i.exec(raw);
+  const link = /[#&]r=([a-z0-9]{9})/i.exec(raw);
   const c = (link ? link[1] : raw.replace(/[^a-z0-9]/gi, '')).toLowerCase();
   if (!CODE_RE.test(c)) { el('joinMsg').textContent = 'That doesn’t look like a table code. It’s 9 letters and numbers, like abc def ghi.'; return; }
   el('joinMsg').textContent = '';
-  const saved = store.get('table:' + c);
   code = c;
-  myColor = link && link[2] ? link[2] : saved && saved.myColor ? saved.myColor : 'b';
-  joinByCode = !(link && link[2]) && !(saved && saved.myColor);
+  takeSeat();
   setHash(myColor);
   begin();
 };
 el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('joinBtn').click(); });
 
+// your colour at this table: the one saved on this device, or undecided until the other player says
+function takeSeat() {
+  const saved = store.get('table:' + code);
+  if (saved && (saved.myColor === 'w' || saved.myColor === 'b')) {
+    myColor = saved.myColor; tableOwner = !!saved.owner; joinByCode = false;
+  } else {
+    myColor = 'b'; tableOwner = false; joinByCode = true;
+  }
+}
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
   const mine = choice === 'r'
@@ -9436,12 +9456,15 @@ el('startBtn').onclick = () => {
     : choice;
   code = makeCode();
   myColor = mine;
+  tableOwner = true;
+  joinByCode = false;
+  store.set('table:' + code, { history: [], myColor: mine, owner: true, result: null, at: Date.now() });
   setHash(mine);
   begin();
 };
 
 function inviteUrl() {
-  return `${location.origin}${location.pathname}#r=${code}&c=${myColor === 'w' ? 'b' : 'w'}`;
+  return `${location.origin}${location.pathname}#r=${code}`;
 }
 
 // the phone's own share sheet (Instagram, WhatsApp, messages…); where there isn't one, the text is copied
@@ -11120,7 +11143,7 @@ function carryOnItems() {
       if (live(t)) out.push({ at: t.at || 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`,
         how: `you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
         sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
-        go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }),
+        go: () => swapScreen(() => { location.hash = `r=${m[1]}`; }),
         drop: () => { try { localStorage.removeItem(k); } catch {} } });
     }
   } catch {}
@@ -11763,7 +11786,8 @@ if (studyHash) {
   begin();
 } else if (r) {
   code = r;
-  myColor = c === 'b' ? 'b' : 'w';
+  takeSeat();
+  if (joinByCode && (c === 'w' || c === 'b')) myColor = c;   // an old-style link's colour, as a first guess only
   begin();
 } else {
   setLink();
