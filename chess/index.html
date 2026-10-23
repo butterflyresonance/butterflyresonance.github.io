@@ -1345,6 +1345,30 @@
   .dropbar span { flex: 1; min-width: 0; }
   .dropbar button { padding: 6px 10px; font-size: 12px; }
 
+  /* ---- famous games and your own: stepping through a game ---- */
+  body:not(.studymode) .tabs [data-tab="game"], body:not(.studymode) .studynav { display: none !important; }
+  body.studymode #takebackBtn, body.studymode #resignBtn, body.studymode #rematchBtn,
+  body.studymode .tabs [data-tab="open"], body.studymode .tabs [data-tab="moves"],
+  body.studymode #posRow { display: none !important; }
+  .controls .studynav { flex: 1; display: flex; align-items: center; justify-content: center; padding-left: 0; padding-right: 0; }
+  .famfilter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .famfilter button { padding: 5px 10px; font-size: 11px; letter-spacing: .06em; }
+  .famfilter button.on { border-color: var(--brass); color: var(--brass); }
+  button.choice.fam { padding: 12px 16px; margin-bottom: 10px; }
+  .choice.fam .ct { font-size: 17px; margin-bottom: 2px; }
+  .choice.fam .who { display: block; font-size: 11.5px; color: var(--text); margin-bottom: 4px; letter-spacing: .02em; }
+  #studyInfo h3 { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--brass); margin: 12px 0 2px; }
+  #studyInfo .who { font-size: 12.5px; margin: 0 0 2px; }
+  #studyInfo .where { font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  #studyInfo .why { font-size: 12.5px; line-height: 1.6; color: var(--muted); margin: 0 0 10px; }
+  #studyInfo .studybtns { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+  #studyInfo .studybtns button { padding: 7px 12px; font-size: 11.5px; }
+  #studyMoves { border-top: 1px solid var(--edge); padding-top: 8px; }
+  #studyMoves .m.cur { color: var(--brass); text-decoration: underline; text-underline-offset: 3px; }
+  #studyMoves .m.key { color: var(--text); font-weight: 600; }
+  .importbox textarea { width: 100%; min-height: 140px; font: 12px/1.5 var(--mono); background: var(--ground); color: var(--text); border: 1px solid var(--edge); padding: 8px; box-sizing: border-box; }
+  .importlist button { display: block; width: 100%; text-align: left; margin: 6px 0; }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1380,6 +1404,7 @@
       <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
       <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
       <button class="choice" id="goAnalyse"><span class="ct">Analyse a position</span><span class="cd">Set up a position from a book, a lesson or a photo. Play it out and see what the engine thinks.</span></button>
+      <button class="choice" id="goFamous"><span class="ct">Famous games</span><span class="cd">Step through great games, each picked for something worth learning, with the engine’s view alongside. Or open one of your own.</span></button>
       <button class="choice hidden" id="goResume"><span class="ct">Resume a game</span><span class="cd" id="goResumeSub"></span></button>
       <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button></div>
     </div>
@@ -1391,6 +1416,19 @@
       </div>
       <div id="carryOn"></div>
       <button class="linkish" id="resumeClear">Clear all</button>
+    </div>
+
+    <div class="scr hidden" id="scrFamous">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Famous games</div>
+      </div>
+      <div class="famfilter" id="famFilter"></div>
+      <div id="famList"><p class="note">Loading…</p></div>
+      <div class="lsec">
+        <button class="primary alt" id="famImport">Open your own game</button>
+        <p class="note">Paste a game in PGN, choose a .pgn file, or paste a Lichess game link. On chess.com, finished games have Share, then PGN.</p>
+      </div>
     </div>
 
     <div class="scr hidden" id="scrPlay">
@@ -1567,6 +1605,10 @@
         </div>
         <div class="controls">
           <button id="flipBtn" class="flipbtn" aria-label="Flip the board" title="Flip the board"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2v11M2.5 10.5 5 13l2.5-2.5M11 14V3M8.5 5.5 11 3l2.5 2.5"/></svg></button>
+          <button class="studynav" id="stFirst" aria-label="To the start" title="To the start"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v10M12 3 6 8l6 5"/></svg></button>
+          <button class="studynav" id="stPrev" aria-label="Back one move" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+          <button class="studynav" id="stNext" aria-label="Forward one move" title="Forward one move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
+          <button class="studynav" id="stLast" aria-label="To the end" title="To the end"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M4 3l6 5-6 5"/></svg></button>
           <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
@@ -1575,6 +1617,7 @@
         <p class="note gnote" id="gameNote"></p>
         <div class="tabs" role="tablist">
           <button role="tab" data-tab="table">Table</button>
+          <button role="tab" data-tab="game">Game</button>
           <button role="tab" data-tab="puzzle">Puzzle</button>
           <button role="tab" data-tab="open">Openings</button>
           <button role="tab" data-tab="review">Review</button>
@@ -1582,6 +1625,10 @@
           <button role="tab" data-tab="set">Settings</button>
         </div>
         <div class="panes" id="panes">
+          <div class="pane" data-pane="game">
+            <div id="studyInfo"></div>
+            <div class="moves" id="studyMoves"></div>
+          </div>
           <div class="pane" data-pane="table">
           <div class="invite-slot" id="inviteSlot"></div>
           <section class="conn hidden" id="connBox">
@@ -3330,7 +3377,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.8-resume-tidy';
+const VERSION = '2026-10-24.9-famous';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3491,7 +3538,7 @@ const plyColor = (i, fen = startFen) => (plyBase(fen) + i) % 2 === 0 ? 'w' : 'b'
 let myColor = 'w';
 /* One device, two players: the board faces White, Black sits opposite.
    Whoever's turn it is moves; nothing is played by the engine. */
-const isLocal = () => code === 'local';
+const isLocal = () => code === 'local' || code === 'study';   // a game being stepped through shows both sides, like one device
 const moverColor = () => isLocal() ? game.turn() : myColor;
 let flipView = false;              // the board turned round from your side
 const viewColor = () => flipView ? (myColor === 'w' ? 'b' : 'w') : myColor;
@@ -3659,7 +3706,7 @@ function pieceSVG(type, color, cls = '', set = pieceSet) {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local') };
+  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local'), study: p.get('study') };
 }
 
 /* The hash states *your own* colour, so each player holds a self-describing
@@ -3667,7 +3714,7 @@ function parseHash() {
    you're on depends on storage. */
 function setHash(colour) {
   navigating = true;          // our own write, not a jump to another game
-  location.hash = code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
+  location.hash = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
     : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
     : solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
 }
@@ -4130,7 +4177,7 @@ function startFresh(colorForMe, keepLine = false) {
 const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle'].includes(c);
 
 function persist() {
-  if (!code || code === 'puzzle') return;
+  if (!code || code === 'puzzle' || code === 'study') return;
   recordGame();
   /* An online table's own copy is only for picking the game up again. Once the
      game is over it's in your history in full, so the copy goes; opening the
@@ -4933,7 +4980,7 @@ function requestHint() {
 /* In solo the engine is the opponent, so it moves when it is *not* our turn.
    With a peer, "Engine plays" hands over our own side instead. */
 function engineToMove() {
-  if (result || !code || code === 'puzzle' || code === 'local') return false;
+  if (result || !code || code === 'puzzle' || code === 'local' || code === 'study') return false;
   return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
 }
 
@@ -6416,6 +6463,7 @@ function draw() {
   drawReview();
   drawOpenings();
   drawPuzzle();
+  drawStudy();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('takebackBtn').disabled = (!!result && !solo) || game.history().length === 0 || (!solo && !peers.size);
@@ -6453,7 +6501,7 @@ function drawBoard() {
   const pos = ls ? ls.chess : viewing ? new Chess(game.history({ verbose: true })[viewPly].before) : game;
   const shownLast = ls ? ls.last : viewing ? null : lastMove;
   boardEl.classList.toggle('linemode', !!ls);
-  const myTurn = !viewing && game.turn() === moverColor() && !result;
+  const myTurn = !viewing && game.turn() === moverColor() && !result && code !== 'study';
   const targets = selected && !viewing
     ? game.moves({ square: selected, verbose: true }).reduce((acc, m) => (acc[m.to] = m, acc), {})
     : {};
@@ -6551,6 +6599,19 @@ function drawTaken() {
 function drawStatus() {
   const s = el('status');
   s.classList.remove('urgent');
+
+  if (code === 'study' && study) {
+    const ls = lineState();
+    const i = study.idx, n = study.g.moves.length;
+    s.textContent = ls ? `Stockfish line ${ls.idx ? `${ls.idx}/${ls.n}` : 'start'}`
+      : i === 0 ? 'The starting position' : `After ${moveLabel(i - 1, study.g.moves[i - 1])}`;
+    const key = study.g.key;
+    el('gameNote').textContent = ls ? ''
+      : key != null && i === key ? `The famous move comes next. What would you play? Press → to see it.`
+      : key != null && i === key + 1 ? `That was the famous move, ${moveLabel(key, study.g.moves[key])}.`
+      : i === n ? `End of the game: ${studyResult(study.g)}.` : '';
+    return;
+  }
 
   if (code === 'puzzle') {
     const lsp = lineState();
@@ -8827,7 +8888,7 @@ el('coachBody').addEventListener('toggle', e => {
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
-    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
+    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'study' ? (study && study.g.id === 'mine' ? 'your game' : 'famous game') : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
     document.body.classList.remove('online', 'connecting');
@@ -8856,6 +8917,7 @@ function setLink() {
 /* ---------- interaction ---------- */
 function pick(sq) {
   if (viewPly != null || lineView) { viewPly = null; lineView = null; draw(); return; }   // any tap returns to the game
+  if (code === 'study') return;                    // stepping through a game: the board isn't played on
   if (code === 'puzzle' && pz.phase === 'wrong') { pzRetry(); return; }
   if (code === 'puzzle' && !pzCanMove()) return;
   if (result) { if (inspect(sq)) { drawBoard(); drawCoach(); drawCoachRays(); } return; }
@@ -8900,7 +8962,7 @@ let dragJustDropped = false;
 const DRAG_START_PX = 6;
 
 function canDragFrom(sq) {
-  if (viewPly != null || lineView || result) return false;
+  if (viewPly != null || lineView || result || code === 'study') return false;
   if (code === 'puzzle' && !pzCanMove()) return false;
   const p = game.get(sq);
   return !!p && p.color === moverColor() && game.turn() === moverColor();
@@ -9154,7 +9216,10 @@ el('pzBtn').onclick = () => {
 
 /* Back to the start screen. Every game is saved as it goes, so this only
    leaves; opening the same mode or link again picks the game up. */
-el('backBtn').onclick = () => swapScreen(() => { location.href = location.pathname + location.search; });
+el('backBtn').onclick = () => swapScreen(() => {
+  if (code === 'study' && study && study.g.id !== 'mine') { try { sessionStorage.setItem('etude:screen', 'famous'); } catch {} }
+  location.href = location.pathname + location.search;
+});
 
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
@@ -9415,10 +9480,15 @@ preloadSet(pieceSet);
 
 /* ---------- boot ---------- */
 /* ---------- the tabbed panel ---------- */
-const TABS = ['table', 'puzzle', 'open', 'review', 'moves', 'set'];
+const TABS = ['table', 'game', 'puzzle', 'open', 'review', 'moves', 'set'];
 let prevTab = null;              // where to go back to once connected
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
 document.addEventListener('keydown', e => {
+  if (code === 'study' && !lineView && !e.altKey && !e.ctrlKey && !e.metaKey && !(e.target.closest && e.target.closest('input, select, textarea'))) {
+    const to = { ArrowLeft: study.idx - 1, ArrowRight: study.idx + 1, Home: 0, End: study.g.moves.length }[e.key];
+    if (to != null) { e.preventDefault(); studyGo(to); }
+    return;
+  }
   if (!lineView || e.altKey || e.ctrlKey || e.metaKey) return;
   if (e.target.closest && e.target.closest('input, select, textarea')) return;
   if (e.key === 'ArrowLeft') { e.preventDefault(); lineStep(-1); }
@@ -9434,9 +9504,11 @@ function showTab(t) {
   // puzzles have their own tab in place of Openings and Review, which would give answers away
   if (code === 'puzzle' && (activeTab === 'open' || activeTab === 'review')) activeTab = 'puzzle';
   if (code !== 'puzzle' && activeTab === 'puzzle') activeTab = 'open';
+  if (code === 'study' && ['open', 'moves', 'table', 'puzzle'].includes(activeTab)) activeTab = 'game';
+  if (code !== 'study' && activeTab === 'game') activeTab = 'open';
   if (activeTab === 'table' && !document.body.classList.contains('online')) activeTab = 'open';
   if (lineView && activeTab !== 'review') { lineView = null; draw(); }
-  if (code !== 'puzzle' && activeTab !== 'table') store.set('table:tab', activeTab);
+  if (code !== 'puzzle' && activeTab !== 'table' && activeTab !== 'game') store.set('table:tab', activeTab);
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === activeTab));
   for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.dataset.pane === activeTab);
   el('panes').scrollTop = activeTab === 'moves' ? el('panes').scrollHeight : 0;
@@ -10289,9 +10361,10 @@ function begin(now) {
   el('diagSlot').appendChild(el('verBtn'));
   el('diagSlot').appendChild(el('debugPanel'));
   if (code === 'puzzle') { activeTab = 'puzzle'; flipView = false; }
-  document.body.classList.toggle('localmode', code === 'local');
+  document.body.classList.toggle('localmode', code === 'local' || code === 'study');
+  document.body.classList.toggle('studymode', code === 'study');
   showTab(activeTab);
-  if (code !== 'puzzle') { restore(); showTab(activeTab); }   // a set-up game hides Openings
+  if (code !== 'puzzle' && code !== 'study') { restore(); showTab(activeTab); }   // a set-up game hides Openings
   if (!solo) {
     connect();
     el('codeText').textContent = code.slice(0, 3) + ' ' + code.slice(3, 6) + ' ' + code.slice(6);
@@ -10301,6 +10374,161 @@ function begin(now) {
   if (code === 'puzzle') pzStart();
 }
 
+
+/* ================= famous games, and your own =================
+   A game to step through rather than play: the board shows the position after
+   the moves so far, and the review (eval bar, badges, best move) reads it as it
+   would a game being played. The famous games are in famous/games.json, each
+   with why it's worth seeing and, for most, the ply of the move it's famous for
+   (key). Your own come from a PGN or a Lichess link; the last one opened is kept
+   under table:studyMine. Where you were in a game is kept under table:studyAt. */
+let study = null;                    // { g, idx }: the game, and how many of its moves are on the board
+let famGames = null, famTag = 'all';
+const FAM_TAGS = { attack: 'Attack', sacrifice: 'Sacrifices', tactics: 'Tactics', positional: 'Positional play',
+  endgame: 'Endgames', defence: 'Defence', 'world championship': 'World championships', history: 'History' };
+async function famLoad() {
+  if (famGames) return famGames;
+  try { famGames = await (await fetch('famous/games.json')).json(); } catch { famGames = []; }
+  return famGames;
+}
+const famName = n => String(n || '?').replace(/^Comp /, '').replace(/,.*$/, '').trim();
+const famYear = g => (String(g.date || '').match(/\d{4}/) || [''])[0];
+const studyResult = g => g.result === '1-0' ? 'White won' : g.result === '0-1' ? 'Black won' : g.result === '1/2-1/2' ? 'a draw' : 'no result recorded';
+async function drawFamous() {
+  const games = await famLoad();
+  const tags = Object.keys(FAM_TAGS).filter(t => games.some(g => (g.tags || []).includes(t)));
+  el('famFilter').innerHTML = ['all', ...tags].map(t => `<button data-tag="${t}" class="${famTag === t ? 'on' : ''}">${t === 'all' ? 'All' : FAM_TAGS[t]}</button>`).join('');
+  el('famFilter').querySelectorAll('button').forEach(b => b.onclick = () => { famTag = b.dataset.tag; drawFamous(); });
+  const shown = games.filter(g => famTag === 'all' || (g.tags || []).includes(famTag)).sort((a, b) => famYear(a) - famYear(b));
+  el('famList').innerHTML = shown.length ? shown.map(g =>
+    `<button class="choice fam" data-id="${g.id}"><span class="ct">${escText(g.title)}</span>` +
+    `<span class="who">${escText(famName(g.white))} v ${escText(famName(g.black))}, ${escText(famYear(g))}</span>` +
+    `<span class="cd">${escText(g.why)}</span></button>`).join('') : '<p class="note">The games couldn’t be loaded. They need an internet connection the first time.</p>';
+  el('famList').querySelectorAll('button.fam').forEach(b => b.onclick = () => openStudy(games.find(g => g.id === b.dataset.id)));
+}
+el('goFamous').onclick = () => showScreen('famous');
+
+function openStudy(g, idx = 0) {
+  if (!g || !Array.isArray(g.moves)) return;
+  solo = true; onePiece = false; code = 'study';
+  study = { g, idx: 0 };
+  startFen = g.fen || null;
+  myColor = 'w';
+  flipView = false;
+  result = null; gameId = null; viewPly = null; lineView = null; revPick = null; selected = null;
+  studyGo(idx, true);
+  setHash('w');
+  begin();
+}
+// show the position after i moves
+function studyGo(i, quiet = false) {
+  if (!study) return;
+  const n = study.g.moves.length;
+  i = Math.max(0, Math.min(n, i));
+  const step = i === study.idx + 1;
+  const fresh = startFen ? new Chess(startFen) : new Chess();
+  let m = null;
+  for (let k = 0; k < i; k++) { try { m = fresh.move(study.g.moves[k]); } catch { break; } }
+  game = fresh;
+  study.idx = i;
+  lastMove = m ? { from: m.from, to: m.to } : null;
+  viewPly = null; lineView = null; revPick = null; selected = null;
+  store.set('table:studyAt', { id: study.g.id, idx: i });
+  if (quiet) return;
+  if (step && m) moveSound(m);
+  draw();
+}
+el('stFirst').onclick = () => studyGo(0);
+el('stPrev').onclick = () => studyGo(study.idx - 1);
+el('stNext').onclick = () => studyGo(study.idx + 1);
+el('stLast').onclick = () => studyGo(study.g.moves.length);
+
+function drawStudy() {
+  if (code !== 'study' || !study) return;
+  const g = study.g, i = study.idx, n = g.moves.length;
+  el('stFirst').disabled = el('stPrev').disabled = i === 0;
+  el('stNext').disabled = el('stLast').disabled = i === n;
+  const where = [g.event, g.site !== g.event ? g.site : '', famYear(g)].filter(x => x && x !== '?').join(', ');
+  el('studyInfo').innerHTML = `<h3>${escText(g.title || 'Your game')}</h3>` +
+    `<p class="who">${escText(famName(g.white))} (White) v ${escText(famName(g.black))} (Black)</p>` +
+    (where ? `<p class="where">${escText(where)} · ${escText(studyResult(g))}</p>` : '') +
+    (g.why ? `<p class="why">${escText(g.why)}</p>` : '') +
+    `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}<button id="stAnalyse">Analyse from here</button></div>`;
+  const key = el('stKey');
+  if (key) key.onclick = () => studyGo(g.key);
+  el('stAnalyse').onclick = () => {
+    store.set('table:setupFen', game.fen());
+    try { sessionStorage.setItem('etude:screen', 'setup'); } catch {}
+    swapScreen(() => { location.href = location.pathname + location.search; });
+  };
+  // the whole game, the move on the board underlined; tap any move to go there
+  const base = startFen ? (Number(startFen.split(' ')[5]) || 1) * 2 - 2 + (startFen.split(' ')[1] === 'b' ? 1 : 0) : 0;
+  let html = '';
+  for (let k = 0; k < n; k++) {
+    const ply = base + k;
+    if (ply % 2 === 0 || k === 0) html += `<span class="mn">${Math.floor(ply / 2) + 1}.${ply % 2 ? '..' : ''}</span>`;
+    html += `<button class="m${k === i - 1 ? ' cur' : ''}${k === g.key ? ' key' : ''}" data-k="${k + 1}">${escText(g.moves[k])}</button> `;
+  }
+  el('studyMoves').innerHTML = html;
+  el('studyMoves').querySelectorAll('button.m').forEach(b => b.onclick = () => studyGo(Number(b.dataset.k)));
+}
+
+/* ---- your own game: PGN pasted or from a file, or a Lichess link ---- */
+function pgnGames(text) {
+  const out = [];
+  for (const one of String(text).replace(/\r/g, '').split(/\n\s*(?=\[Event\s)/)) {
+    if (!one.trim()) continue;
+    try {
+      const c = new Chess();
+      c.loadPgn(one);
+      const h = c.getHeaders ? c.getHeaders() : c.header();
+      const moves = c.history();
+      if (!moves.length) continue;
+      out.push({ id: 'mine', title: h.Event && h.Event !== '?' ? h.Event : 'Your game', white: h.White, black: h.Black, event: h.Event,
+        site: h.Site, date: h.Date, result: h.Result, fen: h.FEN || undefined, moves, key: null });
+    } catch {}
+  }
+  return out;
+}
+async function lichessPgn(link) {
+  const m = /lichess\.org\/([A-Za-z0-9]{8})/.exec(link);
+  if (!m) return null;
+  const r = await fetch(`https://lichess.org/game/export/${m[1]}?clocks=false&evals=false`, { headers: { Accept: 'application/x-chess-pgn' } });
+  if (!r.ok) throw new Error('Lichess said ' + r.status);
+  return r.text();
+}
+el('famImport').onclick = async () => {
+  const text = await openModal({
+    title: 'Open your own game',
+    body: '<div class="importbox"><p>Paste the PGN, or a Lichess game link.</p><textarea id="impText" spellcheck="false" autocomplete="off" placeholder="[Event &quot;…&quot;]\n1. e4 e5 2. Nf3 …"></textarea>' +
+      '<p><button type="button" id="impFile">Choose a .pgn file</button> <input type="file" id="impFileIn" accept=".pgn,text/plain" class="hidden"></p><p class="note" id="impMsg"></p></div>',
+    actions: [{ label: 'Cancel', value: null }, { label: 'Open', kind: 'go', run: () => { closeModal(el('impText').value); return true; } }],
+    onOpen: b => {
+      b.querySelector('#impFile').onclick = () => b.querySelector('#impFileIn').click();
+      b.querySelector('#impFileIn').onchange = async e => { const f = e.target.files[0]; if (f) b.querySelector('#impText').value = await f.text(); };
+      b.querySelector('#impText').focus();
+    },
+  });
+  if (!text || !text.trim()) return;
+  let pgn = text.trim();
+  try { if (/lichess\.org\//.test(pgn) && !/\d\.\s*\S/.test(pgn)) pgn = await lichessPgn(pgn); }
+  catch (e) { await openModal({ title: 'Couldn’t fetch that game', body: `<p>${escText(String(e.message || e))}. Copy its PGN from Lichess instead.</p>` }); return; }
+  const games = pgnGames(pgn || '');
+  if (!games.length) { await openModal({ title: 'No game found', body: '<p>That doesn’t read as a game in PGN. It should have moves like “1. e4 e5 2. Nf3”.</p>' }); return; }
+  let g = games[0];
+  if (games.length > 1) {
+    const k = await openModal({
+      title: `${games.length} games in that`, body: '<div class="importlist">' + games.map((x, i) =>
+        `<button type="button" data-i="${i}">${escText(famName(x.white))} v ${escText(famName(x.black))}${famYear(x) ? ', ' + famYear(x) : ''} · ${x.moves.length} moves</button>`).join('') + '</div>',
+      actions: [{ label: 'Cancel', value: null }],
+      onOpen: b => b.querySelectorAll('[data-i]').forEach(x => x.onclick = () => closeModal(x.dataset.i)),
+    });
+    if (k == null) return;
+    g = games[+k];
+  }
+  store.set('table:studyMine', g);
+  openStudy(g);
+};
 
 /* ================= set up a position =================
    A board with no rules while you build: drag pieces from the shelf below it
@@ -10591,7 +10819,7 @@ for (const id of ['setupBoard', 'shelf']) {
    Home has three choices; each opens a short screen of its own. They are
    entries in the browser history, so the phone's back gesture steps back
    through them. Games themselves still live in the address (#solo=1, #r=...). */
-const SCREENS = { home: 'scrHome', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
+const SCREENS = { home: 'scrHome', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
 function renderScreen(name) {
   if (!SCREENS[name] && name !== 'setup') name = 'home';
   document.body.classList.toggle('lobbysub', name !== 'home');
@@ -10605,6 +10833,7 @@ function renderScreen(name) {
   el('sideField').classList.toggle('hidden', !slot);
   if (name === 'home') drawResumeChoice();
   if (name === 'resume') drawCarryOn();
+  if (name === 'famous') drawFamous();
   window.scrollTo(0, 0);
 }
 function showScreen(name) {
@@ -11295,8 +11524,15 @@ try {
 try { localStorage.removeItem('table:revBarPos'); } catch {}
 /* ======================= end of Migrations ======================= */
 
-const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash } = parseHash();
-if (localHash) {
+const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
+if (studyHash) {
+  (async () => {
+    const at = store.get('table:studyAt') || {};
+    const g = studyHash === 'mine' ? store.get('table:studyMine') : (await famLoad()).find(x => x.id === studyHash);
+    if (g) openStudy(g, at.id === g.id ? at.idx || 0 : 0);
+    else { location.hash = ''; }
+  })();
+} else if (localHash) {
   solo = true;
   code = 'local';
   myColor = 'w';
@@ -11320,7 +11556,10 @@ if (localHash) {
   begin();
 } else {
   setLink();
-  renderScreen(history.state && history.state.scr || 'home');
+  let back = null;
+  try { back = sessionStorage.getItem('etude:screen'); sessionStorage.removeItem('etude:screen'); } catch {}
+  if (back) { history.replaceState(null, '', location.pathname + location.search); renderScreen('home'); showScreen(back); }
+  else renderScreen(history.state && history.state.scr || 'home');
 }
 
 // a freshly loaded page simply appears: fading it in meant drawing it, hiding it, then fading it back (a flash)
