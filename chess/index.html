@@ -3373,7 +3373,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-23.2-server';
+const VERSION = '2026-10-23.3-server-on';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3730,7 +3730,7 @@ function makeCode() {
    on the two phones reaching each other directly. The public relays below stay
    on as a second route; a message arriving both ways is used once. */
 const TABLE_SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:server')) || ''; } catch { return ''; } })()
-  || '';                                  // set to 'wss://etude-tables.<you>.workers.dev' once it's deployed
+  || 'wss://etude-tables.subjectification.workers.dev';   // localStorage 'table:server' overrides it, for testing
 let srv = null, srvTimer = null, srvTries = 0, srvPeers = new Set();
 function srvState() { return !TABLE_SERVER ? 'not set up' : !srv ? 'closed' : ['connecting', 'open', 'closing', 'closed'][srv.readyState]; }
 function srvOpen() {
