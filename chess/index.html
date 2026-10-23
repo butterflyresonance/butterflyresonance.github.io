@@ -804,7 +804,7 @@
   /* four buttons don't fit a phone in one row: two by two */
   /* judged by the width of the panel, not the screen: beside the board on a laptop it's narrow too */
   .conn { container-type: inline-size; }
-  @container (max-width: 560px) { body:not(.connecting) .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
+  @container (max-width: 300px) { .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
   .conn .debug { margin-top: 10px; }
   #connDebugSlot #reloadBtn, #diagSlot #reloadBtn { display: none; }
   /* the version is in the Version row; an online table has its connection tools in the Table tab instead */
@@ -863,6 +863,9 @@
   .pane .moves { max-height: none; overflow: visible; }
   .pane .setrow:first-child { margin-top: 12px; }
   .diag-slot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--edge); }
+  .histrow { margin-top: 22px !important; padding-top: 14px; border-top: 1px solid var(--edge); }
+  .pane .setrow.approw { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--edge); }
+  .pane .setrow.approw:first-child { margin-top: 12px; padding-top: 0; border-top: 0; }
   .diag-slot .verstamp { margin: 0; }
 
   /* landscape phones, tablets and desktops: board left, everything else right */
@@ -1076,16 +1079,6 @@
   .vnum.bot { bottom: 4px; }
   .vnum.top { top: 4px; }
   .vnum.onwhite { color: #1d2226; }
-  /* under the board: a flat bar, White's share from the left (from the right when the board is flipped) */
-  .boardcol.withbar.barbelow { --barw: -22px; }
-  .boardcol.withbar.barbelow .taken { margin-left: 0; }
-  .barbelow .boardrow { flex-direction: column; gap: 9px; }
-  .barbelow .vbar { width: auto; height: 13px; order: 2; }
-  .barbelow .vfill { top: 0; bottom: 0; left: 0; right: auto; height: auto; width: 50%; transition: width .45s ease; }
-  .barbelow .vbar.flip .vfill { top: 0; left: auto; right: 0; }
-  .barbelow .vnum { top: 50%; bottom: auto; left: auto; right: auto; transform: translateY(-50%); }
-  .barbelow .vnum.bot { left: 5px; }
-  .barbelow .vnum.top { right: 5px; }
   .vnum.onblack { color: #e8e6e1; }
 
   .badge {
@@ -1553,7 +1546,7 @@
         <div class="taken" id="takenBottom"></div>
       </div>
       <div class="side">
-        <div class="dropbar hidden" id="dropBar"><span id="dropText"></span><button id="dropRetry">Reconnect</button></div>
+        <div class="dropbar hidden" id="dropBar"><span id="dropText"></span></div>
         <div class="hintpanel hidden" id="hintPanel">
           <div class="evalbar"><span id="evalFill"></span></div>
           <div class="hintline">
@@ -1584,7 +1577,6 @@
             <p class="conn-line" id="connLine"></p>
             <div class="invite-actions">
               <button id="connCopy">Copy link</button>
-              <button id="connRetry">Reconnect</button>
               <button id="connDiag">Diagnostics</button>
               <button id="connReload">Force reload</button>
             </div>
@@ -1631,7 +1623,6 @@
               <div class="setrow revopt">
                 <span>Eval bar</span>
                 <button id="revBarBtn">On</button>
-                <button id="revBarPosBtn" title="Where the eval bar sits">Beside</button>
               </div>
               <div class="setrow revopt">
                 <span>Badges</span>
@@ -1696,19 +1687,19 @@
             </div>
             <p class="coach-note hidden" id="onlyNote">Played by the Étude engine, at the Think time below. It moves only that piece. If the piece is boxed in, it frees it first. If it loses every one of them, it resigns. If you are down to your bare king, its whole army is freed. Changing the piece applies from the next move.</p>
             <div class="setrow thinkrow hidden" id="thinkRow">
-              <span>Think</span>
+              <span>Think time</span>
               <input type="range" id="thinkRange" min="1000" max="60000" step="1000" value="2000"
                      aria-label="Engine thinking time">
               <span class="thinkval" id="thinkVal">1.5s</span>
             </div>
-            <div class="setrow">
-              <span>Theme</span>
-              <button id="themeBtn">Dark</button>
-            </div>
             <div class="setrow" id="pzResetRow">
               <span>Puzzle stats</span>
-              <button id="pzThemesBtn">By theme</button>
+              <button id="pzThemesBtn">By type</button>
               <button id="pzResetBtn">Reset</button>
+            </div>
+            <div class="setrow approw">
+              <span>Colours</span>
+              <button id="themeBtn">Dark</button>
             </div>
             <div class="setrow">
               <span>Pieces</span>
@@ -1717,9 +1708,8 @@
               <button id="boardBtn" aria-expanded="false" aria-controls="lookPanel">Étude</button>
             </div>
             <div class="setrow">
-              <span>Sound</span>
+              <span>Move sound</span>
               <button id="soundBtn" aria-expanded="false" aria-controls="lookPanel">Wood</button>
-              <button id="pgnBtn">Games</button>
             </div>
             <div class="look hidden" id="lookPanel">
               <div id="lookSetsWrap">
@@ -3375,7 +3365,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-23.5-buttons';
+const VERSION = '2026-10-23.9-tidy';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3907,7 +3897,7 @@ function drawConn() {
     const { open, total } = relayHealth();
     const secs = joinedAt ? Math.round((Date.now() - joinedAt) / 1000) : 0;
     line.textContent = `Looking for ${fmtSecs(secs)} · ${TABLE_SERVER ? `table server ${srvState()} · ` : ''}${open} of ${total} relays reachable · build ${VERSION}` +
-      (secs >= 30 ? '. Not connecting? Both press Force reload and check your builds match, then Reconnect.' : '');
+      (secs >= 30 ? '. Not connecting? Both press Force reload, and check your builds match.' : '');
     line.classList.toggle('warn', secs >= 30);
     return;
   }
@@ -3917,7 +3907,7 @@ function drawConn() {
     : peerVersion === VERSION ? `both on build ${VERSION}`
     : `their build ${peerVersion}, yours ${VERSION}: both press Force reload`;
   line.textContent = (quiet == null ? 'Connected, but nothing heard from them yet'
-      : silent ? `Connected, but nothing heard from them for ${fmtSecs(quiet)}. Try Reconnect`
+      : silent ? `Nothing heard from them for ${fmtSecs(quiet)}. Reconnecting…`
       : `Connected · heard from them ${quiet}s ago`) + ' · ' + builds + '.';
   line.classList.toggle('warn', silent || peerVersion !== VERSION);
   el('topState').textContent = silent && quiet != null ? 'no reply' : 'connected';
@@ -3944,8 +3934,8 @@ function drawDrop() {
   const quiet = peerSeen ? Date.now() - peerSeen : Infinity;
   const show = online && !document.body.classList.contains('connecting') && !result && (!peers.size || quiet > SILENT_MS);
   el('dropBar').classList.toggle('hidden', !show);
-  if (show) el('dropText').textContent = !peers.size ? 'They’re not connected. Moves will cross when you both have the page open.'
-    : `Nothing heard from them for ${fmtSecs(Math.round(quiet / 1000))}.`;
+  if (show) el('dropText').textContent = !peers.size ? 'They’re not connected. Reconnecting…'
+    : `Nothing heard from them for ${fmtSecs(Math.round(quiet / 1000))}. Reconnecting…`;
 }
 /* Fade the page's contents out, change screen, fade them back in. */
 const FADE_MS = 150;
@@ -6930,7 +6920,6 @@ let revBar = store.get('table:revBar') !== false;         // show the eval bar
 let revTheirs = store.get('table:revTheirs') !== false;   // judge their moves too (badges and explanations)
 let revBadges = store.get('table:revBadges') !== false;   // badges on the board's squares
 let revExplain = store.get('table:revExplain') !== false; // the list of moves, and what was better
-let revBarBelow = store.get('table:revBarPos') === 'below'; // the eval bar under the board instead of beside it
 const theirsWanted = () => revTheirs && (revBadges || revExplain);
 /* Spotting their mistake yourself is part of the exercise, so their badges can
    be held back. Only while the game is on: once it ends, everything shows. */
@@ -7749,7 +7738,6 @@ function drawEvalBar() {
   const on = reviewActive();
   bar.classList.toggle('hidden', !(on && revBar));
   el('boardcol').classList.toggle('withbar', on && revBar);
-  el('boardcol').classList.toggle('barbelow', on && revBar && revBarBelow);
   if (!on || !revBar) return;
   bar.classList.toggle('flip', viewColor() === 'b');
   const ls = lineState();
@@ -7759,8 +7747,7 @@ function drawEvalBar() {
   if (ls && !(e && e.depth) && ls.L.scoreW != null) e = { score: ls.L.scoreW, depth: ls.r.depth };
   if (!e || !e.depth) { el('vnum').textContent = ''; bar.title = 'Reading the position…'; return; }
   const w = winPct(e.score);
-  el('vfill').style.height = revBarBelow ? '' : w.toFixed(1) + '%';
-  el('vfill').style.width = revBarBelow ? w.toFixed(1) + '%' : '';
+  el('vfill').style.height = w.toFixed(1) + '%';
   const num = el('vnum');
   // the bar is narrow: from 10 pawns up the tenths go, so '22' rather than a clipped '22.0'
   const big = Math.abs(e.score) >= 1000 && Math.abs(e.score) < MATE_S / 2;
@@ -7838,8 +7825,6 @@ function drawReview() {
   el('reviewBtn').textContent = reviewOn ? 'On' : 'Off';
   document.querySelectorAll('#reviewBlock .revopt').forEach(r => r.classList.toggle('hidden', !reviewOn));
   el('revBarBtn').textContent = revBar ? 'On' : 'Off';
-  el('revBarPosBtn').textContent = revBarBelow ? 'Below' : 'Beside';
-  el('revBarPosBtn').classList.toggle('hidden', !revBar);
   el('revBadgesBtn').textContent = revBadges ? 'On' : 'Off';
   el('revExplainBtn').textContent = revExplain ? 'On' : 'Off';
   el('revTheirsBtn').textContent = revTheirs ? 'On' : 'Off';
@@ -7951,11 +7936,6 @@ el('reviewBody').addEventListener('click', e => {
 el('revBarBtn').onclick = () => {
   revBar = !revBar;
   store.set('table:revBar', revBar);
-  draw();
-};
-el('revBarPosBtn').onclick = () => {
-  revBarBelow = !revBarBelow;
-  store.set('table:revBarPos', revBarBelow ? 'below' : 'side');
   draw();
 };
 el('revBadgesBtn').onclick = () => {
@@ -9270,10 +9250,9 @@ el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = f
 el('connDiag').onclick = () => showDiag('connDebugSlot');
 el('verVal').textContent = VERSION;
 // leave the room and join it again from scratch: new relay sockets, new handshakes
-el('dropRetry').onclick = () => el('connRetry').click();
 // the link again, for when they've lost it: the same link the invite card gives out
 el('connCopy').onclick = async e => { if (!await copyText(inviteUrl(), e.currentTarget)) showTextModal('Link for the other player', inviteUrl()); };
-el('connRetry').onclick = () => {
+const reconnectNow = () => {
   console.warn('reconnect pressed');
   lastRejoin = Date.now();
   handshakeFailed = false;
@@ -9486,7 +9465,6 @@ el('themeBtn').onclick = () => {
   applyTheme(next);
 };
 
-el('pgnBtn').onclick = () => showGames();
 el('gamesLobbyBtn').onclick = () => showGames();
 
 el('oppLobby').onchange = e => setOpponent(e.target.value);
@@ -11386,7 +11364,7 @@ el('setupPlay').onclick = () => startFromSetup('computer');
 el('setupBoth').onclick = () => startFromSetup('both');
 
 /* ================= Migrations: remove after 2026-12-01 =================
-   One-off clean-ups of what builds before 2026-10-19 left in this browser.
+   One-off clean-ups of what earlier builds left in this browser.
    Each does nothing once a device has loaded this build, so by that date the
    whole section can go. (Not in here, because it stays for good: copying game
    history from localStorage into IndexedDB in gamesReady. That code is also how
@@ -11415,6 +11393,10 @@ if (store.get('table:sound') !== null) {
   }
   try { localStorage.removeItem('table:sound'); } catch {}
 }
+
+// The eval bar could sit under the board (builds of 2026-10-22 and 23). That
+// choice is gone; forget it.
+try { localStorage.removeItem('table:revBarPos'); } catch {}
 /* ======================= end of Migrations ======================= */
 
 const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash } = parseHash();
