@@ -3429,7 +3429,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.16-seats';
+const VERSION = '2026-10-24.18-address';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3758,17 +3758,19 @@ function pieceSVG(type, color, cls = '', set = pieceSet) {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local'), study: p.get('study') };
+  return { r: p.get('r'), solo: p.has('solo'), one: p.has('onepiece'), puzzle: p.has('puzzle'), local: p.has('local'), study: p.get('study') };
 }
 
-/* The hash states *your own* colour, so each player holds a self-describing
-   link and the share button hands out the complement. Nothing about which side
-   you're on depends on storage. */
-function setHash(colour) {
+/* The address says which game is open, so a reload or the back button comes
+   back to it. Written when a game starts from a button; a link someone opens
+   already has it. It never holds your colour or other choices: those are kept
+   with the saved game on this device. */
+function setHash() {
+  const h = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
+    : code === 'onepiece' ? 'onepiece=1' : code === 'solo' ? 'solo=1' : `r=${code}`;
+  if (location.hash === '#' + h) return;     // unchanged: no hashchange would come to clear the flag below
   navigating = true;          // our own write, not a jump to another game
-  location.hash = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
-    : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
-    : solo ? `solo=1&c=${colour}` : `r=${code}`;           // a table's colour lives on each device, not in the link
+  location.hash = h;
 }
 
 function makeCode() {
@@ -4331,7 +4333,6 @@ function startFresh(colorForMe, keepLine = false) {
   myColor = colorForMe;
   seatClash = false;
   takebackAsked = false;
-  setHash(colorForMe);   // sides swap on a rematch; keep the link truthful
   result = null;
   selected = null;
   lastMove = null;
@@ -5327,7 +5328,6 @@ function setOppOnly(v) {
   if (!onePiece) return;
   oppOnly = ONLY_KINDS.includes(v) && v !== 'any' ? v : 'k';
   store.set('table:oppOnly', oppOnly);
-  setHash(myColor);
   el('oppOnly').value = oppOnly;
   if (sfBusy && !sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
   engineJob = null;
@@ -9369,7 +9369,7 @@ el('soloBtn').onclick = () => {
   solo = true;
   code = 'solo';
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 };
 
@@ -9383,7 +9383,7 @@ el('oneBtn').onclick = () => {
   freshGame('onepiece', mine);
   code = 'onepiece';                       // its own saved game
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 };
 
@@ -9392,14 +9392,14 @@ el('localBtn').onclick = () => {
   solo = true;
   code = 'local';
   myColor = 'w';
-  setHash('w');
+  setHash();
   begin();
 };
 
 el('pzBtn').onclick = () => {
   solo = true;
   code = 'puzzle';
-  setHash('w');
+  setHash();
   begin();
 };
 
@@ -9435,7 +9435,7 @@ el('joinBtn').onclick = () => {
   el('joinMsg').textContent = '';
   code = c;
   takeSeat();
-  setHash(myColor);
+  setHash();
   begin();
 };
 el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('joinBtn').click(); });
@@ -9459,7 +9459,7 @@ el('startBtn').onclick = () => {
   tableOwner = true;
   joinByCode = false;
   store.set('table:' + code, { history: [], myColor: mine, owner: true, result: null, at: Date.now() });
-  setHash(mine);
+  setHash();
   begin();
 };
 
@@ -10651,7 +10651,7 @@ function openStudy(g, idx = 0) {
   flipView = false;
   result = null; gameId = null; viewPly = null; lineView = null; revPick = null; selected = null;
   studyGo(idx, true);
-  setHash('w');
+  setHash();
   begin();
 }
 // show the position after i moves
@@ -10964,7 +10964,7 @@ function playLine(x, mode) {
     flip: (!!x.flip && mine === (x.myColor || mine)) || undefined,
     setting: (x.fen ? 'setup:' : '') + (local ? 'local' : mode === 'onepiece' ? oppOnly : opponent) });
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
   return true;
 }
@@ -11286,7 +11286,7 @@ async function startFromSetup(mode) {
   onePiece = false;
   code = key;
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 }
 
@@ -11756,9 +11756,21 @@ try {
 // The eval bar could sit under the board (builds of 2026-10-22 and 23). That
 // choice is gone; forget it.
 try { localStorage.removeItem('table:revBarPos'); } catch {}
+
+// Addresses used to carry your colour: #r=code&c=w for a table, #solo=1&c=b for
+// the computer, plus &only=q for a one-piece game. The colour and the one-piece
+// choice are kept with the saved game now, so drop them from the address.
+try {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.has('r') && p.has('c')) history.replaceState(history.state, '', '#r=' + p.get('r'));
+  else if (p.has('solo') && (p.has('c') || p.has('only'))) {
+    const only = p.get('only');
+    history.replaceState(history.state, '', '#' + (ONLY_KINDS.includes(only) && only !== 'any' ? 'onepiece=1' : 'solo=1'));
+  }
+} catch {}
 /* ======================= end of Migrations ======================= */
 
-const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
+const { r, solo: soloHash, one: oneHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
 if (studyHash) {
   (async () => {
     const at = store.get('table:studyAt') || {};
@@ -11775,19 +11787,21 @@ if (studyHash) {
   solo = true;
   code = 'puzzle';
   begin();
-} else if (soloHash) {
+} else if (soloHash || oneHash) {
+  // a game against the computer: your colour, and for one-piece what it plays, come from the saved game
   solo = true;
-  if (ONLY_KINDS.includes(onlyHash) && onlyHash !== 'any') {
-    onePiece = true;
-    oppOnly = onlyHash;
-    code = 'onepiece';
-  } else code = 'solo';
-  myColor = c === 'b' ? 'b' : 'w';
+  onePiece = !!oneHash;
+  code = onePiece ? 'onepiece' : 'solo';
+  const saved = store.get('table:' + code) || {};
+  myColor = saved.myColor === 'b' ? 'b' : 'w';
+  if (onePiece) {
+    const l = getLines().find(x => x.id === saved.lineId);
+    oppOnly = l && ONLY_KINDS.includes(l.only) && l.only !== 'any' ? l.only : ONLY_PICK();
+  }
   begin();
 } else if (r) {
   code = r;
-  takeSeat();
-  if (joinByCode && (c === 'w' || c === 'b')) myColor = c;   // an old-style link's colour, as a first guess only
+  takeSeat();          // your colour is on this device, or settled with the other player
   begin();
 } else {
   setLink();
