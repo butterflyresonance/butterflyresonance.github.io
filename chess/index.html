@@ -802,7 +802,9 @@
   /* the invite card already has Copy link before the first move */
   body.connecting #connCopy { display: none; }
   /* four buttons don't fit a phone in one row: two by two */
-  @media (max-width: 520px) { body:not(.connecting) .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
+  /* judged by the width of the panel, not the screen: beside the board on a laptop it's narrow too */
+  .conn { container-type: inline-size; }
+  @container (max-width: 560px) { body:not(.connecting) .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
   .conn .debug { margin-top: 10px; }
   #connDebugSlot #reloadBtn, #diagSlot #reloadBtn { display: none; }
   /* the version is in the Version row; an online table has its connection tools in the Table tab instead */
@@ -1430,7 +1432,7 @@
         <div class="status">Against a person</div>
       </div>
       <button class="choice" id="localBtn"><span class="ct">On this device</span><span class="cd">Both of you on one phone or tablet, taking turns. The board faces White.</span></button>
-      <button class="choice" id="goOnline"><span class="ct">Online</span><span class="cd">Send your friend a link. Your two devices connect directly while you both have the page open.</span></button>
+      <button class="choice" id="goOnline"><span class="ct">Online</span><span class="cd">Send your friend a link. Moves pass between your two devices while you both have the page open.</span></button>
     </div>
 
     <div class="scr hidden" id="scrOnline">
@@ -1445,7 +1447,7 @@
       </div>
       <details class="how">
         <summary>How this works</summary>
-        <p>There’s nothing in the middle. No account to make, nothing kept on a website somewhere — while you both have the page open, your two devices find each other and pass moves straight between them. It’s closer to a phone call than to posting letters through an office.</p>
+        <p>No account to make, and the game is kept only on your two devices. While you both have the page open, each device stays connected to a small table server, which hands each move to the other device as it’s made. The server keeps nothing: it only passes moves along. It’s closer to a phone call than to posting letters through an office.</p>
         <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
         <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
       </details>
@@ -3373,7 +3375,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-23.3-server-on';
+const VERSION = '2026-10-23.5-buttons';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6772,7 +6774,7 @@ function drawStatus() {
       // The relays did their job; the direct link is what failed.
       note.textContent = 'Found them, but couldn’t open a direct connection. ' +
         'One of you switching between wifi and mobile data usually fixes it.';
-    } else if (total && !open) {
+    } else if (total && !open && srvState() !== 'open') {
       note.textContent = 'Can’t reach the network at the moment. ' +
         'A firewall, VPN or browser extension may be blocking the connection.';
     } else {
