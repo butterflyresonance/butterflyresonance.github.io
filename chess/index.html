@@ -3365,7 +3365,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-23.10-mode';
+const VERSION = '2026-10-24.1-pzscore';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -9675,23 +9675,22 @@ const pzExpectedAt = me => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || me) -
 const pzExpected = () => pzExpectedAt(pz.stats.rating);
 const pzExpectedThemes = () => pzExpectedAt(pz.stats.rating + pzAdjFor(pz.cur));
 
-/* How a puzzle scores. Each move you had to find carries a share of a full
-   loss, from 0 (found alone) to 1 (no idea):
-     hints: the first (what to look for) 1/3, the second (the piece) 2/3,
-       the third (piece and square: the answer) 1;
+/* How a puzzle scores. The puzzle carries a share of a full loss, from 0
+   (solved alone) to 1 (no idea, the same as giving up), made by adding up:
+     each hint: a third, on whichever move you take it. Three hints on a move
+       show the whole move, and that costs the whole puzzle: the first move
+       usually gives away the follow-up.
      each wrong try: what it gave away, as a share of 40 points of winning
        chance (a try 2 points worse than the answer costs 0.05, a blunder that
-       throws away 40 or more costs 1), read by Stockfish; 0.5 until it has;
-     together: 1 - (1 - hints)(1 - try)(1 - try)...
-   The puzzle's share p is the average over your moves; Give up makes every
-   move still to find a 1. Up to p = 0.1 you still gain, less as p grows;
-   beyond it you lose, more as p grows, up to the full loss at p = 1. So a
-   near miss can still gain, any real help loses, and finishing is never worse
-   than giving up. */
-const PZ_HINT_LOSS = [0, 1 / 3, 2 / 3, 1];
+       throws away 40 or more costs 1), read by Stockfish; 0.5 until it has.
+       A try costs the same with or without hints, so after a hint the same
+       slip takes a much bigger bite out of what's left.
+   The total is capped at 1: finishing is never worse than giving up. Up to
+   0.1 you still gain, less as it grows; beyond it you lose, more as it grows,
+   up to the full loss at 1. */
+const PZ_HINT_COST = 1 / 3;
 const PZ_TRY_SPAN = 40;
 const PZ_TIP = 0.1;
-const pzMovesToFind = () => Math.ceil(pzSolution().length / 2);
 /* how much a wrong try gave away, 0-1, once Stockfish has read both sides of it; null until then */
 function pzTrySev(w) {
   if (w.sev != null) return w.sev;
@@ -9702,24 +9701,15 @@ function pzTrySev(w) {
   w.sev = Math.max(0, Math.min(1, drop / PZ_TRY_SPAN));
   return w.sev;
 }
-/* wrong tries on one move cost at most PZ_TRY_CAP of it, so finishing after a blunder
-   always beats giving up, and a hint after a blunder still costs something;
-   only being shown the move (the last hint) costs the whole move */
-const PZ_TRY_CAP = 0.75;
-const pzMoveShare = mv => {
-  const kept = mv.tries.reduce((a, w) => {
-    const sv = pzTrySev(w);
-    return a * (1 - (sv == null ? 0.5 : sv));
-  }, 1);
-  return 1 - (1 - PZ_HINT_LOSS[mv.hints]) * Math.max(1 - PZ_TRY_CAP, kept);
-};
-/* the puzzle's share so far, if everything still to find is found alone (or, giving up, not at all) */
+/* the puzzle's share so far, if everything still to find is found alone (or, giving up, all of it) */
 function pzShare(givingUp = false) {
-  const n = pzMovesToFind();
-  let sum = pz.moves.reduce((a, mv) => a + pzMoveShare(mv), 0);
-  const left = n - pz.moves.length;
-  if (left > 0) sum += givingUp ? left : pzMoveShare({ hints: pz.hints, tries: pz.tries });
-  return Math.min(1, sum / n);
+  if (givingUp) return 1;
+  let sum = 0;
+  for (const mv of [...pz.moves, { hints: pz.hints, tries: pz.tries }]) {
+    sum += mv.hints * PZ_HINT_COST;
+    for (const w of mv.tries) { const sv = pzTrySev(w); sum += sv == null ? 0.5 : sv; }
+  }
+  return Math.min(1, sum);
 }
 /* the result, -1..1 of a full step: + is a gain of K x (1 - expected) times it, - a loss of K x expected times it */
 const pzResult = (p, e) => p <= PZ_TIP ? (1 - e) * (1 - p / PZ_TIP) : -e * (p - PZ_TIP) / (1 - PZ_TIP);
