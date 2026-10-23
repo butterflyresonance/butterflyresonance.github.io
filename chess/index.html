@@ -1369,6 +1369,30 @@
   .importbox textarea { width: 100%; min-height: 140px; font: 12px/1.5 var(--mono); background: var(--ground); color: var(--text); border: 1px solid var(--edge); padding: 8px; box-sizing: border-box; }
   .importlist button { display: block; width: 100%; text-align: left; margin: 6px 0; }
 
+  /* ---- chat ---- */
+  .chatscreen { position: fixed; inset: 0; z-index: 40; background: var(--ground); display: flex; justify-content: center; }
+  .chatwrap { width: 100%; max-width: 560px; height: 100dvh; display: flex; flex-direction: column; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  .chatwrap .topbar { flex: none; margin-bottom: 8px; }
+  .gamebtn { flex: none; display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12px; position: relative; }
+  .chatlog { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 0 10px; }
+  .chatmovenote { flex: none; margin: 0 0 8px; font-size: 12px; color: var(--brass); }
+  .chatbtn { flex: none; position: relative; width: 38px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--muted); }
+  .chatbtn:hover:not(:disabled) { color: var(--brass); }
+  .dot { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
+         background: var(--danger); color: #fff; font-size: 10px; line-height: 16px; text-align: center; font-family: var(--mono); }
+  .chatbtn .dot { animation: pop .25s ease-out; }
+  .gamebtn .dot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: -4px; right: -4px; }
+  .chatlog:empty::before { content: 'Messages you send appear here, and theirs.'; color: var(--muted); font-size: 12px; }
+  .chatmsg { max-width: 85%; padding: 6px 10px; border: 1px solid var(--edge); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+  .chatmsg.me { align-self: flex-end; border-color: var(--brass-dim); }
+  .chatmsg .t { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .chatform { display: flex; gap: 8px; }
+  .chatform input { flex: 1; min-width: 0; }
+  .chatform button { padding: 8px 14px; }
+  .joinrow { display: flex; gap: 8px; }
+  .joinrow input { flex: 1; min-width: 0; }
+  .joinrow button.primary { width: auto; padding-left: 18px; padding-right: 18px; }
+
   .hidden { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1384,7 +1408,6 @@
 
   <header>
     <h1>Étude</h1>
-    <div class="link-state" id="linkState">no game</div>
   </header>
   <button class="verstamp" id="verBtn" title="Build version — tap for diagnostics"></button>
 
@@ -1490,7 +1513,13 @@
       <div class="sideslot"></div>
       <div class="lsec first">
         <button class="primary" id="startBtn">Open a table</button>
-        <p class="note">You’ll get a link to send them. Whoever holds it plays the other colour.</p>
+        <p class="note">You’ll get a link and a code to send them. They play the other colour.</p>
+      </div>
+      <div class="lsec">
+        <h2 class="lhead">Join a table</h2>
+        <p class="note">Got a code from a friend? Type it here, or paste the link they sent. Your colour comes from the table.</p>
+        <div class="joinrow"><input id="joinCode" class="fen" placeholder="e.g. abc def ghi" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Table code"><button class="primary" id="joinBtn">Join</button></div>
+        <p class="setup-msg bad" id="joinMsg"></p>
       </div>
       <details class="how">
         <summary>How this works</summary>
@@ -1566,15 +1595,29 @@
     </div>
   </section>
 
+  <!-- CHAT: over the game, the whole screen; Game takes you back -->
+  <section class="chatscreen hidden" id="chatScreen" aria-label="Chat">
+    <div class="chatwrap">
+      <div class="topbar">
+        <button class="gamebtn" id="chatBack" aria-label="Back to the game"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg> Game<span class="dot hidden" id="gameDot"></span></button>
+        <div class="status">Chat</div>
+        <span class="topstate" id="chatState"></span>
+      </div>
+      <p class="chatmovenote hidden" id="chatMoveNote"></p>
+      <div class="chatlog" id="chatLog"></div>
+      <form class="chatform" id="chatForm" autocomplete="off"><input id="chatIn" maxlength="500" placeholder="Message" aria-label="Message" enterkeyhint="send"><button>Send</button></form>
+    </div>
+  </section>
+
   <!-- INVITE -->
   <section class="invite hidden" id="invite">
     <div class="label">Your table</div>
     <div class="code" id="codeText">— — —</div>
     <div class="invite-actions">
-      <button id="waBtn">Send on WhatsApp</button>
+      <button id="waBtn">Share</button>
       <button id="copyBtn">Copy link</button>
     </div>
-    <p class="note">Send this once. After that the link is the table — either of you can reopen it any time.</p>
+    <p class="note">Send the link, or just the code: they can type it in under Play a game, Against a person, Online. After that either of you can reopen the table any time.</p>
   </section>
 
   <!-- GAME
@@ -1585,6 +1628,7 @@
       <div class="topbar">
         <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
+        <button class="chatbtn hidden" id="chatBtn" aria-label="Chat" title="Chat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 4h12v8H8l-4 3v-3H3z"/></svg><span class="dot hidden" id="chatDot"></span></button>
         <span class="topstate" id="topState"></span>
       </div>
       <div class="boardcol" id="boardcol">
@@ -3382,7 +3426,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.10-study';
+const VERSION = '2026-10-24.12-chatscreen';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3748,6 +3792,7 @@ function srvOpen() {
     if (srv !== ws) return;
     srvTries = 0;
     note('table server: connected');
+    setTimeout(chatResend, 300);
     ws.keepAlive = setInterval(() => { try { ws.send('ping'); } catch {} }, 25000);
     drawConn();
   };
@@ -3758,6 +3803,7 @@ function srvOpen() {
       const id = 's:' + m.id;
       srvPeers.add(id); peers.add(id);
       note('table server: they arrived');
+      setTimeout(chatResend, 500);
       setLink(); sendState(); announce(); ping();
     } else if (m.k === 'leave') {
       const id = 's:' + m.id;
@@ -3908,6 +3954,114 @@ function fadeIn(node) {
   node.classList.add('fadein');
 }
 
+/* Chat. Each message has an id. A message is 'sent' once it has gone to the
+   table server, 'delivered' when the other phone confirms it, 'seen' when they
+   have the chat open on screen. Anything not delivered is sent again whenever
+   they reappear. Kept on each device per table (table:chat:<code>), the last 200.
+   The chat has a screen of its own over the game: the chat button in the top
+   bar shows a count of unread messages, and the Game button on the chat screen
+   shows when they've moved while you were chatting. */
+let chatUnread = 0, chatOpen = false, chatPlyAtOpen = 0;
+const chatKey = () => 'table:chat:' + code;
+const chatList = () => store.get(chatKey()) || [];
+function chatSave(list) { store.set(chatKey(), list.slice(-200)); }
+const chatOnline = () => !!srv && srv.readyState === 1;
+function chatSend(text) {
+  text = String(text).trim().slice(0, 500);
+  if (!text) return;
+  const m = { id: Math.random().toString(36).slice(2, 10), me: true, text, at: Date.now(), sent: chatOnline(), ok: false, seen: false };
+  chatSave([...chatList(), m]);
+  broadcast({ t: 'chat', id: m.id, text: m.text, at: m.at });
+  drawChat();
+}
+function chatResend() {
+  const list = chatList();
+  let changed = false;
+  for (const m of list) if (m.me && !m.ok) {
+    broadcast({ t: 'chat', id: m.id, text: m.text, at: m.at });
+    if (!m.sent && chatOnline()) { m.sent = true; changed = true; }
+  }
+  if (changed) { chatSave(list); drawChat(); }
+}
+function chatReceive(msg) {
+  if (typeof msg.id !== 'string' || typeof msg.text !== 'string') return;
+  broadcast({ t: 'chatAck', id: msg.id });
+  const list = chatList();
+  if (list.some(m => m.id === msg.id)) { chatSeenNow(); return; }
+  list.push({ id: msg.id, me: false, text: msg.text.slice(0, 500), at: Date.now(), told: false });
+  chatSave(list);
+  if (!chatVisible()) { chatUnread++; try { navigator.vibrate && !document.hidden && navigator.vibrate(30); } catch {} }
+  drawChat();
+  chatSeenNow();
+}
+function chatAcked(id) {
+  const list = chatList();
+  const m = list.find(x => x.id === id);
+  if (m && !m.ok) { m.ok = m.sent = true; chatSave(list); drawChat(); }
+}
+function chatSeen(ids) {
+  if (!Array.isArray(ids)) return;
+  const list = chatList();
+  let changed = false;
+  for (const m of list) if (m.me && ids.includes(m.id) && !m.seen) { m.seen = m.ok = m.sent = true; changed = true; }
+  if (changed) { chatSave(list); drawChat(); }
+}
+const chatVisible = () => chatOpen && !document.hidden;
+// with the chat on screen, tell them which of their messages we've now seen
+function chatSeenNow() {
+  if (!chatVisible()) return;
+  const list = chatList();
+  const ids = list.filter(m => !m.me && !m.told).map(m => m.id);
+  if (!ids.length) return;
+  broadcast({ t: 'chatSeen', ids });
+  for (const m of list) if (!m.me) m.told = true;
+  chatSave(list);
+}
+const chatTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+const chatStatus = m => m.seen ? 'seen' : m.ok ? 'delivered' : m.sent ? 'sent' : 'waiting to send';
+function openChat() {
+  chatOpen = true;
+  chatPlyAtOpen = game.history().length;
+  chatUnread = 0;
+  el('chatScreen').classList.remove('hidden');
+  drawChat();
+  chatSeenNow();
+  const log = el('chatLog'); log.scrollTop = log.scrollHeight;
+  if (!matchMedia('(pointer: coarse)').matches) el('chatIn').focus();
+}
+function closeChat() {
+  chatOpen = false;
+  el('chatScreen').classList.add('hidden');
+  draw();
+}
+function drawChat() {
+  const on = !solo && !!code && code !== 'puzzle';
+  el('chatBtn').classList.toggle('hidden', !on);
+  if (!on) { if (chatOpen) closeChat(); return; }
+  if (chatVisible()) chatUnread = 0;
+  el('chatDot').classList.toggle('hidden', !chatUnread);
+  el('chatDot').textContent = chatUnread > 9 ? '9+' : String(chatUnread);
+  el('chatBtn').setAttribute('aria-label', chatUnread ? `Chat, ${chatUnread} unread` : 'Chat');
+  if (!chatOpen) return;
+  // on the chat screen: has the game moved on while you were here?
+  const hist = game.history({ verbose: true });
+  const theyMoved = hist.length > chatPlyAtOpen && hist.slice(chatPlyAtOpen).some(m => m.color !== myColor);
+  el('gameDot').classList.toggle('hidden', !theyMoved);
+  el('chatMoveNote').classList.toggle('hidden', !theyMoved);
+  if (theyMoved) el('chatMoveNote').textContent = result ? 'The game has ended.' : game.turn() === myColor ? `They’ve played ${moveLabel(hist.length - 1, hist.at(-1).san)}. Your move.` : 'They’ve moved.';
+  el('chatState').textContent = el('topState').textContent;
+  const list = chatList();
+  const log = el('chatLog');
+  const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  log.innerHTML = list.length ? list.map(m => `<div class="chatmsg${m.me ? ' me' : ''}">${escText(m.text)}<span class="t">${chatTime(m.at)}${m.me ? ' · ' + chatStatus(m) : ''}</span></div>`).join('')
+    : '<p class="note">Messages go only to the other player at this table.</p>';
+  if (atEnd) log.scrollTop = log.scrollHeight;
+}
+el('chatBtn').onclick = openChat;
+el('chatBack').onclick = closeChat;
+el('chatForm').onsubmit = e => { e.preventDefault(); chatSend(el('chatIn').value); el('chatIn').value = ''; };
+document.addEventListener('visibilitychange', () => { if (code && !solo) { drawChat(); chatSeenNow(); } });
+
 function showDiag(slot) {
   const panel = el('debugPanel');
   const here = panel.parentElement === el(slot);
@@ -3993,6 +4147,14 @@ function handleMessage(msg) {
     // Shouldn't happen — the share button hands out the opposite seat — but if
     // someone passes on their own link instead, neither side can move and the
     // reason isn't visible. Say it plainly rather than trying to fix it.
+    if (joinByCode && (msg.color === 'w' || msg.color === 'b')) {
+      joinByCode = false;
+      if (msg.color === myColor) {             // joined by code as the colour the owner already has: take the other
+        myColor = msg.color === 'w' ? 'b' : 'w';
+        setHash(myColor);
+        sendState();
+      }
+    }
     seatClash = msg.color === myColor;
     if (Array.isArray(msg.history)) { peerPly = msg.history.length; adopt(msg.history, msg.result, !!msg.force); }
     if (msg.force) takebackAsked = false;
@@ -4020,6 +4182,9 @@ function handleMessage(msg) {
   }
 
   if (msg.t === 'sync') { sendState(); return; }
+  if (msg.t === 'chat') { chatReceive(msg); return; }
+  if (msg.t === 'chatAck') { chatAcked(msg.id); return; }
+  if (msg.t === 'chatSeen') { chatSeen(msg.ids); return; }
 
   if (msg.t === 'resign') {
     result = { type: 'resign', winner: msg.by === 'w' ? 'b' : 'w' };
@@ -6469,6 +6634,7 @@ function draw() {
   drawOpenings();
   drawPuzzle();
   drawStudy();
+  drawChat();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
   el('takebackBtn').disabled = (!!result && !solo) || game.history().length === 0 || (!solo && !peers.size);
@@ -8893,7 +9059,7 @@ el('coachBody').addEventListener('toggle', e => {
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
-    el('topState').textContent = el('linkState').textContent = code === 'puzzle' ? 'puzzles' : code === 'study' ? (study && study.g.id === 'mine' ? 'your game' : 'famous game') : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
+    el('topState').textContent = code === 'puzzle' ? 'puzzles' : code === 'study' ? (study && study.g.id === 'mine' ? 'your game' : 'famous game') : code === 'local' ? 'one device' : onePiece ? 'one-piece' : 'practice';
     el('invite').classList.add('hidden');
     el('peerHint').classList.add('hidden');
     document.body.classList.remove('online', 'connecting');
@@ -8902,8 +9068,7 @@ function setLink() {
   }
   const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
   document.body.dataset.link = state;
-  el('topState').textContent = el('linkState').textContent =
-    state === 'idle' ? 'no game' : state === 'live' ? 'connected' : 'waiting';
+  el('topState').textContent = state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
   updateConnecting();
   el('invite').querySelector('.label').textContent = `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
@@ -9226,6 +9391,26 @@ el('backBtn').onclick = () => swapScreen(() => {
   location.href = location.pathname + location.search;
 });
 
+/* Join by code: a table the other person opened. The colour isn't in a code,
+   so this side starts as Black and, if the table's owner turns out to be Black,
+   takes White as soon as their first message says so. */
+let joinByCode = false;
+const CODE_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{9}$/;
+el('joinBtn').onclick = () => {
+  const raw = el('joinCode').value.trim();
+  const link = /[#&]r=([a-z0-9]{9})(?:&c=([wb]))?/i.exec(raw);
+  const c = (link ? link[1] : raw.replace(/[^a-z0-9]/gi, '')).toLowerCase();
+  if (!CODE_RE.test(c)) { el('joinMsg').textContent = 'That doesn’t look like a table code. It’s 9 letters and numbers, like abc def ghi.'; return; }
+  el('joinMsg').textContent = '';
+  const saved = store.get('table:' + c);
+  code = c;
+  myColor = link && link[2] ? link[2] : saved && saved.myColor ? saved.myColor : 'b';
+  joinByCode = !(link && link[2]) && !(saved && saved.myColor);
+  setHash(myColor);
+  begin();
+};
+el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('joinBtn').click(); });
+
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
   const mine = choice === 'r'
@@ -9241,9 +9426,11 @@ function inviteUrl() {
   return `${location.origin}${location.pathname}#r=${code}&c=${myColor === 'w' ? 'b' : 'w'}`;
 }
 
-el('waBtn').onclick = () => {
-  const text = `Game of chess? Your board is here — you're ${myColor === 'w' ? 'black' : 'white'}: ${inviteUrl()}`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+// the phone's own share sheet (Instagram, WhatsApp, messages…); where there isn't one, the text is copied
+const inviteText = () => `Game of chess? You're ${myColor === 'w' ? 'black' : 'white'}. Open ${inviteUrl()} or enter the table code ${code.slice(0, 3)} ${code.slice(3, 6)} ${code.slice(6)} in Étude.`;
+el('waBtn').onclick = async e => {
+  if (navigator.share) { try { await navigator.share({ text: inviteText() }); return; } catch (err) { if (err && err.name === 'AbortError') return; } }
+  if (!await copyText(inviteText(), e.currentTarget)) showTextModal('Send this to them', inviteText());
 };
 
 el('copyBtn').onclick = async () => {

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Étude handover</title>
+<style>
+  body { background: #15181b; color: #e8e6e1; font: 15px/1.6 system-ui, sans-serif; margin: 0; padding: 24px 16px 60px; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-weight: 500; margin: 0 0 4px; }
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #c8a35b; margin: 30px 0 8px; }
+  li { margin: 6px 0; }
+  code { background: #22272b; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  .muted { color: #9aa0a6; }
+</style>
+</head>
+<body>
+<main>
+<h1>Étude — notes for a new chat</h1>
+<p class="muted">Written 24 Oct 2026, at version 2026-10-24.10-study. Read this with the code; it covers what the code doesn't show.</p>
+
+<h2>Where things are</h2>
+<ul>
+  <li>The app is <code>chess/index.html</code> (one file) in David's GitHub Pages repo <code>butterflyresonance.github.io</code>, folder on his PC: <code>Documents\butterflyresonance.github.io\chess</code> (OneDrive). He pushes to GitHub himself.</li>
+  <li>Beside it: <code>sw.js</code>, <code>stockfish/</code>, <code>openings/book.json</code>, <code>famous/games.json</code>, <code>diagram-model.bin</code>, <code>pieces/</code>, <code>boards/</code>, <code>server/</code> (the Cloudflare Worker).</li>
+  <li><code>Claude outputs/</code> holds a backup of index.html before every change (<code>index-backup-DATE-before-WHAT.html</code>), the diagram-OCR training tools, <code>famous-games-tools/</code>, and <code>table-server-setup.html</code>.</li>
+</ul>
+
+<h2>How David likes changes made</h2>
+<ul>
+  <li>Back up index.html into <code>Claude outputs</code>, bump <code>VERSION</code> (format <code>YYYY-MM-DD.N-word</code>), test, save to his folder, then confirm the md5 on his machine matches.</li>
+  <li>Test in a real browser (Playwright) before delivering, at phone size as well as laptop. Check layout visually, not just behaviour.</li>
+  <li>When he says "let me know before making changes", propose and wait.</li>
+  <li>Be concrete and direct; he dislikes flair and implied instructions. When he asks a question, answer it rather than starting work.</li>
+  <li>Naming: plain, specific words; never name something by reference to how it used to be (e.g. "Reconnecting", not "Reconnecting by itself"). Avoid Britishisms that read oddly ("Carry on" became "Games to resume"/"Resume a game"). Same feature, same name everywhere ("Best move", not sometimes "Hints").</li>
+  <li>Mode-specific controls appear only in the modes they belong to; shared settings (review toggles, appearance) are global and consistent.</li>
+  <li>One-off clean-ups of old saved data go in the <b>Migrations</b> section near the end of the script (remove after 2026-12-01).</li>
+  <li>Guides/documents as files: HTML, not Markdown.</li>
+</ul>
+
+<h2>Decisions already made (don't revisit without reason)</h2>
+<ul>
+  <li><b>Online play</b> goes only through his Cloudflare Worker <code>etude-tables.subjectification.workers.dev</code> (Durable Object per table, origin-locked to his site). The public Nostr/MQTT relays and WebRTC (Trystero) were removed after the server proved itself. Cloudflare builds the Worker from GitHub on every push, deploy command <code>npx wrangler deploy --config chess/server/wrangler.toml</code>.</li>
+  <li>Heartbeat every 3s carries the move count, so lost moves repair themselves; "Sent, waiting for their phone to receive it" shows unacknowledged moves; reconnecting is automatic (no button).</li>
+  <li>Leaving a game reloads the page on purpose (clean state). Screen changes otherwise fade out/in; no fade after a reload.</li>
+  <li>Every game on the device is its own saved "line" (<code>table:lines</code>); the Play buttons always start a new game; resuming only from <b>Resume a game</b>. Set-up positions are named when started.</li>
+  <li>Puzzle scoring: each hint costs a third of the whole puzzle (three hints = giving up); wrong tries add their severity on top, capped at giving up.</li>
+  <li>Eval bar only beside the board (the under-the-board option broke on iPhone and was removed). Review parts (eval bar, badges, their moves, explanations, best move) toggle independently.</li>
+  <li>"Engine plays" stays in online games (David's choice).</li>
+  <li>Analytics: not wanted.</li>
+  <li>Home: Puzzles, Play a game, Study (Famous games, Import a game, Analyse a position), and Resume a game when there is one.</li>
+  <li>Famous games: taken from PGN Mentor files (via the GitHub repo <code>rozim/ChessData</code>), each checked for legality, result, ending and key move; descriptions are our own words. Tal must stay represented (three games now), but no player collections.</li>
+  <li>Piece sets: several are CC BY-NC-SA — matters if donations are ever added.</li>
+</ul>
+
+<h2>Open threads</h2>
+<ul>
+  <li>Opening "hand-holding" for learning openings (suggested moves with reasons, reply trees, traps), starting with the London; David wants as much guidance as possible.</li>
+  <li>Possibly: Lichess Masters search from a position; "guess the next move" in famous games; more famous games via the tools.</li>
+  <li>Cosmetic unlocks as rewards; ambient sounds (left out of the app so far).</li>
+  <li>More real book photos to test the diagram reader (phone photos, not webcam).</li>
+  <li>Offered, not taken up: one-piece engine tuning/speed; chess.js <code>undo()</code> for takebacks; leaving games without a reload.</li>
+  <li>Delete the Migrations section after 2026-12-01.</li>
+</ul>
+
+<h2>Practical quirks</h2>
+<ul>
+  <li>Saving to his PC goes through the desktop bridge: give each staged file a unique name, or an old copy can be written. Always check the md5 afterwards.</li>
+  <li>The cloud workspace can't reach Cloudflare, workers.dev or most websites; GitHub and npm work. For online tests, run the Worker locally with <code>wrangler dev</code> and point the app at it with <code>localStorage['table:server']</code>.</li>
+  <li>His friend plays on an iPhone (Safari); he uses Android Chrome and Firefox on Windows. Check both kinds of phone behaviour when touching layout.</li>
+</ul>
+</main>
+</body>
+</html>
