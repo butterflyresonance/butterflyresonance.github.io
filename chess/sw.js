@@ -7,7 +7,7 @@
    also kept, and used when the network fails, so a game against the computer
    works offline once the page, Stockfish and the opening book have loaded
    once. Games against a person still need the network for the relays. */
-const CACHE = 'table-chess-v2';
+const CACHE = 'table-chess-v3';
 
 // The files a computer game needs, fetched on install so the first offline
 // visit works even if Stockfish was never opened.
@@ -15,6 +15,11 @@ const CORE = [
   './',
   'manifest.json',
   'icon-knight-192.png',
+  'vendor/chess.js',
+  'fonts/ibm-plex-mono-latin-400.woff2',
+  'fonts/ibm-plex-mono-latin-500.woff2',
+  'fonts/ibm-plex-mono-latin-600.woff2',
+  'fonts/bodoni-moda-latin.woff2',
   'openings/book.json',
   'stockfish/stockfish-19-lite-single.js',
   'stockfish/stockfish-19-lite-single.wasm'
@@ -43,11 +48,9 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET' || !req.url.startsWith('http')) return;
   const url = new URL(req.url);
-  // Same-origin files under /chess/, and the modules the page imports (esm.sh).
+  // Same-origin files under /chess/ (the page, chess.js, fonts, pieces, engine).
   // Anything else on the site, or elsewhere, is left alone.
-  const mine = url.origin === self.location.origin
-    ? url.pathname.startsWith('/chess/')
-    : url.hostname === 'esm.sh';
+  const mine = url.origin === self.location.origin && url.pathname.startsWith('/chess/');
   if (!mine) return;
   // Other pages in /chess/ (preview.html, the backups) are left to the network.
   // Without this they would be cached under the app's own key and replace it.

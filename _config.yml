@@ -1,0 +1,7 @@
+# GitHub Pages: files and folders kept in the repo (and its history) but not
+# published on the website.
+exclude:
+  - "chess/Claude outputs"
+  - "chess/coach-tests"
+  - "chess/icon-candidates"
+  - commit.bat

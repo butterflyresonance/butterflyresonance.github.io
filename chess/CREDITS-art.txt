@@ -41,4 +41,8 @@ public/piece/horsey | cham, michael1241 | [CC BY-NC-SA 4.0](https://creativecomm
 App icon (icon-knight-*.png, apple-touch-icon-knight.png, icon-candidates/): the anarcandy knight
 by caderek (https://github.com/caderek), CC BY-NC-SA 4.0, placed on a coloured tile;
 the candidates add accessories. These derived icons are likewise CC BY-NC-SA 4.0.
-The previous icons are icon-192.png, icon-512.png and apple-touch-icon.png (copies also in icon-old/).
+The previous icons are icon-192.png, icon-512.png and apple-touch-icon.png.
+
+Fonts in fonts/: Bodoni Moda (The Bodoni Moda Project Authors) and IBM Plex Mono (IBM Corp.),
+both SIL Open Font License 1.1 (fonts/*-OFL.txt), via Fontsource, unmodified.
+vendor/chess.js: chess.js 1.4.0 by Jeff Hlywa, BSD 2-Clause (vendor/chess.js-LICENSE.txt), unmodified.

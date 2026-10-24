@@ -37,10 +37,21 @@
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
 <meta name="twitter:card" content="summary">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/bodoni-moda-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  /* fonts: served from fonts/ beside this page, so the app needs nothing from
+     Google and looks the same offline. Bodoni Moda is one variable file
+     (weights 400-900, optical size); Plex Mono is one file per weight. */
+  @font-face { font-family: 'Bodoni Moda'; font-style: normal; font-weight: 400 900; font-display: swap; src: url(fonts/bodoni-moda-latin.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: 'Bodoni Moda'; font-style: normal; font-weight: 400 900; font-display: swap; src: url(fonts/bodoni-moda-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/ibm-plex-mono-latin-400.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/ibm-plex-mono-latin-ext-400.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/ibm-plex-mono-latin-500.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/ibm-plex-mono-latin-ext-500.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/ibm-plex-mono-latin-600.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url(fonts/ibm-plex-mono-latin-ext-600.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+
   :root {
     color-scheme: dark;
     --ground: #15181b;
@@ -639,7 +650,7 @@
   }
   details.grp[open] > summary::after { content: "\2013"; }
   details.grp[open] > summary { color: var(--brass); }
-  details.grp[open] > summary .gcount { color: var(--brass-dim); }
+  details.grp[open] > summary .gcount { color: var(--brass); }
   .gitems { padding: 2px 0 10px; }
 
   .verdict {
@@ -774,6 +785,11 @@
   .backbtn:hover { color: var(--brass); border-color: var(--brass-dim); }
   .topbar .status { flex: 1; min-width: 0; margin: 0; font-size: 19px; line-height: 1.2; min-height: 0; }
   .topstate { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  /* A narrow bar (small phones, the side panel on a landscape tablet) has no room
+     for the tag as well as the message: the tag goes, and the message keeps its
+     one line. A connection problem is still spelled out under the board. */
+  .topbar { container-type: inline-size; }
+  @container (max-width: 340px) { .topstate { display: none; } }
   body[data-link="live"] .topstate { color: var(--brass); }
 
   /* The board is as wide as the screen allows, but never so tall that the
@@ -825,7 +841,9 @@
   .panes { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 0 24px; }
   .pane { display: none; }
   /* puzzle headings are short and kept to one line, so the board never shifts when one changes */
-  body.puzzlemode .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* The status line is always one line, so a longer message never pushes the board
+     down: the text shrinks a little to fit (fitStatus), and only past that is it cut. */
+  .topbar .status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.localmode #autoLabel, body.localmode #autoBtn, body.localmode #thinkRow, body.localmode #revTheirsBtn, body.localmode #revTheirsLabel,
   body.localmode .oforce { display: none !important; }
   body:not(.puzzlemode) .tabs [data-tab="puzzle"], body:not(.puzzlemode) #pzResetRow { display: none; }
@@ -1199,7 +1217,7 @@
   }
   .osec > summary::-webkit-details-marker { display: none; }
   .osec > summary:hover { color: var(--brass); }
-  .osub { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-dim); margin: 6px 0 4px; }
+  .osub { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); margin: 6px 0 4px; }
   .ofam { border-left: 2px solid var(--edge); margin: 0 0 4px; }
   .ofam.st-in { border-left-color: var(--brass); }
   .ofam.st-out { border-left-color: rgba(192,90,74,.45); }
@@ -1214,7 +1232,7 @@
   .otag { color: var(--muted); font-size: 10.5px; text-align: right; }
   .ofam.st-out .otag { color: var(--danger); }
   .oseq { grid-column: 1 / 3; font-size: 11px; color: var(--muted); line-height: 1.6; }
-  .oseq .mv.me { color: var(--brass-dim); }
+  .oseq .mv.me { color: var(--brass); }
   .oseq .mv.done { color: var(--text); }
   .oseq .mv.me.done { color: var(--brass); }
   .obody { padding: 2px 4px 10px 10px; font-size: 11.5px; line-height: 1.65; color: var(--muted); }
@@ -1397,6 +1415,27 @@
   }
   /* no double-tap-to-zoom (two quick taps on a button zoomed iPhones in); pinch still zooms */
   html { touch-action: manipulation; }
+
+  /* ---- the pop-up note ----
+     Over the page near the bottom, so nothing is pushed about. Either something
+     you need to do, with the button that does it, or something you can't do
+     anything about, with no button, which goes by itself. */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 35;
+    transform: translateX(-50%);
+    width: max-content; max-width: min(520px, calc(100vw - 32px)); box-sizing: border-box;
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 10px 9px 14px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--edge); border-left: 2px solid var(--brass);
+    box-shadow: 0 6px 24px rgba(0,0,0,.3);
+    font-family: var(--mono); font-size: 12px; line-height: 1.5;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.off { opacity: 0; transform: translate(-50%, 8px); pointer-events: none; }
+  .toast button { flex: none; padding: 7px 12px; font-size: 11px; letter-spacing: .08em; border-color: var(--brass); color: var(--brass); }
+  /* the end of the panel can still be scrolled up from under it */
+  body.toasting .panes { padding-bottom: 84px; }
 
   /* ---- chat ---- */
   .chatscreen { position: fixed; inset: 0; z-index: 40; background: var(--ground); display: flex; justify-content: center; }
@@ -1637,6 +1676,9 @@
       <p class="note">Play both sides to work through a line yourself. The Review tab has the eval bar and move feedback in both. New game starts again from this position.</p>
     </div>
   </section>
+
+  <!-- the pop-up note: floats over the page, so nothing moves when it comes and goes -->
+  <div class="toast off" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button type="button" id="toastBtn" class="hidden"></button></div>
 
   <!-- CHAT: over the game, the whole screen; Game takes you back -->
   <section class="chatscreen hidden" id="chatScreen" aria-label="Chat">
@@ -3466,7 +3508,7 @@ self.onmessage = e => {
 </script>
 
 <script type="module">
-import { Chess } from 'https://esm.sh/chess.js@1.4.0';
+import { Chess } from './vendor/chess.js';   // chess.js 1.4.0, kept beside the page (BSD-2, vendor/chess.js-LICENSE.txt)
 
 const el = id => document.getElementById(id);
 const boardEl = el('board');
@@ -3475,7 +3517,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-25.3-chat-box-style';
+const VERSION = '2026-10-25.9-popup-notes';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3576,6 +3618,22 @@ function openModal({ title, body = '', actions = [{ label: 'OK', value: true, ki
   });
 }
 
+/* Questions and news from the other player (a takeback, a rematch, a
+   resignation) wait their turn: one that arrives while you have a dialog open
+   comes up after you close it, instead of closing yours. Each waits for the one
+   before it. still() is asked just before it opens; if it says the question no
+   longer applies, it is skipped and answered null. */
+let peerQueue = Promise.resolve();
+function peerModal(opts, still = () => true) {
+  const run = peerQueue.then(async () => {
+    while (modalEl.open || modalResolve) await new Promise(r => setTimeout(r, 250));
+    if (!still()) return null;
+    return openModal(opts);
+  });
+  peerQueue = run.catch(() => {});
+  return run;
+}
+
 const escText = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 async function confirmModal(title, text, okLabel, { danger = false } = {}) {
@@ -3653,6 +3711,56 @@ let navigating = false;        // true while we write our own hash
 let solo = false;              // playing the engine, no peer, no relays
 let seatClash = false;         // both ended up on the same side
 let takebackAsked = false;     // we have a request outstanding
+let rematchAsked = false;      // we've offered a rematch and are waiting for an answer
+/* ---------- the pop-up note ----------
+   drawStatus() decides what it says, through setNote(). Two kinds only:
+   - something you need to do: the text, and a button that does it;
+   - something you can't do anything about: no button, and it goes by itself,
+     when it stops being true (waiting for them) or after a few seconds (news,
+     through flash()). */
+let flashText = '', flashUntil = 0;
+function flash(text, ms = 6000) {
+  flashText = text;
+  flashUntil = Date.now() + ms;
+  if (code) drawStatus();
+  setTimeout(() => { if (Date.now() >= flashUntil && code) drawStatus(); }, ms + 50);
+}
+const currentFlash = () => flashText && Date.now() < flashUntil ? flashText : '';
+const sayTable = (text, ms = 10000) => flash(text, ms);
+new MutationObserver(() => { if (el('game').classList.contains('hidden')) showToast(''); else if (code) drawStatus(); })
+  .observe(el('game'), { attributes: true, attributeFilter: ['class'] });
+let toastNow = '';
+function showToast(text, action) {
+  const t = el('toast'), b = el('toastBtn');
+  const onGame = !el('game').classList.contains('hidden');
+  if (!text || !onGame) {
+    t.classList.add('off');
+    document.body.classList.remove('toasting');
+    toastNow = '';
+    return;
+  }
+  const key = text + '|' + (action ? action.label : '');
+  if (key !== toastNow) {
+    el('toastText').textContent = text;
+    b.classList.toggle('hidden', !action);
+    b.textContent = action ? action.label : '';
+    toastNow = key;
+  }
+  b.onclick = action ? () => action.run() : null;
+  t.classList.remove('off');
+  document.body.classList.add('toasting');
+}
+// stepping through a game keeps its note in the page (it has a line kept for it); everywhere else it pops up
+function setNote(text, action) {
+  if (code === 'study') { el('gameNote').textContent = text; showToast(''); return; }
+  el('gameNote').textContent = '';
+  showToast(text, action);
+}
+const reloadAct = { label: 'Reload', run: () => forceReload() };
+let engineAct = reloadAct;     // the button that goes with engineNote
+let freeTold = false;          // the one-piece "whole army" news, told once a game
+let gameSerial = 0;            // counts new games, so a question about an old one can tell it's stale
+let rematchQ = 0;              // the gameSerial a rematch question on screen was asked in
 /* Move sounds: a style (or 'off') and a volume, chosen in Settings → Sound.
    (Older builds' on/off setting is carried over under Migrations, near the end.) */
 let sfxStyle = store.get('table:sfx') || 'wood';
@@ -3935,7 +4043,14 @@ let peerPly = null;           // how many moves their phone has, from its last r
 let sentAt = 0;               // when our last move went out
 const seenIds = new Set();
 const PING_MS = 3000, SILENT_MS = 12000;
-function ping() { lastPing = Date.now(); broadcast({ t: 'ping', ply: game.history().length, v: VERSION }); }
+// a short fingerprint of the moves, so two boards with the same number of moves
+// can tell whether they're the same moves
+function histHash() {
+  let x = 0;
+  for (const c of game.history().join(' ')) x = (x * 31 + c.charCodeAt(0)) | 0;
+  return (x >>> 0).toString(36);
+}
+function ping() { lastPing = Date.now(); broadcast({ t: 'ping', ply: game.history().length, h: histHash(), v: VERSION }); }
 const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;
 function drawConn() {
   const show = !solo && !!code && code !== 'puzzle';
@@ -4233,6 +4348,7 @@ function handleMessage(msg) {
     if (typeof msg.ply === 'number') {
       if (msg.ply > ply) broadcast({ t: 'sync' });
       else if (msg.ply < ply) sendState();
+      else if (typeof msg.h === 'string' && msg.h !== histHash()) sendState();   // same count, different moves
     }
     if (changed) drawStatus();
     drawConn();
@@ -4261,6 +4377,13 @@ function handleMessage(msg) {
   if (msg.t === 'move') {
     const ply = game.history().length;
     if (msg.ply === ply) {
+      // a move for my side: some other device thinks it's playing my colour. Not
+      // played; my state goes back with my colour, which settles the seats.
+      if (!isLocal() && !joinByCode && game.turn() === myColor) {
+        sendState();
+        sayTable('Another device is playing your side at this table.');
+        return;
+      }
       try {
         const m = game.move(msg.san);
         if (m) {
@@ -4284,12 +4407,54 @@ function handleMessage(msg) {
   if (msg.t === 'chatSeen') { chatSeen(msg.ids); return; }
 
   if (msg.t === 'resign') {
-    result = { type: 'resign', winner: msg.by === 'w' ? 'b' : 'w' };
+    if (result) return;                    // the game had already ended on this board
+    result = { type: 'resign', winner: myColor };   // it's the other player who resigned
     persist(); draw();
+    peerModal({
+      title: 'They resigned',
+      body: '<p>You win. The game is saved to your game history.</p>',
+      actions: [{ label: 'OK', value: null, focus: true }, { label: 'Offer a rematch', value: 'again', kind: 'go' }]
+    }).then(v => { if (v === 'again' && result) rematch(); });
     return;
   }
 
-  if (msg.t === 'rematch') { startFresh(msg.yourColor); return; }
+  /* ---- a rematch is offered, and only starts once the other player accepts ---- */
+  if (msg.t === 'rematchAsk') {
+    if (rematchAsked) {                    // both offered at once: that's a yes from each
+      rematchAsked = false;
+      broadcast({ t: 'rematchYes' });
+      startFresh(myColor === 'w' ? 'b' : 'w');
+      return;
+    }
+    const mine = msg.yourColor === 'b' ? 'Black' : 'White';
+    const at = game.history().length, over = !!result, serial = gameSerial;
+    peerModal({
+      title: 'Rematch?',
+      body: over ? `<p>They’d like another game. You’d play ${mine}.</p>`
+        : `<p>They’d like a new game, but this one isn’t over on your board. Starting again ends it here. You’d play ${mine}.</p>`,
+      actions: [{ label: 'Not now', value: false, focus: true }, { label: 'Play again', value: true, kind: 'go' }]
+    }, () => { const ok = gameSerial === serial && game.history().length === at && !!result === over; if (ok) rematchQ = serial || -1; return ok; }).then(ok => {
+      if (gameSerial !== serial) return;       // a new game started meanwhile: nothing to answer
+      if (ok && game.history().length === at) { broadcast({ t: 'rematchYes' }); startFresh(msg.yourColor); }
+      else broadcast({ t: 'rematchNo' });
+    });
+    return;
+  }
+  if (msg.t === 'rematchYes') {
+    if (!rematchAsked) return;
+    rematchAsked = false;
+    startFresh(myColor === 'w' ? 'b' : 'w');
+    return;
+  }
+  if (msg.t === 'rematchNo') {
+    if (!rematchAsked) return;
+    rematchAsked = false;
+    draw();
+    flash('They’d rather not play again just now.');
+    return;
+  }
+  // older builds start the new game at once; only take that once this one is over
+  if (msg.t === 'rematch') { if (result) startFresh(msg.yourColor); else sendState(); return; }
 
   // Hints are announced rather than silent — see the note in the README.
   if (msg.t === 'hint') {
@@ -4306,14 +4471,14 @@ function handleMessage(msg) {
     if (result || !game.history().length) return;
     const asker = msg.color === 'w' ? 'White' : 'Black';
     const askedAt = game.history().length;
-    openModal({
+    peerModal({
       title: 'Takeback?',
       body: `<p>${asker} asks to take back their move.</p>`,
       actions: [
         { label: 'Keep the move', value: false, focus: true },
         { label: 'Allow it', value: true, kind: 'go' }
       ]
-    }).then(ok => {
+    }, () => !result && game.history().length === askedAt).then(ok => {
       // The board may have moved on while the question was up.
       if (!ok || result || game.history().length !== askedAt) {
         broadcast({ t: 'tbno' });
@@ -4331,8 +4496,7 @@ function handleMessage(msg) {
 
   if (msg.t === 'tbno') {
     takebackAsked = false;
-    el('gameNote').textContent = 'They’d rather keep the move.';
-    setTimeout(() => drawStatus(), 3000);
+    flash('They’d rather keep the move.', 4000);
     return;
   }
 }
@@ -4341,8 +4505,27 @@ function adopt(history, remoteResult, force = false) {
   // Normally a shorter history means we're ahead and they need catching up.
   // A takeback is the one case where going backwards is the correct answer.
   if (!force) {
-    if (history.length < game.history().length) { sendState(); return; }
-    if (history.length === game.history().length && !remoteResult) return;
+    const mine = game.history();
+    const n = Math.min(mine.length, history.length);
+    let k = 0;
+    while (k < n && mine[k] === history[k]) k++;
+    if (k < n) {
+      /* The boards disagree from move k on. Each player owns their own moves:
+         whoever's turn it was at move k keeps their version, and the other board
+         takes it. Both boards apply the same rule, so they agree without asking. */
+      const startW = newGameFrom().turn() === 'w';
+      const owner = (k % 2 === 0) === startW ? 'w' : 'b';
+      if (owner === myColor) {
+        sendState();
+        sayTable('Their board was out of step with yours. It now matches yours.');
+        return;
+      }
+      sayTable('Your board was out of step with theirs. It now matches theirs.');
+      // and on to take their version, below
+    } else {
+      if (history.length < mine.length) { sendState(); return; }
+      if (history.length === mine.length && !remoteResult) return;
+    }
   }
 
   const fresh = newGameFrom();          // a set-up position replays from where it started
@@ -4421,6 +4604,11 @@ function startFresh(colorForMe, keepLine = false) {
   myColor = colorForMe;
   seatClash = false;
   takebackAsked = false;
+  rematchAsked = false;
+  freeTold = false;
+  gameSerial++;
+  if (rematchQ && modalEl.open && el('modalTitle').textContent === 'Rematch?') closeModal(null);   // already answered by the new game
+  rematchQ = 0;
   result = null;
   selected = null;
   lastMove = null;
@@ -5132,7 +5320,7 @@ function ensureEngine() {
           : localMove(e.data.from, e.data.to, e.data.promotion));
         if (!played) {
           // An unplayable suggestion would otherwise loop forever.
-          if (solo) engineFailed('The engine returned a move that can’t be played.');
+          if (solo) engineFailed('The engine returned a move that can’t be played. Reload to try again.');
           else { autoPlay = false; draw(); }
           return;
         }
@@ -5150,7 +5338,7 @@ function ensureEngine() {
       // Releasing the job matters more than the message: askEngine() skips any
       // request matching the outstanding job, so a job left behind here can
       // never be retried and the board sits on "Thinking…" forever.
-      engineFailed('The engine stopped. It needs to load chess.js from the network.');
+      engineFailed('The engine stopped. Reload to try again.');
     };
   } catch {
     engine = null;
@@ -5161,6 +5349,7 @@ function ensureEngine() {
 /* Give up on the outstanding request and say so, rather than leaving a job
    pending that blocks every future one. */
 function engineFailed(message) {
+  engineAct = reloadAct;
   clearTimeout(engineWatchdog);
   engineWatchdog = null;
   engineJob = null;
@@ -5190,7 +5379,7 @@ function askEngine(mode) {
   }
 
   const worker = ensureEngine();
-  if (!worker) { engineFailed('The engine couldn’t start in this browser.'); return; }
+  if (!worker) { engineFailed('The engine couldn’t start. Reload to try again.'); return; }
 
   engineJob = { fen, mode, at: Date.now(), depth: 0 };
   const only = mode === 'play' ? tableOnly() : 'any';
@@ -5275,6 +5464,7 @@ function maybeAutoPlay() {
     if (onlyActive() && onlyBoard().gone) {
       result = { type: 'resign', winner: myColor };
       engineNote = `It has no ${ONLY_WORD[oppOnly]}s left to move, so it resigned.`;
+      flash(engineNote, 9000);
       persist();
       draw();
       return;
@@ -5455,7 +5645,8 @@ function sfKill() {
   sfNewGame = true;
 }
 
-function sfFail(message) {
+function sfFail(message, act) {
+  engineAct = act || { label: 'Restart Stockfish', run: () => setOpponent(opponent) };
   console.warn('stockfish:', message);
   sfKill();
   sfBroken = true;         // or draw() would restart it, fail again, and loop
@@ -5479,7 +5670,7 @@ function sfStart() {
   sf.onmessage = e => sfLine(String(e.data));
   sf.onerror = e => {
     e.preventDefault && e.preventDefault();
-    sfFail('Stockfish couldn’t load. It needs the stockfish folder beside this page, opened over http(s) rather than as a file.');
+    sfFail('Stockfish couldn’t load. The Étude engine can play instead.', { label: 'Play the Étude engine', run: () => setOpponent('table') });
   };
   sf.postMessage('uci');
   return sf;
@@ -5490,7 +5681,7 @@ function sfArm(ms) {
   sfTimer = setTimeout(function check() {
     if (!sfBusy) return;
     if (document.hidden) { sfTimer = setTimeout(check, 5000); return; }  // throttled, not dead
-    sfFail('Stockfish stopped responding. Pick an opponent again to restart it.');
+    sfFail('Stockfish stopped responding.');
   }, ms);
 }
 
@@ -5520,7 +5711,7 @@ function sfGo(fen) {
 }
 
 function askStockfish(fen) {
-  if (!sfStart()) { sfFail('Stockfish couldn’t start in this browser.'); return; }
+  if (!sfStart()) { sfFail('Stockfish couldn’t start in this browser. The Étude engine can play instead.', { label: 'Play the Étude engine', run: () => setOpponent('table') }); return; }
   if (sfBusy) {
     if (sfBusy.fen === fen && sfBusy.opp === opponent && !sfBusy.stopped) return;
     // One search at a time: stop this one, and start the new one when its
@@ -6758,7 +6949,8 @@ function draw() {
   el('hintLabel').textContent = 'Best move';
   el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
   el('rematchBtn').classList.toggle('hidden', !result);
-  el('rematchBtn').textContent = isLocal() ? 'New game' : 'Rematch';
+  el('rematchBtn').textContent = isLocal() ? 'New game' : rematchAsked ? 'Rematch offered' : 'Rematch';
+  el('rematchBtn').disabled = rematchAsked;
   el('setBtn').textContent = PIECE_SETS.find(x => x.id === pieceSet).name;
   el('boardBtn').textContent = BOARDS.find(x => x.id === boardLook).name;
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
@@ -6878,15 +7070,32 @@ function drawTaken() {
   el('takenBottom').innerHTML = strip(iTook, them, edge);
 }
 
+/* Shrinks the status text a step at a time until it fits on its one line (down
+   to 14px; past that the line is cut with …). Runs whenever the text changes,
+   and when the room for it changes. */
+function fitStatus() {
+  const s = el('status');
+  s.style.fontSize = '';
+  if (!s.closest('.topbar') || !s.clientWidth || s.scrollWidth <= s.clientWidth) return;   // (0 wide: not on screen yet)
+  let size = parseFloat(getComputedStyle(s).fontSize);
+  while (s.scrollWidth > s.clientWidth && size > 14) { size -= 0.5; s.style.fontSize = size + 'px'; }
+}
+new MutationObserver(fitStatus).observe(el('status'), { childList: true, characterData: true, subtree: true });
+// and when the room for it changes: the screen appearing, a rotation, the tag beside it changing.
+// Only a change of width counts, since shrinking the text changes its own height.
+let fitW = -1;
+new ResizeObserver(() => { const w = el('status').clientWidth; if (w !== fitW) { fitW = w; fitStatus(); } }).observe(el('status'));
+
 function drawStatus() {
   const s = el('status');
   s.classList.remove('urgent');
 
   if (code === 'study' && study) {
+    showToast('');                 // its notes stay in the page, on their own line
     const ls = lineState();
     const i = study.idx, n = study.g.moves.length;
     s.textContent = ls ? `Stockfish line ${ls.idx ? `${ls.idx}/${ls.n}` : 'start'}`
-      : i === 0 ? 'The starting position' : `After ${moveLabel(i - 1, study.g.moves[i - 1])}`;
+      : i === 0 ? 'Starting position' : `After ${moveLabel(i - 1, study.g.moves[i - 1])}`;
     const key = study.g.key;
     el('gameNote').textContent = ls ? ''
       : key != null && i === key ? `The famous move comes next. What would you play? Press → to see it.`
@@ -6900,7 +7109,7 @@ function drawStatus() {
     if (e) {
       const k = e.at ? i + e.at - 1 : i - 1;
       const san = e.at ? e.moves[e.at - 1] : study.g.moves[i - 1];
-      s.textContent = e.at ? `Stockfish: ${moveLabel(k, san)}` : i ? `After ${moveLabel(k, san)}` : 'The starting position';
+      s.textContent = e.at ? `Stockfish: ${moveLabel(k, san)}` : i ? `After ${moveLabel(k, san)}` : 'Starting position';
       // always one line of note, so nothing below it moves while Stockfish thinks
       el('gameNote').textContent = e.waiting ? 'Stockfish is thinking…' : game.isCheckmate() ? 'Checkmate.' : game.isStalemate() ? 'Stalemate.'
         : game.isDraw() ? 'A draw.' : e.moves.length >= ENG_MAX && e.at === e.moves.length ? `That’s ${ENG_MAX} moves; Stockfish stops here.`
@@ -6914,21 +7123,20 @@ function drawStatus() {
     const [t, hi] = lsp ? [`Stockfish line ${lsp.idx ? `${lsp.idx}/${lsp.n}` : 'start'}`, true] : pzStatus();
     s.textContent = t;
     s.classList.toggle('urgent', hi);
-    el('gameNote').textContent = '';
+    setNote('');
     return;
   }
 
   const ls = lineState();
   if (ls) {
-    const moved = game.history().length > lineView.at ? ' · they’ve moved'
-      : oppHold && oppHold.fen === game.fen() ? ' · their move is waiting' : '';
+    // the status says where you are; the note under the board says the rest
+    const moved = game.history().length > lineView.at ? ' They’ve moved.'
+      : oppHold && oppHold.fen === game.fen() ? ' Their move is waiting.' : '';
     const mv = moveLabel(lineView.ply, game.history()[lineView.ply]);
-    s.textContent = ls.idx ? `Stockfish line · ${ls.idx} of ${ls.n}${moved}`
-      : lineView.which === 'best'
-        ? `Before ${mv} · ${ls.r.best !== ls.r.uci ? `${ls.r.color === myColor ? 'yours' : 'theirs'} dashed, best solid` : 'the line starts here'}${moved}`
-        : `After ${mv} · the line starts here${moved}`;
+    s.textContent = ls.idx ? `Stockfish line ${ls.idx}/${ls.n}` : lineView.which === 'best' ? `Before ${mv}` : `After ${mv}`;
     s.classList.add('urgent');
-    el('gameNote').textContent = '';
+    setNote(currentFlash() || ((ls.idx ? '' : lineView.which === 'best' && ls.r.best !== ls.r.uci
+      ? `${ls.r.color === myColor ? 'Yours' : 'Theirs'} dashed, best solid.` : 'The line starts here.') + moved).trim());
     return;
   }
 
@@ -6942,7 +7150,7 @@ function drawStatus() {
       s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
     }
     // the one-piece resignation says why; nothing else is said once a game ends
-    el('gameNote').textContent = result.type === 'resign' && engineNote.startsWith('It has no ') ? engineNote : '';
+    setNote(currentFlash());
     return;
   }
 
@@ -6952,10 +7160,10 @@ function drawStatus() {
     return;
   }
 
-  const check = game.isCheck() ? ' You’re in check.' : '';
+  const check = game.isCheck();
   if (document.body.classList.contains('connecting')) {
-    s.textContent = peers.size ? 'Found them…' : 'Waiting for your friend';
-    el('gameNote').textContent = '';
+    s.textContent = peers.size ? 'Found them…' : 'Waiting for them…';
+    setNote(currentFlash());
     return;
   }
   if (engineToMove() && ((engineJob && engineJob.mode === 'play' && engineJob.fen === game.fen()) ||
@@ -6968,42 +7176,35 @@ function drawStatus() {
     s.textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move.${game.isCheck() ? ' Check.' : ''}`;
     s.classList.add('urgent');
   } else if (game.turn() === myColor) {
-    s.textContent = 'Your move.' + check;
+    s.textContent = check ? 'Check. Your move.' : 'Your move.';
     s.classList.add('urgent');
   } else {
     // our move hasn't reached their phone yet (their count is behind ours)
     const unsent = !solo && peerPly != null && peerPly < game.history().length && Date.now() - sentAt > 2500;
-    s.textContent = unsent ? 'Sent, waiting for their phone to receive it.'
+    s.textContent = unsent ? 'Sent, not received yet.'
       : game.isCheck() ? 'They’re in check.' : 'Their move.';
   }
 
-  const note = el('gameNote');
-  if (engineNote) {
-    note.textContent = engineNote;
-    note.removeAttribute('title');
-    return;
-  }
-
-  if (solo) {                    // nothing to connect to, nothing to report
-    note.textContent = onlyActive() && onlyBoard().free
-      ? 'You are down to your king, so its whole army can move now.' : '';
-    note.removeAttribute('title');
-    return;
-  }
-
-  if (peers.size) {
-    note.textContent = peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
-      : '';
-    note.removeAttribute('title');
-  } else {
-    if (srvState() !== 'open' && joinedAt && Date.now() - joinedAt > 8000) {
-      note.textContent = 'Can’t reach the table server at the moment. ' +
-        'Check the internet connection; a firewall, VPN or browser extension may be blocking it.';
-    } else {
-      note.textContent = 'Waiting for them to open the link. ' +
-        'You both need the page open for a move to cross.';
+  // the pop-up: trouble with a button first, then news, then the state of the table
+  if (engineNote && !result) { setNote(engineNote, engineAct); return; }
+  const news = currentFlash();
+  if (solo) {                    // nothing to connect to
+    if (!freeTold && onlyActive() && onlyBoard().free) {
+      freeTold = true;
+      flash('You are down to your king, so its whole army can move now.', 8000);
+      return;
     }
-    note.removeAttribute('title');
+    setNote(news);
+    return;
+  }
+  if (news) { setNote(news); return; }
+  if (peers.size) {
+    if (peerVersion && peerVersion !== VERSION) setNote('You’re on different builds of the app. Reload to get the newest; they need to as well.', reloadAct);
+    else setNote('');
+  } else if (srvState() !== 'open' && joinedAt && Date.now() - joinedAt > 8000) {
+    setNote('Can’t reach the table server. It reconnects by itself once the internet is back.');
+  } else {
+    setNote('Waiting for them to open the link.');
   }
 }
 
@@ -9610,9 +9811,12 @@ function resign() {
 }
 
 function rematch() {
-  const next = isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w';     // one device: the board keeps facing White
-  broadcast({ t: 'rematch', yourColor: myColor });
-  startFresh(next);
+  // on one device, or against the computer, there's nobody to ask
+  if (solo || isLocal()) { startFresh(isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w'); return; }   // one device: the board keeps facing White
+  if (rematchAsked) return;
+  rematchAsked = true;                     // the new game starts when they accept (rematchYes)
+  broadcast({ t: 'rematchAsk', yourColor: myColor });
+  draw();
 }
 
 el('resignBtn').onclick = async () => {
@@ -11446,13 +11650,38 @@ function carryOnItems() {
         how: `you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
         sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
         go: () => swapScreen(() => { location.hash = `r=${m[1]}`; }),
-        drop: () => { try { localStorage.removeItem(k); } catch {} } });
+        drop: () => { try { localStorage.removeItem(k); localStorage.removeItem('table:chat:' + m[1]); } catch {} } });
     }
   } catch {}
   return out.sort((a, b) => b.at - a.at);
 }
+/* A table's chat lasts as long as the table does: while its game is offered
+   under Resume, or while you're at the table (after a game ends, for the
+   rematch). Once the game is finished or removed from Resume and you've left,
+   the chat goes with it. */
+function sweepChats() {
+  try {
+    const keep = new Set();
+    for (let i = 0; i < localStorage.length; i++) {
+      const m = /^table:([a-z0-9]{9})$/.exec(localStorage.key(i) || '');
+      if (!m) continue;
+      const t = store.get(m[0]);
+      if (t && Array.isArray(t.history) && (t.history.length > 0 || !!t.fen) && !t.result) keep.add(m[1]);
+    }
+    if (code && !el('game').classList.contains('hidden')) keep.add(code);
+    const inLink = /^#r=([a-z0-9]{9})/.exec(location.hash);
+    if (inLink) keep.add(inLink[1]);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      const m = /^table:chat:([a-z0-9]{9})$/.exec(k || '');
+      if (m && !keep.has(m[1])) localStorage.removeItem(k);
+    }
+  } catch {}
+}
+
 // the home screen's fourth choice, shown only when there's something to resume
 function drawResumeChoice() {
+  sweepChats();
   const n = carryOnItems().length;
   el('goResume').classList.toggle('hidden', !n);
   if (n) el('goResumeSub').textContent = `${n} game${n === 1 ? '' : 's'} under way. Pick up where you left off.`;
@@ -12025,6 +12254,8 @@ try {
     if (v && Array.isArray(v.history) && v.result) localStorage.removeItem(key);
   }
 } catch {}
+// and chats whose table has gone (see sweepChats)
+sweepChats();
 
 // Sound used to be on/off under table:sound. Off becomes the 'Off' style.
 if (store.get('table:sound') !== null) {
