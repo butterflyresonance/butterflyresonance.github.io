@@ -1351,6 +1351,19 @@
   body.studymode .tabs [data-tab="open"], body.studymode .tabs [data-tab="moves"],
   body.studymode #posRow { display: none !important; }
   .controls .studynav { flex: 1; display: flex; align-items: center; justify-content: center; padding-left: 0; padding-right: 0; }
+  /* Engine takes over: the game's bar shrinks to a way back, and a second bar steps through Stockfish's moves */
+  #stReturn, .engbar { display: none; }
+  body.studymode.engline #stReturn { display: block; flex: 1; }
+  body.studymode.engline .controls .studynav { display: none !important; }
+  body.studymode.engline .engbar { display: flex; }
+  .engbar { gap: 8px; margin-top: 8px; align-items: center; flex: none; }
+  .engbar button { flex: none; width: 56px; display: flex; align-items: center; justify-content: center; padding: 8px 0; }
+  .engbar span { flex: 1; text-align: center; font-size: 11.5px; letter-spacing: .04em; color: var(--muted); }
+  #studyInfo .englist { border: 1px solid var(--brass-dim); padding: 8px 10px; margin: 0 0 12px; font-size: 12.5px; line-height: 1.9; }
+  #studyInfo .englist p { margin: 0 0 2px; font-size: 11.5px; color: var(--muted); }
+  #studyInfo .englist .m { font: italic 12.5px/1.9 var(--mono); color: var(--text); cursor: pointer; border: 0; background: none; padding: 0 2px; letter-spacing: 0; }
+  #studyInfo .englist .m:hover { color: var(--brass); }
+  #studyInfo .englist .m.cur { color: var(--brass); text-decoration: underline; text-underline-offset: 3px; }
   .famfilter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
   .famfilter button { padding: 5px 10px; font-size: 11px; letter-spacing: .06em; }
   .famfilter button.on { border-color: var(--brass); color: var(--brass); }
@@ -1661,9 +1674,15 @@
           <button class="studynav" id="stPrev" aria-label="Back one move" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
           <button class="studynav" id="stNext" aria-label="Forward one move" title="Forward one move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
           <button class="studynav" id="stLast" aria-label="To the end" title="To the end"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M4 3l6 5-6 5"/></svg></button>
+          <button id="stReturn"></button>
           <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
+        </div>
+        <div class="engbar" id="engBar">
+          <button id="engPrev" aria-label="Back one of Stockfish’s moves" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+          <span id="engText"></span>
+          <button id="engNext" aria-label="Stockfish’s next move" title="Stockfish’s next move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
         </div>
         <p class="note gnote hidden" id="peerHint">They have Best move switched on.</p>
         <p class="note gnote" id="gameNote"></p>
@@ -3429,7 +3448,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.18-address';
+const VERSION = '2026-10-24.20-engine';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4352,7 +4371,7 @@ function startFresh(colorForMe, keepLine = false) {
   draw();
 }
 
-const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle'].includes(c);
+const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle', 'study'].includes(c);
 
 function persist() {
   if (!code || code === 'puzzle' || code === 'study') return;
@@ -4975,8 +4994,11 @@ function setFavicon(active) {
   link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
+// '● Your move' in the tab title, and the gold favicon: only where someone else
+// moves and you might be waiting in another tab (an online table, the computer).
 function setPresence() {
-  const yours = !!code && !result && game.turn() === myColor;
+  const against = ownTable(code) || code === 'solo' || code === 'onepiece';
+  const yours = against && !result && game.turn() === myColor;
   document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Étude';
   setFavicon(yours);
 }
@@ -6800,7 +6822,16 @@ function drawStatus() {
     el('gameNote').textContent = ls ? ''
       : key != null && i === key ? `The famous move comes next. What would you play? Press → to see it.`
       : key != null && i === key + 1 ? `That was the famous move, ${moveLabel(key, study.g.moves[key])}.`
-      : i === n ? `End of the game: ${studyResult(study.g)}.` : '';
+      : i === n ? studyEnding(study.g) : '';
+    const e = study.eng;
+    if (e) {
+      const k = e.at ? i + e.at - 1 : i - 1;
+      const san = e.at ? e.moves[e.at - 1] : study.g.moves[i - 1];
+      s.textContent = e.at ? `Stockfish: ${moveLabel(k, san)}` : `Stockfish takes over ${i ? 'after ' + moveLabel(k, san) : 'from the start'}`;
+      el('gameNote').textContent = e.waiting ? '' : game.isCheckmate() ? 'Checkmate.' : game.isStalemate() ? 'Stalemate.'
+        : game.isDraw() ? 'A draw.' : e.moves.length >= ENG_MAX && e.at === e.moves.length ? `That’s ${ENG_MAX} moves; Stockfish stops here.`
+        : e.at === e.moves.length ? 'Press › for Stockfish’s next move.' : '';
+    }
     return;
   }
 
@@ -7292,6 +7323,7 @@ function anLine(line) {
     reviewPending();
     drawEvalBar();
     if (code === 'puzzle') pzOnAnalysis();
+    engCheck();
   }
 }
 
@@ -7310,6 +7342,7 @@ function anTick(e) {
   drawReviewState();
   if (hintsOn) { drawHint(); drawArrow(); }
   if (code === 'puzzle') pzOnAnalysis();
+  engCheck();
 }
 
 /* Called from draw(): which positions matter now. The two moves on the board
@@ -7324,7 +7357,7 @@ function anSync() {
   if (!reviewActive()) {
     checkGate();
     pokeHold();
-    if (hintWanted() && !anBroken) { anTodo = [anEntry(game.fen())]; anPump(); }   // hints still need it
+    if ((hintWanted() || (code === 'study' && study && study.eng && study.eng.waiting)) && !anBroken) { anTodo = [anEntry(game.fen())]; anPump(); }   // hints, and Stockfish's next move, still need it
     else { anTodo = []; anStopJob(); }
     return;
   }
@@ -9718,6 +9751,11 @@ let prevTab = null;              // where to go back to once connected
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
 document.addEventListener('keydown', e => {
   if (code === 'study' && !lineView && !e.altKey && !e.ctrlKey && !e.metaKey && !(e.target.closest && e.target.closest('input, select, textarea'))) {
+    if (study.eng) {
+      const act = { ArrowLeft: () => engStep(-1), ArrowRight: () => engStep(1), Escape: () => studyGo(study.idx) }[e.key];
+      if (act) { e.preventDefault(); act(); }
+      return;
+    }
     const to = { ArrowLeft: study.idx - 1, ArrowRight: study.idx + 1, Home: 0, End: study.g.moves.length }[e.key];
     if (to != null) { e.preventDefault(); studyGo(to); }
     return;
@@ -10654,23 +10692,102 @@ function openStudy(g, idx = 0) {
   setHash();
   begin();
 }
-// show the position after i moves
+// show the position after i moves (leaving Stockfish's line, if one was open)
 function studyGo(i, quiet = false) {
   if (!study) return;
   const n = study.g.moves.length;
   i = Math.max(0, Math.min(n, i));
-  const step = i === study.idx + 1;
-  const fresh = startFen ? new Chess(startFen) : new Chess();
-  let m = null;
-  for (let k = 0; k < i; k++) { try { m = fresh.move(study.g.moves[k]); } catch { break; } }
-  game = fresh;
+  const step = i === study.idx + 1 && !study.eng;
   study.idx = i;
-  lastMove = m ? { from: m.from, to: m.to } : null;
-  viewPly = null; lineView = null; revPick = null; selected = null;
+  study.eng = null;
+  document.body.classList.remove('engline');
+  const m = studyBuild();
   store.set('table:studyAt', { id: study.g.id, idx: i });
   if (quiet) return;
   if (step && m) moveSound(m);
   draw();
+}
+// the board: the game's first study.idx moves, then as many of Stockfish's as are being shown
+function studyBuild() {
+  const fresh = startFen ? new Chess(startFen) : new Chess();
+  let m = null;
+  for (let k = 0; k < study.idx; k++) { try { m = fresh.move(study.g.moves[k]); } catch { break; } }
+  if (study.eng) for (const san of study.eng.moves.slice(0, study.eng.at)) { try { m = fresh.move(san); } catch { break; } }
+  game = fresh;
+  lastMove = m ? { from: m.from, to: m.to } : null;
+  viewPly = null; lineView = null; revPick = null; selected = null;
+  return m;
+}
+
+/* Engine takes over: from the move on the board, Stockfish plays both sides,
+   one move each time you ask, so you see as much of it as you want. Each move
+   is a fresh search of the position it's played in (the analysis engine's
+   reading, once it's good enough to grade by), not the tail of one long line.
+   The game itself is untouched: Return to game puts you back where you were.
+   The line is kept only while you're in it. */
+const ENG_MAX = 40;                        // moves; by then it's clear, or it never will be
+function engStart() {
+  if (!study || study.eng) return;
+  study.eng = { moves: [], at: 0, waiting: false };
+  document.body.classList.add('engline');
+  engStep(1);
+}
+function engStep(d) {
+  const e = study && study.eng;
+  if (!e) return;
+  if (d < 0) {
+    if (e.at === 0) return;
+    e.at--; e.waiting = false;
+    studyBuild(); draw(); return;
+  }
+  if (e.at < e.moves.length) { e.at++; e.waiting = false; moveSound(studyBuild()); draw(); return; }
+  if (engOver() || anBroken) return;
+  e.waiting = true;
+  draw();                                  // anSync puts the position in front of the analysis engine
+  engCheck();
+}
+const engOver = () => game.isGameOver() || (study && study.eng && study.eng.moves.length >= ENG_MAX);
+// called whenever the analysis engine reports: is the position read well enough to choose a move?
+function engCheck() {
+  const e = code === 'study' && study && study.eng;
+  if (!e || !e.waiting || e.at !== e.moves.length) return;
+  const a = anCache.get(posKey(game.fen()));
+  const l = a && a.lines[0];
+  if (!a || !l || !l.uci || !anSatisfied(a)) return;
+  const san = sanOf(game.fen(), l.uci);
+  if (!san) return;
+  e.waiting = false;
+  e.moves.push(san);
+  e.at++;
+  moveSound(studyBuild());
+  draw();
+}
+el('engPrev').onclick = () => engStep(-1);
+el('engNext').onclick = () => engStep(1);
+el('stReturn').onclick = () => studyGo(study.idx);
+
+/* How the game ended, in words. The game files give only the result, so a
+   decisive game whose last position isn't checkmate is taken as a resignation;
+   a game that ended some other way says so in its own 'ending' (or, for an
+   imported game, its Termination header). */
+function studyEnding(g) {
+  if (g.ending) return g.ending;
+  const end = new Chess(g.fen || undefined);
+  for (const m of g.moves) { try { end.move(m); } catch { break; } }
+  const t = String(g.termination || '');
+  const loser = g.result === '1-0' ? 'Black' : g.result === '0-1' ? 'White' : null;
+  if (end.isCheckmate()) return `Checkmate. ${loser === 'Black' ? 'White' : 'Black'} won.`;
+  if (end.isStalemate()) return 'Stalemate: a draw.';
+  if (g.result === '1/2-1/2') {
+    if (end.isThreefoldRepetition()) return 'Drawn by repetition.';
+    if (end.isInsufficientMaterial()) return 'Drawn: neither side can mate.';
+    if (end.isDrawByFiftyMoves()) return 'Drawn by the 50-move rule.';
+    return /time/i.test(t) ? 'Drawn on time.' : 'Drawn by agreement.';
+  }
+  if (!loser) return 'The game stops here, with no result recorded.';
+  if (/time/i.test(t)) return `${loser} lost on time.`;
+  if (/abandon/i.test(t)) return `${loser} abandoned the game.`;
+  return `${loser} resigned.`;
 }
 el('stFirst').onclick = () => studyGo(0);
 el('stPrev').onclick = () => studyGo(study.idx - 1);
@@ -10682,19 +10799,26 @@ function drawStudy() {
   const g = study.g, i = study.idx, n = g.moves.length;
   el('stFirst').disabled = el('stPrev').disabled = i === 0;
   el('stNext').disabled = el('stLast').disabled = i === n;
+  const e = study.eng;
+  if (e) {
+    el('stReturn').textContent = i ? `Return to game (${moveLabel(i - 1, g.moves[i - 1])})` : 'Return to game';
+    el('engPrev').disabled = e.at === 0;
+    el('engNext').disabled = e.at === e.moves.length && (engOver() || anBroken || e.waiting);
+    el('engText').textContent = anBroken ? 'Stockfish couldn’t run' : e.waiting ? 'Thinking…' : `Stockfish · ${e.at} of ${e.moves.length}`;
+  }
   const where = [g.event, g.site !== g.event ? g.site : '', famYear(g)].filter(x => x && x !== '?').join(', ');
   el('studyInfo').innerHTML = `<h3>${escText(g.title || 'Your game')}</h3>` +
     `<p class="who">${escText(famName(g.white))} (White) v ${escText(famName(g.black))} (Black)</p>` +
     (where ? `<p class="where">${escText(where)} · ${escText(studyResult(g))}</p>` : '') +
     (g.why ? `<p class="why">${escText(g.why)}</p>` : '') +
-    `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}<button id="stAnalyse">Analyse from here</button></div>`;
+    (e ? engListHTML(i)
+      : `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}` +
+        (game.isGameOver() ? '' : '<button id="stEngine">Engine takes over</button>') + '</div>');
   const key = el('stKey');
   if (key) key.onclick = () => studyGo(g.key);
-  el('stAnalyse').onclick = () => {
-    store.set('table:setupFen', game.fen());
-    try { sessionStorage.setItem('etude:screen', 'setup'); } catch {}
-    swapScreen(() => { location.href = location.pathname + location.search; });
-  };
+  const eng = el('stEngine');
+  if (eng) eng.onclick = engStart;
+  el('studyInfo').querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { study.eng.at = Number(b.dataset.e); study.eng.waiting = false; studyBuild(); draw(); });
   // the whole game, the move on the board underlined; tap any move to go there
   const base = startFen ? (Number(startFen.split(' ')[5]) || 1) * 2 - 2 + (startFen.split(' ')[1] === 'b' ? 1 : 0) : 0;
   let html = '';
@@ -10705,6 +10829,18 @@ function drawStudy() {
   }
   el('studyMoves').innerHTML = html;
   el('studyMoves').querySelectorAll('button.m').forEach(b => b.onclick = () => studyGo(Number(b.dataset.k)));
+}
+
+// Stockfish's moves so far, under the game's details; tap one to go there
+function engListHTML(i) {
+  const e = study.eng;
+  const from = i ? `after ${moveLabel(i - 1, study.g.moves[i - 1])}` : 'from the start';
+  const moves = e.moves.map((san, k) => {
+    const ply = plyBase() + i + k;
+    const num = ply % 2 === 0 ? `${Math.floor(ply / 2) + 1}.` : k === 0 ? `${Math.floor(ply / 2) + 1}...` : '';
+    return `${num}<button class="m${k + 1 === e.at ? ' cur' : ''}" data-e="${k + 1}">${escText(san)}</button>`;
+  }).join(' ');
+  return `<div class="englist"><p>Stockfish’s moves ${from}</p>${moves || '<span class="muted">Thinking…</span>'}</div>`;
 }
 
 /* ---- your own game: PGN pasted or from a file, or a Lichess link ---- */
@@ -10719,7 +10855,7 @@ function pgnGames(text) {
       const moves = c.history();
       if (!moves.length) continue;
       out.push({ id: 'mine', title: h.Event && h.Event !== '?' ? h.Event : 'Your game', white: h.White, black: h.Black, event: h.Event,
-        site: h.Site, date: h.Date, result: h.Result, fen: h.FEN || undefined, moves, key: null });
+        site: h.Site, date: h.Date, result: h.Result, termination: h.Termination || undefined, fen: h.FEN || undefined, moves, key: null });
     } catch {}
   }
   return out;
