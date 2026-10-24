@@ -1351,6 +1351,19 @@
   body.studymode .tabs [data-tab="open"], body.studymode .tabs [data-tab="moves"],
   body.studymode #posRow { display: none !important; }
   .controls .studynav { flex: 1; display: flex; align-items: center; justify-content: center; padding-left: 0; padding-right: 0; }
+  /* Engine takes over: the game's bar shrinks to a way back, and a second bar steps through Stockfish's moves */
+  #stReturn, .engbar { display: none; }
+  body.studymode.engline #stReturn { display: block; flex: 1; }
+  body.studymode.engline .controls .studynav { display: none !important; }
+  body.studymode.engline .engbar { display: flex; }
+  .engbar { gap: 8px; margin-top: 8px; align-items: center; flex: none; }
+  .engbar button { flex: none; width: 56px; display: flex; align-items: center; justify-content: center; padding: 8px 0; }
+  .engbar span { flex: 1; text-align: center; font-size: 11.5px; letter-spacing: .04em; color: var(--muted); }
+  #studyInfo .englist { border: 1px solid var(--brass-dim); padding: 8px 10px; margin: 0 0 12px; font-size: 12.5px; line-height: 1.9; }
+  #studyInfo .englist p { margin: 0 0 2px; font-size: 11.5px; color: var(--muted); }
+  #studyInfo .englist .m { font: italic 12.5px/1.9 var(--mono); color: var(--text); cursor: pointer; border: 0; background: none; padding: 0 2px; letter-spacing: 0; }
+  #studyInfo .englist .m:hover { color: var(--brass); }
+  #studyInfo .englist .m.cur { color: var(--brass); text-decoration: underline; text-underline-offset: 3px; }
   .famfilter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
   .famfilter button { padding: 5px 10px; font-size: 11px; letter-spacing: .06em; }
   .famfilter button.on { border-color: var(--brass); color: var(--brass); }
@@ -1378,10 +1391,13 @@
   .chatmovenote { flex: none; margin: 0 0 8px; font-size: 12px; color: var(--brass); }
   .chatbtn { flex: none; position: relative; width: 38px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--muted); }
   .chatbtn:hover:not(:disabled) { color: var(--brass); }
-  .dot { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
+  .ndot { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
          background: var(--danger); color: #fff; font-size: 10px; line-height: 16px; text-align: center; font-family: var(--mono); }
-  .chatbtn .dot { animation: pop .25s ease-out; }
-  .gamebtn .dot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: -4px; right: -4px; }
+  .chatbtn .ndot { animation: pop .25s ease-out; }
+  .chatbtn.unread { color: var(--brass); border-color: var(--brass); animation: chatpulse 1.6s ease-in-out infinite; }
+  @keyframes chatpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,163,91,.55); } 50% { box-shadow: 0 0 0 7px rgba(200,163,91,0); } }
+  @media (prefers-reduced-motion: reduce) { .chatbtn.unread { animation: none; } }
+  .gamebtn .ndot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: -4px; right: -4px; }
   .chatlog:empty::before { content: 'Messages you send appear here, and theirs.'; color: var(--muted); font-size: 12px; }
   .chatmsg { max-width: 85%; padding: 6px 10px; border: 1px solid var(--edge); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
   .chatmsg.me { align-self: flex-end; border-color: var(--brass-dim); }
@@ -1599,7 +1615,7 @@
   <section class="chatscreen hidden" id="chatScreen" aria-label="Chat">
     <div class="chatwrap">
       <div class="topbar">
-        <button class="gamebtn" id="chatBack" aria-label="Back to the game"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg> Game<span class="dot hidden" id="gameDot"></span></button>
+        <button class="gamebtn" id="chatBack" aria-label="Back to the game"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg> Game<span class="ndot hidden" id="gameDot"></span></button>
         <div class="status">Chat</div>
         <span class="topstate" id="chatState"></span>
       </div>
@@ -1628,7 +1644,7 @@
       <div class="topbar">
         <button class="backbtn" id="backBtn" aria-label="Back to the start screen" title="Back to the start screen"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status" id="status" role="status" aria-live="polite">Setting up…</div>
-        <button class="chatbtn hidden" id="chatBtn" aria-label="Chat" title="Chat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 4h12v8H8l-4 3v-3H3z"/></svg><span class="dot hidden" id="chatDot"></span></button>
+        <button class="chatbtn hidden" id="chatBtn" aria-label="Chat" title="Chat"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 4h12v8H8l-4 3v-3H3z"/></svg><span class="ndot hidden" id="chatDot"></span></button>
         <span class="topstate" id="topState"></span>
       </div>
       <div class="boardcol" id="boardcol">
@@ -1658,9 +1674,15 @@
           <button class="studynav" id="stPrev" aria-label="Back one move" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
           <button class="studynav" id="stNext" aria-label="Forward one move" title="Forward one move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
           <button class="studynav" id="stLast" aria-label="To the end" title="To the end"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M4 3l6 5-6 5"/></svg></button>
+          <button id="stReturn"></button>
           <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
           <button id="rematchBtn">Rematch</button>
+        </div>
+        <div class="engbar" id="engBar">
+          <button id="engPrev" aria-label="Back one of Stockfish’s moves" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+          <span id="engText"></span>
+          <button id="engNext" aria-label="Stockfish’s next move" title="Stockfish’s next move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
         </div>
         <p class="note gnote hidden" id="peerHint">They have Best move switched on.</p>
         <p class="note gnote" id="gameNote"></p>
@@ -3426,7 +3448,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.12-chatscreen';
+const VERSION = '2026-10-24.20-engine';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3755,17 +3777,19 @@ function pieceSVG(type, color, cls = '', set = pieceSet) {
 /* ---------- routing ---------- */
 function parseHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  return { r: p.get('r'), c: p.get('c'), solo: p.has('solo'), only: p.get('only'), puzzle: p.has('puzzle'), local: p.has('local'), study: p.get('study') };
+  return { r: p.get('r'), solo: p.has('solo'), one: p.has('onepiece'), puzzle: p.has('puzzle'), local: p.has('local'), study: p.get('study') };
 }
 
-/* The hash states *your own* colour, so each player holds a self-describing
-   link and the share button hands out the complement. Nothing about which side
-   you're on depends on storage. */
-function setHash(colour) {
+/* The address says which game is open, so a reload or the back button comes
+   back to it. Written when a game starts from a button; a link someone opens
+   already has it. It never holds your colour or other choices: those are kept
+   with the saved game on this device. */
+function setHash() {
+  const h = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
+    : code === 'onepiece' ? 'onepiece=1' : code === 'solo' ? 'solo=1' : `r=${code}`;
+  if (location.hash === '#' + h) return;     // unchanged: no hashchange would come to clear the flag below
   navigating = true;          // our own write, not a jump to another game
-  location.hash = code === 'study' ? 'study=' + (study ? study.g.id : '') : code === 'puzzle' ? 'puzzle=1' : code === 'local' ? 'local=1'
-    : onePiece ? `solo=1&c=${colour}&only=${oppOnly}`
-    : solo ? `solo=1&c=${colour}` : `r=${code}&c=${colour}`;
+  location.hash = h;
 }
 
 function makeCode() {
@@ -3958,6 +3982,7 @@ function fadeIn(node) {
    table server, 'delivered' when the other phone confirms it, 'seen' when they
    have the chat open on screen. Anything not delivered is sent again whenever
    they reappear. Kept on each device per table (table:chat:<code>), the last 200.
+   Each device is one player: testing needs two browsers, not two windows of one.
    The chat has a screen of its own over the game: the chat button in the top
    bar shows a count of unread messages, and the Game button on the chat screen
    shows when they've moved while you were chatting. */
@@ -3990,7 +4015,7 @@ function chatReceive(msg) {
   if (list.some(m => m.id === msg.id)) { chatSeenNow(); return; }
   list.push({ id: msg.id, me: false, text: msg.text.slice(0, 500), at: Date.now(), told: false });
   chatSave(list);
-  if (!chatVisible()) { chatUnread++; try { navigator.vibrate && !document.hidden && navigator.vibrate(30); } catch {} }
+  if (!chatVisible()) { chatUnread++; chatChime(); try { navigator.vibrate && !document.hidden && navigator.vibrate([40, 60, 40]); } catch {} }
   drawChat();
   chatSeenNow();
 }
@@ -4042,6 +4067,8 @@ function drawChat() {
   el('chatDot').classList.toggle('hidden', !chatUnread);
   el('chatDot').textContent = chatUnread > 9 ? '9+' : String(chatUnread);
   el('chatBtn').setAttribute('aria-label', chatUnread ? `Chat, ${chatUnread} unread` : 'Chat');
+  el('chatBtn').classList.toggle('unread', !!chatUnread);
+  document.title = (chatUnread ? `(${chatUnread}) ` : '') + document.title.replace(/^\(\d+\) /, '');
   if (!chatOpen) return;
   // on the chat screen: has the game moved on while you were here?
   const hist = game.history({ verbose: true });
@@ -4113,7 +4140,7 @@ function broadcast(msg) {
 }
 
 function sendState() {
-  broadcast({ t: 'state', history: game.history(), result, color: myColor });
+  broadcast({ t: 'state', history: game.history(), result, color: myColor, undecided: joinByCode, owner: tableOwner, dev: deviceId });
 }
 
 function handleMessage(msg) {
@@ -4144,18 +4171,19 @@ function handleMessage(msg) {
   }
 
   if (msg.t === 'state') {
-    // Shouldn't happen — the share button hands out the opposite seat — but if
-    // someone passes on their own link instead, neither side can move and the
-    // reason isn't visible. Say it plainly rather than trying to fix it.
-    if (joinByCode && (msg.color === 'w' || msg.color === 'b')) {
-      joinByCode = false;
-      if (msg.color === myColor) {             // joined by code as the colour the owner already has: take the other
-        myColor = msg.color === 'w' ? 'b' : 'w';
-        setHash(myColor);
-        sendState();
+    // colours: settle a clash by the rule above; an undecided side becomes decided either way
+    if (msg.color === 'w' || msg.color === 'b') {
+      let changed = joinByCode;
+      if (msg.color === myColor) {
+        const iSwitch = joinByCode !== !!msg.undecided ? joinByCode
+          : tableOwner !== !!msg.owner ? !tableOwner
+          : deviceId > String(msg.dev || '');
+        if (iSwitch) { myColor = myColor === 'w' ? 'b' : 'w'; changed = true; note(`colour settled: playing ${myColor === 'w' ? 'White' : 'Black'}`); }
       }
+      joinByCode = false;
+      if (changed) { persist(); setLink(); sendState(); draw(); }
     }
-    seatClash = msg.color === myColor;
+    seatClash = false;
     if (Array.isArray(msg.history)) { peerPly = msg.history.length; adopt(msg.history, msg.result, !!msg.force); }
     if (msg.force) takebackAsked = false;
     return;
@@ -4324,7 +4352,6 @@ function startFresh(colorForMe, keepLine = false) {
   myColor = colorForMe;
   seatClash = false;
   takebackAsked = false;
-  setHash(colorForMe);   // sides swap on a rematch; keep the link truthful
   result = null;
   selected = null;
   lastMove = null;
@@ -4344,10 +4371,11 @@ function startFresh(colorForMe, keepLine = false) {
   draw();
 }
 
-const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle'].includes(c);
+const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle', 'study'].includes(c);
 
 function persist() {
   if (!code || code === 'puzzle' || code === 'study') return;
+  if (ownTable(code) && joinByCode) return;      // colour not settled yet: nothing worth keeping either
   recordGame();
   /* An online table's own copy is only for picking the game up again. Once the
      game is over it's in your history in full, so the copy goes; opening the
@@ -4362,7 +4390,7 @@ function persist() {
     if (startFen) store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
   }
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
-    lineId: lineId || undefined, at: Date.now(),
+    lineId: lineId || undefined, at: Date.now(), owner: ownTable(code) && tableOwner || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
@@ -4932,6 +4960,18 @@ function playSfx(kind, style = sfxStyle) {
   } catch { /* no audio available */ }
 }
 // the sound for a move just played (a chess.js move object)
+function chatChime() {
+  if (sfxStyle === 'off') return;
+  try {
+    const ctx = sfxCtx(), t = ctx.currentTime;
+    for (const [f, d] of [[880, 0], [1320, .09]]) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.25, t + d + .01); g.gain.exponentialRampToValueAtTime(.001, t + d + .35);
+      o.connect(g); g.connect(sfxBus); o.start(t + d); o.stop(t + d + .4);
+    }
+  } catch {}
+}
 function moveSound(m) {
   if (!m) return;
   playSfx(m.san.includes('#') ? 'mate' : m.san.includes('+') ? 'check' : m.captured ? 'capture' : 'move');
@@ -4954,8 +4994,11 @@ function setFavicon(active) {
   link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
+// '● Your move' in the tab title, and the gold favicon: only where someone else
+// moves and you might be waiting in another tab (an online table, the computer).
 function setPresence() {
-  const yours = !!code && !result && game.turn() === myColor;
+  const against = ownTable(code) || code === 'solo' || code === 'onepiece';
+  const yours = against && !result && game.turn() === myColor;
   document.title = (yours && document.hidden ? '● Your move — ' : '') + 'Étude';
   setFavicon(yours);
 }
@@ -5307,7 +5350,6 @@ function setOppOnly(v) {
   if (!onePiece) return;
   oppOnly = ONLY_KINDS.includes(v) && v !== 'any' ? v : 'k';
   store.set('table:oppOnly', oppOnly);
-  setHash(myColor);
   el('oppOnly').value = oppOnly;
   if (sfBusy && !sfBusy.stopped) { sfBusy.stopped = true; sfSend('stop'); }
   engineJob = null;
@@ -6780,7 +6822,16 @@ function drawStatus() {
     el('gameNote').textContent = ls ? ''
       : key != null && i === key ? `The famous move comes next. What would you play? Press → to see it.`
       : key != null && i === key + 1 ? `That was the famous move, ${moveLabel(key, study.g.moves[key])}.`
-      : i === n ? `End of the game: ${studyResult(study.g)}.` : '';
+      : i === n ? studyEnding(study.g) : '';
+    const e = study.eng;
+    if (e) {
+      const k = e.at ? i + e.at - 1 : i - 1;
+      const san = e.at ? e.moves[e.at - 1] : study.g.moves[i - 1];
+      s.textContent = e.at ? `Stockfish: ${moveLabel(k, san)}` : `Stockfish takes over ${i ? 'after ' + moveLabel(k, san) : 'from the start'}`;
+      el('gameNote').textContent = e.waiting ? '' : game.isCheckmate() ? 'Checkmate.' : game.isStalemate() ? 'Stalemate.'
+        : game.isDraw() ? 'A draw.' : e.moves.length >= ENG_MAX && e.at === e.moves.length ? `That’s ${ENG_MAX} moves; Stockfish stops here.`
+        : e.at === e.moves.length ? 'Press › for Stockfish’s next move.' : '';
+    }
     return;
   }
 
@@ -6867,9 +6918,7 @@ function drawStatus() {
   }
 
   if (peers.size) {
-    note.textContent = seatClash
-      ? 'You’re both on the same side. One of you should open the link from the share button.'
-      : peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
+    note.textContent = peerVersion && peerVersion !== VERSION ? 'You’re on different builds of the app. Both press Force reload in the Table tab.'
       : '';
     note.removeAttribute('title');
   } else {
@@ -7078,8 +7127,9 @@ const GRADES = {
   blunder:    { sym: '??', label: 'Blunder' }
 };
 const GRADE_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'forced', 'inaccuracy', 'miss', 'mistake', 'blunder'];
+const BOOK_SVG = '<svg viewBox="0 0 10 10" width="62%" height="62%" aria-hidden="true"><path d="M2 3h6M2 5h6M2 7h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const badgeHTML = (cls, tag = 'span', extra = '') =>
-  `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${GRADES[cls].sym}</${tag}>`;
+  `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${cls === 'book' ? BOOK_SVG : GRADES[cls].sym}</${tag}>`;
 
 /* ---------- the analysis worker ---------- */
 function anEntry(fen) {
@@ -7273,6 +7323,7 @@ function anLine(line) {
     reviewPending();
     drawEvalBar();
     if (code === 'puzzle') pzOnAnalysis();
+    engCheck();
   }
 }
 
@@ -7291,6 +7342,7 @@ function anTick(e) {
   drawReviewState();
   if (hintsOn) { drawHint(); drawArrow(); }
   if (code === 'puzzle') pzOnAnalysis();
+  engCheck();
 }
 
 /* Called from draw(): which positions matter now. The two moves on the board
@@ -7305,7 +7357,7 @@ function anSync() {
   if (!reviewActive()) {
     checkGate();
     pokeHold();
-    if (hintWanted() && !anBroken) { anTodo = [anEntry(game.fen())]; anPump(); }   // hints still need it
+    if ((hintWanted() || (code === 'study' && study && study.eng && study.eng.waiting)) && !anBroken) { anTodo = [anEntry(game.fen())]; anPump(); }   // hints, and Stockfish's next move, still need it
     else { anTodo = []; anStopJob(); }
     return;
   }
@@ -9071,7 +9123,7 @@ function setLink() {
   el('topState').textContent = state === 'live' ? 'connected' : 'waiting';
   el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
   updateConnecting();
-  el('invite').querySelector('.label').textContent = `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
+  el('invite').querySelector('.label').textContent = joinByCode ? 'Your table · your colour is set when they arrive' : `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
   drawConn();
   const tell = peerAuto
     ? 'They’re letting the engine play their moves.'
@@ -9350,7 +9402,7 @@ el('soloBtn').onclick = () => {
   solo = true;
   code = 'solo';
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 };
 
@@ -9364,7 +9416,7 @@ el('oneBtn').onclick = () => {
   freshGame('onepiece', mine);
   code = 'onepiece';                       // its own saved game
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 };
 
@@ -9373,14 +9425,14 @@ el('localBtn').onclick = () => {
   solo = true;
   code = 'local';
   myColor = 'w';
-  setHash('w');
+  setHash();
   begin();
 };
 
 el('pzBtn').onclick = () => {
   solo = true;
   code = 'puzzle';
-  setHash('w');
+  setHash();
   begin();
 };
 
@@ -9391,26 +9443,45 @@ el('backBtn').onclick = () => swapScreen(() => {
   location.href = location.pathname + location.search;
 });
 
-/* Join by code: a table the other person opened. The colour isn't in a code,
-   so this side starts as Black and, if the table's owner turns out to be Black,
-   takes White as soon as their first message says so. */
-let joinByCode = false;
+/* Colours at an online table. Each device keeps its colour with the table
+   (table:<code>.myColor). The one who opened the table chose theirs (owner).
+   A device arriving with no colour for this table (a link or code it hasn't
+   used before) is undecided: it takes whichever colour the other player
+   doesn't have, from their first message. If both end up claiming the same
+   colour anyway (old saved data, an old-style link), one rule, worked out
+   identically on both devices, says who switches: undecided before decided,
+   then the owner keeps theirs, then the device with the higher random id
+   switches. */
+let joinByCode = false;               // this device's colour for the table is still undecided
+let tableOwner = false;               // this device opened the table
+const deviceId = (() => {
+  let d = store.get('table:device');
+  if (!d) { d = Math.random().toString(36).slice(2, 12); store.set('table:device', d); }
+  return d;
+})();
 const CODE_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{9}$/;
 el('joinBtn').onclick = () => {
   const raw = el('joinCode').value.trim();
-  const link = /[#&]r=([a-z0-9]{9})(?:&c=([wb]))?/i.exec(raw);
+  const link = /[#&]r=([a-z0-9]{9})/i.exec(raw);
   const c = (link ? link[1] : raw.replace(/[^a-z0-9]/gi, '')).toLowerCase();
   if (!CODE_RE.test(c)) { el('joinMsg').textContent = 'That doesn’t look like a table code. It’s 9 letters and numbers, like abc def ghi.'; return; }
   el('joinMsg').textContent = '';
-  const saved = store.get('table:' + c);
   code = c;
-  myColor = link && link[2] ? link[2] : saved && saved.myColor ? saved.myColor : 'b';
-  joinByCode = !(link && link[2]) && !(saved && saved.myColor);
-  setHash(myColor);
+  takeSeat();
+  setHash();
   begin();
 };
 el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('joinBtn').click(); });
 
+// your colour at this table: the one saved on this device, or undecided until the other player says
+function takeSeat() {
+  const saved = store.get('table:' + code);
+  if (saved && (saved.myColor === 'w' || saved.myColor === 'b')) {
+    myColor = saved.myColor; tableOwner = !!saved.owner; joinByCode = false;
+  } else {
+    myColor = 'b'; tableOwner = false; joinByCode = true;
+  }
+}
 el('startBtn').onclick = () => {
   const choice = document.querySelector('input[name=side]:checked').value;
   const mine = choice === 'r'
@@ -9418,12 +9489,15 @@ el('startBtn').onclick = () => {
     : choice;
   code = makeCode();
   myColor = mine;
-  setHash(mine);
+  tableOwner = true;
+  joinByCode = false;
+  store.set('table:' + code, { history: [], myColor: mine, owner: true, result: null, at: Date.now() });
+  setHash();
   begin();
 };
 
 function inviteUrl() {
-  return `${location.origin}${location.pathname}#r=${code}&c=${myColor === 'w' ? 'b' : 'w'}`;
+  return `${location.origin}${location.pathname}#r=${code}`;
 }
 
 // the phone's own share sheet (Instagram, WhatsApp, messages…); where there isn't one, the text is copied
@@ -9677,6 +9751,11 @@ let prevTab = null;              // where to go back to once connected
 let activeTab = TABS.includes(store.get('table:tab')) ? store.get('table:tab') : 'open';
 document.addEventListener('keydown', e => {
   if (code === 'study' && !lineView && !e.altKey && !e.ctrlKey && !e.metaKey && !(e.target.closest && e.target.closest('input, select, textarea'))) {
+    if (study.eng) {
+      const act = { ArrowLeft: () => engStep(-1), ArrowRight: () => engStep(1), Escape: () => studyGo(study.idx) }[e.key];
+      if (act) { e.preventDefault(); act(); }
+      return;
+    }
     const to = { ArrowLeft: study.idx - 1, ArrowRight: study.idx + 1, Home: 0, End: study.g.moves.length }[e.key];
     if (to != null) { e.preventDefault(); studyGo(to); }
     return;
@@ -10610,26 +10689,105 @@ function openStudy(g, idx = 0) {
   flipView = false;
   result = null; gameId = null; viewPly = null; lineView = null; revPick = null; selected = null;
   studyGo(idx, true);
-  setHash('w');
+  setHash();
   begin();
 }
-// show the position after i moves
+// show the position after i moves (leaving Stockfish's line, if one was open)
 function studyGo(i, quiet = false) {
   if (!study) return;
   const n = study.g.moves.length;
   i = Math.max(0, Math.min(n, i));
-  const step = i === study.idx + 1;
-  const fresh = startFen ? new Chess(startFen) : new Chess();
-  let m = null;
-  for (let k = 0; k < i; k++) { try { m = fresh.move(study.g.moves[k]); } catch { break; } }
-  game = fresh;
+  const step = i === study.idx + 1 && !study.eng;
   study.idx = i;
-  lastMove = m ? { from: m.from, to: m.to } : null;
-  viewPly = null; lineView = null; revPick = null; selected = null;
+  study.eng = null;
+  document.body.classList.remove('engline');
+  const m = studyBuild();
   store.set('table:studyAt', { id: study.g.id, idx: i });
   if (quiet) return;
   if (step && m) moveSound(m);
   draw();
+}
+// the board: the game's first study.idx moves, then as many of Stockfish's as are being shown
+function studyBuild() {
+  const fresh = startFen ? new Chess(startFen) : new Chess();
+  let m = null;
+  for (let k = 0; k < study.idx; k++) { try { m = fresh.move(study.g.moves[k]); } catch { break; } }
+  if (study.eng) for (const san of study.eng.moves.slice(0, study.eng.at)) { try { m = fresh.move(san); } catch { break; } }
+  game = fresh;
+  lastMove = m ? { from: m.from, to: m.to } : null;
+  viewPly = null; lineView = null; revPick = null; selected = null;
+  return m;
+}
+
+/* Engine takes over: from the move on the board, Stockfish plays both sides,
+   one move each time you ask, so you see as much of it as you want. Each move
+   is a fresh search of the position it's played in (the analysis engine's
+   reading, once it's good enough to grade by), not the tail of one long line.
+   The game itself is untouched: Return to game puts you back where you were.
+   The line is kept only while you're in it. */
+const ENG_MAX = 40;                        // moves; by then it's clear, or it never will be
+function engStart() {
+  if (!study || study.eng) return;
+  study.eng = { moves: [], at: 0, waiting: false };
+  document.body.classList.add('engline');
+  engStep(1);
+}
+function engStep(d) {
+  const e = study && study.eng;
+  if (!e) return;
+  if (d < 0) {
+    if (e.at === 0) return;
+    e.at--; e.waiting = false;
+    studyBuild(); draw(); return;
+  }
+  if (e.at < e.moves.length) { e.at++; e.waiting = false; moveSound(studyBuild()); draw(); return; }
+  if (engOver() || anBroken) return;
+  e.waiting = true;
+  draw();                                  // anSync puts the position in front of the analysis engine
+  engCheck();
+}
+const engOver = () => game.isGameOver() || (study && study.eng && study.eng.moves.length >= ENG_MAX);
+// called whenever the analysis engine reports: is the position read well enough to choose a move?
+function engCheck() {
+  const e = code === 'study' && study && study.eng;
+  if (!e || !e.waiting || e.at !== e.moves.length) return;
+  const a = anCache.get(posKey(game.fen()));
+  const l = a && a.lines[0];
+  if (!a || !l || !l.uci || !anSatisfied(a)) return;
+  const san = sanOf(game.fen(), l.uci);
+  if (!san) return;
+  e.waiting = false;
+  e.moves.push(san);
+  e.at++;
+  moveSound(studyBuild());
+  draw();
+}
+el('engPrev').onclick = () => engStep(-1);
+el('engNext').onclick = () => engStep(1);
+el('stReturn').onclick = () => studyGo(study.idx);
+
+/* How the game ended, in words. The game files give only the result, so a
+   decisive game whose last position isn't checkmate is taken as a resignation;
+   a game that ended some other way says so in its own 'ending' (or, for an
+   imported game, its Termination header). */
+function studyEnding(g) {
+  if (g.ending) return g.ending;
+  const end = new Chess(g.fen || undefined);
+  for (const m of g.moves) { try { end.move(m); } catch { break; } }
+  const t = String(g.termination || '');
+  const loser = g.result === '1-0' ? 'Black' : g.result === '0-1' ? 'White' : null;
+  if (end.isCheckmate()) return `Checkmate. ${loser === 'Black' ? 'White' : 'Black'} won.`;
+  if (end.isStalemate()) return 'Stalemate: a draw.';
+  if (g.result === '1/2-1/2') {
+    if (end.isThreefoldRepetition()) return 'Drawn by repetition.';
+    if (end.isInsufficientMaterial()) return 'Drawn: neither side can mate.';
+    if (end.isDrawByFiftyMoves()) return 'Drawn by the 50-move rule.';
+    return /time/i.test(t) ? 'Drawn on time.' : 'Drawn by agreement.';
+  }
+  if (!loser) return 'The game stops here, with no result recorded.';
+  if (/time/i.test(t)) return `${loser} lost on time.`;
+  if (/abandon/i.test(t)) return `${loser} abandoned the game.`;
+  return `${loser} resigned.`;
 }
 el('stFirst').onclick = () => studyGo(0);
 el('stPrev').onclick = () => studyGo(study.idx - 1);
@@ -10641,19 +10799,26 @@ function drawStudy() {
   const g = study.g, i = study.idx, n = g.moves.length;
   el('stFirst').disabled = el('stPrev').disabled = i === 0;
   el('stNext').disabled = el('stLast').disabled = i === n;
+  const e = study.eng;
+  if (e) {
+    el('stReturn').textContent = i ? `Return to game (${moveLabel(i - 1, g.moves[i - 1])})` : 'Return to game';
+    el('engPrev').disabled = e.at === 0;
+    el('engNext').disabled = e.at === e.moves.length && (engOver() || anBroken || e.waiting);
+    el('engText').textContent = anBroken ? 'Stockfish couldn’t run' : e.waiting ? 'Thinking…' : `Stockfish · ${e.at} of ${e.moves.length}`;
+  }
   const where = [g.event, g.site !== g.event ? g.site : '', famYear(g)].filter(x => x && x !== '?').join(', ');
   el('studyInfo').innerHTML = `<h3>${escText(g.title || 'Your game')}</h3>` +
     `<p class="who">${escText(famName(g.white))} (White) v ${escText(famName(g.black))} (Black)</p>` +
     (where ? `<p class="where">${escText(where)} · ${escText(studyResult(g))}</p>` : '') +
     (g.why ? `<p class="why">${escText(g.why)}</p>` : '') +
-    `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}<button id="stAnalyse">Analyse from here</button></div>`;
+    (e ? engListHTML(i)
+      : `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}` +
+        (game.isGameOver() ? '' : '<button id="stEngine">Engine takes over</button>') + '</div>');
   const key = el('stKey');
   if (key) key.onclick = () => studyGo(g.key);
-  el('stAnalyse').onclick = () => {
-    store.set('table:setupFen', game.fen());
-    try { sessionStorage.setItem('etude:screen', 'setup'); } catch {}
-    swapScreen(() => { location.href = location.pathname + location.search; });
-  };
+  const eng = el('stEngine');
+  if (eng) eng.onclick = engStart;
+  el('studyInfo').querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { study.eng.at = Number(b.dataset.e); study.eng.waiting = false; studyBuild(); draw(); });
   // the whole game, the move on the board underlined; tap any move to go there
   const base = startFen ? (Number(startFen.split(' ')[5]) || 1) * 2 - 2 + (startFen.split(' ')[1] === 'b' ? 1 : 0) : 0;
   let html = '';
@@ -10664,6 +10829,18 @@ function drawStudy() {
   }
   el('studyMoves').innerHTML = html;
   el('studyMoves').querySelectorAll('button.m').forEach(b => b.onclick = () => studyGo(Number(b.dataset.k)));
+}
+
+// Stockfish's moves so far, under the game's details; tap one to go there
+function engListHTML(i) {
+  const e = study.eng;
+  const from = i ? `after ${moveLabel(i - 1, study.g.moves[i - 1])}` : 'from the start';
+  const moves = e.moves.map((san, k) => {
+    const ply = plyBase() + i + k;
+    const num = ply % 2 === 0 ? `${Math.floor(ply / 2) + 1}.` : k === 0 ? `${Math.floor(ply / 2) + 1}...` : '';
+    return `${num}<button class="m${k + 1 === e.at ? ' cur' : ''}" data-e="${k + 1}">${escText(san)}</button>`;
+  }).join(' ');
+  return `<div class="englist"><p>Stockfish’s moves ${from}</p>${moves || '<span class="muted">Thinking…</span>'}</div>`;
 }
 
 /* ---- your own game: PGN pasted or from a file, or a Lichess link ---- */
@@ -10678,7 +10855,7 @@ function pgnGames(text) {
       const moves = c.history();
       if (!moves.length) continue;
       out.push({ id: 'mine', title: h.Event && h.Event !== '?' ? h.Event : 'Your game', white: h.White, black: h.Black, event: h.Event,
-        site: h.Site, date: h.Date, result: h.Result, fen: h.FEN || undefined, moves, key: null });
+        site: h.Site, date: h.Date, result: h.Result, termination: h.Termination || undefined, fen: h.FEN || undefined, moves, key: null });
     } catch {}
   }
   return out;
@@ -10923,7 +11100,7 @@ function playLine(x, mode) {
     flip: (!!x.flip && mine === (x.myColor || mine)) || undefined,
     setting: (x.fen ? 'setup:' : '') + (local ? 'local' : mode === 'onepiece' ? oppOnly : opponent) });
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
   return true;
 }
@@ -11102,7 +11279,7 @@ function carryOnItems() {
       if (live(t)) out.push({ at: t.at || 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`,
         how: `you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
         sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
-        go: () => swapScreen(() => { location.hash = `r=${m[1]}&c=${t.myColor === 'b' ? 'b' : 'w'}`; }),
+        go: () => swapScreen(() => { location.hash = `r=${m[1]}`; }),
         drop: () => { try { localStorage.removeItem(k); } catch {} } });
     }
   } catch {}
@@ -11245,7 +11422,7 @@ async function startFromSetup(mode) {
   onePiece = false;
   code = key;
   myColor = mine;
-  setHash(mine);
+  setHash();
   begin();
 }
 
@@ -11715,9 +11892,21 @@ try {
 // The eval bar could sit under the board (builds of 2026-10-22 and 23). That
 // choice is gone; forget it.
 try { localStorage.removeItem('table:revBarPos'); } catch {}
+
+// Addresses used to carry your colour: #r=code&c=w for a table, #solo=1&c=b for
+// the computer, plus &only=q for a one-piece game. The colour and the one-piece
+// choice are kept with the saved game now, so drop them from the address.
+try {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.has('r') && p.has('c')) history.replaceState(history.state, '', '#r=' + p.get('r'));
+  else if (p.has('solo') && (p.has('c') || p.has('only'))) {
+    const only = p.get('only');
+    history.replaceState(history.state, '', '#' + (ONLY_KINDS.includes(only) && only !== 'any' ? 'onepiece=1' : 'solo=1'));
+  }
+} catch {}
 /* ======================= end of Migrations ======================= */
 
-const { r, c, solo: soloHash, only: onlyHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
+const { r, solo: soloHash, one: oneHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
 if (studyHash) {
   (async () => {
     const at = store.get('table:studyAt') || {};
@@ -11734,18 +11923,21 @@ if (studyHash) {
   solo = true;
   code = 'puzzle';
   begin();
-} else if (soloHash) {
+} else if (soloHash || oneHash) {
+  // a game against the computer: your colour, and for one-piece what it plays, come from the saved game
   solo = true;
-  if (ONLY_KINDS.includes(onlyHash) && onlyHash !== 'any') {
-    onePiece = true;
-    oppOnly = onlyHash;
-    code = 'onepiece';
-  } else code = 'solo';
-  myColor = c === 'b' ? 'b' : 'w';
+  onePiece = !!oneHash;
+  code = onePiece ? 'onepiece' : 'solo';
+  const saved = store.get('table:' + code) || {};
+  myColor = saved.myColor === 'b' ? 'b' : 'w';
+  if (onePiece) {
+    const l = getLines().find(x => x.id === saved.lineId);
+    oppOnly = l && ONLY_KINDS.includes(l.only) && l.only !== 'any' ? l.only : ONLY_PICK();
+  }
   begin();
 } else if (r) {
   code = r;
-  myColor = c === 'b' ? 'b' : 'w';
+  takeSeat();          // your colour is on this device, or settled with the other player
   begin();
 } else {
   setLink();
