@@ -1388,9 +1388,19 @@
   .importbox textarea { width: 100%; min-height: 140px; font: 12px/1.5 var(--mono); background: var(--ground); color: var(--text); border: 1px solid var(--edge); padding: 8px; box-sizing: border-box; }
   .importlist button { display: block; width: 100%; text-align: left; margin: 6px 0; }
 
+  /* iPhone Safari zooms the page in when you tap into a text box or menu whose
+     text is under 16px, and doesn't zoom back out. On touch screens those get
+     16px, so it never does. */
+  @media (pointer: coarse) {
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+    select, textarea { font-size: 16px !important; }
+  }
+  /* no double-tap-to-zoom (two quick taps on a button zoomed iPhones in); pinch still zooms */
+  html { touch-action: manipulation; }
+
   /* ---- chat ---- */
   .chatscreen { position: fixed; inset: 0; z-index: 40; background: var(--ground); display: flex; justify-content: center; }
-  .chatwrap { width: 100%; max-width: 560px; height: 100dvh; display: flex; flex-direction: column; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  .chatwrap { width: 100%; max-width: 560px; height: 100%; display: flex; flex-direction: column; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; }
   .chatwrap .topbar { flex: none; margin-bottom: 8px; }
   .gamebtn { flex: none; display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12px; position: relative; }
   .chatlog { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 0 10px; }
@@ -1408,8 +1418,19 @@
   .chatmsg { max-width: 85%; padding: 6px 10px; border: 1px solid var(--edge); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
   .chatmsg.me { align-self: flex-end; border-color: var(--brass-dim); }
   .chatmsg .t { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .chatscreen.kb .chatwrap { padding-bottom: 8px; }   /* keyboard up: no home-bar gap above it */
   .chatform { display: flex; gap: 8px; }
   .chatform input { flex: 1; min-width: 0; }
+  /* the chat box and the join-code box, in the app's own look rather than the browser's grey */
+  .chatform input, .joinrow input {
+    font-family: var(--mono); font-size: 13px; letter-spacing: .02em;
+    padding: 8px 10px; background: var(--ground); color: var(--text);
+    border: 1px solid var(--edge); border-radius: 0; outline: none;
+    -webkit-appearance: none; appearance: none;
+    transition: border-color .15s;
+  }
+  .chatform input::placeholder, .joinrow input::placeholder { color: var(--muted); opacity: 1; }
+  .chatform input:focus, .joinrow input:focus { border-color: var(--brass); }
   .chatform button { padding: 8px 14px; }
   .joinrow { display: flex; gap: 8px; }
   .joinrow input { flex: 1; min-width: 0; }
@@ -1636,8 +1657,8 @@
     <div class="label">Your table</div>
     <div class="code" id="codeText">— — —</div>
     <div class="invite-actions">
-      <button id="waBtn">Share</button>
-      <button id="copyBtn">Copy link</button>
+      <button id="waBtn">Share link</button>
+      <button id="copyBtn">Share code</button>
     </div>
     <p class="note">Send the link, or just the code: they can type it in under Play a game, Against a person, Online. After that either of you can reopen the table any time.</p>
   </section>
@@ -1711,7 +1732,7 @@
           <section class="conn hidden" id="connBox">
             <p class="conn-line" id="connLine"></p>
             <div class="invite-actions">
-              <button id="connCopy">Copy link</button>
+              <button id="connCopy">Share link</button>
               <button id="connDiag">Diagnostics</button>
               <button id="connReload">Force reload</button>
             </div>
@@ -3454,7 +3475,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-25.1-synthwave-icon';
+const VERSION = '2026-10-25.3-chat-box-style';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4058,12 +4079,38 @@ function openChat() {
   drawChat();
   chatSeenNow();
   const log = el('chatLog'); log.scrollTop = log.scrollHeight;
+  fitChat();
   if (!matchMedia('(pointer: coarse)').matches) el('chatIn').focus();
 }
 function closeChat() {
   chatOpen = false;
   el('chatScreen').classList.add('hidden');
+  fitChat();
   draw();
+}
+/* The on-screen keyboard. Phones shrink the visible area (the visual viewport)
+   when the keyboard opens but mostly leave the page's layout as it was, so a
+   full-screen panel would keep its message box under the keys. While the chat
+   is open the panel is sized to what's actually visible, so the box and Send sit
+   just above the keyboard and the newest messages stay in view. */
+function fitChat() {
+  const s = el('chatScreen'), vv = window.visualViewport;
+  if (!chatOpen || !vv || Math.abs(vv.scale - 1) > 0.01) {     // closed, old browser, or pinch-zoomed
+    s.style.top = s.style.height = s.style.bottom = '';
+    s.classList.remove('kb');
+    return;
+  }
+  const log = el('chatLog');
+  const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  s.style.top = vv.offsetTop + 'px';
+  s.style.bottom = 'auto';
+  s.style.height = vv.height + 'px';
+  s.classList.toggle('kb', window.innerHeight - vv.height > 120);
+  if (atEnd) log.scrollTop = log.scrollHeight;
+}
+if (window.visualViewport) {
+  visualViewport.addEventListener('resize', fitChat);
+  visualViewport.addEventListener('scroll', fitChat);
 }
 function drawChat() {
   const on = !solo && !!code && code !== 'puzzle';
@@ -4092,7 +4139,23 @@ function drawChat() {
 }
 el('chatBtn').onclick = openChat;
 el('chatBack').onclick = closeChat;
-el('chatForm').onsubmit = e => { e.preventDefault(); chatSend(el('chatIn').value); el('chatIn').value = ''; };
+/* Send keeps the keyboard up so you can carry on typing: the button doesn't take
+   focus from the message box, and if the phone moved it anyway, it goes back. */
+let chatHadFocus = false;
+const chatSendBtn = el('chatForm').querySelector('button');
+chatSendBtn.addEventListener('pointerdown', e => {
+  chatHadFocus = document.activeElement === el('chatIn');
+  if (chatHadFocus) e.preventDefault();
+});
+chatSendBtn.addEventListener('mousedown', e => { if (document.activeElement === el('chatIn')) e.preventDefault(); });
+el('chatForm').onsubmit = e => {
+  e.preventDefault();
+  const keep = chatHadFocus || document.activeElement === el('chatIn');
+  chatHadFocus = false;
+  chatSend(el('chatIn').value);
+  el('chatIn').value = '';
+  if (keep) el('chatIn').focus();
+};
 document.addEventListener('visibilitychange', () => { if (code && !solo) { drawChat(); chatSeenNow(); } });
 
 function showDiag(slot) {
@@ -9399,7 +9462,6 @@ el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = f
 el('connDiag').onclick = () => showDiag('connDebugSlot');
 el('verVal').textContent = VERSION;
 // the link again, for when they've lost it: the same link the invite card gives out
-el('connCopy').onclick = async e => { if (!await copyText(inviteUrl(), e.currentTarget)) showTextModal('Link for the other player', inviteUrl()); };
 
 // ?debug or #...&debug opens it straight away, for someone who can't be talked
 // through tapping a version number.
@@ -9514,22 +9576,29 @@ function inviteUrl() {
   return `${location.origin}${location.pathname}#r=${code}`;
 }
 
-// the phone's own share sheet (Instagram, WhatsApp, messages…); where there isn't one, the text is copied
-const inviteText = () => `Game of chess? You're ${myColor === 'w' ? 'black' : 'white'}. Open ${inviteUrl()} or enter the table code ${code.slice(0, 3)} ${code.slice(3, 6)} ${code.slice(6)} in Étude.`;
-el('waBtn').onclick = async e => {
-  if (navigator.share) { try { await navigator.share({ text: inviteText() }); return; } catch (err) { if (err && err.name === 'AbortError') return; } }
-  if (!await copyText(inviteText(), e.currentTarget)) showTextModal('Send this to them', inviteText());
-};
-
-el('copyBtn').onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteUrl());
-    el('copyBtn').textContent = 'Copied';
-    setTimeout(() => el('copyBtn').textContent = 'Copy link', 1600);
-  } catch {
-    showTextModal('Invite link', inviteUrl());
+/* Share link / Share code. On a phone or tablet each opens the share sheet
+   (WhatsApp, Messages, Instagram…), which has Copy in it too. On a computer they
+   just copy, since pasting is what people do there and the Windows and macOS
+   share sheets are clumsy: the link copies as the bare link, the code as the
+   bare code. */
+const useShareSheet = () => !!navigator.share && matchMedia('(pointer: coarse)').matches;
+const spacedCode = () => `${code.slice(0, 3)} ${code.slice(3, 6)} ${code.slice(6)}`;
+const appUrl = () => `${location.origin}${location.pathname}`;
+const theirSide = () => myColor === 'w' ? 'black' : 'white';
+async function shareOrCopy(button, sheetText, copyValue, modalTitle) {
+  if (useShareSheet()) {
+    try { await navigator.share({ text: sheetText }); return; }
+    catch (err) { if (err && err.name === 'AbortError') return; }    // cancelled: nothing to do
   }
-};
+  if (!await copyText(copyValue, button)) showTextModal(modalTitle, copyValue);
+}
+const shareLink = e => shareOrCopy(e.currentTarget,
+  `Game of chess? You're ${theirSide()}: ${inviteUrl()}`,
+  inviteUrl(), 'Invite link');
+el('waBtn').onclick = el('connCopy').onclick = shareLink;
+el('copyBtn').onclick = e => shareOrCopy(e.currentTarget,
+  `Game of chess? You're ${theirSide()}. In Étude (${appUrl()}) go to Play a game, Against a person, Online, and enter the table code ${spacedCode()}`,
+  spacedCode(), 'Table code');
 
 function resign() {
   // on one device it's the side to move that resigns
