@@ -789,6 +789,8 @@
   .side .controls button { padding-top: 8px; padding-bottom: 8px; }
   .gnote { margin: 6px 0 0; flex: none; }
   .gnote:empty { display: none; }
+  body.studymode .gnote:empty { display: block; }       /* stepping through a game: the note keeps its line, so nothing jumps */
+  body.studymode .gnote { min-height: 1.6em; }
   /* the invite card shrinks and scrolls rather than pushing the tabs off a short screen */
   .invite-slot .invite { margin-top: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--edge); }
   .conn { margin-top: 10px; padding-bottom: 12px; }
@@ -1353,6 +1355,10 @@
   .controls .studynav { flex: 1; display: flex; align-items: center; justify-content: center; padding-left: 0; padding-right: 0; }
   /* Engine takes over: the game's bar shrinks to a way back, and a second bar steps through Stockfish's moves */
   #stReturn, .engbar { display: none; }
+  #stLast .spin { display: none; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+  #stLast.busy .spin { display: block; }
+  #stLast.busy .skipicon { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   body.studymode.engline #stReturn { display: block; flex: 1; }
   body.studymode.engline .controls .studynav { display: none !important; }
   body.studymode.engline .engbar { display: flex; }
@@ -1673,7 +1679,7 @@
           <button class="studynav" id="stFirst" aria-label="To the start" title="To the start"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v10M12 3 6 8l6 5"/></svg></button>
           <button class="studynav" id="stPrev" aria-label="Back one move" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
           <button class="studynav" id="stNext" aria-label="Forward one move" title="Forward one move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
-          <button class="studynav" id="stLast" aria-label="To the end" title="To the end"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10M4 3l6 5-6 5"/></svg></button>
+          <button class="studynav" id="stLast" aria-label="Next blunder, great or brilliant move" title="Next blunder, great or brilliant move"><svg class="skipicon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l5 5-5 5M8.5 3l5 5-5 5"/></svg><span class="spin" aria-hidden="true"></span></button>
           <button id="stReturn"></button>
           <button id="takebackBtn">Takeback</button>
           <button id="resignBtn">Resign</button>
@@ -3448,7 +3454,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-24.21-dots';
+const VERSION = '2026-10-24.23-famous-skip';
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -6823,6 +6829,10 @@ function drawStatus() {
       : key != null && i === key ? `The famous move comes next. What would you play? Press → to see it.`
       : key != null && i === key + 1 ? `That was the famous move, ${moveLabel(key, study.g.moves[key])}.`
       : i === n ? studyEnding(study.g) : '';
+    if (scan) {
+      const m = studyHist()[scan.k];
+      el('gameNote').textContent = `Looking ahead… ${moveLabel(scan.k, m.san)}`;
+    } else if (study.note) el('gameNote').textContent = study.note + (i === n && study.note !== studyEnding(study.g) ? ' ' + studyEnding(study.g) : '');
     const e = study.eng;
     if (e) {
       const k = e.at ? i + e.at - 1 : i - 1;
@@ -7325,6 +7335,7 @@ function anLine(line) {
     drawEvalBar();
     if (code === 'puzzle') pzOnAnalysis();
     engCheck();
+    scanCheck();
   }
 }
 
@@ -7344,12 +7355,14 @@ function anTick(e) {
   if (hintsOn) { drawHint(); drawArrow(); }
   if (code === 'puzzle') pzOnAnalysis();
   engCheck();
+  scanCheck();
 }
 
 /* Called from draw(): which positions matter now. The two moves on the board
    need the positions either side of them, and the board itself is read
    deeply for the bar and for the move you are about to make. */
 function anSync() {
+  if (scan && code === 'study') { if (!anBroken) { anTodo = scanTodo(); anPump(); } return; }
   if (code === 'puzzle') {
     anTodo = pzAnTodo();
     if (anTodo.length && !anBroken) anPump(); else anStopJob();
@@ -10701,6 +10714,8 @@ function studyGo(i, quiet = false) {
   const step = i === study.idx + 1 && !study.eng;
   study.idx = i;
   study.eng = null;
+  study.note = '';
+  scan = null;
   document.body.classList.remove('engline');
   const m = studyBuild();
   store.set('table:studyAt', { id: study.g.id, idx: i });
@@ -10729,6 +10744,8 @@ function studyBuild() {
 const ENG_MAX = 40;                        // moves; by then it's clear, or it never will be
 function engStart() {
   if (!study || study.eng) return;
+  scan = null;
+  study.note = '';
   study.eng = { moves: [], at: 0, waiting: false };
   document.body.classList.add('engline');
   engStep(1);
@@ -10767,6 +10784,84 @@ el('engPrev').onclick = () => engStep(-1);
 el('engNext').onclick = () => engStep(1);
 el('stReturn').onclick = () => studyGo(study.idx);
 
+/* The skip button: on to the next blunder, great or brilliant move, landing
+   just after it's played. Famous games carry these already (marks, found in
+   advance with the same grading at full depth). For any other game the
+   analysis engine looks ahead from the move on the board only when asked:
+   a quick reading of each position to spot a candidate, then a full reading
+   of that one move before stopping there, so a false alarm doesn't count.
+   It stops at the first one; pressing again carries on from there, and
+   pressing while it looks stops it. Everything it reads is kept, so the
+   badges along the way are ready when you step through. */
+const SKIP_GRADES = ['blunder', 'great', 'brilliant'];
+const SCAN_DEPTH = AN_MIN;               // the quick reading
+const SKIP_NONE = 'No more blunders, great or brilliant moves in this game.';   // (famous games: or the famous move)
+let scan = null;                         // { k: index of the move being checked, confirm }
+function studyHist() {
+  if (!study.hist) {
+    const c = new Chess(study.g.fen || undefined);
+    for (const m of study.g.moves) { try { c.move(m); } catch { break; } }
+    study.hist = c.history({ verbose: true });
+  }
+  return study.hist;
+}
+function skipNext() {
+  if (!study || study.eng) return;
+  if (scan) { scan = null; draw(); return; }          // pressing again while it looks stops it
+  const g = study.g;
+  if (Array.isArray(g.marks)) {
+    // a famous game's own famous move is a stop too, whatever Stockfish makes of it
+    const stops = g.marks.map(x => ({ ...x, key: x.k === g.key }));
+    if (g.key != null && !stops.some(x => x.key)) stops.push({ k: g.key, g: null, key: true });
+    const m = stops.sort((a, b) => a.k - b.k).find(x => x.k >= study.idx);
+    if (m) skipLand(m.k, m.g, m.key); else { study.note = SKIP_NONE; draw(); }
+    return;
+  }
+  if (anBroken) { study.note = 'Stockfish couldn’t run, so it can’t look for them.'; draw(); return; }
+  if (study.idx >= studyHist().length) { study.note = SKIP_NONE; draw(); return; }
+  scan = { k: study.idx, confirm: false };
+  study.note = '';
+  draw();
+  scanCheck();
+}
+function skipLand(k, cls, famous = false) {
+  studyGo(k + 1);
+  const mv = moveLabel(k, study.g.moves[k]);
+  study.note = famous ? `The famous move: ${mv}${cls ? ` (${GRADES[cls].label.toLowerCase()})` : ''}.` : `${GRADES[cls].label}: ${mv}.`;
+  drawStatus();
+}
+// what the analysis engine should read for the scan: one position at a time, or both sides of the move being confirmed
+function scanTodo() {
+  const h = studyHist(), m = h[scan.k];
+  const b = anEntry(m.before), a = anEntry(m.after);
+  if (scan.confirm) return [b, a];
+  return [b.depth < SCAN_DEPTH && !b.done ? b : a];
+}
+const scanRead = e => scan.confirm ? anSatisfied(e) : e.done || e.depth >= SCAN_DEPTH;
+// called whenever the analysis engine reports
+function scanCheck() {
+  if (!scan || code !== 'study' || !study) return;
+  if (anBroken) { scan = null; study.note = 'Stockfish couldn’t run, so it can’t look for them.'; draw(); return; }
+  const h = studyHist();
+  for (;;) {
+    const m = h[scan.k];
+    const b = anCache.get(posKey(m.before)), a = anCache.get(posKey(m.after));
+    if (!b || !a || !scanRead(b) || !scanRead(a) || !b.lines.length) break;
+    let r = null;
+    try { r = grade(m, b, a, scan.k, h); } catch {}
+    if (r && scan.confirm && SKIP_GRADES.includes(r.cls)) { scan = null; skipLand(r.ply, r.cls); return; }
+    // A quick reading undersells sacrifices and big swings, so anything that gives up
+    // material or loses ground is read properly too before it's passed over.
+    if (r && !scan.confirm && (SKIP_GRADES.includes(r.cls) || r.sac >= 2 || r.loss >= 10)) { scan.confirm = true; continue; }
+    scan.confirm = false;
+    scan.k++;
+    if (scan.k >= h.length) { scan = null; study.note = SKIP_NONE; draw(); return; }
+  }
+  anTodo = scanTodo();
+  anPump();
+  if (scan.shown !== scan.k) { scan.shown = scan.k; drawStatus(); }   // the progress in the note
+}
+
 /* How the game ended, in words. The game files give only the result, so a
    decisive game whose last position isn't checkmate is taken as a resignation;
    a game that ended some other way says so in its own 'ending' (or, for an
@@ -10793,13 +10888,17 @@ function studyEnding(g) {
 el('stFirst').onclick = () => studyGo(0);
 el('stPrev').onclick = () => studyGo(study.idx - 1);
 el('stNext').onclick = () => studyGo(study.idx + 1);
-el('stLast').onclick = () => studyGo(study.g.moves.length);
+el('stLast').onclick = () => skipNext();
 
 function drawStudy() {
   if (code !== 'study' || !study) return;
   const g = study.g, i = study.idx, n = g.moves.length;
   el('stFirst').disabled = el('stPrev').disabled = i === 0;
-  el('stNext').disabled = el('stLast').disabled = i === n;
+  el('stNext').disabled = i === n;
+  el('stLast').disabled = i === n && !scan;
+  el('stLast').classList.toggle('busy', !!scan);
+  el('stLast').title = scan ? 'Stop looking' : 'Next blunder, great or brilliant move' + (g.key != null ? ', or the famous move' : '');
+  el('stLast').setAttribute('aria-label', el('stLast').title);
   const e = study.eng;
   if (e) {
     el('stReturn').textContent = i ? `Return to game (${moveLabel(i - 1, g.moves[i - 1])})` : 'Return to game';
@@ -10813,10 +10912,7 @@ function drawStudy() {
     (where ? `<p class="where">${escText(where)} · ${escText(studyResult(g))}</p>` : '') +
     (g.why ? `<p class="why">${escText(g.why)}</p>` : '') +
     (e ? engListHTML(i)
-      : `<div class="studybtns">${g.key != null ? '<button id="stKey">Go to the famous moment</button>' : ''}` +
-        (game.isGameOver() ? '' : '<button id="stEngine">Engine takes over</button>') + '</div>');
-  const key = el('stKey');
-  if (key) key.onclick = () => studyGo(g.key);
+      : (game.isGameOver() ? '' : '<div class="studybtns"><button id="stEngine">Engine takes over</button></div>'));
   const eng = el('stEngine');
   if (eng) eng.onclick = engStart;
   el('studyInfo').querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { study.eng.at = Number(b.dataset.e); study.eng.waiting = false; studyBuild(); draw(); });
