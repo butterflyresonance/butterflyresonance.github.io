@@ -37,3 +37,8 @@ public/piece/totoy | [Kosal Sen](https://github.com/lichess-org/lila) | [CC BY 4
 public/piece/papercut | [Nikolay Anzarov](https://nikoichu.itch.io/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 public/piece/Firi | [James Faure](https://github.com/jfaure/Firi-pieceset) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 public/piece/horsey | cham, michael1241 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+App icon (icon-knight-*.png, apple-touch-icon-knight.png, icon-candidates/): the anarcandy knight
+by caderek (https://github.com/caderek), CC BY-NC-SA 4.0, placed on a coloured tile;
+the candidates add accessories. These derived icons are likewise CC BY-NC-SA 4.0.
+The previous icons are icon-192.png, icon-512.png and apple-touch-icon.png (copies also in icon-old/).

@@ -7,14 +7,14 @@
    also kept, and used when the network fails, so a game against the computer
    works offline once the page, Stockfish and the opening book have loaded
    once. Games against a person still need the network for the relays. */
-const CACHE = 'table-chess-v1';
+const CACHE = 'table-chess-v2';
 
 // The files a computer game needs, fetched on install so the first offline
 // visit works even if Stockfish was never opened.
 const CORE = [
   './',
   'manifest.json',
-  'icon-192.png',
+  'icon-knight-192.png',
   'openings/book.json',
   'stockfish/stockfish-19-lite-single.js',
   'stockfish/stockfish-19-lite-single.wasm'
