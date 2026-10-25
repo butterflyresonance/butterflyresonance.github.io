@@ -2,7 +2,7 @@
    Network first: online you always get the newest page; every good response is
    also kept, and used when there's no network, so the app works offline once
    it has been opened. */
-const CACHE = 'sparkle-v1';
+const CACHE = 'sparkle-v2';
 const CORE = ['./', 'manifest.json', 'icons.json', 'pages.json', 'icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));

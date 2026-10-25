@@ -298,6 +298,89 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .buddy.think { animation: tilt 1s; }
 @keyframes tilt { 30%, 70% { transform: rotate(-10deg); } }
 
+/* ---------- the growing clock and the potion ---------- */
+.growbox { display: flex; align-items: center; gap: 8px; margin: 2px auto 0; width: calc(100% - 28px); max-width: 560px; background: #fff; border-radius: 18px; padding: 5px 6px 5px 12px; box-shadow: 0 3px 0 #ead7f4; min-height: 50px; }
+.growbox.plain { justify-content: center; font-size: 16px; font-weight: 700; color: var(--purple); padding: 6px 12px; min-height: 0; background: transparent; box-shadow: none; }
+.gt { flex: 1; min-width: 0; }
+.gl { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-size: 14px; font-weight: 800; color: var(--soft); white-space: nowrap; }
+.gl b { font-size: 18px; color: var(--purple); font-variant-numeric: tabular-nums; }
+.gbar { height: 10px; border-radius: 6px; background: #f2e9f8; overflow: hidden; margin-top: 3px; }
+.gbar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--purple-2), var(--purple)); transition: width .6s; }
+.meals { display: flex; gap: 1px; flex: none; }
+.meals span { width: 24px; height: 24px; filter: grayscale(1); opacity: .35; }
+.meals span.on { filter: none; opacity: 1; }
+.meals img { width: 100%; height: 100%; }
+.potion { flex: none; border: 0; border-radius: 14px; background: linear-gradient(160deg, #fff, #f3e9ff); box-shadow: 0 3px 0 #c9a8ff; display: flex; align-items: center; gap: 2px; padding: 3px 8px 3px 4px; }
+.potion > img { width: 34px; height: 34px; }
+.potion .p { display: flex; align-items: center; gap: 1px; font-weight: 800; color: #b37800; font-size: 15px; }
+.potion .p img { width: 17px; height: 17px; }
+.potion.poor { opacity: .5; }
+@media (max-width: 380px) { .actions { gap: 6px; padding-left: 8px; padding-right: 8px; } .act { font-size: 15px; } .act img { width: 38px; height: 38px; } .gl span { display: none; } }
+
+/* ---------- day trips ---------- */
+.postcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.pc { position: relative; border: 5px solid #fff; border-radius: 22px; aspect-ratio: 4 / 3.3; padding: 0; overflow: hidden; box-shadow: 0 5px 0 #e3d0f5; display: flex; flex-direction: column; }
+.pc.poor { opacity: .6; }
+.pcpics { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.pcpics img { width: 30%; max-width: 54px; }
+.pcfoot { display: flex; justify-content: space-between; align-items: center; gap: 4px; background: rgba(255,255,255,.88); padding: 4px 8px; }
+.pcfoot .nm { font-size: 15px; font-weight: 800; color: var(--purple); text-align: left; line-height: 1.1; }
+.pcfoot .p { display: flex; align-items: center; gap: 1px; font-size: 15px; font-weight: 800; color: #b37800; flex: none; }
+.pcfoot .p img { width: 17px; height: 17px; }
+.stamp { position: absolute; top: 6px; right: 6px; background: var(--pink); color: #fff; font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 8px; transform: rotate(8deg); }
+[data-place="park"] { background: radial-gradient(ellipse 70% 30% at 30% 62%, #b6eaa8 98%, transparent) , linear-gradient(#bfe6ff 0 55%, #9fdc96 55%); }
+[data-place="beach"] { background: linear-gradient(#bfe6ff 0 30%, #7fd3f0 30% 56%, #ffe7a8 56%); }
+[data-place="farm"] { background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(160,110,70,.5) 46px 52px) 0 44% / 100% 9% no-repeat, linear-gradient(#c8ebff 0 45%, #bfe39a 45%); }
+[data-place="snow"] { background: radial-gradient(circle, #fff 0 2px, transparent 3px) 0 0 / 38px 38px, linear-gradient(#cfe3fb 0 48%, #f6fbff 48%); }
+[data-place="fair"] { background: linear-gradient(#ffc6e5 0 52%, #ffe2b0 52%); }
+[data-place="sea"] { background: radial-gradient(circle, rgba(255,255,255,.5) 0 4px, transparent 5px) 0 0 / 60px 70px, linear-gradient(#8fdcff, #3f8fd8 80%, #f3d9a0 80%); }
+[data-place="space"] { background: radial-gradient(circle, #fff7b0 0 2px, transparent 3px) 0 0 / 46px 46px, radial-gradient(circle, #fff 0 1.5px, transparent 2.5px) 20px 24px / 52px 52px, linear-gradient(#1d1442 0 72%, #cdc3ea 72%); }
+.scene { position: relative; flex: 1; margin: 0 10px 12px; border-radius: 28px; overflow: hidden; --u: 4px; }
+.thing2 { position: absolute; width: calc(var(--s) * var(--u)); height: calc(var(--s) * var(--u)); transform: translate(-50%, -50%); border: 0; background: none; padding: 0; }
+.thing2 img { width: 100%; height: 100%; display: block; }
+.thing2.boop img { animation: hop .6s; }
+.tpet { position: absolute; bottom: 3%; left: 50%; width: calc(30 * var(--u)); transform: translateX(-50%); transition: left .8s ease-in-out; pointer-events: none; z-index: 2; }
+.tpet.walk { animation: idle .4s 2; }
+.bubble.tb { top: 10px; left: 50%; transform: translateX(-50%); z-index: 3; white-space: normal; text-align: center; max-width: 90%; }
+.bubble.tb::after { display: none; }
+.found { display: flex; gap: 2px; flex: none; }
+.found span { width: 30px; height: 30px; filter: grayscale(1) brightness(1.3); opacity: .35; }
+.found span.on { filter: none; opacity: 1; }
+.found img { width: 100%; height: 100%; }
+@media (max-width: 420px) { .found span { width: 22px; height: 22px; } #s-trip .bar h2 { font-size: 20px; } }
+
+/* ---------- the shelter ---------- */
+.friend { background: #fff; border-radius: 28px; padding: 16px; box-shadow: 0 5px 0 #e3d0f5; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; max-width: 560px; margin: 0 auto 8px; }
+.fpic { width: 140px; height: 140px; animation: idle 2.6s ease-in-out infinite; }
+.fpic img { width: 100%; height: 100%; }
+.fpic.boop img { animation: hop .6s; }
+.fpic.happy { animation: hop .8s 3; }
+.ft { font-size: 26px; font-weight: 800; color: var(--pink); }
+.fneed { font-size: 18px; font-weight: 700; color: var(--purple); }
+.hearts { width: 100%; display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.hbar { flex: 1; height: 18px; border-radius: 10px; background: #f2e9f8; overflow: hidden; }
+.hbar i { display: block; height: 100%; border-radius: 10px; background: linear-gradient(90deg, #ff9fd0, var(--pink)); transition: width .5s; }
+.hearts span { display: flex; align-items: center; gap: 4px; font-weight: 800; color: var(--pink); font-size: 17px; white-space: nowrap; }
+.hearts span img { width: 26px; height: 26px; }
+.give { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.give .food img.f { width: 40px; height: 40px; }
+.present { display: flex; align-items: center; gap: 10px; background: var(--pink-3); border-radius: 18px; padding: 8px 12px; font-weight: 800; color: var(--ink); font-size: 16px; text-align: left; }
+.present img { width: 48px; height: 48px; flex: none; }
+.helped { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.hf { display: flex; flex-direction: column; align-items: center; background: #fff; border-radius: 18px; padding: 6px 10px; box-shadow: 0 3px 0 #ead7f4; font-size: 14px; font-weight: 800; color: var(--purple); }
+.hf img { width: 52px; height: 52px; }
+.float.fixed { position: fixed; z-index: 90; }
+.duo { position: relative; width: 84px; height: 84px; display: block; }
+.duo img { width: 84px; height: 84px; }
+.duo img.badge { position: absolute; width: 40px; height: 40px; right: -6px; bottom: -4px; }
+.item .p.g { color: var(--pink); }
+.item .p.g img { width: 18px; height: 18px; }
+.item.gift { opacity: .7; }
+.give { flex-wrap: nowrap; gap: 6px; }
+.give .food { padding: 6px 6px 5px; flex: 1; max-width: 90px; }
+.give .food .p { font-size: 15px; white-space: nowrap; }
+.thing2 { z-index: 3; }
+
 </style>
 </head>
 <body>
@@ -327,7 +410,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 <section class="screen hidden" id="s-pet">
   <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 id="petName" data-say=""></h2><div class="coins" data-coins></div></div>
   <div class="stats" id="stats"></div>
-  <p class="grow" id="grow"></p>
+  <div class="growbox" id="grow"></div>
   <div class="room" id="room">
     <div class="deco wallpic" id="deco-pic"></div>
     <div class="deco bed" id="deco-bed"></div>
@@ -341,6 +424,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <button class="act" id="feedBtn" data-say="Feed"><img alt="" data-icon="1F34E">Feed</button>
     <button class="act" id="washBtn" data-say="Wash"><img alt="" data-icon="1F9FC">Wash</button>
     <button class="act" id="shopBtn" data-say="Shop"><img alt="" data-icon="1F6CD">Shop</button>
+    <button class="act" id="tripBtn" data-say="Day trips"><img alt="" data-icon="1F9F3">Trips</button>
     <button class="act" id="petsBtn" data-say="My pets"><img alt="" data-icon="1F43E">Pets</button>
   </div>
 </section>
@@ -362,6 +446,30 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <div class="petlist" id="petList"></div>
     <h3 class="say" data-say="Pet book">Pet book</h3>
     <div id="petBook"></div>
+  </div></div>
+</section>
+
+<!-- DAY TRIPS -->
+<section class="screen hidden" id="s-trips">
+  <div class="bar"><button class="round" id="tripsBack" aria-label="Back to your pet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2 data-say="Day trips">Day trips</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <p class="note2" id="tripsNote"></p>
+    <div class="postcards" id="tripList"></div>
+  </div></div>
+</section>
+<section class="screen hidden" id="s-trip">
+  <div class="bar"><button class="round" id="tripHome" aria-label="Go home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg></button><h2 id="tripName" data-say=""></h2><div class="found" id="tripFound"></div></div>
+  <div class="scene" id="scene"><img class="tpet" id="tripPet" alt=""><div class="bubble tb hidden" id="tripBubble"></div></div>
+</section>
+
+<!-- THE ANIMAL SHELTER -->
+<section class="screen hidden" id="s-shelter">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Animal shelter">Shelter</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="friend" id="friend"></div>
+    <h3 class="say" data-say="Friends you helped">Friends you helped</h3>
+    <p class="note2" id="giftNote"></p>
+    <div class="helped" id="helped"></div>
   </div></div>
 </section>
 
@@ -460,7 +568,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
   <div class="set"><span>Sounds</span><button id="optSound"></button></div>
   <div class="set"><span>Pet's name</span><input type="text" id="optName" maxlength="20"></div>
   <div class="set"><span>Skip the wait to grow or hatch</span><button id="optGrow">Grow now</button></div>
-  <div class="set"><span>Coins</span><span><button id="optCoinsMinus">−10</button> <b id="optCoins"></b> <button id="optCoinsPlus">+10</button></span></div>
+  <div class="set"><span>Coins</span><span><button id="optCoinsMinus">−50</button> <b id="optCoins"></b> <button id="optCoinsPlus">+50</button></span></div>
   <p class="credits">Most colouring pages and pictures are from <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>, the open-source emoji and icon project, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; the colouring pages are outlines made from them, shared under the same licence. The pets and the "My drawings" pictures were drawn for Sparkle. <span id="ver"></span></p>
   <p class="center" style="margin:0"><button class="big alt" id="setClose">Done</button></p>
 </dialog>
@@ -473,6 +581,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
      stage: 'baby'|'child'|'adult',
      paths: [childPath, adultPath]  each 'plain'|'blossom'|'sparkle'|'ocean'|'sunny'
      wear: { head, face, neck }      data: URLs of pictures to wear (from the shop)
+     dye: '#rrggbb'                  a colour from the shop, or nothing
    }
    The child stage is the base drawing; a baby is small with a big head, a
    grown-up is taller. What it ate while growing adds features and tints. */
@@ -536,6 +645,8 @@ function petSVG(kind, look = {}) {
     if (clash(p)) k.belly = mix(k.belly, PATHS[p].tint, .55);
     else { k.body = mix(k.body, PATHS[p].tint, t); k.accent = mix(k.accent, PATHS[p].tint, t); }
   }
+  // a colour from the shop's dyes: the fur (or feathers, or scales) takes it on
+  if (look.dye) { k.body = mix(k.body, look.dye, .62); k.accent = mix(k.accent, look.dye, .5); }
   const L = `stroke="${PET_LINE}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"`;
   const eyes = look.eyes || 'open', mouth = look.mouth || 'smile', step = look.step;
   let back = '', backH = '', head = '', aura = '', bodyExtra = '', headExtra = '';
@@ -887,7 +998,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.3';
+const VERSION = '2026-10-25.4';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -984,7 +1095,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets' };
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {
@@ -1027,6 +1138,7 @@ const GAMES = [
   { id: 'jump', name: 'Jump', icon: '2B50' },
   { id: 'letters', name: 'Letters', icon: '1F524' },
   { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>' },
+  { id: 'shelter', name: 'Shelter', icons: ['1F415', '1F49D'] },
 ];
 
 /* ---------- the pets ----------
@@ -1088,7 +1200,7 @@ function petLook(extra = {}) {
 // a picture of a pet (the current one unless another is given) as it is now: stage, growth, clothes
 function petUrl(look = {}, kind, p = pet) {
   if (!p) return '';
-  const full = Object.assign({ stage: p.stage === 'egg' ? 'baby' : p.stage, paths: p.paths, wear: wearUrls(p) }, look);
+  const full = Object.assign({ stage: p.stage === 'egg' ? 'baby' : p.stage, paths: p.paths, wear: wearUrls(p), dye: p.dye || null }, look);
   if (p.stage === 'egg' && !kind) return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(eggSVG(p.special, (p.warm || 0) / 100));
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(petSVG(kind || p.kind, full));
 }
@@ -1114,6 +1226,35 @@ function growNote(p) {
   }
   return meals > 0 ? `Ready to grow after ${meals} more meal${meals === 1 ? '' : 's'}!` : 'Ready to grow!';
 }
+// the growing clock, and the potion that takes an hour off it
+const POTION = { cost: 30, ms: 3600e3 };
+const POTION_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M25 6h14v5h-2v11c8 3 13 10 13 18 0 11-8 19-18 19S14 51 14 40c0-8 5-15 13-18V11h-2z" fill="#fff"/><path d="M15.6 37c5-3.5 10 1.5 16-1.5s10-3 16.8 0C49 48 42 57 32 57S15 48 15.6 37z" fill="#ff6fb8"/><path d="M25 6h14v5h-2v11c8 3 13 10 13 18 0 11-8 19-18 19S14 51 14 40c0-8 5-15 13-18V11h-2z" fill="none" stroke="#4a3159" stroke-width="3.5" stroke-linejoin="round"/><rect x="23" y="2.5" width="18" height="7" rx="3.5" fill="#b99bff" stroke="#4a3159" stroke-width="3"/><circle cx="26" cy="44" r="2.6" fill="#fff"/><circle cx="35" cy="49" r="1.8" fill="#fff"/><circle cx="39" cy="42" r="1.4" fill="#fff"/><path d="M52 8l1.6 4.2 4.2 1.6-4.2 1.6L52 19.6l-1.6-4.2-4.2-1.6 4.2-1.6z" fill="#ffc93a" stroke="#4a3159" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const potionUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(POTION_SVG);
+const growLeft = p => Math.max(0, GROW_MS - (Date.now() - p.since));
+function clock(ms) {
+  const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+function drawGrow() {
+  const g = el('grow');
+  g.dataset.say = growNote(pet);
+  if (pet.stage === 'egg' || pet.stage === 'adult') { g.className = 'growbox plain'; g.textContent = growNote(pet); return; }
+  const left = growLeft(pet), meals = Math.min(pet.fed || 0, GROW_FEEDS);
+  g.className = 'growbox';
+  g.innerHTML = `<div class="gt"><div class="gl"><span>${pet.stage === 'baby' ? 'Growing big' : 'Growing up'}</span><b id="growClock">${left ? clock(left) : 'Ready!'}</b></div>`
+    + `<div class="gbar"><i id="growBar" style="width:${(100 * (1 - left / GROW_MS)).toFixed(1)}%"></i></div></div>`
+    + `<div class="meals">${Array.from({ length: GROW_FEEDS }, (_, i) => `<span class="${i < meals ? 'on' : ''}">${iconImg('1F34E')}</span>`).join('')}</div>`
+    + (left ? `<button class="potion${coins < POTION.cost ? ' poor' : ''}" id="potionBtn" aria-label="Growing potion"><img alt="" src="${potionUrl}"><span class="p">${iconImg('1FA99')}${POTION.cost}</span></button>` : '');
+}
+// once a second while she watches: the clock counts down, and when it runs out it's ready
+function tickGrow() {
+  if (!pet || !(pet.stage === 'baby' || pet.stage === 'child')) return;
+  const left = growLeft(pet), c = el('growClock');
+  if (!c) return;
+  if (!left) { drawGrow(); if (growReady(pet) && !busy) celebrateGrowth(); return; }
+  c.textContent = clock(left); el('growBar').style.width = (100 * (1 - left / GROW_MS)).toFixed(1) + '%';
+}
+
 // what it ate the most of while in this stage decides what it grows into
 function growUp(p) {
   const t = p.treats || {};
@@ -1136,7 +1277,7 @@ enter[''] = () => {
     el('petCard').innerHTML = `<img alt="" src="${petUrl(petLook())}"><div><div class="t">${pet.name}</div><div class="sub">${formName(pet.kind, pet.stage, pet.paths)}</div><div class="needs">${needs.map(([i]) => iconImg(i)).join('')}</div></div>`;
     el('petCard').dataset.say = needs.length ? `${pet.name} says: ${needs.map(n => n[1]).join(' ')}` : growReady(pet) ? `${pet.name} is ready to grow!` : `${pet.name} is happy!`;
   }
-  el('tiles').innerHTML = GAMES.map(g => `<button class="tile" data-go="${g.id}" data-say="${g.name}"><span class="ic">${g.svg || iconImg(g.icon)}</span><span class="t">${g.name}</span></button>`).join('');
+  el('tiles').innerHTML = GAMES.map(g => `<button class="tile" data-go="${g.id}" data-say="${g.name}"><span class="ic">${g.svg || (g.icons ? `<span class="duo">${iconImg(g.icons[0])}${iconImg(g.icons[1], 'badge')}</span>` : iconImg(g.icon))}</span><span class="t">${g.name}</span></button>`).join('');
   const j = $$('#tiles [data-go="jump"] .ic')[0];          // the jump tile shows her own pet
   if (j && pet.stage !== 'egg') j.innerHTML = `<img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })}">`;
 };
@@ -1167,20 +1308,20 @@ el('chooseGo').onclick = () => {
 
 /* ---------- looking after it ---------- */
 const FOODS = [
-  { i: '1F34E', name: 'Apple', cost: 1, food: 15 }, { i: '1F34C', name: 'Banana', cost: 1, food: 15 },
-  { i: '1F955', name: 'Carrot', cost: 1, food: 15 }, { i: '1F353', name: 'Strawberry', cost: 2, food: 20 },
-  { i: '1F95B', name: 'Milk', cost: 2, food: 20 }, { i: '1F349', name: 'Watermelon', cost: 2, food: 25 },
-  { i: '1F41F', name: 'Fish', cost: 3, food: 30 }, { i: '1F95E', name: 'Pancakes', cost: 3, food: 35 },
-  { i: '1F355', name: 'Pizza', cost: 4, food: 45 }, { i: '1F36A', name: 'Cookie', cost: 3, food: 15, fun: 10 },
-  { i: '1F9C1', name: 'Cupcake', cost: 4, food: 20, fun: 15 }, { i: '1F368', name: 'Ice cream', cost: 5, food: 20, fun: 20 },
-  { i: '1F382', name: 'Birthday cake', cost: 8, food: 50, fun: 30 },
+  { i: '1F34E', name: 'Apple', cost: 3, food: 15 }, { i: '1F34C', name: 'Banana', cost: 3, food: 15 },
+  { i: '1F955', name: 'Carrot', cost: 3, food: 15 }, { i: '1F353', name: 'Strawberry', cost: 5, food: 20 },
+  { i: '1F95B', name: 'Milk', cost: 5, food: 20 }, { i: '1F349', name: 'Watermelon', cost: 6, food: 25 },
+  { i: '1F41F', name: 'Fish', cost: 8, food: 30 }, { i: '1F95E', name: 'Pancakes', cost: 9, food: 35 },
+  { i: '1F355', name: 'Pizza', cost: 12, food: 45 }, { i: '1F36A', name: 'Cookie', cost: 8, food: 15, fun: 10 },
+  { i: '1F9C1', name: 'Cupcake', cost: 10, food: 20, fun: 15 }, { i: '1F368', name: 'Ice cream', cost: 12, food: 20, fun: 20 },
+  { i: '1F382', name: 'Birthday cake', cost: 25, food: 50, fun: 30 },
 ];
 // magic treats: what it eats most of while it's a baby or a child decides what it grows into
 const TREATS = [
-  { i: '1F338', name: 'Magic flower', path: 'blossom', cost: 5, food: 10, tell: 'A magic flower! Pets that eat these grow into flower pets.' },
-  { i: '2B50', name: 'Magic star', path: 'sparkle', cost: 5, food: 10, tell: 'A magic star! Pets that eat these grow sparkly.' },
-  { i: '1F41A', name: 'Magic shell', path: 'ocean', cost: 5, food: 10, tell: 'A magic shell! Pets that eat these grow into sea pets.' },
-  { i: '2600', name: 'Magic sun', path: 'sunny', cost: 5, food: 10, tell: 'A magic sun! Pets that eat these grow sunny and golden.' },
+  { i: '1F338', name: 'Magic flower', path: 'blossom', cost: 15, food: 10, tell: 'A magic flower! Pets that eat these grow into flower pets.' },
+  { i: '2B50', name: 'Magic star', path: 'sparkle', cost: 15, food: 10, tell: 'A magic star! Pets that eat these grow sparkly.' },
+  { i: '1F41A', name: 'Magic shell', path: 'ocean', cost: 15, food: 10, tell: 'A magic shell! Pets that eat these grow into sea pets.' },
+  { i: '2600', name: 'Magic sun', path: 'sunny', cost: 15, food: 10, tell: 'A magic sun! Pets that eat these grow sunny and golden.' },
 ];
 let petMode = '';        // '' | 'feed' | 'wash'
 let busy = false, cuddles = [];
@@ -1201,8 +1342,8 @@ function drawPet(extra) {
   el('stats').classList.toggle('hidden', egg);
   el('stats').innerHTML = egg ? '' : [['1F34E', pet.food, 'Food'], ['1F9FC', pet.clean, 'Clean'], ['1F388', pet.fun, 'Fun']].map(([i, v, n]) =>
     `<div class="stat" data-say="${n}">${iconImg(i)}<div class="meter${v < 30 ? ' low' : ''}"><i style="width:${Math.max(4, v)}%"></i></div></div>`).join('');
-  el('grow').textContent = growNote(pet); el('grow').dataset.say = growNote(pet);
-  el('feedBtn').classList.toggle('hidden', egg); el('washBtn').classList.toggle('hidden', egg);
+  drawGrow();
+  el('feedBtn').classList.toggle('hidden', egg); el('washBtn').classList.toggle('hidden', egg); el('tripBtn').classList.toggle('hidden', egg);
   el('feedBtn').classList.toggle('on', petMode === 'feed');
   el('washBtn').classList.toggle('on', petMode === 'wash');
   el('petBox').classList.toggle('wash', petMode === 'wash');
@@ -1232,10 +1373,34 @@ enter.pet = async () => {
   }
   petTimer = setInterval(() => { petTick(); if (!busy && petMode !== 'wash') drawPet(); }, 30000);
 };
+let growTimer = setInterval(() => { if (screen === 'pet') tickGrow(); }, 1000);
 leave.pet = () => { clearInterval(petTimer); petMode = ''; };
 
-async function celebrateGrowth() {
+el('grow').onclick = async e => {
+  if (!e.target.closest('#potionBtn') || busy) return;
+  if (coins < POTION.cost) { sfx.oops(); speakPet('Not enough coins. Play a game to earn more!', 3200); return; }
+  if (!await ask(`Give ${pet.name} a growing potion for ${POTION.cost} coins? It makes the wait one hour shorter.`)) return;
   busy = true;
+  addCoins(-POTION.cost);
+  const from = el('potionBtn').getBoundingClientRect(), to = el('petBox').getBoundingClientRect();
+  const fly = document.createElement('img');
+  fly.className = 'flyfood'; fly.src = potionUrl; fly.style.left = from.left + 'px'; fly.style.top = from.top + 'px';
+  document.body.appendChild(fly);
+  await wait(20);
+  fly.style.transform = `translate(${to.left + to.width / 2 - from.left - 32}px, ${to.top + to.height * .5 - from.top - 32}px) scale(.7) rotate(-30deg)`;
+  await wait(600); fly.remove();
+  pet.since -= POTION.ms; savePets();
+  sfx.yay(); hop(); drawPet({ eyes: 'happy', mouth: 'grin' });
+  floatIcon('2728', to.width * .25, to.height * .3, 60); floatIcon('2728', to.width * .75, to.height * .35, 52);
+  busy = false;
+  if (growReady(pet)) { await speakPet('Whoosh! Something is happening!'); await celebrateGrowth(); return; }
+  const meals = GROW_FEEDS - (pet.fed || 0);
+  speakPet(growLeft(pet) ? 'Whoosh! One hour closer!' : `Whoosh! Now I just need ${meals} more meal${meals === 1 ? '' : 's'}!`, 3000);
+};
+
+async function celebrateGrowth() {
+  if (celebrateGrowth.on || !growReady(pet)) return;     // only once, even if the clock and the screen both notice
+  celebrateGrowth.on = true; busy = true;
   const r = el('petBox').getBoundingClientRect();
   speakPet('Something is happening!');
   for (let i = 0; i < 6; i++) { el('petImg').style.opacity = i % 2 ? 1 : .35; await wait(250); }
@@ -1245,6 +1410,7 @@ async function celebrateGrowth() {
   floatIcon('2728', r.width * .25, r.height * .3, 64); floatIcon('2728', r.width * .75, r.height * .35, 56); floatIcon('1F496', r.width * .5, r.height * .2, 52);
   await speakPet(`${pet.name} grew into a ${formName(pet.kind, pet.stage, pet.paths)}!`, 4000);
   busy = false;
+  celebrateGrowth.on = false;
 }
 
 // the egg: tapping and rubbing keeps it warm; warm enough, it hatches
@@ -1365,32 +1531,41 @@ el('petBox').addEventListener('pointercancel', endRub);
 /* ---------- the shop: clothes, things for the room, and (once a pet is grown up) eggs ---------- */
 const SHOP = {
   Clothes: [
-    { id: 'bow', slot: 'head', i: '1F380', name: 'Bow', cost: 8 }, { id: 'flower', slot: 'head', i: '1F33A', name: 'Flower', cost: 6 },
-    { id: 'cap', slot: 'head', i: '1F9E2', name: 'Cap', cost: 12 }, { id: 'sunhat', slot: 'head', i: '1F452', name: 'Sun hat', cost: 15 },
-    { id: 'tophat', slot: 'head', i: '1F3A9', name: 'Top hat', cost: 20 }, { id: 'gradcap', slot: 'head', i: '1F393', name: 'Clever hat', cost: 25 },
-    { id: 'crown', slot: 'head', i: '1F451', name: 'Crown', cost: 30 },
-    { id: 'glasses', slot: 'face', i: '1F453', name: 'Glasses', cost: 10 }, { id: 'shades', slot: 'face', i: '1F576', name: 'Sunglasses', cost: 12 },
-    { id: 'scarf', slot: 'neck', i: '1F9E3', name: 'Scarf', cost: 10 }, { id: 'medal', slot: 'neck', i: '1F3C5', name: 'Medal', cost: 15 },
-    { id: 'jewel', slot: 'neck', i: '1F48E', name: 'Jewel', cost: 25 },
+    { id: 'bow', slot: 'head', i: '1F380', name: 'Bow', cost: 40 }, { id: 'flower', slot: 'head', i: '1F33A', name: 'Flower', cost: 30 },
+    { id: 'cap', slot: 'head', i: '1F9E2', name: 'Cap', cost: 60 }, { id: 'sunhat', slot: 'head', i: '1F452', name: 'Sun hat', cost: 75 },
+    { id: 'tophat', slot: 'head', i: '1F3A9', name: 'Top hat', cost: 100 }, { id: 'gradcap', slot: 'head', i: '1F393', name: 'Clever hat', cost: 125 },
+    { id: 'crown', slot: 'head', i: '1F451', name: 'Crown', cost: 200 },
+    { id: 'glasses', slot: 'face', i: '1F453', name: 'Glasses', cost: 50 }, { id: 'shades', slot: 'face', i: '1F576', name: 'Sunglasses', cost: 60 },
+    { id: 'scarf', slot: 'neck', i: '1F9E3', name: 'Scarf', cost: 50 }, { id: 'medal', slot: 'neck', i: '1F3C5', name: 'Medal', cost: 75 },
+    { id: 'jewel', slot: 'neck', i: '1F48E', name: 'Jewel', cost: 150 },
+    { id: 'kheart', slot: 'neck', i: '1F49D', name: 'Heart', cost: 0, gift: 1 }, { id: 'krose', slot: 'head', i: '1F339', name: 'Rose', cost: 0, gift: 3 },
   ],
   Room: [
-    { id: 'w-pink', slot: 'wall', sw: 'w-pink', name: 'Pink stripes', cost: 0 }, { id: 'w-dots', slot: 'wall', sw: 'w-dots', name: 'Lilac spots', cost: 8 },
-    { id: 'w-mint', slot: 'wall', sw: 'w-mint', name: 'Minty', cost: 8 }, { id: 'w-sky', slot: 'wall', sw: 'w-sky', name: 'Blue sky', cost: 12 },
-    { id: 'w-night', slot: 'wall', sw: 'w-night', name: 'Starry night', cost: 15 },
-    { id: 'r-pink', slot: 'rug', sw: 'r-pink', name: 'Pink rug', cost: 6 }, { id: 'r-purple', slot: 'rug', sw: 'r-purple', name: 'Purple rug', cost: 6 },
-    { id: 'r-rainbow', slot: 'rug', sw: 'r-rainbow', name: 'Rainbow rug', cost: 12 },
-    { id: 'bed', slot: 'bed', i: '1F6CF', name: 'Bed', cost: 15 }, { id: 'couch', slot: 'bed', i: '1F6CB', name: 'Couch', cost: 12 },
-    { id: 'plant', slot: 'plant', i: '1FAB4', name: 'Pot plant', cost: 6 }, { id: 'sunflower', slot: 'plant', i: '1F33B', name: 'Sunflower', cost: 8 },
-    { id: 'teddy', slot: 'toy', i: '1F9F8', name: 'Teddy', cost: 10 }, { id: 'ball', slot: 'toy', i: '26BD', name: 'Ball', cost: 5 },
-    { id: 'balloon', slot: 'toy', i: '1F388', name: 'Balloon', cost: 4 }, { id: 'kite', slot: 'toy', i: '1FA81', name: 'Kite', cost: 8 },
-    { id: 'piano', slot: 'toy', i: '1F3B9', name: 'Piano', cost: 18 }, { id: 'castle', slot: 'toy', i: '1F3F0', name: 'Castle', cost: 20 },
-    { id: 'picture', slot: 'pic', i: '1F5BC', name: 'Picture', cost: 8 }, { id: 'rainbow', slot: 'pic', i: '1F308', name: 'Rainbow', cost: 10 },
-    { id: 'star', slot: 'pic', i: '2B50', name: 'Star', cost: 6 },
+    { id: 'w-pink', slot: 'wall', sw: 'w-pink', name: 'Pink stripes', cost: 0 }, { id: 'w-dots', slot: 'wall', sw: 'w-dots', name: 'Lilac spots', cost: 40 },
+    { id: 'w-mint', slot: 'wall', sw: 'w-mint', name: 'Minty', cost: 40 }, { id: 'w-sky', slot: 'wall', sw: 'w-sky', name: 'Blue sky', cost: 60 },
+    { id: 'w-night', slot: 'wall', sw: 'w-night', name: 'Starry night', cost: 80 },
+    { id: 'r-pink', slot: 'rug', sw: 'r-pink', name: 'Pink rug', cost: 30 }, { id: 'r-purple', slot: 'rug', sw: 'r-purple', name: 'Purple rug', cost: 30 },
+    { id: 'r-rainbow', slot: 'rug', sw: 'r-rainbow', name: 'Rainbow rug', cost: 60 },
+    { id: 'bed', slot: 'bed', i: '1F6CF', name: 'Bed', cost: 75 }, { id: 'couch', slot: 'bed', i: '1F6CB', name: 'Couch', cost: 60 },
+    { id: 'plant', slot: 'plant', i: '1FAB4', name: 'Pot plant', cost: 30 }, { id: 'sunflower', slot: 'plant', i: '1F33B', name: 'Sunflower', cost: 40 },
+    { id: 'teddy', slot: 'toy', i: '1F9F8', name: 'Teddy', cost: 50 }, { id: 'ball', slot: 'toy', i: '26BD', name: 'Ball', cost: 25 },
+    { id: 'balloon', slot: 'toy', i: '1F388', name: 'Balloon', cost: 20 }, { id: 'kite', slot: 'toy', i: '1FA81', name: 'Kite', cost: 40 },
+    { id: 'piano', slot: 'toy', i: '1F3B9', name: 'Piano', cost: 90 }, { id: 'castle', slot: 'toy', i: '1F3F0', name: 'Castle', cost: 120 },
+    { id: 'picture', slot: 'pic', i: '1F5BC', name: 'Picture', cost: 40 }, { id: 'rainbow', slot: 'pic', i: '1F308', name: 'Rainbow', cost: 50 },
+    { id: 'star', slot: 'pic', i: '2B50', name: 'Star', cost: 30 },
+    { id: 'ktrophy', slot: 'toy', i: '1F3C6', name: 'Trophy', cost: 0, gift: 6 },
+  ],
+  Colours: [
+    { id: 'd-none', dye: null, name: 'Natural', cost: 0 },
+    { id: 'd-pink', dye: '#ff9fd0', name: 'Pink', cost: 40 }, { id: 'd-lilac', dye: '#c3a2ff', name: 'Lilac', cost: 40 },
+    { id: 'd-mint', dye: '#93edc8', name: 'Mint', cost: 40 }, { id: 'd-sky', dye: '#9fd6ff', name: 'Sky blue', cost: 40 },
+    { id: 'd-lemon', dye: '#fff07a', name: 'Lemon', cost: 40 }, { id: 'd-peach', dye: '#ffbe94', name: 'Peach', cost: 40 },
+    { id: 'd-gold', dye: '#ffc93a', name: 'Gold', cost: 60 }, { id: 'd-snow', dye: '#ffffff', name: 'Snowy', cost: 60 },
   ],
   Eggs: [
-    { id: 'cot', name: 'Cot', i: '1F6CF', cost: 20, once: true, tell: 'A cot for a new baby. You need one before you can get an egg.' },
-    { id: 'egg', name: 'Egg', egg: false, cost: 30, tell: 'An egg. It hatches into a bunny, a kitten or a puppy.' },
-    { id: 'segg', name: 'Sparkle egg', egg: true, cost: 80, tell: 'A sparkle egg! It hatches into a special pet: a dragon, a unicorn or a phoenix.' },
+    { id: 'cot', name: 'Cot', i: '1F6CF', cost: 100, once: true, tell: 'A cot for a new baby. You need one before you can get an egg.' },
+    { id: 'egg', name: 'Egg', egg: false, cost: 150, tell: 'An egg. It hatches into a bunny, a kitten or a puppy.' },
+    { id: 'segg', name: 'Sparkle egg', egg: true, cost: 500, tell: 'A sparkle egg! It hatches into a special pet: a dragon, a unicorn or a phoenix.' },
   ],
 };
 for (const list of Object.values(SHOP)) for (const it of list) SHOP_BY_ID[it.id] = it;
@@ -1399,10 +1574,12 @@ let shopTab = 'Clothes';
 const eggIcon = special => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(eggSVG(special, 0));
 function shopPic(it) {
   if (it.sw) return `<span class="swatch" data-w="${it.sw}"></span>`;
+  if ('dye' in it) return `<img alt="" src="${pet && pet.stage !== 'egg' ? petUrl({ eyes: 'happy', mouth: 'grin', dye: it.dye, wear: {} }) : ''}">`;
   if (it.egg != null) return `<img alt="" src="${eggIcon(it.egg)}">`;
   return iconImg(it.i);
 }
 function itemOn(it) {
+  if ('dye' in it) return pet && (pet.dye || null) === it.dye;
   if (it.slot && ['head', 'face', 'neck'].includes(it.slot)) return pet && pet.wear && pet.wear[it.slot] === it.id;
   if (it.slot) return room[it.slot] === it.id;
   return false;
@@ -1411,11 +1588,17 @@ function drawShop() {
   el('shopTabs').innerHTML = Object.keys(SHOP).map(t => `<button class="chip${t === shopTab ? ' on' : ''}" data-tab="${t}" data-say="${t}">${t}</button>`).join('');
   el('shopPet').src = pet.stage === 'egg' ? petUrl() : petUrl({ eyes: 'happy', mouth: 'grin' });
   const grown = pets.some(p => p.stage === 'adult');
-  el('shopNote').textContent = shopTab === 'Eggs' && !grown ? 'Grow a pet all the way up, and then you can get a new egg!' : '';
+  el('shopNote').textContent = shopTab === 'Eggs' && !grown ? 'Grow a pet all the way up, and then you can get a new egg!'
+    : shopTab === 'Colours' ? (pet.stage === 'egg' ? 'Hatch your egg first!' : `Change ${pet.name}’s colour. You can change it again any time.`) : '';
   el('shopNote').dataset.say = el('shopNote').textContent;
   el('shopGrid').innerHTML = SHOP[shopTab].map(it => {
     const have = owned.has(it.id), on = itemOn(it);
     const locked = shopTab === 'Eggs' && (!grown || (!it.once && !owned.has('cot')));
+    if ('dye' in it) {
+      const lab = on ? 'Now' : it.cost ? `${iconImg('1FA99')}${it.cost}` : 'Free';
+      return `<button class="item${on ? ' on' : ''}${!on && coins < it.cost ? ' poor' : ''}" data-id="${it.id}" data-say="${it.name}">${shopPic(it)}<span class="nm">${it.name}</span><span class="p">${lab}</span></button>`;
+    }
+    if (it.gift && !have) return `<button class="item gift locked" data-id="${it.id}" data-say="${it.name}. A present from the animal shelter, for helping ${it.gift} animal${it.gift === 1 ? '' : 's'}.">${shopPic(it)}<span class="nm">${it.name}</span><span class="p g">${iconImg('1F49D')}Help ${it.gift}</span></button>`;
     const tag = it.once && have ? 'Got it' : have && it.slot ? (on ? 'Wearing' : 'Use') : `${iconImg('1FA99')}${it.cost}`;
     const label = it.slot && ['head', 'face', 'neck'].includes(it.slot) && have ? (on ? 'Wearing' : 'Wear') : tag;
     return `<button class="item${on ? ' on' : ''}${locked || (it.once && have) ? ' locked' : ''}${!have && coins < it.cost ? ' poor' : ''}" data-id="${it.id}" data-say="${it.name}">${shopPic(it)}<span class="nm">${it.name}</span><span class="p">${label}</span></button>`;
@@ -1444,6 +1627,19 @@ el('shopGrid').onclick = async e => {
     sfx.yay(); go('pet');
     return;
   }
+  if ('dye' in it) {
+    if (pet.stage === 'egg') { say('Hatch your egg first!'); return; }
+    if ((pet.dye || null) === it.dye) { say(`${pet.name} is ${it.dye ? it.name.toLowerCase() : 'their natural colour'} now.`); return; }
+    if (it.cost) {
+      if (coins < it.cost) { sfx.oops(); say(`${it.name}. You need ${it.cost} coins.`); return; }
+      if (!await ask(`Colour ${pet.name} ${it.name.toLowerCase()} for ${it.cost} coins?`)) return;
+      addCoins(-it.cost, b);
+    }
+    pet.dye = it.dye; savePets(); sfx.yay(); drawShop();
+    el('shopPet').classList.remove('hopit'); void el('shopPet').offsetWidth; el('shopPet').classList.add('hopit');
+    return;
+  }
+  if (it.gift && !owned.has(it.id)) { say(`A present from the animal shelter. Help ${it.gift} animal${it.gift === 1 ? '' : 's'} find a home to get it!`); return; }
   const isWear = ['head', 'face', 'neck'].includes(it.slot);
   if (!owned.has(it.id)) {
     if (coins < it.cost) { sfx.oops(); say(`${it.name}. You need ${it.cost} coins.`); return; }
@@ -1526,11 +1722,230 @@ el('optGrow').onclick = () => {
   else { pet.since = Date.now() - GROW_MS - 1000; pet.fed = Math.max(pet.fed || 0, GROW_FEEDS); }
   savePets(); el('settings').close(); go('pet'); if (screen === 'pet') enter.pet();
 };
-el('optCoinsPlus').onclick = () => { addCoins(10); drawSettings(); };
-el('optCoinsMinus').onclick = () => { addCoins(-10); drawSettings(); };
+el('optCoinsPlus').onclick = () => { addCoins(50); drawSettings(); };
+el('optCoinsMinus').onclick = () => { addCoins(-50); drawSettings(); };
 el('setClose').onclick = () => { el('optName').onchange(); el('settings').close(); if (screen === '') enter['']() ; };
 el('shopBack').onclick = () => go('pet');
 el('petsBack').onclick = () => go('pet');
+
+/* ---------- day trips: spend coins to take the pet somewhere, and find six things there ----------
+   Each place is a postcard; going stamps it, finding everything adds a star. */
+const TRIPS = [
+  { id: 'park', name: 'The park', cost: 25, hello: 'We’re at the park!', mess: 'muddy', items: [
+    ['1F333', 'A big tree', 14, 34, 30], ['1F98B', 'A butterfly', 58, 16, 11], ['1F6DD', 'A slide', 84, 46, 24],
+    ['1F43F', 'A chipmunk', 48, 66, 13], ['1F986', 'A duck', 74, 80, 14], ['1F337', 'A tulip', 30, 84, 11]] },
+  { id: 'beach', name: 'The beach', cost: 40, hello: 'We’re at the beach!', mess: 'sandy', items: [
+    ['1F334', 'A palm tree', 12, 40, 30], ['1F42C', 'A dolphin', 56, 36, 14], ['26F1', 'A beach umbrella', 84, 56, 24],
+    ['1FAA3', 'A bucket', 26, 78, 12], ['1F41A', 'A shell', 46, 88, 10], ['1F980', 'A crab', 68, 82, 13]] },
+  { id: 'farm', name: 'The farm', cost: 40, hello: 'We’re at the farm!', mess: 'muddy', items: [
+    ['1F69C', 'A tractor', 16, 56, 22], ['1F40E', 'A horse', 48, 50, 18], ['1F404', 'A cow', 80, 58, 22],
+    ['1F416', 'A pig', 34, 82, 14], ['1F414', 'A chicken', 60, 86, 11], ['1F411', 'A sheep', 88, 84, 14]] },
+  { id: 'snow', name: 'The snow', cost: 60, hello: 'We’re in the snow! Brrr!', mess: 'wet', items: [
+    ['2744', 'A snowflake', 48, 16, 10], ['1F332', 'A pine tree', 88, 36, 22], ['26C4', 'A snowman', 18, 56, 24],
+    ['1F43B-200D-2744-FE0F', 'A polar bear', 78, 66, 20], ['1F6F7', 'A sled', 38, 84, 14], ['1F427', 'A penguin', 60, 82, 13]] },
+  { id: 'fair', name: 'The fair', cost: 60, hello: 'We’re at the fair!', mess: 'sticky', items: [
+    ['1F3A1', 'A Ferris wheel', 20, 38, 32], ['1F388', 'A balloon', 50, 18, 11], ['1F3AA', 'A circus tent', 86, 32, 20],
+    ['1F3A0', 'A merry-go-round', 70, 64, 26], ['1F36D', 'A lollipop', 36, 82, 11], ['1F37F', 'Popcorn', 90, 86, 12]] },
+  { id: 'sea', name: 'Under the sea', cost: 80, hello: 'We’re under the sea! Blub blub!', mess: 'wet', items: [
+    ['1F420', 'A fish', 20, 28, 13], ['1F42C', 'A dolphin', 64, 24, 18], ['1FABC', 'A jellyfish', 88, 48, 13],
+    ['1F422', 'A turtle', 36, 56, 16], ['1F419', 'An octopus', 70, 78, 18], ['1FAB8', 'Some coral', 14, 82, 18]] },
+  { id: 'space', name: 'Outer space', cost: 120, hello: 'We’re in space! Wow!', mess: '', items: [
+    ['1FA90', 'A planet', 18, 26, 22], ['2604', 'A comet', 46, 14, 12], ['1F319', 'The moon', 84, 16, 14],
+    ['1F6F8', 'A flying saucer', 54, 40, 16], ['1F680', 'A rocket', 80, 62, 22], ['1F47D', 'An alien', 34, 80, 13]] },
+];
+const cards = Object.assign({}, store.get('postcards') || {});     // { park: { n: visits, star: found everything } }
+let trip = null;
+
+function postcard(t) {
+  const c = cards[t.id];
+  return `<button class="pc" data-trip="${t.id}" data-place="${t.id}" data-say="${t.name}">
+    <span class="pcpics">${t.items.slice(0, 3).map(i => iconImg(i[0])).join('')}</span>
+    ${c ? `<span class="stamp">${c.star ? '★ ' : ''}×${c.n}</span>` : ''}
+    <span class="pcfoot"><span class="nm">${t.name}</span><span class="p">${iconImg('1FA99')}${t.cost}</span></span></button>`;
+}
+enter.trips = () => {
+  petTick();
+  const been = Object.keys(cards).length;
+  el('tripsNote').textContent = been ? `Postcards: ${been} of ${TRIPS.length}` : `Where shall we go, ${pet.name}?`;
+  el('tripsNote').dataset.say = el('tripsNote').textContent;
+  el('tripList').innerHTML = TRIPS.map(postcard).join('');
+  $$('#tripList .pc').forEach(b => b.classList.toggle('poor', coins < TRIPS.find(t => t.id === b.dataset.trip).cost));
+  setTimeout(() => say('Where shall we go?'), 250);
+};
+el('tripBtn').onclick = () => go('trips');
+el('tripsBack').onclick = () => go('pet');
+el('tripList').onclick = async e => {
+  const b = e.target.closest('[data-trip]'); if (!b) return;
+  const t = TRIPS.find(x => x.id === b.dataset.trip);
+  if (coins < t.cost) { sfx.oops(); await say(`${t.name}. You need ${t.cost} coins.`); return; }
+  if (!await ask(`Go to ${t.name.toLowerCase()} with ${pet.name} for ${t.cost} coins?`)) return;
+  addCoins(-t.cost);
+  // the outing: lots of fun, and a little hungry and messy afterwards
+  petTick();
+  pet.fun = clamp(pet.fun + 35); pet.food = clamp(pet.food - 10); if (t.mess) pet.clean = clamp(pet.clean - 15);
+  savePets();
+  const first = !cards[t.id];
+  cards[t.id] = { n: (cards[t.id] ? cards[t.id].n : 0) + 1, star: cards[t.id] ? cards[t.id].star : false };
+  store.set('postcards', cards);
+  trip = { t, found: new Set(), first };
+  go('trip');
+};
+
+function tripSay(text, ms = 2200) {
+  const b = el('tripBubble');
+  b.textContent = text; b.classList.remove('hidden');
+  clearTimeout(tripSay.t); tripSay.t = setTimeout(() => b.classList.add('hidden'), ms + text.length * 40);
+  return say(text);
+}
+function tripLayout() {
+  const sc = el('scene'), r = sc.getBoundingClientRect();
+  const u = Math.min(r.width * 1.3, r.height * .75) / 100;
+  sc.style.setProperty('--u', u + 'px');
+}
+function tripFound() {
+  el('tripFound').innerHTML = trip.t.items.map(i => `<span class="${trip.found.has(i[0]) ? 'on' : ''}">${iconImg(i[0])}</span>`).join('');
+}
+function movePet(x) {
+  const p = el('tripPet');
+  p.style.left = clamp(x, 14, 86) + '%';
+  p.classList.remove('walk'); void p.offsetWidth; p.classList.add('walk');
+}
+enter.trip = () => {
+  if (!trip) { go('trips'); return; }
+  const t = trip.t, sc = el('scene');
+  sc.dataset.place = t.id;
+  el('tripName').textContent = t.name; el('tripName').dataset.say = t.name;
+  $$('.thing2', sc).forEach(x => x.remove());
+  for (const [hex, name, x, y, size] of t.items) {
+    const b = document.createElement('button');
+    b.className = 'thing2'; b.dataset.hex = hex; b.setAttribute('aria-label', name);
+    b.style.cssText = `left:${x}%;top:${y}%;--s:${size}`;
+    b.innerHTML = iconImg(hex);
+    sc.appendChild(b);
+  }
+  el('tripPet').src = petUrl({ eyes: 'happy', mouth: 'grin' });
+  el('tripPet').style.left = '50%';
+  el('tripBubble').classList.add('hidden');
+  tripFound();
+  requestAnimationFrame(tripLayout);
+  setTimeout(async () => {
+    sfx.yay();
+    await tripSay(t.hello, 2600);
+    if (screen === 'trip') tripSay(trip.first ? 'A new postcard! Can you find six things?' : 'Can you find six things?', 2600);
+  }, 400);
+};
+addEventListener('resize', () => { if (screen === 'trip') tripLayout(); });
+el('scene').onclick = async e => {
+  const b = e.target.closest('.thing2'); if (!b || !trip) return;
+  const item = trip.t.items.find(i => i[0] === b.dataset.hex), [hex, name, x] = item;
+  sfx.pop();
+  b.classList.remove('boop'); void b.offsetWidth; b.classList.add('boop');
+  movePet(x);
+  const r = el('scene').getBoundingClientRect(), br = b.getBoundingClientRect();
+  const f = document.createElement('img');
+  f.className = 'float'; f.src = iconUrl(pick(['2728', '1F496'])); f.alt = '';
+  Object.assign(f.style, { left: br.left - r.left + br.width / 2 - 20 + 'px', top: br.top - r.top - 10 + 'px', width: '40px', height: '40px' });
+  el('scene').appendChild(f); setTimeout(() => f.remove(), 1300);
+  const isNew = !trip.found.has(hex);
+  trip.found.add(hex); tripFound();
+  if (isNew && trip.found.size === trip.t.items.length) {
+    cards[trip.t.id].star = true; store.set('postcards', cards);
+    petFun(15);
+    el('tripPet').src = petUrl({ eyes: 'happy', mouth: 'grin' });
+    await tripSay(`${name}!`, 1200);
+    if (screen !== 'trip') return;
+    sfx.yay();
+    for (let i = 0; i < 5; i++) {
+      const s = document.createElement('img');
+      s.className = 'float'; s.src = iconUrl(pick(['2728', '2B50', '1F496'])); s.alt = '';
+      Object.assign(s.style, { left: 10 + Math.random() * 80 + '%', top: 30 + Math.random() * 40 + '%', width: '56px', height: '56px' });
+      el('scene').appendChild(s); setTimeout(() => s.remove(), 1300);
+    }
+    tripSay('You found everything! What a fun day!', 3500);
+  } else tripSay(`${name}!`, 1400);
+};
+el('tripHome').onclick = () => { trip = null; go('pet'); };
+leave.trip = () => { trip = null; };
+
+/* ---------- the animal shelter: give coins to help animals find homes ---------- */
+const FRIENDS = [
+  ['1F415', 'Rosie', 'puppy', 'some food and a cosy blanket'], ['1F408', 'Tiger', 'kitten', 'a warm bed and some toys'],
+  ['1F439', 'Nibbles', 'hamster', 'seeds and a little wheel'], ['1F407', 'Clover', 'bunny', 'carrots and a hutch'],
+  ['1F428', 'Gumnut', 'koala', 'gum leaves and a check-up at the vet', true], ['1F426', 'Pip', 'bird', 'seeds and a safe cage'],
+  ['1F422', 'Shelly', 'tortoise', 'lettuce and a sunny spot'], ['1F998', 'Joey', 'kangaroo', 'a warm pouch and a check-up at the vet', true],
+  ['1F99C', 'Polly', 'parrot', 'fruit and a big perch'], ['1F410', 'Daisy', 'goat', 'hay and a field to play in'],
+  ['1F994', 'Prickles', 'hedgehog', 'snacks and a leafy bed'], ['1F40E', 'Star', 'pony', 'hay and a brush'],
+  ['1F986', 'Waddles', 'duck', 'a pond and some peas'], ['1F416', 'Peanut', 'piglet', 'a mud bath and some apples'],
+];
+const shelter = Object.assign({ i: 0, got: 0, helped: [] }, store.get('shelter') || {});
+const saveShelter = () => store.set('shelter', shelter);
+const friendGoal = () => shelter.helped.length ? 100 : 50;
+const GIFTS = () => Object.values(SHOP).flat().filter(it => it.gift).sort((a, b) => a.gift - b.gift);
+function giftsCheck() {   // presents she has earned land in the shop
+  const got = [];
+  for (const it of GIFTS()) if (shelter.helped.length >= it.gift && !owned.has(it.id)) { owned.add(it.id); got.push(it); }
+  if (got.length) store.set('owned', [...owned]);
+  return got;
+}
+giftsCheck();
+function drawShelter(done, got = []) {
+  const [hex, name, kind, need, wild] = FRIENDS[shelter.i % FRIENDS.length], goal = friendGoal();
+  const f = el('friend');
+  if (done) {
+    f.innerHTML = `<div class="fpic happy">${iconImg(hex)}</div><div class="ft">${name} the ${kind}</div>
+      <div class="fneed">${wild ? 'is all better, and went home to the bush!' : 'found a new home!'}</div>
+      ${got.map(it => `<div class="present" data-say="A present for your pet: the ${it.name.toLowerCase()}! It’s in the shop.">${iconImg(it.i)}<span>A present for your pet! Find the ${it.name.toLowerCase()} in the shop.</span></div>`).join('')}
+      <p class="center"><button class="big" id="nextFriend" data-say="Meet the next friend">Meet the next friend</button></p>`;
+  } else {
+    f.innerHTML = `<div class="fpic">${iconImg(hex)}</div><div class="ft" data-say="${name} the ${kind}">${name} the ${kind}</div>
+      <div class="fneed" data-say="${name} needs ${need}.">needs ${need}.</div>
+      <div class="hearts" data-say="${shelter.got} of ${goal} coins"><div class="hbar"><i style="width:${100 * shelter.got / goal}%"></i></div><span>${iconImg('1F49D')}${shelter.got} / ${goal}</span></div>
+      <div class="give">${[5, 10, 20, 50].map(n => `<button class="food${coins < n ? ' poor' : ''}" data-give="${n}">${iconImg('1FA99', 'f')}<span class="p">Give ${n}</span></button>`).join('')}</div>`;
+  }
+  const counts = {};
+  for (const i of shelter.helped) counts[i] = (counts[i] || 0) + 1;
+  el('helped').innerHTML = Object.keys(counts).length
+    ? Object.entries(counts).map(([i, n]) => { const [h, nm, k] = FRIENDS[i]; return `<span class="hf" data-say="${nm} the ${k}">${iconImg(h)}<span>${nm}${n > 1 ? ` ×${n}` : ''}</span></span>`; }).join('')
+    : '<p class="note2">Nobody yet. Every coin helps!</p>';
+  const next = GIFTS().find(it => !owned.has(it.id));
+  const more = next ? next.gift - shelter.helped.length : 0;
+  el('giftNote').textContent = next ? `Help ${more} more friend${more === 1 ? '' : 's'} to get a present for your pet!` : `You’ve helped ${shelter.helped.length} friends. Thank you!`;
+  el('giftNote').dataset.say = el('giftNote').textContent;
+}
+enter.shelter = () => {
+  drawShelter(false);
+  const [, name, , need] = FRIENDS[shelter.i % FRIENDS.length];
+  setTimeout(() => say(`This is ${name}. ${name} needs ${need}. Can you help?`), 300);
+};
+el('friend').onclick = async e => {
+  if (e.target.closest('#nextFriend')) { shelter.i = (shelter.i + 1) % FRIENDS.length; shelter.got = 0; saveShelter(); enter.shelter(); return; }
+  const b = e.target.closest('[data-give]'); if (!b) return;
+  const n = +b.dataset.give, goal = friendGoal(), give = Math.min(n, goal - shelter.got);
+  const [, name, kind, , wild] = FRIENDS[shelter.i % FRIENDS.length];
+  if (coins < give) { sfx.oops(); say(`You need ${give} coins.`); return; }
+  if (n >= 20 && !await ask(`Give ${give} coins to help ${name}?`)) return;
+  addCoins(-give);
+  shelter.got += give; saveShelter();
+  buddy('cheer'); sfx.coin();
+  const pic = $$('.fpic', el('friend'))[0], r = pic.getBoundingClientRect();
+  for (let i = 0; i < 3; i++) {
+    const h = document.createElement('img');
+    h.className = 'float fixed'; h.src = iconUrl(pick(['1F496', '1F49C', '2764'])); h.alt = '';
+    Object.assign(h.style, { left: r.left + r.width * (.2 + .3 * i) - 20 + 'px', top: r.top + r.height * .3 + 'px', width: '40px', height: '40px', animationDelay: i * .12 + 's' });
+    document.body.appendChild(h); setTimeout(() => h.remove(), 1600);
+  }
+  if (shelter.got >= goal) {
+    shelter.helped.push(shelter.i % FRIENDS.length); shelter.got = goal; saveShelter();
+    const got = giftsCheck();
+    drawShelter(true, got); buddy('party'); sfx.yay();
+    await say(`Hooray! ${name} the ${kind} ${wild ? 'is all better, and went home to the bush' : 'found a new home'}! Thank you for helping!`
+      + got.map(it => ` You got a present for your pet: the ${it.name.toLowerCase()}! It’s in the shop.`).join(''));
+  } else {
+    drawShelter(false);
+    const pic2 = $$('.fpic', el('friend'))[0]; pic2.classList.add('boop');
+    say(pick(['Thank you!', `${name} says thank you!`, 'That helps a lot!']));
+  }
+};
 
 /* ---------- colouring ---------- */
 const SIZE = 1200;                     // the drawing is SIZE x SIZE pixels, whatever the screen
@@ -2066,9 +2481,10 @@ async function jumpStart() {
 function jumpOver() {
   J.run = false; J.over = true; cancelAnimationFrame(J.raf);
   jumpDraw(); sfx.oops();
-  if (J.got) addCoins(J.got, el('jumpStars'));
+  const pay = Math.ceil(J.got / 2);          // two stars make a coin
+  if (pay) addCoins(pay, el('jumpStars'));
   if (J.t > 5) petFun(Math.min(20, 5 + Math.round(J.t / 3)));
-  const m = J.got ? `Oops! You caught ${J.got} star${J.got === 1 ? '' : 's'}!` : 'Oops! Try again!';
+  const m = J.got ? `Oops! You caught ${J.got} star${J.got === 1 ? '' : 's'}! That’s ${pay} coin${pay === 1 ? '' : 's'}!` : 'Oops! Try again!';
   el('jumpMsg').textContent = m; el('jumpMsg').dataset.say = m; say(m);
   el('jumpGo').textContent = 'Again'; el('jumpGo').dataset.say = 'Again';
   el('jumpOver').classList.remove('hidden');
@@ -2186,11 +2602,12 @@ el('letOpts').onclick = async e => {
   const pickd = b.dataset.l, round = letRound;
   if (pickd === letQ.target) {
     letBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3); buddy('cheer');
+    b.classList.add('right'); sfx.yay(); addCoins(letQ.missed ? 2 : 4, b); petFun(3); buddy('cheer');
     await say(letQ.right);                       // the whole sentence, then a short pause, then the next one
     await wait(500);
     if (round === letRound && screen === 'letters') letNew();
   } else {
+    letQ.missed = true;
     b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops(); buddy('think');
     say(letQ.kind === 'letter'
       ? `That's ${pickd}. ${letQ.word ? `Which letter does ${letQ.word} start with?` : `Find ${letQ.target}.`}`
@@ -2262,11 +2679,12 @@ el('numOpts').onclick = async e => {
   const n = +b.dataset.n, round = numRound;
   if (n === numQ.ans) {
     numBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3); buddy('cheer');
+    b.classList.add('right'); sfx.yay(); addCoins(numQ.missed ? 2 : 4, b); petFun(3); buddy('cheer');
     await say(numQ.right);
     await wait(500);
     if (round === numRound && screen === 'maths') numNew();
   } else {
+    numQ.missed = true;
     b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops(); buddy('think');
     say(`That's ${n}. Let's count them.`);
   }
