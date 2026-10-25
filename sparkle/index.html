@@ -108,9 +108,9 @@ h3.say { font-size: 26px; color: var(--pink); margin: 8px 0 16px; text-align: ce
 .meter { flex: 1; height: 14px; border-radius: 9px; background: #f2e9f8; overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg, var(--pink-2), var(--pink)); transition: width .4s; }
 .meter.low i { background: linear-gradient(90deg, #ffb27a, #ff6b6b); }
-.actions { display: flex; gap: 12px; justify-content: center; padding: 10px 14px 16px; flex-wrap: wrap; }
-.act { border: 0; border-radius: 24px; background: #fff; padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 92px; box-shadow: 0 4px 0 #e3d0f5; font-size: 17px; font-weight: 800; color: var(--purple); }
-.act img { width: 48px; height: 48px; }
+.actions { display: flex; gap: 10px; justify-content: center; padding: 10px 12px 16px; }
+.act { border: 0; border-radius: 22px; background: #fff; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; flex: 1; max-width: 104px; box-shadow: 0 4px 0 #e3d0f5; font-size: 17px; font-weight: 800; color: var(--purple); }
+.act img { width: 44px; height: 44px; }
 .act.on { background: var(--purple-3); box-shadow: 0 4px 0 var(--purple-2); }
 .tray { display: flex; gap: 10px; overflow-x: auto; padding: 8px 14px 4px; max-width: 100%; scrollbar-width: none; }
 .tray::-webkit-scrollbar { display: none; }
@@ -233,6 +233,71 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .credits { font-size: 12px; color: var(--soft); line-height: 1.5; margin-top: 12px; }
 .credits a { color: var(--purple); }
 
+/* ---------- the pet's room ---------- */
+.petcard .sub { font-size: 15px; color: var(--soft); font-weight: 700; }
+.grow { margin: 2px 14px 0; text-align: center; font-size: 15px; font-weight: 700; color: var(--purple); min-height: 1.3em; }
+.room { position: relative; margin: 8px 12px 0; border-radius: 28px; overflow: hidden; }
+.room[data-wall="w-pink"], .swatch[data-w="w-pink"] { background: repeating-linear-gradient(90deg, #ffe3f1 0 26px, #ffd3ea 26px 52px); }
+.room[data-wall="w-dots"], .swatch[data-w="w-dots"] { background: radial-gradient(circle, #dac6ff 0 5px, transparent 6px) 0 0 / 34px 34px, #f1e8ff; }
+.room[data-wall="w-mint"], .swatch[data-w="w-mint"] { background: linear-gradient(#dcfaf0, #c8f2e4); }
+.room[data-wall="w-sky"], .swatch[data-w="w-sky"] { background: radial-gradient(ellipse 60px 22px at 25% 22%, #fff 60%, transparent 62%), radial-gradient(ellipse 80px 26px at 75% 14%, #fff 60%, transparent 62%), linear-gradient(#bfe6ff, #e7f6ff); }
+.room[data-wall="w-night"], .swatch[data-w="w-night"] { background: radial-gradient(circle, #fff7b0 0 2px, transparent 3px) 0 0 / 46px 46px, radial-gradient(circle, #fff 0 1.5px, transparent 2.5px) 20px 24px / 52px 52px, linear-gradient(#3b2a6e, #6d4fb0); }
+.room::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 20%; background: rgba(255,255,255,.55); pointer-events: none; }
+.room .petbox { z-index: 2; }
+.rug { position: absolute; z-index: 1; left: 50%; bottom: 6%; width: 64%; height: 14%; transform: translateX(-50%); border-radius: 50%; }
+.rug[data-rug="r-pink"], .swatch[data-w="r-pink"] { background: radial-gradient(ellipse, #ff8cc6 0 55%, #ff4fa3 56% 64%, #ff8cc6 65%); }
+.rug[data-rug="r-purple"], .swatch[data-w="r-purple"] { background: radial-gradient(ellipse, #b99bff 0 55%, #8f5cff 56% 64%, #b99bff 65%); }
+.rug[data-rug="r-rainbow"], .swatch[data-w="r-rainbow"] { background: radial-gradient(ellipse, #fff3a8 0 30%, #a6e3a1 31% 45%, #9fe3ff 46% 60%, #c9a8ff 61% 75%, #ff8cc6 76%); }
+.deco { position: absolute; z-index: 1; pointer-events: none; }
+.deco img { width: 100%; height: 100%; }
+.deco.wallpic { left: 6%; top: 6%; width: 20%; aspect-ratio: 1; max-width: 90px; }
+.deco.bed { left: 2%; bottom: 8%; width: 30%; aspect-ratio: 1; max-width: 150px; }
+.deco.plant { right: 3%; bottom: 10%; width: 20%; aspect-ratio: 1; max-width: 100px; }
+.deco.toy { right: 14%; bottom: 3%; width: 16%; aspect-ratio: 1; max-width: 80px; z-index: 3; }
+.petbox img.pet.wob { animation: wob .38s; }
+@keyframes wob { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+.food.magic { background: linear-gradient(160deg, #fff, #f3e9ff); box-shadow: 0 4px 0 #c9a8ff; position: relative; }
+.food.magic::after { content: "✦"; position: absolute; top: 2px; right: 6px; color: var(--purple); font-size: 14px; }
+
+/* ---------- shop ---------- */
+.shophead { display: flex; align-items: center; gap: 12px; }
+.shophead .chips { flex: 1; min-width: 0; }
+.shoppet { width: 92px; height: 92px; flex: none; }
+.shoppet.hopit { animation: hop .6s; }
+.note2 { text-align: center; color: var(--purple); font-weight: 700; font-size: 17px; margin: 4px 0 10px; }
+.note2:empty { display: none; }
+.shopgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
+.item { border: 3px solid transparent; border-radius: 22px; background: #fff; padding: 8px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 4px 0 #e3d0f5; }
+.item img, .item .swatch { width: 62px; height: 62px; border-radius: 14px; display: block; }
+.item .nm { font-size: 14px; font-weight: 800; color: var(--ink); text-align: center; }
+.item .p { display: flex; align-items: center; gap: 2px; font-size: 15px; font-weight: 800; color: #b37800; }
+.item .p img { width: 18px; height: 18px; }
+.item.on { border-color: var(--pink); }
+.item.on .p { color: var(--pink); }
+.item.poor { opacity: .55; }
+.item.locked { opacity: .45; }
+
+/* ---------- my pets and the book ---------- */
+.petlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.mypet { border: 3px solid transparent; border-radius: 24px; background: #fff; padding: 8px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 0 #e3d0f5; }
+.mypet.on { border-color: var(--pink); }
+.mypet img { width: 100%; aspect-ratio: 1; }
+.mypet .nm { font-size: 18px; font-weight: 800; color: var(--pink); }
+.mypet .sub { font-size: 13px; color: var(--soft); font-weight: 700; }
+.bookrow { background: #fff; border-radius: 22px; padding: 10px 12px; margin-bottom: 10px; box-shadow: 0 4px 0 #e3d0f5; }
+.bk { font-size: 19px; font-weight: 800; color: var(--purple); }
+.bk span { font-size: 14px; color: var(--soft); font-weight: 700; margin-left: 6px; }
+.bookpics { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.bp { width: 64px; height: 64px; }
+.bp img { width: 100%; height: 100%; }
+
+/* ---------- the pet in the games ---------- */
+.buddy { width: 54px; height: 54px; flex: none; transform-origin: 50% 90%; }
+.buddy.cheer { animation: hop .6s; }
+.buddy.party { animation: hop .6s 3; }
+.buddy.think { animation: tilt 1s; }
+@keyframes tilt { 30%, 70% { transform: rotate(-10deg); } }
+
 </style>
 </head>
 <body>
@@ -262,20 +327,47 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 <section class="screen hidden" id="s-pet">
   <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 id="petName" data-say=""></h2><div class="coins" data-coins></div></div>
   <div class="stats" id="stats"></div>
-  <div class="room">
+  <p class="grow" id="grow"></p>
+  <div class="room" id="room">
+    <div class="deco wallpic" id="deco-pic"></div>
+    <div class="deco bed" id="deco-bed"></div>
+    <div class="deco plant" id="deco-plant"></div>
+    <div class="rug" id="deco-rug"></div>
     <div class="petbox" id="petBox"><img class="pet" id="petImg" alt=""><div class="bubble hidden" id="bubble"></div></div>
+    <div class="deco toy" id="deco-toy"></div>
   </div>
   <div class="tray hidden" id="tray"></div>
   <div class="actions">
     <button class="act" id="feedBtn" data-say="Feed"><img alt="" data-icon="1F34E">Feed</button>
     <button class="act" id="washBtn" data-say="Wash"><img alt="" data-icon="1F9FC">Wash</button>
-    <button class="act" id="playBtn" data-say="Play"><img alt="" data-icon="1F388">Play</button>
+    <button class="act" id="shopBtn" data-say="Shop"><img alt="" data-icon="1F6CD">Shop</button>
+    <button class="act" id="petsBtn" data-say="My pets"><img alt="" data-icon="1F43E">Pets</button>
   </div>
+</section>
+
+<!-- THE SHOP -->
+<section class="screen hidden" id="s-shop">
+  <div class="bar"><button class="round" id="shopBack" aria-label="Back to your pet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2 data-say="Shop">Shop</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="shophead"><img class="shoppet" id="shopPet" alt=""><div class="chips" id="shopTabs"></div></div>
+    <p class="note2" id="shopNote"></p>
+    <div class="shopgrid" id="shopGrid"></div>
+  </div></div>
+</section>
+
+<!-- MY PETS AND THE PET BOOK -->
+<section class="screen hidden" id="s-pets">
+  <div class="bar"><button class="round" id="petsBack" aria-label="Back to your pet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2 data-say="My pets">My pets</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="petlist" id="petList"></div>
+    <h3 class="say" data-say="Pet book">Pet book</h3>
+    <div id="petBook"></div>
+  </div></div>
 </section>
 
 <!-- COLOURING: THE PICTURES -->
 <section class="screen hidden" id="s-colour">
-  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Colouring">Colouring</h2><div class="coins" data-coins></div></div>
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Colouring">Colouring</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
   <div class="scroll"><div class="wrap">
     <div class="chips" id="cats"></div>
     <div class="grid" id="picGrid"></div>
@@ -307,7 +399,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 
 <!-- MEMORY -->
 <section class="screen hidden" id="s-memory">
-  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Memory">Memory</h2><div class="coins" data-coins></div></div>
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Memory">Memory</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
   <div class="scroll"><div class="wrap">
     <div class="chips" id="memSizes"></div>
     <div class="board" id="memBoard"></div>
@@ -318,7 +410,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 
 <!-- NOUGHTS AND CROSSES -->
 <section class="screen hidden" id="s-ttt">
-  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Tic-tac-toe">Tic-tac-toe</h2><div class="coins" data-coins></div></div>
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Tic-tac-toe">Tic-tac-toe</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
   <div class="scroll"><div class="wrap">
     <div class="msg" id="tttMsg"></div>
     <div class="ttt" id="tttBoard"></div>
@@ -341,7 +433,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 
 <!-- LETTERS -->
 <section class="screen hidden" id="s-letters">
-  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Letters">Letters</h2><div class="coins" data-coins></div></div>
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Letters">Letters</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
   <div class="scroll"><div class="wrap">
     <div class="chips" id="letModes"></div>
     <div class="prompt" id="letPrompt"></div>
@@ -351,7 +443,7 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 
 <!-- NUMBERS -->
 <section class="screen hidden" id="s-maths">
-  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Numbers">Numbers</h2><div class="coins" data-coins></div></div>
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Numbers">Numbers</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
   <div class="scroll"><div class="wrap">
     <div class="chips" id="numModes"></div>
     <div class="numcard"><div class="numview" id="numView"></div><div class="numsum" id="numSum"></div>
@@ -367,36 +459,94 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
   <div class="set"><span>Read things aloud</span><button id="optVoice"></button></div>
   <div class="set"><span>Sounds</span><button id="optSound"></button></div>
   <div class="set"><span>Pet's name</span><input type="text" id="optName" maxlength="20"></div>
-  <div class="set"><span>Choose a different pet</span><button id="optPet">Choose</button></div>
+  <div class="set"><span>Skip the wait to grow or hatch</span><button id="optGrow">Grow now</button></div>
   <div class="set"><span>Coins</span><span><button id="optCoinsMinus">−10</button> <b id="optCoins"></b> <button id="optCoinsPlus">+10</button></span></div>
   <p class="credits">Most colouring pages and pictures are from <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>, the open-source emoji and icon project, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; the colouring pages are outlines made from them, shared under the same licence. The pets and the "My drawings" pictures were drawn for Sparkle. <span id="ver"></span></p>
   <p class="center" style="margin:0"><button class="big alt" id="setClose">Done</button></p>
 </dialog>
 
 <script>
-/* The four pets, drawn here (original art). petSVG(kind, look) returns an SVG
-   string, viewBox 0 0 400 400, facing the viewer.
-   look: { eyes: 'open'|'happy'|'sad'|'sleep', mouth: 'smile'|'grin'|'sad'|'open'|'chew',
-           dirt: 0..1, step: 0|1 (running: which foot is up), blush: bool } */
+/* The pets, drawn here (original art). petSVG(kind, look) returns an SVG string.
+   look: {
+     eyes: 'open'|'happy'|'sad'|'sleep', mouth: 'smile'|'grin'|'sad'|'open'|'chew',
+     dirt: 0..1, step: 0|1 (running: which foot is up), blush: bool,
+     stage: 'baby'|'child'|'adult',
+     paths: [childPath, adultPath]  each 'plain'|'blossom'|'sparkle'|'ocean'|'sunny'
+     wear: { head, face, neck }      data: URLs of pictures to wear (from the shop)
+   }
+   The child stage is the base drawing; a baby is small with a big head, a
+   grown-up is taller. What it ate while growing adds features and tints. */
 const PET_KINDS = {
-  bunny:  { name: 'Bunny',  body: '#f6eefe', belly: '#ffffff', ear: '#ffc2dc', accent: '#e7d6fb' },
-  kitten: { name: 'Kitten', body: '#ffd1a8', belly: '#fff3e6', ear: '#ffb0c4', accent: '#f6a96c' },
-  puppy:  { name: 'Puppy',  body: '#f2d7b6', belly: '#fff6ea', ear: '#a9744f', accent: '#c99a6e' },
-  dragon: { name: 'Dragon', body: '#c6b3ff', belly: '#fff0a8', ear: '#ff9ccb', accent: '#a58bff' },
+  bunny:   { name: 'Bunny',   body: '#f6eefe', belly: '#ffffff', ear: '#ffc2dc', accent: '#e7d6fb' },
+  kitten:  { name: 'Kitten',  body: '#ffd1a8', belly: '#fff3e6', ear: '#ffb0c4', accent: '#f6a96c' },
+  puppy:   { name: 'Puppy',   body: '#f2d7b6', belly: '#fff6ea', ear: '#a9744f', accent: '#c99a6e' },
+  dragon:  { name: 'Dragon',  body: '#c6b3ff', belly: '#fff0a8', ear: '#ff9ccb', accent: '#a58bff', special: true },
+  unicorn: { name: 'Unicorn', body: '#fdf8ff', belly: '#ffffff', ear: '#ffc2e6', accent: '#f1e2ff', special: true },
+  phoenix: { name: 'Phoenix', body: '#ffb46e', belly: '#ffe596', ear: '#ff6b5b', accent: '#ffd25e', special: true },
 };
+const STARTERS = ['bunny', 'kitten', 'puppy'];
+const SPECIALS = ['dragon', 'unicorn', 'phoenix'];
+const PATHS = {
+  plain:   { tint: null },
+  blossom: { tint: '#ffb3d9', name: 'Petal' },
+  sparkle: { tint: '#d4b8ff', name: 'Twinkle' },
+  ocean:   { tint: '#b4f1ff', name: 'Splash' },
+  sunny:   { tint: '#ffe27a', name: 'Sunny' },
+};
+// a grown-up's name: [child path][grown-up path]
+const ADULT_NAMES = {
+  plain:   { plain: 'Big', blossom: 'Garden', sparkle: 'Starry', ocean: 'Sea', sunny: 'Golden' },
+  blossom: { plain: 'Petal', blossom: 'Flower Queen', sparkle: 'Fairy', ocean: 'Lily', sunny: 'Sunflower' },
+  sparkle: { plain: 'Twinkle', blossom: 'Fairy', sparkle: 'Galaxy', ocean: 'Moonlight', sunny: 'Comet' },
+  ocean:   { plain: 'Splash', blossom: 'Lily', sparkle: 'Mermaid', ocean: 'Ocean', sunny: 'Coral' },
+  sunny:   { plain: 'Sunny', blossom: 'Sunflower', sparkle: 'Comet', ocean: 'Coral', sunny: 'Sunburst' },
+};
+function formName(kind, stage, paths = []) {
+  const k = PET_KINDS[kind] ? PET_KINDS[kind].name : 'Pet';
+  if (stage === 'baby') return 'Baby ' + k.toLowerCase();
+  if (stage === 'child') { const p = PATHS[paths[0] || 'plain']; return p.name ? `${p.name} ${k}` : k; }
+  return `${ADULT_NAMES[paths[0] || 'plain'][paths[1] || 'plain']} ${k}`;
+}
 const PET_LINE = '#4a3159';
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const x = p(a), y = p(b);
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const star5 = (x, y, r, fill) => {
+  let d = '';
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; d += (i ? 'L' : 'M') + (x + rr * Math.cos(a)).toFixed(1) + ' ' + (y + rr * Math.sin(a)).toFixed(1); }
+  return `<path d="${d}Z" fill="${fill}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`;
+};
+const flower = (x, y, r, petal, mid = '#ffe066') => {
+  let s = '';
+  for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5 - Math.PI / 2; s += `<circle cx="${(x + r * .62 * Math.cos(a)).toFixed(1)}" cy="${(y + r * .62 * Math.sin(a)).toFixed(1)}" r="${(r * .48).toFixed(1)}" fill="${petal}" stroke="${PET_LINE}" stroke-width="4"/>`; }
+  return s + `<circle cx="${x}" cy="${y}" r="${(r * .36).toFixed(1)}" fill="${mid}" stroke="${PET_LINE}" stroke-width="4"/>`;
+};
+
 function petSVG(kind, look = {}) {
-  const k = PET_KINDS[kind] || PET_KINDS.bunny;
+  const base = PET_KINDS[kind] || PET_KINDS.bunny;
+  const stage = look.stage || 'child', paths = look.paths || [];
+  const p1 = stage === 'baby' ? 'plain' : (paths[0] || 'plain'), p2 = stage === 'adult' ? (paths[1] || 'plain') : 'plain';
+  // colours: tinted towards what it ate while growing
+  const k = Object.assign({}, base);
+  // mixing opposite colours gives mud (orange + aqua, purple + yellow): then the belly takes the colour instead
+  const clash = p => (p === 'ocean' || p === 'sparkle') && ['kitten', 'puppy', 'phoenix'].includes(kind) || p === 'sunny' && kind === 'dragon';
+  for (const [p, t] of [[p1, .22], [p2, .18]]) if (PATHS[p].tint) {
+    if (clash(p)) k.belly = mix(k.belly, PATHS[p].tint, .55);
+    else { k.body = mix(k.body, PATHS[p].tint, t); k.accent = mix(k.accent, PATHS[p].tint, t); }
+  }
   const L = `stroke="${PET_LINE}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"`;
   const eyes = look.eyes || 'open', mouth = look.mouth || 'smile', step = look.step;
-  let back = '', front = '', head = '';
-  // ---- behind the head: ears, tail, wings
+  let back = '', backH = '', head = '', aura = '', bodyExtra = '', headExtra = '';
+
+  // ---- behind: ears, tails, wings
   if (kind === 'bunny') {
-    back += `<path d="M150 120 C118 40 128 -8 160 -6 C190 -4 198 54 184 112 Z" fill="${k.body}" ${L}/>
+    backH += `<path d="M150 120 C118 40 128 -8 160 -6 C190 -4 198 54 184 112 Z" fill="${k.body}" ${L}/>
       <path d="M156 102 C138 52 144 22 160 22 C176 24 178 62 170 100 Z" fill="${k.ear}"/>
       <path d="M250 120 C282 40 272 -8 240 -6 C210 -4 202 54 216 112 Z" fill="${k.body}" ${L}/>
-      <path d="M244 102 C262 52 256 22 240 22 C224 24 222 62 230 100 Z" fill="${k.ear}"/>
-      <circle cx="300" cy="320" r="26" fill="#fff" ${L}/>`;
+      <path d="M244 102 C262 52 256 22 240 22 C224 24 222 62 230 100 Z" fill="${k.ear}"/>`;
+    back += `<circle cx="300" cy="320" r="26" fill="#fff" ${L}/>`;
   } else if (kind === 'kitten') {
     back += `<path d="M300 330 C360 330 372 260 344 236 C334 228 322 238 330 250 C346 274 330 306 296 306 Z" fill="${k.body}" ${L}/>`;
     head += `<path d="M112 120 L104 40 L178 84 Z" fill="${k.body}" ${L}/><path d="M124 104 L120 62 L158 86 Z" fill="${k.ear}"/>
@@ -410,22 +560,76 @@ function petSVG(kind, look = {}) {
       <path d="M380 254 L396 236 L392 266 Z" fill="${k.ear}" ${L}/>`;
     head += `<path d="M150 82 L142 34 L176 72 Z" fill="#fff6d6" ${L}/><path d="M250 82 L258 34 L224 72 Z" fill="#fff6d6" ${L}/>
       <path d="M186 64 L200 40 L214 64 Z" fill="${k.ear}" ${L}/>`;
+  } else if (kind === 'unicorn') {
+    // a rainbow tail
+    back += `<path d="M292 300 C350 300 372 250 352 214 C380 240 384 300 340 336 C326 346 306 344 292 330 Z" fill="#c9a8ff" ${L}/>
+      <path d="M300 312 C340 306 356 276 350 244" fill="none" stroke="#ff9ccb" stroke-width="12" stroke-linecap="round"/>
+      <path d="M306 326 C346 322 368 290 364 258" fill="none" stroke="#9fe3ff" stroke-width="10" stroke-linecap="round"/>`;
+    head += `<path d="M128 104 L120 50 L166 84 Z" fill="${k.body}" ${L}/><path d="M138 94 L134 66 L156 84 Z" fill="${k.ear}"/>
+      <path d="M272 104 L280 50 L234 84 Z" fill="${k.body}" ${L}/><path d="M262 94 L266 66 L244 84 Z" fill="${k.ear}"/>`;
+  } else if (kind === 'phoenix') {
+    // flame wings and tail feathers
+    back += `<path d="M118 236 C66 226 40 180 52 140 C68 168 84 170 92 160 C92 190 108 206 128 210 Z" fill="#ff6b5b" ${L}/>
+      <path d="M282 236 C334 226 360 180 348 140 C332 168 316 170 308 160 C308 190 292 206 272 210 Z" fill="#ff6b5b" ${L}/>
+      <path d="M286 330 C340 340 380 310 392 268 C370 284 352 284 344 276 C354 300 330 316 296 312 Z" fill="#ffd25e" ${L}/>
+      <path d="M292 314 C330 314 358 290 362 254 C346 270 330 272 320 266 C326 288 310 300 290 300 Z" fill="#ff8a4c" ${L}/>`;
   }
+
+  // ---- what it ate while growing: features
+  const feat = (p, which) => {
+    if (p === 'blossom') return which === 'child'
+      ? { head: flower(266, 86, 34, '#ff8cc6') }
+      : { back: `<path d="M110 260 C40 250 30 180 70 160 C90 200 110 214 130 222 Z" fill="#9be08e" ${L}/><path d="M290 260 C360 250 370 180 330 160 C310 200 290 214 270 222 Z" fill="#9be08e" ${L}/>`,
+          body: [0, 1, 2, 3, 4, 5, 6].map(i => { const a = Math.PI * (.15 + i * .7 / 6); return `<ellipse cx="${(200 - 92 * Math.cos(a)).toFixed(1)}" cy="${(250 - 24 * Math.sin(a)).toFixed(1)}" rx="18" ry="12" fill="#ffb0d6" stroke="${PET_LINE}" stroke-width="4"/>`; }).join('') };
+    if (p === 'sparkle') return which === 'child'
+      ? { head: star5(276, 206, 16, '#ffe066'), body: star5(244, 330, 12, '#fff3a8') }
+      : { back: `<path d="M140 240 C80 170 50 200 70 250 C80 280 120 280 140 262 Z" fill="#efe4ff" opacity=".9" ${L}/><path d="M260 240 C320 170 350 200 330 250 C320 280 280 280 260 262 Z" fill="#efe4ff" opacity=".9" ${L}/>`,
+          aura: star5(70, 70, 16, '#ffe066') + star5(338, 92, 12, '#fff3a8') + star5(340, 360, 10, '#ffe066') };
+    if (p === 'ocean') return which === 'child'
+      ? { body: [[160, 270, 10], [240, 300, 8], [196, 330, 7], [262, 252, 6]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>`).join(''),
+          head: `<circle cx="120" cy="150" r="7" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>` }
+      : { head: `<path d="M96 160 C60 140 56 104 74 90 C86 118 100 126 112 128 Z" fill="#8fe3f0" ${L}/><path d="M304 160 C340 140 344 104 326 90 C314 118 300 126 288 128 Z" fill="#8fe3f0" ${L}/>`,
+          body: `<path d="M176 256 Q200 236 224 256 Q212 274 200 270 Q188 274 176 256 Z" fill="#ffd6e6" stroke="${PET_LINE}" stroke-width="4"/><path d="M200 246 L200 268 M188 252 L194 268 M212 252 L206 268" stroke="${PET_LINE}" stroke-width="3"/>` };
+    if (p === 'sunny') return which === 'child'
+      ? { head: `<circle cx="200" cy="104" r="13" fill="#ffd25e" stroke="${PET_LINE}" stroke-width="4"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i * Math.PI / 4; return `<path d="M${(200 + 19 * Math.cos(a)).toFixed(1)} ${(104 + 19 * Math.sin(a)).toFixed(1)} L${(200 + 27 * Math.cos(a)).toFixed(1)} ${(104 + 27 * Math.sin(a)).toFixed(1)}" stroke="#ffb400" stroke-width="5" stroke-linecap="round"/>`; }).join('') }
+      : { backH: Array.from({ length: 14 }, (_, i) => { const a = i * Math.PI * 2 / 14; const x = 200 + 156 * Math.cos(a), y = 170 + 156 * Math.sin(a), x1 = 200 + 104 * Math.cos(a - .18), y1 = 170 + 104 * Math.sin(a - .18), x2 = 200 + 104 * Math.cos(a + .18), y2 = 170 + 104 * Math.sin(a + .18); return `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x.toFixed(1)} ${y.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${i % 2 ? '#ffd25e' : '#ffb347'}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`; }).join('') };
+    return {};
+  };
+  const f1 = stage === 'baby' ? {} : feat(p1, 'child'), f2 = stage === 'adult' ? feat(p2, 'adult') : {};
+  back = (f2.back || '') + back;
+  backH = (f2.backH || '') + backH;
+  bodyExtra = (f1.body || '') + (f2.body || '');
+  headExtra = (f1.head || '') + (f2.head || '');
+  aura = (f2.aura || '');
+
   // ---- body and feet (step lifts one foot for running)
   const fl = step === 0 ? -14 : 0, fr = step === 1 ? -14 : 0;
-  const body = `<ellipse cx="200" cy="292" rx="102" ry="82" fill="${k.body}" ${L}/>
+  const foot = kind === 'phoenix' ? '#ff8a4c' : kind === 'unicorn' ? '#d9c6ff' : k.body;
+  let body = `<ellipse cx="200" cy="292" rx="102" ry="82" fill="${k.body}" ${L}/>
     <ellipse cx="200" cy="304" rx="58" ry="52" fill="${k.belly}"/>
-    <ellipse cx="152" cy="${370 + fl}" rx="38" ry="22" fill="${k.body}" ${L}/>
-    <ellipse cx="248" cy="${370 + fr}" rx="38" ry="22" fill="${k.body}" ${L}/>
-    <ellipse cx="112" cy="${290 + (step === 1 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(20 112 290)"/>
+    <ellipse cx="152" cy="${370 + fl}" rx="38" ry="22" fill="${foot}" ${L}/>
+    <ellipse cx="248" cy="${370 + fr}" rx="38" ry="22" fill="${foot}" ${L}/>`;
+  if (kind !== 'phoenix') body += `<ellipse cx="112" cy="${290 + (step === 1 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(20 112 290)"/>
     <ellipse cx="288" cy="${290 + (step === 0 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(-20 288 290)"/>`;
+  body += bodyExtra;
+
   // ---- head
-  head = `<circle cx="200" cy="170" r="108" fill="${k.body}" ${L}/>` + head;
+  let headTop = '';
+  if (kind === 'unicorn') headTop = `<path d="M184 70 L200 -6 L216 70 Z" fill="#ffe27a" ${L}/><path d="M190 52 L211 46 M193 34 L207 30" stroke="#e0a800" stroke-width="5" stroke-linecap="round"/>
+      <path d="M150 74 C150 44 196 36 214 60 C236 40 270 60 262 90 C286 96 292 124 280 140 C262 120 246 108 226 104 C210 96 170 92 150 74 Z" fill="#ff9ccb" ${L}/>
+      <path d="M214 62 C232 52 254 64 254 86" fill="none" stroke="#9fe3ff" stroke-width="9" stroke-linecap="round"/><path d="M168 70 C178 56 198 56 210 66" fill="none" stroke="#c9a8ff" stroke-width="9" stroke-linecap="round"/>`;
+  if (kind === 'phoenix') headTop = `<path d="M176 74 C160 40 172 14 184 6 C184 30 196 44 204 60 Z" fill="#ff6b5b" ${L}/>
+      <path d="M196 68 C190 30 204 6 220 -4 C216 24 222 44 226 64 Z" fill="#ffd25e" ${L}/>
+      <path d="M218 72 C222 46 238 30 254 26 C246 44 244 60 238 78 Z" fill="#ff8a4c" ${L}/>`;
+  head = `<circle cx="200" cy="170" r="108" fill="${k.body}" ${L}/>` + head + headTop;
   if (kind === 'puppy') head += `<path d="M104 120 C70 130 66 220 96 236 C120 246 130 200 128 160 Z" fill="${k.ear}" ${L}/>
       <path d="M296 120 C330 130 334 220 304 236 C280 246 270 200 272 160 Z" fill="${k.ear}" ${L}/>
       <ellipse cx="232" cy="136" rx="34" ry="28" fill="${k.accent}" opacity=".55"/>`;
   if (kind === 'kitten') head += `<path d="M186 70 L190 98 M200 66 L200 96 M214 70 L210 98" stroke="${k.accent}" stroke-width="8" stroke-linecap="round"/>`;
   if (kind === 'dragon') head += `<ellipse cx="200" cy="214" rx="56" ry="34" fill="${k.belly}" opacity=".9"/>`;
+  if (kind === 'phoenix') head += `<ellipse cx="200" cy="216" rx="52" ry="30" fill="${k.belly}" opacity=".9"/>`;
+  head += headExtra;
+
   // ---- face
   let face = '';
   const ey = 168;
@@ -437,24 +641,63 @@ function petSVG(kind, look = {}) {
       <circle cx="165" cy="${ey - 2}" r="4.5" fill="#fff"/><circle cx="245" cy="${ey - 2}" r="4.5" fill="#fff"/>
       <path d="M140 ${ey - 22} L174 ${ey - 34} M260 ${ey - 22} L226 ${ey - 34}" stroke="${PET_LINE}" stroke-width="7" stroke-linecap="round"/>
       <path d="M150 ${ey + 26} C146 ${ey + 38} 152 ${ey + 46} 158 ${ey + 40} C162 ${ey + 34} 156 ${ey + 30} 150 ${ey + 26} Z" fill="#7fd0ff"/>`;
+  if (eyes === 'think') face += `<ellipse cx="160" cy="${ey}" rx="15" ry="19" fill="${PET_LINE}"/><ellipse cx="240" cy="${ey}" rx="15" ry="19" fill="${PET_LINE}"/>
+      <circle cx="164" cy="${ey - 10}" r="5" fill="#fff"/><circle cx="244" cy="${ey - 10}" r="5" fill="#fff"/>
+      <path d="M142 ${ey - 32} Q160 ${ey - 40} 176 ${ey - 32}" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
   face += `<ellipse cx="132" cy="206" rx="20" ry="12" fill="#ff8fbf" opacity="${look.blush === false ? 0 : .55}"/><ellipse cx="268" cy="206" rx="20" ry="12" fill="#ff8fbf" opacity="${look.blush === false ? 0 : .55}"/>`;
-  // nose
-  face += kind === 'dragon'
-    ? `<circle cx="188" cy="200" r="4" fill="${PET_LINE}"/><circle cx="212" cy="200" r="4" fill="${PET_LINE}"/>`
-    : `<path d="M190 196 L210 196 L200 207 Z" fill="${kind === 'puppy' ? PET_LINE : '#ff6fa8'}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`;
-  if (mouth === 'smile') face += `<path d="M178 216 Q189 230 200 216 Q211 230 222 216" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
-  if (mouth === 'grin') face += `<path d="M174 214 Q200 252 226 214 Z" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6" stroke-linejoin="round"/>`;
-  if (mouth === 'sad') face += `<path d="M180 230 Q200 214 220 230" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
-  if (mouth === 'open') face += `<ellipse cx="200" cy="226" rx="17" ry="19" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6"/>`;
-  if (mouth === 'chew') face += `<path d="M182 222 Q200 236 218 222" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/><ellipse cx="236" cy="214" rx="12" ry="9" fill="#ff8fbf" opacity=".8"/>`;
-  // ---- dirt: muddy spots that show more the grubbier the pet gets
+  if (kind === 'phoenix') {
+    // a beak instead of a nose and mouth
+    const open = mouth === 'open' || mouth === 'grin' || mouth === 'chew';
+    face += open
+      ? `<path d="M184 198 L216 198 L200 214 Z" fill="#ffb400" stroke="${PET_LINE}" stroke-width="5" stroke-linejoin="round"/><path d="M188 218 L212 218 L200 230 Z" fill="#ff8a00" stroke="${PET_LINE}" stroke-width="5" stroke-linejoin="round"/>`
+      : `<path d="M184 198 L216 198 L200 222 Z" fill="#ffb400" stroke="${PET_LINE}" stroke-width="5" stroke-linejoin="round"/>`;
+    if (mouth === 'sad') face += `<path d="M178 238 Q200 228 222 238" fill="none" stroke="${PET_LINE}" stroke-width="5" stroke-linecap="round"/>`;
+  } else {
+    face += kind === 'dragon'
+      ? `<circle cx="188" cy="200" r="4" fill="${PET_LINE}"/><circle cx="212" cy="200" r="4" fill="${PET_LINE}"/>`
+      : `<path d="M190 196 L210 196 L200 207 Z" fill="${kind === 'puppy' ? PET_LINE : '#ff6fa8'}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`;
+    if (mouth === 'smile') face += `<path d="M178 216 Q189 230 200 216 Q211 230 222 216" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
+    if (mouth === 'grin') face += `<path d="M174 214 Q200 252 226 214 Z" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6" stroke-linejoin="round"/>`;
+    if (mouth === 'sad') face += `<path d="M180 230 Q200 214 220 230" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
+    if (mouth === 'open') face += `<ellipse cx="200" cy="226" rx="17" ry="19" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6"/>`;
+    if (mouth === 'chew') face += `<path d="M182 222 Q200 236 218 222" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/><ellipse cx="236" cy="214" rx="12" ry="9" fill="#ff8fbf" opacity=".8"/>`;
+    if (mouth === 'flat') face += `<path d="M186 222 L214 222" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
+  }
+  // ---- dirt
   let dirt = '';
   const d = Math.max(0, Math.min(1, look.dirt || 0));
   if (d > .05) {
     const spots = [[150, 300, 18], [250, 270, 14], [230, 330, 16], [128, 130, 13], [262, 118, 11], [180, 250, 9], [300, 300, 12], [100, 280, 10]];
     dirt = spots.slice(0, Math.ceil(d * spots.length)).map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * .75}" fill="#9a6b45" opacity="${.35 + d * .4}"/>`).join('');
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -30 420 430">${back}${body}${head}${face}${dirt}</svg>`;
+  // ---- clothes from the shop (pictures), placed on the head, face and neck
+  const w = look.wear || {};
+  const wearNeck = w.neck ? `<image href="${w.neck}" x="125" y="232" width="150" height="150"/>` : '';
+  const wearHead = w.head ? `<image href="${w.head}" x="130" y="-14" width="140" height="140"/>` : '';
+  const wearFace = w.face ? `<image href="${w.face}" x="118" y="96" width="164" height="164"/>` : '';
+
+  // ---- the stage: a baby is small with a big head; a grown-up is taller
+  let bodyT = '', headT = '', allT = '';
+  if (stage === 'baby') { bodyT = 'translate(200 392) scale(.78) translate(-200 -392)'; headT = 'translate(0 46) translate(200 170) scale(1.02) translate(-200 -170)'; allT = 'translate(200 392) scale(.86) translate(-200 -392)'; }
+  if (stage === 'adult') { bodyT = 'translate(200 392) scale(1.1 1.2) translate(-200 -392)'; headT = 'translate(0 -30) translate(200 170) scale(.94) translate(-200 -170)'; allT = 'translate(200 392) scale(1.04) translate(-200 -392)'; }
+  const svg = `<g transform="${allT}">${aura}<g transform="${bodyT}">${back}</g><g transform="${headT}">${backH}</g>`
+    + `<g transform="${bodyT}">${body}${dirtBody(dirt)}${wearNeck}</g><g transform="${headT}">${head}${face}${dirtHead(dirt)}${wearFace}${wearHead}</g></g>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -70 480 480">${svg}</svg>`;
+}
+const dirtBody = d => d.replace(/<ellipse cx="(128|262)" cy="(130|118)"[^>]*\/>/g, '');
+const dirtHead = d => (d.match(/<ellipse cx="(128|262)" cy="(130|118)"[^>]*\/>/g) || []).join('');
+
+/* eggs: a pastel speckled one, or a rainbow sparkle egg; cracks show when it's nearly ready */
+function eggSVG(special, warm = 0, wobble = false) {
+  const body = special
+    ? `<defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb3d9"/><stop offset=".5" stroke-color="#c9a8ff" stop-color="#c9a8ff"/><stop offset="1" stop-color="#9fe3ff"/></linearGradient></defs>
+       <path d="M200 40 C290 40 330 190 330 260 C330 340 270 390 200 390 C130 390 70 340 70 260 C70 190 110 40 200 40 Z" fill="url(#eg)" stroke="${PET_LINE}" stroke-width="8"/>
+       ${star5(160, 150, 22, '#fff6b0')}${star5(250, 230, 16, '#ffffff')}${star5(170, 300, 14, '#fff6b0')}${star5(262, 330, 10, '#ffffff')}`
+    : `<path d="M200 40 C290 40 330 190 330 260 C330 340 270 390 200 390 C130 390 70 340 70 260 C70 190 110 40 200 40 Z" fill="#fff4e0" stroke="${PET_LINE}" stroke-width="8"/>
+       ${[[160, 150, 16, '#ffb3d9'], [246, 196, 12, '#b99bff'], [150, 270, 13, '#9fe3ff'], [250, 300, 17, '#ffd25e'], [206, 110, 9, '#a6e3a1'], [200, 350, 10, '#ffb3d9']].map(([x, y, r, c]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('')}`;
+  const crack = warm > .55 ? `<path d="M150 200 L176 222 L196 196 L220 226 L244 202" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>` : '';
+  const crack2 = warm > .85 ? `<path d="M120 260 L144 276 L160 256 M268 250 L286 272" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -70 480 480"><g ${wobble ? 'transform="rotate(-6 200 390)"' : ''}>${body}${crack}${crack2}</g></svg>`;
 }
 
 // Original line drawings for colouring. Every shape is closed so each part is
@@ -644,7 +887,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.2';
+const VERSION = '2026-10-25.3';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -741,7 +984,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths' };
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {
@@ -754,6 +997,7 @@ function route() {
   screen = s;
   drawCoins();
   if (enter[s]) enter[s](arg);
+  if (typeof buddy === 'function') buddy('idle');
 }
 addEventListener('hashchange', route);
 const go = h => { location.hash = h; };
@@ -775,34 +1019,7 @@ function ask(text) {
   });
 }
 
-/* ---------- the pet ---------- */
-const PET_NAMES = { bunny: 'Bella', kitten: 'Mittens', puppy: 'Biscuit', dragon: 'Sparky' };
-let pet = store.get('pet');      // { kind, name, food, clean, fun, at }
-const savePet = () => store.set('pet', pet);
-// needs go down slowly over real time, even with the app closed; never below 0, and it never dies
-function petTick() {
-  if (!pet) return;
-  const now = Date.now(), h = Math.max(0, (now - (pet.at || now)) / 3.6e6);
-  pet.food = clamp(pet.food - 5 * h); pet.clean = clamp(pet.clean - 3 * h); pet.fun = clamp(pet.fun - 4 * h);
-  pet.at = now; savePet();
-}
-function petFun(n) { if (!pet) return; petTick(); pet.fun = clamp(pet.fun + n); savePet(); }
-function petLook(extra = {}) {
-  const low = Math.min(pet.food, pet.clean, pet.fun);
-  const look = low < 25 ? { eyes: 'sad', mouth: 'sad' } : low > 65 ? { eyes: 'happy', mouth: 'grin' } : { eyes: 'open', mouth: 'smile' };
-  look.dirt = pet.clean < 70 ? (70 - pet.clean) / 70 : 0;
-  return Object.assign(look, extra);
-}
-const petUrl = (look, kind = pet.kind) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(petSVG(kind, look));
-function needsOf() {
-  const n = [];
-  if (pet.food < 35) n.push(['1F34E', 'I’m hungry!']);
-  if (pet.clean < 35) n.push(['1F9FC', 'I need a bath!']);
-  if (pet.fun < 35) n.push(['1F388', 'I’m bored. Let’s play!']);
-  return n;
-}
-
-/* ---------- home ---------- */
+/* ---------- home: the games ---------- */
 const GAMES = [
   { id: 'colour', name: 'Colouring', icon: '1F3A8' },
   { id: 'memory', name: 'Memory', svg: '<svg viewBox="0 0 84 84"><rect x="8" y="14" width="40" height="56" rx="9" fill="#ff8cc6" stroke="#4a3159" stroke-width="3" transform="rotate(-10 28 42)"/><path d="M24 40l3-7 3 7 7 3-7 3-3 7-3-7-7-3Z" fill="#fff" transform="rotate(-10 28 42)"/><rect x="36" y="14" width="40" height="56" rx="9" fill="#fff" stroke="#4a3159" stroke-width="3" transform="rotate(8 56 42)"/><path d="M56 52c-9-6-13-10-13-15a6 6 0 0 1 13-3 6 6 0 0 1 13 3c0 5-4 9-13 15Z" fill="#ff4fa3" transform="rotate(8 56 42)"/></svg>' },
@@ -811,27 +1028,128 @@ const GAMES = [
   { id: 'letters', name: 'Letters', icon: '1F524' },
   { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>' },
 ];
+
+/* ---------- the pets ----------
+   She can have several. The one she's playing with is "pet"; the others nap,
+   so their needs don't drop while she isn't with them.
+   A pet: { id, kind, name, special, stage: 'egg'|'baby'|'child'|'adult', since (when this stage began),
+            fed (meals this stage), treats ({ blossom, sparkle, ocean, sunny }: magic treats this stage),
+            paths ([what the baby grew into, what the child grew into]), wear ({ head, face, neck }: shop ids),
+            food, clean, fun, at (needs last brought up to date), warm (an egg: 0-100) } */
+const PET_NAMES = { bunny: 'Bella', kitten: 'Mittens', puppy: 'Biscuit', dragon: 'Sparky', unicorn: 'Stardust', phoenix: 'Ember' };
+const GROW_MS = 20 * 3600e3;          // about a day in each stage
+const GROW_FEEDS = 3;                 // and a few meals
+const TREAT_PATHS = ['blossom', 'sparkle', 'ocean', 'sunny'];
+function newPet(kind, special) {
+  return { id: Math.random().toString(36).slice(2, 9), kind, name: PET_NAMES[kind] || 'Pip', special: !!special, stage: 'egg', since: Date.now(),
+    fed: 0, treats: {}, paths: [], wear: {}, food: 80, clean: 90, fun: 80, at: Date.now(), warm: 0 };
+}
+let pets = store.get('pets');
+if (!Array.isArray(pets)) {
+  // the first version had one pet; it becomes a baby that can grow
+  const old = store.get('pet');
+  pets = old && old.kind ? [Object.assign(newPet(old.kind, SPECIALS.includes(old.kind)), { name: old.name || PET_NAMES[old.kind], stage: 'baby', food: old.food ?? 80, clean: old.clean ?? 90, fun: old.fun ?? 80 })] : [];
+}
+let pet = pets.find(p => p.id === store.get('active')) || pets[0] || null;
+const owned = new Set(store.get('owned') || []);
+const room = Object.assign({ wall: 'w-pink' }, store.get('room') || {});
+const book = new Set(store.get('book') || []);
+function savePets() { store.set('pets', pets); store.set('active', pet ? pet.id : null); }
+const savePet = savePets;
+const formKey = p => `${p.kind}|${p.stage}|${(p.paths || []).join(',')}`;
+function addBook(p) { if (p.stage !== 'egg') { book.add(formKey(p)); store.set('book', [...book]); } }
+if (pet) { addBook(pet); savePets(); }
+
+// needs go down slowly over real time, even with the app closed; never below 0, and it never dies
+function petTick() {
+  if (!pet || pet.stage === 'egg') return;
+  const now = Date.now(), h = Math.max(0, (now - (pet.at || now)) / 3.6e6);
+  pet.food = clamp(pet.food - 5 * h); pet.clean = clamp(pet.clean - 3 * h); pet.fun = clamp(pet.fun - 4 * h);
+  pet.at = now; savePets();
+}
+function petFun(n) { if (!pet || pet.stage === 'egg') return; petTick(); pet.fun = clamp(pet.fun + n); savePets(); }
+function switchPet(p) {
+  petTick();                             // the one she leaves goes to sleep up to date
+  pet = p; pet.at = Date.now();          // the one she picks wakes up as it was
+  savePets();
+}
+const SHOP_BY_ID = {};
+function wearUrls(p) {
+  const w = {};
+  for (const [slot, id] of Object.entries(p.wear || {})) if (id && SHOP_BY_ID[id]) w[slot] = iconUrl(SHOP_BY_ID[id].i);
+  return w;
+}
+function petLook(extra = {}) {
+  const low = Math.min(pet.food, pet.clean, pet.fun);
+  const look = low < 25 ? { eyes: 'sad', mouth: 'sad' } : low > 65 ? { eyes: 'happy', mouth: 'grin' } : { eyes: 'open', mouth: 'smile' };
+  look.dirt = pet.clean < 70 ? (70 - pet.clean) / 70 : 0;
+  return Object.assign(look, extra);
+}
+// a picture of a pet (the current one unless another is given) as it is now: stage, growth, clothes
+function petUrl(look = {}, kind, p = pet) {
+  if (!p) return '';
+  const full = Object.assign({ stage: p.stage === 'egg' ? 'baby' : p.stage, paths: p.paths, wear: wearUrls(p) }, look);
+  if (p.stage === 'egg' && !kind) return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(eggSVG(p.special, (p.warm || 0) / 100));
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(petSVG(kind || p.kind, full));
+}
+function needsOf() {
+  const n = [];
+  if (!pet || pet.stage === 'egg') return n;
+  if (pet.food < 35) n.push(['1F34E', 'I’m hungry!']);
+  if (pet.clean < 35) n.push(['1F9FC', 'I need a bath!']);
+  if (pet.fun < 35) n.push(['1F388', 'I’m bored. Let’s play!']);
+  return n;
+}
+
+/* ---------- growing up ---------- */
+const growReady = p => (p.stage === 'baby' || p.stage === 'child') && Date.now() - p.since >= GROW_MS && p.fed >= GROW_FEEDS;
+function growNote(p) {
+  if (p.stage === 'egg') return 'Tap the egg to keep it warm!';
+  if (p.stage === 'adult') return 'All grown up!';
+  const left = GROW_MS - (Date.now() - p.since), meals = GROW_FEEDS - p.fed;
+  const next = p.stage === 'baby' ? 'big' : 'grown-up';
+  if (left > 0) {
+    const h = Math.ceil(left / 3.6e6);
+    return `Grows ${next} ${h > 12 ? 'tomorrow' : `in ${h} hour${h === 1 ? '' : 's'}`}${meals > 0 ? `, after ${meals} more meal${meals === 1 ? '' : 's'}` : ''}.`;
+  }
+  return meals > 0 ? `Ready to grow after ${meals} more meal${meals === 1 ? '' : 's'}!` : 'Ready to grow!';
+}
+// what it ate the most of while in this stage decides what it grows into
+function growUp(p) {
+  const t = p.treats || {};
+  let path = 'plain', most = 0;
+  for (const k of TREAT_PATHS) if ((t[k] || 0) > most) { most = t[k]; path = k; }
+  p.paths = [...(p.paths || []), path];
+  p.stage = p.stage === 'baby' ? 'child' : 'adult';
+  p.since = Date.now(); p.fed = 0; p.treats = {};
+  addBook(p); savePets();
+}
+
+/* ---------- home ---------- */
 enter[''] = () => {
   petTick();
-  const needs = needsOf();
-  el('petCard').innerHTML = `<img alt="" src="${petUrl(petLook())}"><div><div class="t">${pet.name}</div><div class="needs">${needs.map(([i]) => iconImg(i)).join('')}</div></div>`;
-  el('petCard').dataset.say = needs.length ? `${pet.name} says: ${needs.map(n => n[1]).join(' ')}` : `${pet.name} is happy!`;
-  el('tiles').innerHTML = GAMES.map(g => `<button class="tile" data-go="${g.id}" data-say="${g.name}"><span class="ic">${g.svg || iconImg(g.icon)}</span><span class="t">${g.name}</span></button>`).join('');
-  if (screen === '' && GAMES.find(g => g.id === 'jump')) {   // the jump tile shows her own pet
-    const j = $$('#tiles [data-go="jump"] .ic')[0];
-    if (j) j.innerHTML = `<img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })}">`;
+  if (pet && pet.stage === 'egg') {
+    el('petCard').innerHTML = `<img alt="" src="${petUrl()}"><div><div class="t">Your egg</div><div class="sub">Tap to hatch it!</div></div>`;
+    el('petCard').dataset.say = 'Your egg is waiting to hatch!';
+  } else {
+    const needs = needsOf();
+    el('petCard').innerHTML = `<img alt="" src="${petUrl(petLook())}"><div><div class="t">${pet.name}</div><div class="sub">${formName(pet.kind, pet.stage, pet.paths)}</div><div class="needs">${needs.map(([i]) => iconImg(i)).join('')}</div></div>`;
+    el('petCard').dataset.say = needs.length ? `${pet.name} says: ${needs.map(n => n[1]).join(' ')}` : growReady(pet) ? `${pet.name} is ready to grow!` : `${pet.name} is happy!`;
   }
+  el('tiles').innerHTML = GAMES.map(g => `<button class="tile" data-go="${g.id}" data-say="${g.name}"><span class="ic">${g.svg || iconImg(g.icon)}</span><span class="t">${g.name}</span></button>`).join('');
+  const j = $$('#tiles [data-go="jump"] .ic')[0];          // the jump tile shows her own pet
+  if (j && pet.stage !== 'egg') j.innerHTML = `<img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })}">`;
 };
 el('petCard').onclick = () => go('pet');
 el('tiles').onclick = e => { const t = e.target.closest('[data-go]'); if (t) go(t.dataset.go); };
 
-/* ---------- choosing a pet ---------- */
+/* ---------- the first pet: she picks one of the starters, and gets its egg ---------- */
 let chosen = null;
 enter.choose = () => {
   chosen = null;
   el('chooseGo').classList.add('hidden');
-  el('chooseGrid').innerHTML = Object.entries(PET_KINDS).map(([k, v]) =>
-    `<button data-k="${k}" data-say="${v.name}"><img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin' }, k)}"><div class="t">${v.name}</div></button>`).join('');
+  el('chooseGrid').innerHTML = STARTERS.map(k =>
+    `<button data-k="${k}" data-say="${PET_KINDS[k].name}"><img alt="" src="${'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(petSVG(k, { eyes: 'happy', mouth: 'grin' }))}"><div class="t">${PET_KINDS[k].name}</div></button>`).join('');
   setTimeout(() => say('Choose your pet!'), 300);
 };
 el('chooseGrid').onclick = e => {
@@ -842,14 +1160,12 @@ el('chooseGrid').onclick = e => {
 };
 el('chooseGo').onclick = () => {
   if (!chosen) return;
-  const was = pet;
-  pet = { kind: chosen, name: was && was.kind === chosen ? was.name : PET_NAMES[chosen], food: was ? was.food : 80, clean: was ? was.clean : 90, fun: was ? was.fun : 80, at: Date.now() };
-  savePet();
-  setTimeout(() => say(`Hello! I'm ${pet.name}!`), 400);
+  const p = newPet(chosen, false);
+  pets.push(p); pet = p; savePets();
   go('pet');
 };
 
-/* ---------- looking after the pet ---------- */
+/* ---------- looking after it ---------- */
 const FOODS = [
   { i: '1F34E', name: 'Apple', cost: 1, food: 15 }, { i: '1F34C', name: 'Banana', cost: 1, food: 15 },
   { i: '1F955', name: 'Carrot', cost: 1, food: 15 }, { i: '1F353', name: 'Strawberry', cost: 2, food: 20 },
@@ -859,13 +1175,34 @@ const FOODS = [
   { i: '1F9C1', name: 'Cupcake', cost: 4, food: 20, fun: 15 }, { i: '1F368', name: 'Ice cream', cost: 5, food: 20, fun: 20 },
   { i: '1F382', name: 'Birthday cake', cost: 8, food: 50, fun: 30 },
 ];
+// magic treats: what it eats most of while it's a baby or a child decides what it grows into
+const TREATS = [
+  { i: '1F338', name: 'Magic flower', path: 'blossom', cost: 5, food: 10, tell: 'A magic flower! Pets that eat these grow into flower pets.' },
+  { i: '2B50', name: 'Magic star', path: 'sparkle', cost: 5, food: 10, tell: 'A magic star! Pets that eat these grow sparkly.' },
+  { i: '1F41A', name: 'Magic shell', path: 'ocean', cost: 5, food: 10, tell: 'A magic shell! Pets that eat these grow into sea pets.' },
+  { i: '2600', name: 'Magic sun', path: 'sunny', cost: 5, food: 10, tell: 'A magic sun! Pets that eat these grow sunny and golden.' },
+];
 let petMode = '';        // '' | 'feed' | 'wash'
 let busy = false, cuddles = [];
+function drawRoom() {
+  const r = el('room');
+  r.dataset.wall = room.wall || 'w-pink';
+  for (const slot of ['rug', 'bed', 'plant', 'toy', 'pic']) {
+    const d = el('deco-' + slot), id = room[slot], it = id && SHOP_BY_ID[id];
+    if (slot === 'rug') { d.dataset.rug = id || ''; continue; }
+    d.innerHTML = it ? iconImg(it.i) : '';
+  }
+}
 function drawPet(extra) {
-  el('petImg').src = petUrl(petLook(extra));
-  el('petName').textContent = pet.name; el('petName').dataset.say = pet.name;
-  el('stats').innerHTML = [['1F34E', pet.food, 'Food'], ['1F9FC', pet.clean, 'Clean'], ['1F388', pet.fun, 'Fun']].map(([i, v, n]) =>
+  drawRoom();
+  const egg = pet.stage === 'egg';
+  el('petImg').src = egg ? petUrl() : petUrl(petLook(extra));
+  el('petName').textContent = egg ? 'Your egg' : pet.name; el('petName').dataset.say = egg ? 'Your egg' : `${pet.name}, the ${formName(pet.kind, pet.stage, pet.paths)}`;
+  el('stats').classList.toggle('hidden', egg);
+  el('stats').innerHTML = egg ? '' : [['1F34E', pet.food, 'Food'], ['1F9FC', pet.clean, 'Clean'], ['1F388', pet.fun, 'Fun']].map(([i, v, n]) =>
     `<div class="stat" data-say="${n}">${iconImg(i)}<div class="meter${v < 30 ? ' low' : ''}"><i style="width:${Math.max(4, v)}%"></i></div></div>`).join('');
+  el('grow').textContent = growNote(pet); el('grow').dataset.say = growNote(pet);
+  el('feedBtn').classList.toggle('hidden', egg); el('washBtn').classList.toggle('hidden', egg);
   el('feedBtn').classList.toggle('on', petMode === 'feed');
   el('washBtn').classList.toggle('on', petMode === 'wash');
   el('petBox').classList.toggle('wash', petMode === 'wash');
@@ -873,8 +1210,8 @@ function drawPet(extra) {
 function speakPet(text, ms = 2200) {
   const b = el('bubble');
   b.textContent = text; b.classList.remove('hidden');
-  say(text);
-  clearTimeout(speakPet.t); speakPet.t = setTimeout(() => b.classList.add('hidden'), ms);
+  clearTimeout(speakPet.t); speakPet.t = setTimeout(() => b.classList.add('hidden'), ms + text.length * 40);
+  return say(text);
 }
 function floatIcon(hex, x, y, size = 46) {
   const f = document.createElement('img');
@@ -884,47 +1221,93 @@ function floatIcon(hex, x, y, size = 46) {
 }
 function hop() { const b = el('petBox'); b.classList.remove('jump'); void b.offsetWidth; b.classList.add('jump'); }
 let petTimer = null;
-enter.pet = () => {
+enter.pet = async () => {
   petTick(); petMode = ''; el('tray').classList.add('hidden');
   drawPet();
-  const needs = needsOf();
-  setTimeout(() => speakPet(needs.length ? needs[0][1] : pick([`Hi! I missed you!`, `Yay, you're here!`, `Hello!`])), 350);
+  if (pet.stage === 'egg') { setTimeout(() => speakPet(pet.warm ? 'Keep me warm!' : 'Tap the egg to keep it warm!'), 350); return; }
+  if (growReady(pet)) { await wait(500); await celebrateGrowth(); }
+  else {
+    const needs = needsOf();
+    setTimeout(() => speakPet(needs.length ? needs[0][1] : pick([`Hi! I missed you!`, `Yay, you're here!`, `Hello!`])), 350);
+  }
   petTimer = setInterval(() => { petTick(); if (!busy && petMode !== 'wash') drawPet(); }, 30000);
 };
 leave.pet = () => { clearInterval(petTimer); petMode = ''; };
+
+async function celebrateGrowth() {
+  busy = true;
+  const r = el('petBox').getBoundingClientRect();
+  speakPet('Something is happening!');
+  for (let i = 0; i < 6; i++) { el('petImg').style.opacity = i % 2 ? 1 : .35; await wait(250); }
+  el('petImg').style.opacity = 1;
+  growUp(pet);
+  drawPet({ eyes: 'happy', mouth: 'grin' }); hop(); sfx.yay();
+  floatIcon('2728', r.width * .25, r.height * .3, 64); floatIcon('2728', r.width * .75, r.height * .35, 56); floatIcon('1F496', r.width * .5, r.height * .2, 52);
+  await speakPet(`${pet.name} grew into a ${formName(pet.kind, pet.stage, pet.paths)}!`, 4000);
+  busy = false;
+}
+
+// the egg: tapping and rubbing keeps it warm; warm enough, it hatches
+async function warmEgg(e) {
+  if (busy) return;
+  const r = el('petBox').getBoundingClientRect();
+  pet.warm = clamp((pet.warm || 0) + 8); savePets();
+  floatIcon(pick(['1F496', '2728']), e.clientX - r.left, e.clientY - r.top, 40);
+  sfx.pop();
+  el('petImg').src = petUrl();
+  el('petImg').classList.remove('wob'); void el('petImg').offsetWidth; el('petImg').classList.add('wob');
+  if (pet.warm >= 100) {
+    busy = true;
+    speakPet('It’s hatching!');
+    for (let i = 0; i < 4; i++) { el('petImg').classList.remove('wob'); void el('petImg').offsetWidth; el('petImg').classList.add('wob'); sfx.flip(); await wait(380); }
+    pet.stage = 'baby'; pet.since = Date.now(); pet.at = Date.now(); pet.fed = 0; pet.treats = {}; pet.paths = [];
+    addBook(pet); savePets();
+    sfx.yay(); hop();
+    drawPet({ eyes: 'happy', mouth: 'grin' });
+    floatIcon('2728', r.width * .3, r.height * .3, 64); floatIcon('2728', r.width * .7, r.height * .35, 56);
+    await speakPet(`Hello! I’m ${pet.name}, a baby ${PET_KINDS[pet.kind].name.toLowerCase()}!`, 3500);
+    busy = false;
+  } else if (pet.warm < 12) speakPet('Keep me warm!');
+}
 
 el('feedBtn').onclick = () => {
   petMode = petMode === 'feed' ? '' : 'feed';
   const t = el('tray');
   t.classList.toggle('hidden', petMode !== 'feed');
-  if (petMode === 'feed') t.innerHTML = FOODS.map((f, i) =>
-    `<button class="food${coins < f.cost ? ' poor' : ''}" data-i="${i}" data-say="${f.name}">${iconImg(f.i, 'f')}<span class="p">${iconImg('1FA99')}${f.cost}</span></button>`).join('');
+  if (petMode === 'feed') {
+    const growing = pet.stage === 'baby' || pet.stage === 'child';
+    t.innerHTML = (growing ? TREATS.map((f, i) => `<button class="food magic${coins < f.cost ? ' poor' : ''}" data-t="${i}" data-say="${f.name}">${iconImg(f.i, 'f')}<span class="p">${iconImg('1FA99')}${f.cost}</span></button>`).join('') : '')
+      + FOODS.map((f, i) => `<button class="food${coins < f.cost ? ' poor' : ''}" data-i="${i}" data-say="${f.name}">${iconImg(f.i, 'f')}<span class="p">${iconImg('1FA99')}${f.cost}</span></button>`).join('');
+  }
   drawPet();
 };
 el('tray').onclick = async e => {
-  const b = e.target.closest('[data-i]'); if (!b || busy) return;
-  const f = FOODS[+b.dataset.i];
+  const b = e.target.closest('[data-i],[data-t]'); if (!b || busy) return;
+  const magic = b.dataset.t != null, f = magic ? TREATS[+b.dataset.t] : FOODS[+b.dataset.i];
   petTick();
-  if (pet.food >= 96 && !f.fun) { speakPet('I’m full!'); return; }
+  if (!magic && pet.food >= 96 && !f.fun) { speakPet('I’m full!'); return; }
   if (coins < f.cost) { sfx.oops(); speakPet('Not enough coins. Play a game to earn more!', 3200); return; }
   busy = true;
   addCoins(-f.cost);
-  // the food flies to the pet's mouth
   const from = b.querySelector('img.f').getBoundingClientRect(), to = el('petBox').getBoundingClientRect();
   const fly = document.createElement('img');
   fly.className = 'flyfood'; fly.src = iconUrl(f.i); fly.style.left = from.left + 'px'; fly.style.top = from.top + 'px';
   document.body.appendChild(fly);
   await wait(20);
   fly.style.transform = `translate(${to.left + to.width / 2 - from.left - 32}px, ${to.top + to.height * .52 - from.top - 32}px) scale(.6)`;
-  drawPet({ eyes: 'happy', mouth: 'open', dirt: petLook().dirt });
+  drawPet({ eyes: 'happy', mouth: 'open' });
   await wait(600); fly.remove();
-  for (let i = 0; i < 3; i++) { drawPet({ eyes: 'happy', mouth: i % 2 ? 'open' : 'chew', dirt: petLook().dirt }); sfx.munch(); await wait(260); }
-  pet.food = clamp(pet.food + f.food); if (f.fun) pet.fun = clamp(pet.fun + f.fun); savePet();
-  hop(); drawPet({ eyes: 'happy', mouth: 'grin', dirt: petLook().dirt });
-  speakPet(pick(['Yum!', 'Yummy!', 'Thank you!', `I love ${f.name.toLowerCase()}!`]));
-  floatIcon('1F496', to.width * .7, to.height * .25);
-  $$('.food', el('tray')).forEach((x, i) => x.classList.toggle('poor', coins < FOODS[i].cost));
+  for (let i = 0; i < 3; i++) { drawPet({ eyes: 'happy', mouth: i % 2 ? 'open' : 'chew' }); sfx.munch(); await wait(260); }
+  pet.food = clamp(pet.food + f.food); if (f.fun) pet.fun = clamp(pet.fun + f.fun);
+  pet.fed = (pet.fed || 0) + 1;
+  if (magic) { pet.treats = pet.treats || {}; pet.treats[f.path] = (pet.treats[f.path] || 0) + 1; }
+  savePets();
+  hop(); drawPet({ eyes: 'happy', mouth: 'grin' });
+  floatIcon(magic ? '2728' : '1F496', to.width * .7, to.height * .25);
   busy = false;
+  $$('.food', el('tray')).forEach(x => x.classList.toggle('poor', coins < (x.dataset.t != null ? TREATS[+x.dataset.t] : FOODS[+x.dataset.i]).cost));
+  if (growReady(pet)) { el('tray').classList.add('hidden'); petMode = ''; await speakPet(magic ? 'Yum! I feel tingly!' : 'Yum!'); await celebrateGrowth(); return; }
+  speakPet(magic ? 'Yum! I feel tingly!' : pick(['Yum!', 'Yummy!', 'Thank you!', `I love ${f.name.toLowerCase()}!`]));
 };
 
 el('washBtn').onclick = () => {
@@ -933,22 +1316,22 @@ el('washBtn').onclick = () => {
   drawPet();
   if (petMode === 'wash') speakPet(pet.clean > 95 ? 'I’m already clean!' : 'Rub me to wash me!', 2600);
 };
-el('playBtn').onclick = () => go('');
+el('shopBtn').onclick = () => go('shop');
+el('petsBtn').onclick = () => go('pets');
 
-// tapping the pet: a cuddle; rubbing it in wash mode: a wash
 let rub = null;
 el('petBox').addEventListener('pointerdown', e => {
   if (busy) return;
+  if (pet.stage === 'egg') { warmEgg(e); return; }
   const r = el('petBox').getBoundingClientRect();
   if (petMode === 'wash') { el('petBox').setPointerCapture(e.pointerId); rub = { x: e.clientX, y: e.clientY, n: 0 }; return; }
-  // a cuddle: hearts, a happy face, and a little fun (a few per minute count)
   petTick();
   const now = Date.now();
   cuddles = cuddles.filter(t => now - t < 60000);
-  if (cuddles.length < 6) { cuddles.push(now); pet.fun = clamp(pet.fun + 3); savePet(); }
+  if (cuddles.length < 6) { cuddles.push(now); pet.fun = clamp(pet.fun + 3); savePets(); }
   floatIcon(pick(['1F496', '1F49C', '2764']), e.clientX - r.left, e.clientY - r.top);
   sfx.pop(); hop();
-  drawPet({ eyes: 'happy', mouth: 'grin', dirt: petLook().dirt });
+  drawPet({ eyes: 'happy', mouth: 'grin' });
   const needs = needsOf();
   speakPet(needs.length ? needs[0][1] : pick(['Hehe!', 'I love you!', 'You’re my best friend!', 'That tickles!', 'Yay!']));
   setTimeout(() => { if (!busy && petMode !== 'wash') drawPet(); }, 1600);
@@ -967,7 +1350,7 @@ el('petBox').addEventListener('pointermove', e => {
   if (rub.n % 3 === 0) sfx.scrub();
   petTick();
   const was = pet.clean;
-  pet.clean = clamp(pet.clean + 1.6); savePet();
+  pet.clean = clamp(pet.clean + 1.6); savePets();
   if (rub.n % 6 === 0) drawPet({ eyes: 'happy', mouth: 'smile' });
   if (was < 100 && pet.clean >= 100) {
     rub = null; petMode = ''; drawPet({ eyes: 'happy', mouth: 'grin' }); hop(); sfx.yay();
@@ -979,22 +1362,175 @@ const endRub = () => { if (rub) { rub = null; drawPet(); } };
 el('petBox').addEventListener('pointerup', endRub);
 el('petBox').addEventListener('pointercancel', endRub);
 
+/* ---------- the shop: clothes, things for the room, and (once a pet is grown up) eggs ---------- */
+const SHOP = {
+  Clothes: [
+    { id: 'bow', slot: 'head', i: '1F380', name: 'Bow', cost: 8 }, { id: 'flower', slot: 'head', i: '1F33A', name: 'Flower', cost: 6 },
+    { id: 'cap', slot: 'head', i: '1F9E2', name: 'Cap', cost: 12 }, { id: 'sunhat', slot: 'head', i: '1F452', name: 'Sun hat', cost: 15 },
+    { id: 'tophat', slot: 'head', i: '1F3A9', name: 'Top hat', cost: 20 }, { id: 'gradcap', slot: 'head', i: '1F393', name: 'Clever hat', cost: 25 },
+    { id: 'crown', slot: 'head', i: '1F451', name: 'Crown', cost: 30 },
+    { id: 'glasses', slot: 'face', i: '1F453', name: 'Glasses', cost: 10 }, { id: 'shades', slot: 'face', i: '1F576', name: 'Sunglasses', cost: 12 },
+    { id: 'scarf', slot: 'neck', i: '1F9E3', name: 'Scarf', cost: 10 }, { id: 'medal', slot: 'neck', i: '1F3C5', name: 'Medal', cost: 15 },
+    { id: 'jewel', slot: 'neck', i: '1F48E', name: 'Jewel', cost: 25 },
+  ],
+  Room: [
+    { id: 'w-pink', slot: 'wall', sw: 'w-pink', name: 'Pink stripes', cost: 0 }, { id: 'w-dots', slot: 'wall', sw: 'w-dots', name: 'Lilac spots', cost: 8 },
+    { id: 'w-mint', slot: 'wall', sw: 'w-mint', name: 'Minty', cost: 8 }, { id: 'w-sky', slot: 'wall', sw: 'w-sky', name: 'Blue sky', cost: 12 },
+    { id: 'w-night', slot: 'wall', sw: 'w-night', name: 'Starry night', cost: 15 },
+    { id: 'r-pink', slot: 'rug', sw: 'r-pink', name: 'Pink rug', cost: 6 }, { id: 'r-purple', slot: 'rug', sw: 'r-purple', name: 'Purple rug', cost: 6 },
+    { id: 'r-rainbow', slot: 'rug', sw: 'r-rainbow', name: 'Rainbow rug', cost: 12 },
+    { id: 'bed', slot: 'bed', i: '1F6CF', name: 'Bed', cost: 15 }, { id: 'couch', slot: 'bed', i: '1F6CB', name: 'Couch', cost: 12 },
+    { id: 'plant', slot: 'plant', i: '1FAB4', name: 'Pot plant', cost: 6 }, { id: 'sunflower', slot: 'plant', i: '1F33B', name: 'Sunflower', cost: 8 },
+    { id: 'teddy', slot: 'toy', i: '1F9F8', name: 'Teddy', cost: 10 }, { id: 'ball', slot: 'toy', i: '26BD', name: 'Ball', cost: 5 },
+    { id: 'balloon', slot: 'toy', i: '1F388', name: 'Balloon', cost: 4 }, { id: 'kite', slot: 'toy', i: '1FA81', name: 'Kite', cost: 8 },
+    { id: 'piano', slot: 'toy', i: '1F3B9', name: 'Piano', cost: 18 }, { id: 'castle', slot: 'toy', i: '1F3F0', name: 'Castle', cost: 20 },
+    { id: 'picture', slot: 'pic', i: '1F5BC', name: 'Picture', cost: 8 }, { id: 'rainbow', slot: 'pic', i: '1F308', name: 'Rainbow', cost: 10 },
+    { id: 'star', slot: 'pic', i: '2B50', name: 'Star', cost: 6 },
+  ],
+  Eggs: [
+    { id: 'cot', name: 'Cot', i: '1F6CF', cost: 20, once: true, tell: 'A cot for a new baby. You need one before you can get an egg.' },
+    { id: 'egg', name: 'Egg', egg: false, cost: 30, tell: 'An egg. It hatches into a bunny, a kitten or a puppy.' },
+    { id: 'segg', name: 'Sparkle egg', egg: true, cost: 80, tell: 'A sparkle egg! It hatches into a special pet: a dragon, a unicorn or a phoenix.' },
+  ],
+};
+for (const list of Object.values(SHOP)) for (const it of list) SHOP_BY_ID[it.id] = it;
+owned.add('w-pink');
+let shopTab = 'Clothes';
+const eggIcon = special => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(eggSVG(special, 0));
+function shopPic(it) {
+  if (it.sw) return `<span class="swatch" data-w="${it.sw}"></span>`;
+  if (it.egg != null) return `<img alt="" src="${eggIcon(it.egg)}">`;
+  return iconImg(it.i);
+}
+function itemOn(it) {
+  if (it.slot && ['head', 'face', 'neck'].includes(it.slot)) return pet && pet.wear && pet.wear[it.slot] === it.id;
+  if (it.slot) return room[it.slot] === it.id;
+  return false;
+}
+function drawShop() {
+  el('shopTabs').innerHTML = Object.keys(SHOP).map(t => `<button class="chip${t === shopTab ? ' on' : ''}" data-tab="${t}" data-say="${t}">${t}</button>`).join('');
+  el('shopPet').src = pet.stage === 'egg' ? petUrl() : petUrl({ eyes: 'happy', mouth: 'grin' });
+  const grown = pets.some(p => p.stage === 'adult');
+  el('shopNote').textContent = shopTab === 'Eggs' && !grown ? 'Grow a pet all the way up, and then you can get a new egg!' : '';
+  el('shopNote').dataset.say = el('shopNote').textContent;
+  el('shopGrid').innerHTML = SHOP[shopTab].map(it => {
+    const have = owned.has(it.id), on = itemOn(it);
+    const locked = shopTab === 'Eggs' && (!grown || (!it.once && !owned.has('cot')));
+    const tag = it.once && have ? 'Got it' : have && it.slot ? (on ? 'Wearing' : 'Use') : `${iconImg('1FA99')}${it.cost}`;
+    const label = it.slot && ['head', 'face', 'neck'].includes(it.slot) && have ? (on ? 'Wearing' : 'Wear') : tag;
+    return `<button class="item${on ? ' on' : ''}${locked || (it.once && have) ? ' locked' : ''}${!have && coins < it.cost ? ' poor' : ''}" data-id="${it.id}" data-say="${it.name}">${shopPic(it)}<span class="nm">${it.name}</span><span class="p">${label}</span></button>`;
+  }).join('');
+}
+enter.shop = () => { petTick(); drawShop(); setTimeout(() => say('The shop!'), 250); };
+el('shopTabs').onclick = e => { const c = e.target.closest('[data-tab]'); if (!c) return; shopTab = c.dataset.tab; drawShop(); };
+el('shopGrid').onclick = async e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  const it = SHOP_BY_ID[b.dataset.id];
+  if (shopTab === 'Eggs') {
+    if (!pets.some(p => p.stage === 'adult')) { await say('Grow a pet all the way up first!'); return; }
+    if (it.once && owned.has(it.id)) { say('You have a cot!'); return; }
+    if (!it.once && !owned.has('cot')) { say('You need a cot first!'); return; }
+    if (it.tell) await say(it.tell);
+    if (coins < it.cost) { sfx.oops(); say(`You need ${it.cost} coins.`); return; }
+    if (!await ask(`Buy the ${it.name.toLowerCase()} for ${it.cost} coins?`)) return;
+    addCoins(-it.cost, b);
+    if (it.once) { owned.add(it.id); store.set('owned', [...owned]); sfx.yay(); drawShop(); return; }
+    // a new egg: a starter, or (sparkle) a special one, new kinds first
+    const have = new Set(pets.map(p => p.kind));
+    const from = it.egg ? SPECIALS : STARTERS;
+    const kind = pick(from.filter(k => !have.has(k)).length ? from.filter(k => !have.has(k)) : from);
+    const p = newPet(kind, it.egg);
+    pets.push(p); switchPet(p);
+    sfx.yay(); go('pet');
+    return;
+  }
+  const isWear = ['head', 'face', 'neck'].includes(it.slot);
+  if (!owned.has(it.id)) {
+    if (coins < it.cost) { sfx.oops(); say(`${it.name}. You need ${it.cost} coins.`); return; }
+    if (!await ask(`Buy the ${it.name.toLowerCase()} for ${it.cost} coins?`)) return;
+    addCoins(-it.cost, b); owned.add(it.id); store.set('owned', [...owned]); sfx.yay();
+  }
+  // put it on (or take it off); one thing in each place
+  if (isWear) {
+    if (pet.stage === 'egg') { say('Eggs can’t wear clothes!'); drawShop(); return; }
+    pet.wear = pet.wear || {};
+    pet.wear[it.slot] = pet.wear[it.slot] === it.id ? null : it.id; savePets();
+  } else {
+    room[it.slot] = room[it.slot] === it.id && it.slot !== 'wall' ? null : it.id; store.set('room', room);
+  }
+  sfx.pop(); drawShop();
+  el('shopPet').classList.remove('hopit'); void el('shopPet').offsetWidth; el('shopPet').classList.add('hopit');
+};
+
+/* ---------- all her pets, and the book of every kind of pet she's grown ---------- */
+const ALL_FORMS = kind => {
+  const f = [`${kind}|baby|`];
+  for (const a of ['plain', ...TREAT_PATHS]) { f.push(`${kind}|child|${a}`); for (const b of ['plain', ...TREAT_PATHS]) f.push(`${kind}|adult|${a},${b}`); }
+  return f;
+};
+enter.pets = () => {
+  petTick();
+  el('petList').innerHTML = pets.map(p => `<button class="mypet${p === pet ? ' on' : ''}" data-id="${p.id}" data-say="${p.stage === 'egg' ? 'An egg' : p.name}">
+      <img alt="" src="${p.stage === 'egg' ? petUrl({}, null, p) : petUrl({ eyes: p === pet ? 'happy' : 'sleep', mouth: 'smile' }, null, p)}">
+      <span class="nm">${p.stage === 'egg' ? 'Egg' : p.name}</span><span class="sub">${p.stage === 'egg' ? 'Waiting to hatch' : p === pet ? 'Playing' : 'Napping'}</span></button>`).join('');
+  const kinds = [...STARTERS, ...SPECIALS];
+  el('petBook').innerHTML = kinds.map(k => {
+    const all = ALL_FORMS(k), found = all.filter(f => book.has(f));
+    if (!found.length && SPECIALS.includes(k)) return `<div class="bookrow"><div class="bk">??? <span>A special pet. Hatch a sparkle egg to find it!</span></div></div>`;
+    return `<div class="bookrow"><div class="bk">${PET_KINDS[k].name} <span>${found.length} of ${all.length} found</span></div><div class="bookpics">${found.map(f => {
+      const [, stage, ps] = f.split('|'), paths = ps ? ps.split(',') : [];
+      return `<span class="bp" data-say="${formName(k, stage, paths)}"><img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(petSVG(k, { stage, paths, eyes: 'happy', mouth: 'grin' }))}"></span>`;
+    }).join('')}</div></div>`;
+  }).join('');
+};
+el('petList').onclick = e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  const p = pets.find(x => x.id === b.dataset.id); if (!p) return;
+  if (p !== pet) { switchPet(p); sfx.pop(); }
+  go('pet');
+};
+
+/* ---------- the pet joins the games: it sits in the bar and reacts ---------- */
+function buddy(mood = 'idle') {
+  const show = pet && pet.stage !== 'egg';
+  const look = mood === 'think' ? { eyes: 'think', mouth: 'flat' } : mood === 'idle' ? { eyes: 'open', mouth: 'smile' } : { eyes: 'happy', mouth: 'grin' };
+  const u = show ? petUrl(look) : '';
+  for (const b of $$('.buddy')) {
+    b.classList.toggle('hidden', !show);
+    if (!show) continue;
+    b.src = u;
+    b.classList.remove('cheer', 'think', 'party'); void b.offsetWidth;
+    if (mood !== 'idle') b.classList.add(mood);
+  }
+  clearTimeout(buddy.t);
+  if (mood !== 'idle') buddy.t = setTimeout(() => buddy('idle'), mood === 'party' ? 3000 : 1800);
+}
+
 /* ---------- settings, for grown-ups ---------- */
 function drawSettings() {
   el('optVoice').textContent = opts.voice ? 'On' : 'Off';
   el('optSound').textContent = opts.sound ? 'On' : 'Off';
   el('optName').value = pet ? pet.name : '';
   el('optCoins').textContent = coins;
+  el('optGrow').disabled = !pet || pet.stage === 'adult';
   el('ver').textContent = 'Version ' + VERSION + '.';
 }
 el('setBtn').onclick = () => { drawSettings(); el('settings').showModal(); };
 el('optVoice').onclick = () => { opts.voice = !opts.voice; saveOpts(); drawSettings(); };
 el('optSound').onclick = () => { opts.sound = !opts.sound; saveOpts(); drawSettings(); };
-el('optName').onchange = () => { const v = el('optName').value.trim(); if (v && pet) { pet.name = v; savePet(); } };
-el('optPet').onclick = () => { el('settings').close(); go('choose'); };
+el('optName').onchange = () => { const v = el('optName').value.trim(); if (v && pet) { pet.name = v; savePets(); } };
+// skips the wait (and the meals) for the next stage: an egg is ready to hatch, a baby or child is ready to grow
+el('optGrow').onclick = () => {
+  if (!pet) return;
+  if (pet.stage === 'egg') pet.warm = 96;
+  else { pet.since = Date.now() - GROW_MS - 1000; pet.fed = Math.max(pet.fed || 0, GROW_FEEDS); }
+  savePets(); el('settings').close(); go('pet'); if (screen === 'pet') enter.pet();
+};
 el('optCoinsPlus').onclick = () => { addCoins(10); drawSettings(); };
 el('optCoinsMinus').onclick = () => { addCoins(-10); drawSettings(); };
 el('setClose').onclick = () => { el('optName').onchange(); el('settings').close(); if (screen === '') enter['']() ; };
+el('shopBack').onclick = () => go('pet');
+el('petsBack').onclick = () => go('pet');
 
 /* ---------- colouring ---------- */
 const SIZE = 1200;                     // the drawing is SIZE x SIZE pixels, whatever the screen
@@ -1137,7 +1673,7 @@ function colouredArea(label, from) {
   if (regions[label] && regions[label].count < 400) return;      // specks between lines don't count
   coloured.add(label);
   store.set('col:' + pic.id, [...coloured]);
-  if (coloured.size <= COIN_CAP) { addCoins(1, from); petFun(1); }
+  if (coloured.size <= COIN_CAP) { addCoins(1, from); petFun(1); buddy('cheer'); }
 }
 
 /* The page is drawn white-filled (so shapes hide what's behind them), then the
@@ -1360,15 +1896,15 @@ el('memBoard').onclick = async e => {
   if (mem.cards[a][0] === mem.cards[b][0]) {
     await wait(350);
     ca.classList.add('got'); cb.classList.add('got');
-    mem.got++; addCoins(1, cb); petFun(3);
+    mem.got++; addCoins(1, cb); petFun(3); buddy('cheer');
     if (mem.got === mem.cards.length / 2) {
       await wait(400);
-      sfx.yay(); addCoins(3, el('memMsg')); petFun(10);
+      sfx.yay(); addCoins(3, el('memMsg')); petFun(10); buddy('party');
       el('memMsg').textContent = 'You found them all!'; say('You found them all! Well done!');
       el('memAgain').classList.remove('hidden');
     }
   } else {
-    mem.lock = true;
+    mem.lock = true; buddy('think');
     await wait(1000);
     ca.classList.remove('up'); cb.classList.remove('up');
     mem.lock = false;
@@ -1415,10 +1951,10 @@ function tttEnd() {
   if (w) {
     ttt.over = true;
     w.forEach(i => el('tttBoard').children[i].classList.add('win'));
-    if (ttt.b[w[0]] === 'X') { sfx.yay(); addCoins(3, el('tttMsg')); petFun(15); el('tttMsg').textContent = 'You win!'; say('You win! Hooray!'); }
-    else { sfx.oops(); petFun(10); el('tttMsg').textContent = 'I win this time!'; say('I win this time! Try again?'); }
+    if (ttt.b[w[0]] === 'X') { buddy('party'); sfx.yay(); addCoins(3, el('tttMsg')); petFun(15); el('tttMsg').textContent = 'You win!'; say('You win! Hooray!'); }
+    else { buddy('think'); sfx.oops(); petFun(10); el('tttMsg').textContent = 'I win this time!'; say('I win this time! Try again?'); }
   } else if (ttt.b.every(Boolean)) {
-    ttt.over = true; addCoins(1, el('tttMsg')); petFun(10);
+    ttt.over = true; addCoins(1, el('tttMsg')); petFun(10); buddy('cheer');
     el('tttMsg').textContent = 'A draw!'; say('It’s a draw!');
   }
   if (ttt.over) el('tttAgain').classList.remove('hidden');
@@ -1650,12 +2186,12 @@ el('letOpts').onclick = async e => {
   const pickd = b.dataset.l, round = letRound;
   if (pickd === letQ.target) {
     letBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3);
+    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3); buddy('cheer');
     await say(letQ.right);                       // the whole sentence, then a short pause, then the next one
     await wait(500);
     if (round === letRound && screen === 'letters') letNew();
   } else {
-    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops();
+    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops(); buddy('think');
     say(letQ.kind === 'letter'
       ? `That's ${pickd}. ${letQ.word ? `Which letter does ${letQ.word} start with?` : `Find ${letQ.target}.`}`
       : `That's ${pickd}. ${letQ.ask}`);
@@ -1726,12 +2262,12 @@ el('numOpts').onclick = async e => {
   const n = +b.dataset.n, round = numRound;
   if (n === numQ.ans) {
     numBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3);
+    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3); buddy('cheer');
     await say(numQ.right);
     await wait(500);
     if (round === numRound && screen === 'maths') numNew();
   } else {
-    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops();
+    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops(); buddy('think');
     say(`That's ${n}. Let's count them.`);
   }
 };
