@@ -387,6 +387,62 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .tpip img { width: 22px; height: 22px; }
 .tpip.full { background: #ffe6f3; color: var(--pink); }
 .growbox:has(.tpip) .gl span { display: none; }
+.numview.only { flex-direction: column; }
+.bigsum { font-size: min(22vw, 110px); font-weight: 900; color: var(--purple); letter-spacing: .04em; line-height: 1.1; }
+.helpgrp { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 10px; }
+
+/* ---------- music ---------- */
+.pads { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; width: min(92vw, 46vh, 440px); margin: 8px auto 16px; }
+.pad { aspect-ratio: 1; border: 0; border-radius: 30px; background: #fff; box-shadow: 0 6px 0 var(--c); display: grid; place-items: center; padding: 0; transition: transform .1s, background .1s; touch-action: manipulation; }
+.pad img { width: 58%; height: 58%; }
+.pad.lit { background: var(--c); transform: scale(1.06); box-shadow: 0 0 0 6px #fff, 0 0 30px var(--c); }
+.pad.lit img { animation: hop .4s; }
+.pitch { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 8px 0 16px; }
+.pitchshow { display: flex; gap: 40px; height: 120px; align-items: center; }
+.pn { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; font-weight: 900; color: #fff; background: var(--purple-2); transform: translateY(calc(var(--y) * 32px)); transition: transform .4s, background .2s; }
+.pn.on { background: var(--pink); transform: translateY(calc(var(--y) * 32px)) scale(1.15); }
+.updown { display: flex; gap: 16px; }
+.ud { border: 0; border-radius: 26px; background: #fff; box-shadow: 0 5px 0 #e3d0f5; padding: 10px 22px; display: flex; flex-direction: column; align-items: center; font-size: 20px; font-weight: 800; color: var(--purple); min-width: 132px; }
+.ud img { width: 70px; height: 70px; }
+.ud[data-a="up"] img { transform: translateY(-6px); } .ud[data-a="down"] img { transform: translateY(4px); }
+.ud.right { background: #e8fbe9; box-shadow: 0 5px 0 #8fd694; }
+.ud.wrong { animation: shake .4s; }
+.lvl { display: flex; gap: 6px; justify-content: center; margin: 4px 0 10px; }
+.lvl span { width: 14px; height: 14px; border-radius: 50%; background: #eadcf5; }
+.lvl span.on { background: var(--pink); }
+
+/* ---------- what comes next ---------- */
+.patq { margin: 0 auto 20px; background: #fff; border-radius: 26px; box-shadow: 0 5px 0 #e3d0f5; padding: 12px; max-width: 640px; }
+.patq.row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.patq.row .pt { width: min(13vw, 76px); aspect-ratio: 1; }
+.patq.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(84vw, 44vh, 380px); }
+.pt { display: grid; place-items: center; border-radius: 16px; background: #fbf6ff; }
+.pt svg { width: 90%; height: 90%; }
+.pt.gap { border: 3px dashed var(--purple-2); background: #fff; font-size: 34px; font-weight: 900; color: var(--purple-2); }
+.patq.grid .pt { aspect-ratio: 1; }
+.pt.pop svg { animation: popin .3s; }
+.opts.four { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.opt.pic svg { width: 80%; height: 80%; }
+.opt.out { opacity: .25; transform: scale(.92); }
+
+/* ---------- maze ---------- */
+#s-maze .chips { justify-content: center; padding: 0 12px; }
+#mazeWrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px 10px 14px; }
+#mazeCanvas { touch-action: none; border-radius: 22px; box-shadow: 0 5px 0 #e3d0f5; }
+#mazeDone { background: rgba(255,255,255,.72); border-radius: 22px; }
+
+/* ---------- chess ---------- */
+.cboard { display: grid; grid-template-columns: repeat(6, 1fr); width: min(94vw, 58vh, 520px); margin: 6px auto 14px; border-radius: 18px; overflow: hidden; box-shadow: 0 5px 0 #e3d0f5; }
+.sq { aspect-ratio: 1; border: 0; padding: 0; position: relative; display: grid; place-items: center; }
+.sq.l { background: #fff4fb; } .sq.d { background: #ffcfe7; }
+.sq svg, .sq img.star { width: 82%; height: 82%; position: relative; z-index: 1; }
+.sq img.star { width: 64%; height: 64%; }
+.sq.sel { background: #fff0b3; }
+.sq.last { box-shadow: inset 0 0 0 4px #ffd25e; }
+.sq.reach { box-shadow: inset 0 0 0 5px var(--purple); }
+.sq .dot { position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(143,92,255,.5); }
+.sq .dot.take { width: 86%; height: 86%; background: none; border: 5px solid rgba(255,79,163,.75); }
+#chessMsg { font-size: 19px; min-height: 2.8em; }
 
 </style>
 </head>
@@ -564,6 +620,51 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <div class="numcard"><div class="numview" id="numView"></div><div class="numsum" id="numSum"></div>
       <button class="speak" id="numSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Hear it</button></div>
     <div class="opts" id="numOpts"></div>
+  </div></div>
+</section>
+
+
+<!-- MUSIC -->
+<section class="screen hidden" id="s-music">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Music">Music</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="musModes"></div>
+    <div class="msg" id="musMsg"></div>
+    <div class="pads" id="pads"></div>
+    <div class="pitch hidden" id="pitch">
+      <div class="pitchshow" id="pitchShow"></div>
+      <div class="updown"><button class="ud" data-a="up" data-say="Higher"><img alt="" data-icon="1F426"><span>Higher</span></button><button class="ud" data-a="down" data-say="Lower"><img alt="" data-icon="1F43B"><span>Lower</span></button></div>
+      <div class="lvl" id="pitchLvl"></div>
+    </div>
+    <p class="center"><button class="big" id="musGo" data-say="Listen">Listen</button></p>
+  </div></div>
+</section>
+
+<!-- WHAT COMES NEXT -->
+<section class="screen hidden" id="s-pattern">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="What comes next?">What next?</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="lvl" id="patLvl"></div>
+    <div class="patq" id="patQ"></div>
+    <div class="opts" id="patOpts"></div>
+  </div></div>
+</section>
+
+<!-- MAZE -->
+<section class="screen hidden" id="s-maze">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Maze">Maze</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="chips center" id="mazeSizes"></div>
+  <div id="mazeWrap"><canvas id="mazeCanvas"></canvas><div class="overlay hidden" id="mazeDone"><div class="msg" id="mazeMsg"></div><button class="big" id="mazeAgain" data-say="Another one">Another one</button></div></div>
+</section>
+
+<!-- CHESS -->
+<section class="screen hidden" id="s-chess">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Chess">Chess</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="chessModes"></div>
+    <div class="msg" id="chessMsg"></div>
+    <div class="cboard" id="cboard"></div>
+    <p class="center"><button class="big soft" id="chessAgain" data-say="Start again">Start again</button></p>
   </div></div>
 </section>
 
@@ -1061,7 +1162,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.6';
+const VERSION = '2026-10-25.8';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -1158,7 +1259,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter' };
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter', music: 's-music', pattern: 's-pattern', maze: 's-maze', chess: 's-chess' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {
@@ -1201,6 +1302,10 @@ const GAMES = [
   { id: 'jump', name: 'Jump', icon: '2B50' },
   { id: 'letters', name: 'Letters', icon: '1F524' },
   { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>' },
+  { id: 'pattern', name: 'What next?', svg: '<svg viewBox="0 0 84 84"><circle cx="14" cy="42" r="10" fill="#ff6fb8"/><rect x="28" y="32" width="20" height="20" rx="4" fill="#9b6bff"/><circle cx="62" cy="42" r="10" fill="#ff6fb8"/><rect x="58" y="58" width="22" height="22" rx="7" fill="none" stroke="#9b6bff" stroke-width="3" stroke-dasharray="5 4"/><text x="69" y="75" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="16" fill="#9b6bff">?</text></svg>' },
+  { id: 'music', name: 'Music', icon: '1F3B9' },
+  { id: 'maze', name: 'Maze', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#fff4fb"/><path d="M8 8h68v68H8zM26 8v40M26 62v14M44 26v50M44 26h16M62 8v12M62 44v18M44 44h18" fill="none" stroke="#8f5cff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="17" r="6" fill="#ff4fa3"/><path d="M68 64l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#ffc93a"/></svg>' },
+  { id: 'chess', name: 'Chess', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#ffe3f1"/><path d="M6 24h18V6M42 6v18h18v18h18M6 60h18V42h18v18h18v18M24 78V60M60 24h18" fill="none"/><rect x="24" y="6" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="6" width="18" height="18" rx="0" fill="#ffc6e2"/><rect x="6" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="24" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="6" y="60" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="60" width="18" height="18" fill="#ffc6e2"/><path d="M42 20a8 8 0 0 1 5 14l4 14h5v8H28v-8h5l4-14a8 8 0 0 1 5-14z" fill="#fff" stroke="#4a3159" stroke-width="3" stroke-linejoin="round"/></svg>' },
   { id: 'shelter', name: 'Shelter', icons: ['1F415', '1F49D'] },
 ];
 
@@ -2721,7 +2826,8 @@ el('letOpts').onclick = async e => {
 const THINGS = [['1F34E', 'apple', 'apples'], ['1F353', 'strawberry', 'strawberries'], ['2B50', 'star', 'stars'], ['1F986', 'duck', 'ducks'],
   ['1F98B', 'butterfly', 'butterflies'], ['1F9C1', 'cupcake', 'cupcakes'], ['1F388', 'balloon', 'balloons'], ['1F33C', 'flower', 'flowers'],
   ['1F41F', 'fish', 'fish'], ['1F41E', 'ladybird', 'ladybirds'], ['1F430', 'bunny', 'bunnies'], ['1F36A', 'cookie', 'cookies']];
-const NUM_MODES = [['count', 'Count'], ['plus', 'Plus'], ['minus', 'Take away']];
+const NUM_MODES = [['count', 'Count'], ['plus', 'Plus'], ['minus', 'Take away'], ['nplus', '1 + 2'], ['nminus', '3 − 1']];
+const numOnly = () => numMode === 'nplus' || numMode === 'nminus';
 let numMode = store.get('numMode') || 'count', numMax = store.get('numMax') || 5;
 let numQ = null, numBusy = false, numRound = 0;
 const thing = (t, n) => n === 1 ? t[1] : t[2];
@@ -2733,13 +2839,21 @@ function group(t, n, gone = 0) {
 }
 function numNew() {
   numBusy = false;
-  const round = ++numRound, t = pick(THINGS), max = numMax;
+  const round = ++numRound, t = pick(THINGS), max = numOnly() ? numMax : Math.min(numMax, 10);   // pictures stop at 10; just numbers go to 20
   let a, b = 0, ans, view, speech, right;
   if (numMode === 'count') {
     ans = a = 1 + Math.floor(Math.random() * max);
     view = group(t, a);
     speech = `How many ${t[2]}?`;
     right = `Yes! ${a} ${thing(t, a)}!`;
+  } else if (numOnly()) {
+    // just the numbers; a wrong answer brings the pictures in to help
+    if (numMode === 'nplus') { a = 1 + Math.floor(Math.random() * (max - 1)); b = 1 + Math.floor(Math.random() * (max - a)); ans = a + b; }
+    else { a = 2 + Math.floor(Math.random() * (max - 1)); b = 1 + Math.floor(Math.random() * (a - 1)); ans = a - b; }
+    const op = numMode === 'nplus' ? 'plus' : 'take away';
+    view = `<div class="bigsum">${a} ${numMode === 'nplus' ? '+' : '−'} ${b}</div>`;
+    speech = `What is ${a} ${op} ${b}?`;
+    right = `Yes! ${a} ${op} ${b} is ${ans}!`;
   } else if (numMode === 'plus') {
     a = 1 + Math.floor(Math.random() * (max - 1)); b = 1 + Math.floor(Math.random() * (max - a)); ans = a + b;
     view = `${group(t, a)}<span class="op">+</span>${group(t, b)}`;
@@ -2753,24 +2867,25 @@ function numNew() {
   }
   // the answer and two near it, all from 0 to 10
   const near = shuffle([ans - 2, ans - 1, ans + 1, ans + 2].filter(n => n >= (numMode === 'count' ? 1 : 0) && n <= Math.max(max, 10) && n !== ans)).slice(0, 2);
-  numQ = { ans, speech, right };
+  numQ = { ans, speech, right, t, a, b, help: false };
   // bigger pictures when there are fewer of them
-  const total = numMode === 'plus' ? a + b : a;
+  const total = numMode === 'plus' ? a + b : numOnly() ? 1 : a;
   el('numView').style.setProperty('--thing', total <= 3 ? 'min(22vw, 96px)' : total <= 5 ? 'min(15vw, 72px)' : total <= 8 ? 'min(12vw, 60px)' : 'min(10.5vw, 52px)');
   el('numView').innerHTML = view;
   el('numSum').textContent = numMode === 'plus' ? `${a} + ${b} = ?` : numMode === 'minus' ? `${a} − ${b} = ?` : '';
+  el('numView').classList.toggle('only', numOnly());
   el('numOpts').innerHTML = shuffle([ans, ...near]).map(n => `<button class="opt" data-n="${n}">${n}</button>`).join('');
   setTimeout(() => { if (round === numRound && screen === 'maths') say(speech); }, 250);
 }
 function numChips() {
   el('numModes').innerHTML = NUM_MODES.map(([id, n]) => `<button class="chip${numMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('')
-    + `<button class="chip on" data-m="max" data-say="Up to ${numMax}">Up to ${numMax}</button>`;
+    + `<button class="chip on" data-m="max" data-say="Up to ${numOnly() ? numMax : Math.min(numMax, 10)}">Up to ${numOnly() ? numMax : Math.min(numMax, 10)}</button>`;
 }
 enter.maths = () => { numChips(); numNew(); };
 leave.maths = () => { numRound++; };
 el('numModes').onclick = e => {
   const c = e.target.closest('[data-m]'); if (!c) return;
-  if (c.dataset.m === 'max') { numMax = numMax === 5 ? 10 : 5; store.set('numMax', numMax); }
+  if (c.dataset.m === 'max') { numMax = numOnly() ? (numMax === 5 ? 10 : numMax === 10 ? 20 : 5) : (Math.min(numMax, 10) === 5 ? 10 : 5); store.set('numMax', numMax); }
   else { numMode = c.dataset.m; store.set('numMode', numMode); }
   numChips(); numNew();
 };
@@ -2788,8 +2903,603 @@ el('numOpts').onclick = async e => {
   } else {
     numQ.missed = true;
     b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops(); buddy('think');
+    if (numOnly() && !numQ.help) {
+      // show it with pictures, under the sum
+      numQ.help = true;
+      const { t, a, b } = numQ;
+      el('numView').insertAdjacentHTML('beforeend', `<div class="helpgrp">${numMode === 'nplus' ? `${group(t, a)}<span class="op">+</span>${group(t, b)}` : group(t, a, b)}</div>`);
+      el('numView').style.setProperty('--thing', (numMode === 'nplus' ? a + b : a) <= 10 ? 'min(9vw, 44px)' : 'min(6.5vw, 32px)');
+    }
     say(`That's ${n}. Let's count them.`);
   }
+};
+
+/* ---------- music: copy the tune, and higher or lower ---------- */
+// a soft, bell-ish note
+function note(freq, dur = .45, vol = .22) {
+  if (!opts.sound) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    const t = ac.currentTime, g = ac.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    g.connect(ac.destination);
+    for (const [type, mult, v] of [['triangle', 1, 1], ['sine', 2, .25]]) {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq * mult, t); og.gain.value = v;
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + .05);
+    }
+  } catch {}
+}
+const semis = (base, n) => base * Math.pow(2, n / 12);
+
+// four singers, low to high: the bear sings low, the bird sings high
+const PADS = [
+  { i: '1F43B', name: 'bear', f: 261.63, c: '#c99a6e' }, { i: '1F438', name: 'frog', f: 329.63, c: '#7fd67a' },
+  { i: '1F431', name: 'cat', f: 392.0, c: '#ffb36b' }, { i: '1F426', name: 'bird', f: 523.25, c: '#7fc8ff' },
+];
+const MUS_MODES = [['copy', 'Copy the tune'], ['pitch', 'Higher or lower']];
+let musMode = store.get('musMode') || 'copy';
+let mus = { seq: [], at: 0, len: 2, misses: 0, busy: true, round: 0 };
+let pit = { lv: store.get('pitchLv') ?? 0, run: 0, q: null, busy: false, missed: false };
+const INTERVALS = [12, 9, 7, 5, 4, 3, 2, 1];   // semitones apart: an octave first, down to the smallest step
+
+function musChips() {
+  el('musModes').innerHTML = MUS_MODES.map(([id, n]) => `<button class="chip${musMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('');
+  el('pads').classList.toggle('hidden', musMode !== 'copy');
+  el('pitch').classList.toggle('hidden', musMode !== 'pitch');
+}
+enter.music = () => {
+  musChips();
+  el('pads').innerHTML = PADS.map((p, i) => `<button class="pad" data-p="${i}" style="--c:${p.c}" aria-label="${p.name}">${iconImg(p.i)}</button>`).join('');
+  mus.round++; mus.busy = true; mus.seq = []; mus.len = 2; mus.misses = 0;
+  if (musMode === 'copy') { el('musMsg').textContent = 'Listen to the animals sing, then copy them!'; el('musGo').textContent = 'Listen'; }
+  else { el('musMsg').textContent = 'Do the notes go up, or down?'; el('musGo').textContent = 'Listen'; drawPitchLvl(); el('pitchShow').innerHTML = ''; }
+  el('musGo').classList.remove('hidden'); delete el('musGo').dataset.again; el('musGo').dataset.say = 'Listen';
+  pit.q = null;
+  setTimeout(() => say(el('musMsg').textContent), 250);
+};
+leave.music = () => { mus.round++; mus.busy = true; };
+el('musModes').onclick = e => { const c = e.target.closest('[data-m]'); if (!c) return; musMode = c.dataset.m; store.set('musMode', musMode); enter.music(); };
+el('musGo').onclick = () => {
+  if (el('musGo').dataset.again) { if (!pit.busy) playPair(); return; }
+  el('musGo').classList.add('hidden');
+  if (musMode === 'copy') { mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4)); playTune(); }
+  else pitchNew();
+};
+
+// copy the tune: the animals sing, she taps them back; one longer each time she gets it
+function lightPad(i, ms = 380) {
+  const b = el('pads').children[i]; if (!b) return;
+  b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), ms);
+  note(PADS[i].f, .5);
+}
+async function playTune() {
+  const round = mus.round;
+  mus.busy = true; mus.at = 0;
+  el('musMsg').textContent = 'Listen…';
+  await wait(600);
+  const gap = Math.max(420, 640 - mus.len * 25);
+  for (const i of mus.seq) { if (round !== mus.round) return; lightPad(i, gap - 120); await wait(gap); }
+  if (round !== mus.round) return;
+  mus.busy = false;
+  el('musMsg').textContent = 'Your turn!';
+}
+el('pads').addEventListener('pointerdown', async e => {
+  const b = e.target.closest('.pad'); if (!b || mus.busy) return;
+  const i = +b.dataset.p;
+  lightPad(i, 250);
+  if (i !== mus.seq[mus.at]) {
+    mus.busy = true; mus.misses++;
+    await wait(300); sfx.oops(); buddy('think');
+    if (mus.misses >= 2) {
+      // twice wrong: a shorter tune, so it's never stuck
+      mus.misses = 0; mus.len = Math.max(2, mus.len - 1);
+      mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4));
+      el('musMsg').textContent = 'Let’s try a shorter one!'; await say('Let’s try a shorter one!');
+    } else { el('musMsg').textContent = 'Oops! Listen again.'; await say('Oops! Listen again.'); }
+    playTune(); return;
+  }
+  mus.at++;
+  if (mus.at === mus.seq.length) {
+    mus.busy = true; mus.misses = 0;
+    await wait(350); sfx.yay(); buddy('cheer'); petFun(3);
+    addCoins(Math.max(1, mus.len - 1), el('musMsg'));
+    const m = mus.len >= 3 ? `Yes! ${mus.len} notes!` : 'Yes!';
+    el('musMsg').textContent = m; await say(m + (mus.len < 12 ? ' Now one more.' : ''));
+    if (mus.len < 12) { mus.len++; mus.seq.push(Math.floor(Math.random() * 4)); }
+    playTune();
+  }
+});
+
+// higher or lower: two notes, did the second go up or down? closer together as she gets them right
+function drawPitchLvl() {
+  el('pitchLvl').innerHTML = INTERVALS.map((_, i) => `<span class="${i <= pit.lv ? 'on' : ''}"></span>`).join('');
+  el('pitchLvl').dataset.say = `Level ${pit.lv + 1}`;
+}
+async function playPair() {
+  const { a, b } = pit.q;
+  el('pitchShow').innerHTML = `<span class="pn" style="--y:0">1</span><span class="pn" style="--y:0">2</span>`;
+  const [s1, s2] = el('pitchShow').children;
+  s1.classList.add('on'); note(a, .7); await wait(800); s1.classList.remove('on');
+  s2.classList.add('on'); note(b, .7); await wait(800); s2.classList.remove('on');
+}
+async function pitchNew() {
+  pit.busy = true; pit.missed = false;
+  const n = INTERVALS[pit.lv], up = Math.random() < .5;
+  const base = semis(220, 3 + Math.floor(Math.random() * 10));             // somewhere from C4 up
+  pit.q = up ? { a: base, b: semis(base, n), up } : { a: semis(base, n), b: base, up };
+  el('musMsg').textContent = 'Listen…';
+  await say('Listen.');
+  await playPair();
+  el('musMsg').textContent = 'Did it go up, or down?';
+  el('musGo').textContent = 'Hear it again'; el('musGo').dataset.again = '1'; el('musGo').dataset.say = ''; el('musGo').classList.remove('hidden');
+  pit.busy = false;
+}
+document.querySelector('#pitch .updown').onclick = async e => {
+  const b = e.target.closest('.ud'); if (!b || pit.busy || !pit.q) return;
+  const up = b.dataset.a === 'up';
+  if (up === pit.q.up) {
+    pit.busy = true;
+    const [s1, s2] = el('pitchShow').children;
+    if (s2) s2.style.setProperty('--y', pit.q.up ? '-1' : '1');
+    b.classList.add('right'); setTimeout(() => b.classList.remove('right'), 900);
+    sfx.yay(); buddy('cheer'); petFun(2);
+    addCoins(pit.missed ? 1 : 3, b);
+    if (!pit.missed && ++pit.run >= 3 && pit.lv < INTERVALS.length - 1) { pit.lv++; pit.run = 0; store.set('pitchLv', pit.lv); drawPitchLvl(); await say(`Yes! It went ${up ? 'up' : 'down'}! Now a bit trickier.`); }
+    else await say(`Yes! It went ${up ? 'up' : 'down'}!`);
+    if (screen === 'music' && musMode === 'pitch') { el('musGo').classList.add('hidden'); pitchNew(); }
+  } else {
+    pit.run = 0; sfx.oops(); buddy('think');
+    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
+    if (!pit.missed && pit.lv > 0) { pit.lv--; store.set('pitchLv', pit.lv); drawPitchLvl(); }
+    pit.missed = true;
+    say('Listen again.').then(() => playPair());
+  }
+};
+
+/* ---------- what comes next: patterns, from ABAB up to little matrix puzzles ----------
+   Six tiers. Three right first time in a row: up a tier. Two missed in a row: down one,
+   so a hard patch never lasts. */
+const P_CO = { pink: '#ff6fb8', purple: '#9b6bff', blue: '#4cb5ff', yellow: '#ffc93a', green: '#4cd18a', orange: '#ff8c42' };
+const P_SH = ['circle', 'square', 'triangle', 'star', 'heart', 'diamond'];
+const DICE = { 1: [[50, 50]], 2: [[30, 30], [70, 70]], 3: [[26, 26], [50, 50], [74, 74]], 4: [[30, 30], [70, 30], [30, 70], [70, 70]],
+  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]], 6: [[30, 24], [70, 24], [30, 50], [70, 50], [30, 76], [70, 76]] };
+function shapeAt(sh, x, y, r, co, rot = 0, out = false) {
+  const st = out ? `fill="#fff" stroke="${co}" stroke-width="${Math.max(3, r * .22)}"` : `fill="${co}" stroke="#4a3159" stroke-width="${Math.max(1.5, r * .08)}"`;
+  const T = rot ? ` transform="rotate(${rot} ${x} ${y})"` : '';
+  const pts = a => a.map(([px, py]) => `${(x + px * r).toFixed(1)},${(y + py * r).toFixed(1)}`).join(' ');
+  if (sh === 'circle') return `<circle cx="${x}" cy="${y}" r="${r * .9}" ${st}/>`;
+  if (sh === 'square') return `<rect x="${x - r * .8}" y="${y - r * .8}" width="${r * 1.6}" height="${r * 1.6}" rx="${r * .2}" ${st}${T}/>`;
+  if (sh === 'triangle') return `<polygon points="${pts([[0, -.95], [.92, .7], [-.92, .7]])}" ${st} stroke-linejoin="round"${T}/>`;
+  if (sh === 'diamond') return `<polygon points="${pts([[0, -1], [.75, 0], [0, 1], [-.75, 0]])}" ${st} stroke-linejoin="round"${T}/>`;
+  if (sh === 'star') { const a = []; for (let i = 0; i < 10; i++) { const t = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? .45 : 1; a.push([rr * Math.cos(t), rr * Math.sin(t)]); } return `<polygon points="${pts(a)}" ${st} stroke-linejoin="round"${T}/>`; }
+  if (sh === 'heart') return `<path d="M${x} ${y + r * .85} C${x - r * 1.3} ${y - r * .1} ${x - r * .7} ${y - r * 1.1} ${x} ${y - r * .45} C${x + r * .7} ${y - r * 1.1} ${x + r * 1.3} ${y - r * .1} ${x} ${y + r * .85} Z" ${st} stroke-linejoin="round"${T}/>`;
+  if (sh === 'arrow') return `<polygon points="${pts([[0, -1], [.85, -.05], [.32, -.05], [.32, .95], [-.32, .95], [-.32, -.05], [-.85, -.05]])}" ${st} stroke-linejoin="round"${T}/>`;
+  return '';
+}
+function pItem(s) {
+  const n = s.n || 1, sz = s.sz || 1, out = s.fill === 'out';
+  const body = n === 1 ? shapeAt(s.sh, 50, 50, 36 * sz, P_CO[s.co], s.rot || 0, out)
+    : DICE[n].map(([x, y]) => shapeAt(s.sh, x, y, (n <= 2 ? 17 : n <= 4 ? 15 : 12.5) * sz, P_CO[s.co], s.rot || 0, out)).join('');
+  return `<svg viewBox="0 0 100 100">${body}</svg>`;
+}
+const pKey = s => JSON.stringify([s.sh, s.co, s.n || 1, s.sz || 1, (s.rot || 0) % 360, s.fill || '']);
+const pickN = (a, n) => shuffle(a).slice(0, n);
+const COS = Object.keys(P_CO);
+
+// one puzzle per call: { kind: 'row'|'grid', items: [spec | null], answer, vary: [attributes that change] }
+const P_GEN = {
+  1: [
+    () => { const [a, b] = pickN(COS, 2), sh = pick(P_SH); return row(i => ({ sh, co: i % 2 ? b : a }), 5, ['co']); },
+    () => { const [a, b] = pickN(P_SH, 2), co = pick(COS); return row(i => ({ sh: i % 2 ? b : a, co }), 5, ['sh']); },
+    () => { const sh = pick(P_SH), co = pick(COS); return row(i => ({ sh, co, sz: i % 2 ? .5 : 1 }), 5, ['sz']); },
+  ],
+  2: [
+    () => cycle(pick(['AAB', 'ABB', 'ABC']), 'co'),
+    () => cycle(pick(['AAB', 'ABB', 'ABC']), 'sh'),
+    () => { const [a, b] = pickN(COS, 2), [c, d] = pickN(P_SH, 2); return row(i => (i % 2 ? { sh: d, co: b } : { sh: c, co: a }), 6, ['sh', 'co']); },
+  ],
+  3: [
+    () => { const s = 1 + Math.floor(Math.random() * 2), sh = pick(P_SH), co = pick(COS); return row(i => ({ sh, co, n: s + i }), 4, ['n']); },
+    () => { const s = 5 + Math.floor(Math.random() * 2), sh = pick(P_SH), co = pick(COS); return row(i => ({ sh, co, n: s - i }), 4, ['n']); },
+    () => { const s = pick([0, 90, 180, 270]), co = pick(COS), dir = pick([90, 270]); return row(i => ({ sh: 'arrow', co, rot: (s + i * dir) % 360 }), 4 + Math.floor(Math.random() * 2), ['rot']); },
+    () => { const sh = pick(P_SH), co = pick(COS); return row(i => ({ sh, co, sz: [.4, .6, .8, 1][i] }), 3, ['sz']); },
+  ],
+  4: [
+    () => { const [a, b] = pickN(COS, 2), S = pickN(P_SH, 3); return row(i => ({ sh: S[i % 3], co: i % 2 ? b : a }), 6, ['sh', 'co']); },
+    () => { const [a, b] = pickN(COS, 2), sh = pick(P_SH); return row(i => ({ sh, co: i % 2 ? b : a, n: 1 + i }), 4, ['co', 'n']); },
+    () => { const C = pickN(COS, 3), s = pick([0, 90, 180, 270]); return row(i => ({ sh: 'arrow', co: C[i % 3], rot: (s + i * 90) % 360 }), 5, ['co', 'rot']); },
+    () => { const C = pickN(COS, 4), sh = pick(P_SH); return row(i => ({ sh, co: C[i % 4] }), 6 + Math.floor(Math.random() * 2), ['co']); },
+    () => cycle('AABB', pick(['co', 'sh'])),
+  ],
+  5: [
+    () => { const S = pickN(P_SH, 3), co = pick(COS); return grid((r, c) => ({ sh: S[(r + c) % 3], co }), ['sh']); },
+    () => { const S = pickN(P_SH, 3), co = pick(COS); return grid((r, c) => ({ sh: S[r], co, n: c + 1 }), ['sh', 'n']); },
+    () => { const S = pickN(P_SH, 3), C = pickN(COS, 3); return grid((r, c) => ({ sh: S[c], co: C[r] }), ['sh', 'co']); },
+  ],
+  6: [
+    () => { const S = pickN(P_SH, 3), C = pickN(COS, 3); return grid((r, c) => ({ sh: S[(r + c) % 3], co: C[(r + 2 * c) % 3] }), ['sh', 'co']); },
+    () => { const S = pickN(P_SH, 3), C = pickN(COS, 3); return grid((r, c) => ({ sh: S[(r + c) % 3], co: C[r], n: c + 1 }), ['sh', 'co', 'n']); },
+    () => { const C = pickN(COS, 3), s = pick([0, 90, 180, 270]); return grid((r, c) => ({ sh: 'arrow', co: C[r], rot: (s + 90 * c) % 360, n: r + 1 }), ['co', 'rot', 'n']); },
+  ],
+};
+function row(f, shown, vary) { const items = Array.from({ length: shown + 1 }, (_, i) => f(i)); const answer = items[shown]; items[shown] = null; return { kind: 'row', items, answer, vary }; }
+function cycle(pat, attr) {
+  const vals = attr === 'co' ? pickN(COS, 3) : pickN(P_SH, 3), fixed = attr === 'co' ? { sh: pick(P_SH) } : { co: pick(COS) };
+  const shown = pat.length * 2 + Math.floor(Math.random() * pat.length);
+  return row(i => Object.assign({}, fixed, { [attr]: vals[pat.charCodeAt(i % pat.length) - 65] }), Math.min(shown, 8), [attr]);
+}
+function grid(f, vary) { const items = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) items.push(f(r, c)); const answer = items[8]; items[8] = null; return { kind: 'grid', items, answer, vary }; }
+// wrong answers: the right one with one thing changed, mostly the things this puzzle is about
+function wrongs(q, k) {
+  const a = q.answer, used = { co: [...new Set(q.items.filter(Boolean).map(s => s.co))], sh: [...new Set(q.items.filter(Boolean).map(s => s.sh))] };
+  const muts = [];
+  const add = s => { if (pKey(s) !== pKey(a) && !muts.some(m => pKey(m) === pKey(s))) muts.push(s); };
+  for (let tries = 0; tries < 60 && muts.length < k; tries++) {
+    const attr = Math.random() < .8 ? pick(q.vary) : pick(['co', 'sh', 'n']);
+    const s = Object.assign({}, a);
+    if (attr === 'co') s.co = pick(used.co.length > 1 && Math.random() < .7 ? used.co : COS);
+    if (attr === 'sh') { if (a.sh === 'arrow') { s.rot = ((a.rot || 0) + pick([90, 180, 270])) % 360; } else s.sh = pick(used.sh.length > 1 && Math.random() < .7 ? used.sh : P_SH); }
+    if (attr === 'n') s.n = clamp((a.n || 1) + pick([-1, 1, 2]), 1, 6);
+    if (attr === 'rot') s.rot = ((a.rot || 0) + pick([90, 180, 270])) % 360;
+    if (attr === 'sz') s.sz = pick([.4, .5, .6, .8, 1].filter(v => v !== (a.sz || 1)));
+    add(s);
+  }
+  return muts.slice(0, k);
+}
+let pat = { lv: store.get('patLv') || 1, run: 0, missRun: 0, q: null, missed: false, busy: false };
+function patLvl() {
+  el('patLvl').innerHTML = [1, 2, 3, 4, 5, 6].map(i => `<span class="${i <= pat.lv ? 'on' : ''}"></span>`).join('');
+  el('patLvl').dataset.say = `Level ${pat.lv}`;
+}
+function patNew() {
+  pat.q = pick(P_GEN[pat.lv])(); pat.missed = false; pat.busy = false;
+  const q = pat.q;
+  el('patQ').className = 'patq ' + q.kind;
+  el('patQ').innerHTML = q.items.map(s => s ? `<span class="pt">${pItem(s)}</span>` : `<span class="pt gap">?</span>`).join('');
+  const opts = shuffle([q.answer, ...wrongs(q, pat.lv >= 5 ? 3 : 2)]);
+  el('patOpts').className = 'opts' + (opts.length === 4 ? ' four' : '');
+  el('patOpts').innerHTML = opts.map(s => `<button class="opt pic" data-k='${pKey(s)}'>${pItem(s)}</button>`).join('');
+  patLvl();
+  setTimeout(() => { if (screen === 'pattern') say(q.kind === 'grid' ? 'Which one fills the gap?' : 'What comes next?'); }, 250);
+}
+enter.pattern = () => patNew();
+el('patOpts').onclick = async e => {
+  const b = e.target.closest('.opt'); if (!b || pat.busy || b.disabled) return;
+  if (b.dataset.k === pKey(pat.q.answer)) {
+    pat.busy = true;
+    b.classList.add('right'); sfx.yay(); buddy('cheer'); petFun(3);
+    const g = $$('.gap', el('patQ'))[0]; if (g) { g.classList.remove('gap'); g.classList.add('pop'); g.innerHTML = pItem(pat.q.answer); }
+    addCoins(pat.missed ? 1 : 2 + Math.ceil(pat.lv / 2), b);
+    let msg = pick(['Yes!', 'You got it!', 'Clever!', 'That’s right!']);
+    if (!pat.missed) { pat.missRun = 0; if (++pat.run >= 3 && pat.lv < 6) { pat.lv++; pat.run = 0; store.set('patLv', pat.lv); msg += ' Ooh, now some trickier ones!'; } }
+    await say(msg); await wait(400);
+    if (screen === 'pattern') patNew();
+  } else {
+    b.disabled = true; b.classList.add('out'); sfx.oops(); buddy('think');
+    if (!pat.missed) {
+      pat.missed = true; pat.run = 0;
+      if (++pat.missRun >= 2 && pat.lv > 1) { pat.lv--; pat.missRun = 0; store.set('patLv', pat.lv); patLvl(); }
+    }
+    say('Not that one. Look again!');
+  }
+};
+
+/* ---------- mazes: drag the pet to its treat ----------
+   Made for small, wobbly fingers: the pet follows the finger but can't go through
+   a wall. Pushed into one, it slides along it, staying as close to the finger as it
+   can, so she can keep dragging even when her finger wanders off the path. */
+const MAZE_SIZES = [['Little', 4], ['Medium', 6], ['Big', 8]];
+let mzSize = store.get('mazeSize') || 4;
+let mz = null;
+const mzImgs = {};
+function mazeGen(n) {
+  // recursive backtracker: right[r][c] / down[r][c] say whether that wall is there
+  const right = Array.from({ length: n }, () => Array(n).fill(true)), down = Array.from({ length: n }, () => Array(n).fill(true));
+  const seen = Array.from({ length: n }, () => Array(n).fill(false)), st = [[0, 0]];
+  seen[0][0] = true;
+  while (st.length) {
+    const [r, c] = st.at(-1);
+    const nb = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].filter(([a, b]) => a >= 0 && b >= 0 && a < n && b < n && !seen[a][b]);
+    if (!nb.length) { st.pop(); continue; }
+    const [a, b] = pick(nb);
+    if (a > r) down[r][c] = false; else if (a < r) down[a][b] = false; else if (b > c) right[r][c] = false; else right[a][b] = false;
+    seen[a][b] = true; st.push([a, b]);
+  }
+  return { right, down };
+}
+function mazeLayout() {
+  const wrap = el('mazeWrap'), cv = el('mazeCanvas'), r = wrap.getBoundingClientRect();
+  const s = Math.floor(Math.min(r.width - 20, r.height - 16)), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.style.width = cv.style.height = s + 'px'; cv.width = cv.height = s * dpr;
+  if (!mz) return;
+  const old = mz.cell;
+  mz.px = s; mz.dpr = dpr; mz.pad = s * .04; mz.cell = (s - 2 * mz.pad) / mz.n;
+  mz.r = mz.cell * .3; mz.w = Math.max(5, mz.cell * .12);
+  if (old) { mz.x = mz.pad + (mz.x - mz.pad0) / old * mz.cell; mz.y = mz.pad + (mz.y - mz.pad0) / old * mz.cell; mz.trail = mz.trail.map(([x, y]) => [mz.pad + (x - mz.pad0) / old * mz.cell, mz.pad + (y - mz.pad0) / old * mz.cell]); }
+  mz.pad0 = mz.pad;
+  // every wall as a line segment (in CSS pixels)
+  const { right, down } = mz.walls, n = mz.n, P = mz.pad, C = mz.cell, seg = [];
+  seg.push([P, P, P + n * C, P], [P, P, P, P + n * C], [P + n * C, P, P + n * C, P + n * C], [P, P + n * C, P + n * C, P + n * C]);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (right[r][c] && c < n - 1) seg.push([P + (c + 1) * C, P + r * C, P + (c + 1) * C, P + (r + 1) * C]);
+    if (down[r][c] && r < n - 1) seg.push([P + c * C, P + (r + 1) * C, P + (c + 1) * C, P + (r + 1) * C]);
+  }
+  mz.seg = seg;
+  if (!old) { mz.x = P + C / 2; mz.y = P + C / 2; mz.trail = [[mz.x, mz.y]]; }
+  mazeDraw();
+}
+function segDist(px, py, [x1, y1, x2, y2]) {
+  const dx = x2 - x1, dy = y2 - y1, t = clamp(((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+  return Math.hypot(px - x1 - t * dx, py - y1 - t * dy);
+}
+const mzFree = (x, y) => mz.seg.every(s => segDist(x, y, s) >= mz.r + mz.w / 2);
+// move towards the finger in small steps; blocked, try sliding along the wall (just across, or just up and down)
+function mazeFollow(tx, ty) {
+  for (let i = 0; i < 80; i++) {
+    const dx = tx - mz.x, dy = ty - mz.y, d = Math.hypot(dx, dy);
+    if (d < .5) break;
+    const step = Math.min(d, mz.cell * .12), sx = dx / d * step, sy = dy / d * step;
+    if (mzFree(mz.x + sx, mz.y + sy)) { mz.x += sx; mz.y += sy; }
+    else if (Math.abs(sx) > .05 && mzFree(mz.x + sx, mz.y)) mz.x += sx;
+    else if (Math.abs(sy) > .05 && mzFree(mz.x, mz.y + sy)) mz.y += sy;
+    else break;
+  }
+  const last = mz.trail.at(-1);
+  if (Math.hypot(mz.x - last[0], mz.y - last[1]) > mz.cell * .18) mz.trail.push([mz.x, mz.y]);
+}
+function mazeDraw() {
+  const g = el('mazeCanvas').getContext('2d'), s = mz.px;
+  g.setTransform(mz.dpr, 0, 0, mz.dpr, 0, 0);
+  g.clearRect(0, 0, s, s);
+  g.fillStyle = '#fffafd'; g.beginPath(); g.roundRect(0, 0, s, s, 22); g.fill();
+  g.fillStyle = '#ffd6ec';
+  for (const [x, y] of mz.trail) { g.beginPath(); g.arc(x, y, mz.cell * .07, 0, 7); g.fill(); }
+  g.strokeStyle = '#8f5cff'; g.lineWidth = mz.w; g.lineCap = 'round';
+  g.beginPath(); for (const [a, b, c, d] of mz.seg) { g.moveTo(a, b); g.lineTo(c, d); } g.stroke();
+  const tc = mz.pad + (mz.n - .5) * mz.cell, ts = mz.cell * .72;
+  if (!mz.won && mzImgs.treat) g.drawImage(mzImgs.treat, tc - ts / 2, tc - ts / 2, ts, ts);
+  const ps = mz.r * 2.9;
+  if (mzImgs.pet) g.drawImage(mzImgs.pet, mz.x - ps / 2, mz.y - ps * .58, ps, ps);
+}
+async function mazeNew() {
+  el('mazeDone').classList.add('hidden');
+  mz = { n: mzSize, walls: mazeGen(mzSize), won: false, drag: null, cell: 0 };
+  const treat = pick(['1F34E', '1F353', '1F36A', '1F9C1', '1F955', '1F368', '1F382']);
+  mz.treatName = { '1F34E': 'apple', '1F353': 'strawberry', '1F36A': 'cookie', '1F9C1': 'cupcake', '1F955': 'carrot', '1F368': 'ice cream', '1F382': 'cake' }[treat];
+  const load = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  [mzImgs.treat, mzImgs.pet] = await Promise.all([load(iconUrl(treat)), load(petUrl({ eyes: 'happy', mouth: 'grin' }))]);
+  mazeLayout();
+  say(`Help ${pet.name} find the ${mz.treatName}!`);
+}
+function mazeChips() {
+  el('mazeSizes').innerHTML = MAZE_SIZES.map(([nm, n]) => `<button class="chip${n === mzSize ? ' on' : ''}" data-n="${n}" data-say="${nm}">${nm}</button>`).join('');
+}
+enter.maze = () => { mazeChips(); mz = null; requestAnimationFrame(mazeNew); };
+el('mazeSizes').onclick = e => { const c = e.target.closest('[data-n]'); if (!c) return; mzSize = +c.dataset.n; store.set('mazeSize', mzSize); mazeChips(); mazeNew(); };
+el('mazeAgain').onclick = mazeNew;
+new ResizeObserver(() => { if (screen === 'maze' && mz) mazeLayout(); }).observe(el('mazeWrap'));
+const mzPoint = e => { const r = el('mazeCanvas').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+el('mazeCanvas').addEventListener('pointerdown', e => {
+  if (!mz || mz.won || !mz.seg) return;
+  e.preventDefault(); el('mazeCanvas').setPointerCapture(e.pointerId); mz.drag = e.pointerId;
+  mazeFollow(...mzPoint(e)); mazeDraw();
+});
+el('mazeCanvas').addEventListener('pointermove', e => {
+  if (!mz || mz.drag !== e.pointerId || mz.won) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  for (const ev of (evs.length ? evs : [e])) mazeFollow(...mzPoint(ev));
+  mazeDraw();
+  const tc = mz.pad + (mz.n - .5) * mz.cell;
+  if (Math.hypot(mz.x - tc, mz.y - tc) < mz.cell * .4) mazeWin();
+});
+const mzUp = e => { if (mz && mz.drag === e.pointerId) mz.drag = null; };
+el('mazeCanvas').addEventListener('pointerup', mzUp);
+el('mazeCanvas').addEventListener('pointercancel', mzUp);
+async function mazeWin() {
+  mz.won = true; mz.drag = null;
+  for (let i = 0; i < 3; i++) { sfx.munch(); await wait(220); }
+  mazeDraw(); sfx.yay(); buddy('party'); petFun(10);
+  addCoins(mzSize === 4 ? 3 : mzSize === 6 ? 5 : 8, el('mazeCanvas'));
+  const m = `Yum! ${pet.name} found the ${mz.treatName}!`;
+  el('mazeMsg').textContent = m; el('mazeDone').classList.remove('hidden');
+  say(m);
+}
+
+/* ---------- first steps to chess: the pawn game, and one-piece star puzzles ---------- */
+const PIECE_SVG = {
+  pawn: '<circle cx="50" cy="30" r="13"/><path d="M34 82 C34 64 43 56 44 46 h12 c1 10 10 18 10 36 z"/><ellipse cx="50" cy="46" rx="14" ry="5"/>',
+  rook: '<path d="M30 82 L34 46 H66 L70 82 Z"/><path d="M28 46 V22 h10 v8 h7 v-8 h10 v8 h7 v-8 h10 v24 Z"/>',
+  bishop: '<path d="M36 82 C36 66 44 60 45 56 h10 c1 4 9 10 9 26 z"/><path d="M50 20 C65 31 67 45 57 56 H43 C33 45 35 31 50 20 Z"/><path d="M54 30 L46 42" fill="none"/><circle cx="50" cy="15" r="5"/>',
+  queen: '<path d="M32 82 L39 50 H61 L68 82 Z"/><path d="M28 26 L37 50 H63 L72 26 L59 38 L50 20 L41 38 Z"/><circle cx="28" cy="24" r="5"/><circle cx="50" cy="16" r="5"/><circle cx="72" cy="24" r="5"/>',
+  king: '<path d="M34 82 L40 50 H60 L66 82 Z"/><path d="M36 50 C29 36 42 26 50 35 C58 26 71 36 64 50 Z"/><path d="M50 6 v22 M42 14 h16" fill="none" stroke-width="6"/>',
+  knight: '<path d="M30 82 C30 66 40 59 46 53 C40 52 30 57 24 51 C19 45 27 37 33 33 C37 22 48 14 58 16 C73 20 77 42 70 82 Z"/><circle cx="46" cy="30" r="3" fill="#4a3159" stroke="none"/><path d="M58 18 C62 30 64 44 62 56" fill="none"/>',
+};
+const pieceSvg = (k, col) => `<svg viewBox="0 0 100 100"><g fill="${col === 'w' ? '#fff' : '#b48cff'}" stroke="#4a3159" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><rect x="24" y="80" width="52" height="9" rx="4"/>${PIECE_SVG[k]}</g></svg>`;
+const CHESS_MODES = [['pawns', 'Pawn game'], ['rook', 'Rook'], ['bishop', 'Bishop'], ['queen', 'Queen'], ['king', 'King'], ['knight', 'Knight']];
+const PIECE_TELL = {
+  rook: 'The rook goes in straight lines. Up, down, and side to side, as far as it likes.',
+  bishop: 'The bishop goes on the slants, corner to corner, as far as it likes.',
+  queen: 'The queen can go straight, or on the slants, as far as she likes!',
+  king: 'The king takes one step at a time, any way he likes.',
+  knight: 'The knight jumps in an L. Two squares one way, then one to the side. It can jump over things!',
+};
+let chMode = store.get('chessMode') || 'pawns';
+let ch = null;
+const N6 = 6, onB = (r, c) => r >= 0 && c >= 0 && r < N6 && c < N6;
+
+function chessChips() {
+  el('chessModes').innerHTML = CHESS_MODES.map(([id, n]) => `<button class="chip${chMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('');
+}
+function drawBoard(cellFn) {
+  let h = '';
+  for (let r = 0; r < N6; r++) for (let c = 0; c < N6; c++) {
+    const x = cellFn(r, c);
+    h += `<button class="sq ${(r + c) % 2 ? 'd' : 'l'}${x.cls ? ' ' + x.cls : ''}" data-r="${r}" data-c="${c}">${x.html || ''}${x.dot ? `<i class="dot${x.dot === 'take' ? ' take' : ''}"></i>` : ''}</button>`;
+  }
+  el('cboard').innerHTML = h;
+}
+const chMsg = (m, speak = true) => { el('chessMsg').textContent = m; if (speak) return say(m); };
+enter.chess = () => { chessChips(); chessStart(true); };
+leave.chess = () => { if (ch) ch.gone = true; };
+el('chessModes').onclick = e => { const c = e.target.closest('[data-m]'); if (!c) return; chMode = c.dataset.m; store.set('chessMode', chMode); chessChips(); chessStart(true); };
+el('chessAgain').onclick = () => chessStart(false);
+function chessStart(intro) {
+  if (ch) ch.gone = true;
+  if (chMode === 'pawns') pawnStart(intro); else puzzleStart(intro);
+}
+
+/* the pawn game: pawns only, on a small board. First to the far side wins */
+function pawnStart(intro) {
+  const b = Array.from({ length: N6 }, () => Array(N6).fill(null));
+  for (let c = 0; c < N6; c++) { b[1][c] = 'b'; b[N6 - 2][c] = 'w'; }
+  ch = { mode: 'pawns', b, sel: null, turn: 'w', over: false, last: null };
+  pawnDraw();
+  if (intro) chMsg('Pawns walk forward, one square. On their first go, they can walk two. They take by stepping on the slant. Get a pawn to the other side to win!');
+  else chMsg('Your turn!');
+}
+function pawnMoves(b, col) {
+  const out = [], dir = col === 'w' ? -1 : 1, home = col === 'w' ? N6 - 2 : 1, them = col === 'w' ? 'b' : 'w';
+  for (let r = 0; r < N6; r++) for (let c = 0; c < N6; c++) {
+    if (b[r][c] !== col) continue;
+    if (onB(r + dir, c) && !b[r + dir][c]) {
+      out.push({ f: [r, c], t: [r + dir, c] });
+      if (r === home && !b[r + 2 * dir][c]) out.push({ f: [r, c], t: [r + 2 * dir, c] });
+    }
+    for (const dc of [-1, 1]) if (onB(r + dir, c + dc) && b[r + dir][c + dc] === them) out.push({ f: [r, c], t: [r + dir, c + dc], take: true });
+  }
+  return out;
+}
+function pawnDraw() {
+  const opts = ch.sel ? pawnMoves(ch.b, 'w').filter(m => m.f[0] === ch.sel[0] && m.f[1] === ch.sel[1]) : [];
+  drawBoard((r, c) => {
+    const p = ch.b[r][c], o = opts.find(m => m.t[0] === r && m.t[1] === c);
+    const sel = ch.sel && ch.sel[0] === r && ch.sel[1] === c, last = ch.last && ch.last[0] === r && ch.last[1] === c;
+    return { html: p ? pieceSvg('pawn', p) : '', dot: o ? (o.take ? 'take' : 'go') : '', cls: (sel ? 'sel' : '') + (last ? ' last' : '') };
+  });
+}
+function pawnApply(m) {
+  const col = ch.b[m.f[0]][m.f[1]];
+  ch.b[m.t[0]][m.t[1]] = col; ch.b[m.f[0]][m.f[1]] = null; ch.last = m.t;
+  m.take ? sfx.munch() : sfx.pop();
+}
+function pawnWinner(justMoved) {
+  const other = justMoved === 'w' ? 'b' : 'w';
+  if (ch.b[justMoved === 'w' ? 0 : N6 - 1].includes(justMoved)) return [justMoved, 'reached the other side'];
+  if (!ch.b.flat().includes(other)) return [justMoved, 'took every pawn'];
+  if (!pawnMoves(ch.b, other).length) return [justMoved, other === 'w' ? 'You can’t move' : 'I can’t move'];
+  return null;
+}
+async function pawnEnd(w) {
+  ch.over = true; pawnDraw();
+  if (w[0] === 'w') { sfx.yay(); buddy('party'); petFun(15); addCoins(8, el('chessMsg')); await chMsg(w[1] === 'You can’t move' ? 'You win!' : `You ${w[1]}! You win!`); }
+  else { sfx.oops(); buddy('think'); petFun(8); await chMsg(w[1] === 'You can’t move' ? 'You can’t move, so I win this time!' : `I ${w[1]}. I win this time! Try again?`); }
+}
+// a friendly opponent: likes to win and to take, sometimes careful, often not
+function pawnAI() {
+  const ms = pawnMoves(ch.b, 'b');
+  if (Math.random() < .3) return pick(ms);
+  const attacked = (r, c) => [-1, 1].some(dc => onB(r + 1, c + dc) && ch.b[r + 1][c + dc] === 'w');
+  let best = null, bs = -1e9;
+  for (const m of ms) {
+    let s = Math.random() * 12;
+    if (m.t[0] === N6 - 1) s += 100;
+    if (m.take) s += 10;
+    if (attacked(m.t[0], m.t[1])) s -= 8;
+    if (s > bs) { bs = s; best = m; }
+  }
+  return best;
+}
+async function pawnTap(r, c) {
+  if (ch.over || ch.turn !== 'w') return;
+  if (ch.b[r][c] === 'w') { ch.sel = [r, c]; sfx.flip(); pawnDraw(); return; }
+  if (!ch.sel) return;
+  const m = pawnMoves(ch.b, 'w').find(m => m.f[0] === ch.sel[0] && m.f[1] === ch.sel[1] && m.t[0] === r && m.t[1] === c);
+  if (!m) { ch.sel = null; pawnDraw(); return; }
+  ch.sel = null; pawnApply(m); pawnDraw();
+  let w = pawnWinner('w'); if (w) return pawnEnd(w);
+  ch.turn = 'b'; chMsg('My turn…', false);
+  const me = ch; await wait(700 + Math.random() * 500); if (me.gone) return;
+  pawnApply(pawnAI()); pawnDraw();
+  w = pawnWinner('b'); if (w) return pawnEnd(w);
+  ch.turn = 'w'; chMsg('Your turn!', false);
+}
+
+/* piece puzzles: one piece, some stars; land on every star. A star is in the way, like a piece would be */
+function pieceMoves(kind, [r, c], stars) {
+  const out = [], has = (a, b) => stars.some(s => s[0] === a && s[1] === b);
+  const slide = dirs => { for (const [dr, dc] of dirs) for (let k = 1; onB(r + dr * k, c + dc * k); k++) { out.push([r + dr * k, c + dc * k]); if (has(r + dr * k, c + dc * k)) break; } };
+  const step = ds => { for (const [dr, dc] of ds) if (onB(r + dr, c + dc)) out.push([r + dr, c + dc]); };
+  const ORTH = [[1, 0], [-1, 0], [0, 1], [0, -1]], DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  if (kind === 'rook') slide(ORTH);
+  if (kind === 'bishop') slide(DIAG);
+  if (kind === 'queen') slide([...ORTH, ...DIAG]);
+  if (kind === 'king') step([...ORTH, ...DIAG]);
+  if (kind === 'knight') step([[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]);
+  return out;
+}
+// made by walking the piece about and dropping a star wherever it lands, then checking it still works with all the stars out
+function makePuzzle(kind, n) {
+  for (let tries = 0; tries < 400; tries++) {
+    const start = [Math.floor(Math.random() * N6), Math.floor(Math.random() * N6)];
+    const path = [];
+    let cur = start;
+    for (let k = 0; k < n; k++) {
+      const opts = pieceMoves(kind, cur, []).filter(([a, b]) => !(a === start[0] && b === start[1]) && !path.some(p => p[0] === a && p[1] === b));
+      if (!opts.length) break;
+      cur = pick(opts); path.push(cur);
+    }
+    if (path.length < n) continue;
+    // replay with every star on the board
+    let ok = true, at = start, left = path.slice();
+    for (const t of path) {
+      if (!pieceMoves(kind, at, left).some(m => m[0] === t[0] && m[1] === t[1])) { ok = false; break; }
+      left = left.filter(s => s !== t); at = t;
+    }
+    if (ok) return { start, stars: path };
+  }
+  return null;
+}
+function puzzleStart(intro) {
+  const kind = chMode, n = store.get('pz:' + kind) || 3;
+  const pz = makePuzzle(kind, n) || makePuzzle(kind, 3);
+  ch = { mode: 'puzzle', kind, at: pz.start, stars: pz.stars.slice(), n: pz.stars.length, moves: 0, over: false };
+  puzzleDraw();
+  chMsg(intro ? `${PIECE_TELL[kind]} Collect all the stars!` : 'Collect all the stars!');
+}
+function puzzleDraw() {
+  const opts = ch.over ? [] : pieceMoves(ch.kind, ch.at, ch.stars);
+  drawBoard((r, c) => {
+    const here = ch.at[0] === r && ch.at[1] === c, star = ch.stars.some(s => s[0] === r && s[1] === c), can = opts.some(m => m[0] === r && m[1] === c);
+    return { html: here ? pieceSvg(ch.kind, 'w') : star ? iconImg('2B50', 'star') : '', dot: can && !star ? 'go' : '', cls: (can && star ? 'reach' : '') + (here ? ' sel' : '') };
+  });
+}
+async function puzzleTap(r, c) {
+  if (ch.over) return;
+  if (!pieceMoves(ch.kind, ch.at, ch.stars).some(m => m[0] === r && m[1] === c)) {
+    if (!(ch.at[0] === r && ch.at[1] === c)) { sfx.oops(); say(ch.kind === 'knight' ? 'The knight can’t go there. Look for the dots!' : `The ${ch.kind} can’t go there. Look for the dots!`); }
+    return;
+  }
+  ch.at = [r, c]; ch.moves++;
+  const before = ch.stars.length;
+  ch.stars = ch.stars.filter(s => !(s[0] === r && s[1] === c));
+  if (ch.stars.length < before) { sfx.coin(); buddy('cheer'); } else sfx.pop();
+  if (!ch.stars.length) {
+    ch.over = true; puzzleDraw();
+    sfx.yay(); buddy('party'); petFun(8); addCoins(ch.n, el('chessMsg'));
+    store.set('pz:' + ch.kind, Math.min(7, ch.n + 1));
+    await chMsg(`All the stars, in ${ch.moves} moves! Well done!`);
+    await wait(600); if (!ch.gone && screen === 'chess') puzzleStart(false);
+    return;
+  }
+  puzzleDraw();
+  chMsg(`${ch.stars.length} star${ch.stars.length === 1 ? '' : 's'} to go`, false);
+}
+el('cboard').onclick = e => {
+  const s = e.target.closest('.sq'); if (!s || !ch) return;
+  const r = +s.dataset.r, c = +s.dataset.c;
+  if (ch.mode === 'pawns') pawnTap(r, c); else puzzleTap(r, c);
 };
 
 /* ---------- start ---------- */
