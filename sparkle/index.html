@@ -444,6 +444,45 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .sq .dot.take { width: 86%; height: 86%; background: none; border: 5px solid rgba(255,79,163,.75); }
 #chessMsg { font-size: 19px; min-height: 2.8em; }
 
+.ear { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 8px 0 16px; }
+.earshow { display: flex; flex-direction: column; gap: 16px; min-height: 120px; align-items: center; justify-content: center; }
+.earshow:has(.pn) { flex-direction: row; gap: 40px; }
+.tune { display: flex; gap: 12px; }
+.tune i { width: 34px; height: 34px; border-radius: 50%; background: var(--purple-3); transition: transform .15s, background .15s; }
+.tune i.on { background: var(--pink); transform: scale(1.25); }
+.moodnote { font-size: 70px; color: var(--purple-2); }
+.ud svg { width: 70px; height: 70px; }
+.sing { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 6px 0 14px; }
+.singmeter { position: relative; width: min(80vw, 340px); height: min(44vh, 320px); border-radius: 26px; background: linear-gradient(#e7f3ff, #fff0f8); box-shadow: 0 5px 0 #e3d0f5; overflow: hidden; }
+.singmeter .band { position: absolute; left: 0; right: 0; top: 50%; height: 20%; transform: translateY(-50%); background: rgba(143,92,255,.14); border-top: 3px dashed var(--purple-2); border-bottom: 3px dashed var(--purple-2); }
+.singmeter.close .band { background: rgba(76,209,138,.25); border-color: #4cd18a; }
+.singpet { position: absolute; left: 50%; top: 50%; width: 38%; transform: translate(-50%, calc(-50% + var(--y, 0) * 140%)); transition: transform .12s linear; }
+.singhint { position: absolute; right: 14px; top: 10px; font-size: 44px; font-weight: 900; color: var(--pink); }
+.singbar { width: min(80vw, 340px); height: 16px; border-radius: 9px; background: #f2e9f8; overflow: hidden; }
+.singbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8fe3a8, #4cd18a); transition: width .1s; }
+#tilesWrap { position: relative; flex: 1; min-height: 0; margin: 0 10px 14px; border-radius: 22px; overflow: hidden; box-shadow: 0 5px 0 #e3d0f5; background: #fff; }
+#tilesCanvas { display: block; touch-action: none; }
+#tilesOver { background: rgba(255,255,255,.82); }
+#tilesOver .chips { justify-content: center; }
+#instWrap { flex: 1; min-height: 0; padding: 6px 12px 18px; touch-action: none; }
+#instWrap.xylo { display: flex; gap: 6px; align-items: center; justify-content: center; }
+.bar2 { flex: 1; max-width: 86px; height: var(--h); border: 3px solid #4a3159; border-radius: 14px; background: var(--c); position: relative; padding: 0; box-shadow: 0 6px 0 rgba(74,49,89,.35); touch-action: none; }
+.bar2 i { position: absolute; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #e9e0d0; border: 2px solid #4a3159; }
+.bar2 i:first-child { top: 10%; } .bar2 i:last-child { bottom: 10%; }
+.bar2.hit { animation: barhit .3s; }
+@keyframes barhit { 30% { transform: scale(.94, .98); filter: brightness(1.25); } }
+#instWrap.drum { display: grid; place-items: center; }
+#instWrap.drum svg { width: min(94vw, 64vh, 520px); height: auto; touch-action: none; }
+.shell { fill: #b9a3d9; stroke: #4a3159; stroke-width: 5; }
+.mid { fill: #a68bcf; }
+.hub { fill: #8f5cff; stroke: #4a3159; stroke-width: 4; }
+.tongue { fill: #d8c8f0; stroke: #4a3159; stroke-width: 4; cursor: pointer; }
+.tongue.hit { animation: tonguehit .5s; }
+@keyframes tonguehit { 20% { fill: #fff2a8; } }
+.chip { white-space: nowrap; }
+.updown { width: 100%; max-width: 460px; justify-content: center; padding: 0 8px; }
+.ud { min-width: 0; flex: 1; max-width: 150px; padding: 10px 6px; }
+
 </style>
 </head>
 <body>
@@ -631,10 +670,14 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <div class="chips" id="musModes"></div>
     <div class="msg" id="musMsg"></div>
     <div class="pads" id="pads"></div>
-    <div class="pitch hidden" id="pitch">
-      <div class="pitchshow" id="pitchShow"></div>
-      <div class="updown"><button class="ud" data-a="up" data-say="Higher"><img alt="" data-icon="1F426"><span>Higher</span></button><button class="ud" data-a="down" data-say="Lower"><img alt="" data-icon="1F43B"><span>Lower</span></button></div>
-      <div class="lvl" id="pitchLvl"></div>
+    <div class="ear hidden" id="ear">
+      <div class="earshow" id="earShow"></div>
+      <div class="updown" id="earBtns"></div>
+      <div class="lvl" id="earLvl"></div>
+    </div>
+    <div class="sing hidden" id="sing">
+      <div class="singmeter" id="singMeter"><div class="band"></div><img class="singpet" id="singPet" alt=""><div class="singhint" id="singHint"></div></div>
+      <div class="singbar"><i id="singFill"></i></div>
     </div>
     <p class="center"><button class="big" id="musGo" data-say="Listen">Listen</button></p>
   </div></div>
@@ -666,6 +709,21 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <div class="cboard" id="cboard"></div>
     <p class="center"><button class="big soft" id="chessAgain" data-say="Start again">Start again</button></p>
   </div></div>
+</section>
+
+
+<!-- SONG TILES -->
+<section class="screen hidden" id="s-tiles">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Song tiles">Song tiles</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="chips" id="tileSongs" style="padding:0 12px 8px"></div>
+  <div id="tilesWrap"><canvas id="tilesCanvas"></canvas><div class="overlay" id="tilesOver"><div class="msg" id="tilesMsg"></div><div class="chips center" id="tileSpeeds"></div><button class="big" id="tilesGo" data-say="Play">Play</button></div></div>
+</section>
+
+<!-- PLAY AN INSTRUMENT -->
+<section class="screen hidden" id="s-play">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Xylophone">Xylophone</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="chips center" id="instChips" style="padding:0 12px 8px"></div>
+  <div id="instWrap"></div>
 </section>
 
 <dialog id="ask"><p id="askText"></p><div class="row"><button class="big soft" id="askNo">No</button><button class="big" id="askYes">Yes</button></div></dialog>
@@ -1162,7 +1220,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.8';
+const VERSION = '2026-10-25.9';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -1259,7 +1317,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter', music: 's-music', pattern: 's-pattern', maze: 's-maze', chess: 's-chess' };
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter', music: 's-music', pattern: 's-pattern', maze: 's-maze', chess: 's-chess', tiles: 's-tiles', play: 's-play' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {
@@ -1304,6 +1362,8 @@ const GAMES = [
   { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>' },
   { id: 'pattern', name: 'What next?', svg: '<svg viewBox="0 0 84 84"><circle cx="14" cy="42" r="10" fill="#ff6fb8"/><rect x="28" y="32" width="20" height="20" rx="4" fill="#9b6bff"/><circle cx="62" cy="42" r="10" fill="#ff6fb8"/><rect x="58" y="58" width="22" height="22" rx="7" fill="none" stroke="#9b6bff" stroke-width="3" stroke-dasharray="5 4"/><text x="69" y="75" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="16" fill="#9b6bff">?</text></svg>' },
   { id: 'music', name: 'Music', icon: '1F3B9' },
+  { id: 'tiles', name: 'Song tiles', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#efe6ff"/><path d="M24 6v72M42 6v72M60 6v72" stroke="#d9c6ff" stroke-width="2"/><rect x="8" y="14" width="14" height="22" rx="4" fill="#ff4fa3"/><rect x="44" y="30" width="14" height="22" rx="4" fill="#8f5cff"/><rect x="26" y="50" width="14" height="22" rx="4" fill="#ff8cc6"/><rect x="62" y="8" width="14" height="16" rx="4" fill="#b99bff"/></svg>' },
+  { id: 'play', name: 'Xylophone', svg: '<svg viewBox="0 0 84 84"><g stroke="#4a3159" stroke-width="2.5"><rect x="6" y="14" width="10" height="60" rx="4" fill="#ff6b6b"/><rect x="18" y="18" width="10" height="52" rx="4" fill="#ff9f3a"/><rect x="30" y="22" width="10" height="44" rx="4" fill="#ffd23f"/><rect x="42" y="26" width="10" height="36" rx="4" fill="#5fd38b"/><rect x="54" y="30" width="10" height="28" rx="4" fill="#4cb5ff"/><rect x="66" y="34" width="10" height="20" rx="4" fill="#9b6bff"/></g><path d="M58 70l18-16" stroke="#8d5524" stroke-width="4" stroke-linecap="round"/><circle cx="76" cy="54" r="5" fill="#ff4fa3"/></svg>' },
   { id: 'maze', name: 'Maze', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#fff4fb"/><path d="M8 8h68v68H8zM26 8v40M26 62v14M44 26v50M44 26h16M62 8v12M62 44v18M44 44h18" fill="none" stroke="#8f5cff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="17" r="6" fill="#ff4fa3"/><path d="M68 64l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#ffc93a"/></svg>' },
   { id: 'chess', name: 'Chess', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#ffe3f1"/><path d="M6 24h18V6M42 6v18h18v18h18M6 60h18V42h18v18h18v18M24 78V60M60 24h18" fill="none"/><rect x="24" y="6" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="6" width="18" height="18" rx="0" fill="#ffc6e2"/><rect x="6" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="24" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="6" y="60" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="60" width="18" height="18" fill="#ffc6e2"/><path d="M42 20a8 8 0 0 1 5 14l4 14h5v8H28v-8h5l4-14a8 8 0 0 1 5-14z" fill="#fff" stroke="#4a3159" stroke-width="3" stroke-linejoin="round"/></svg>' },
   { id: 'shelter', name: 'Shelter', icons: ['1F415', '1F49D'] },
@@ -2914,61 +2974,167 @@ el('numOpts').onclick = async e => {
   }
 };
 
-/* ---------- music: copy the tune, and higher or lower ---------- */
-// a soft, bell-ish note
-function note(freq, dur = .45, vol = .22) {
-  if (!opts.sound) return;
+/* ---------- music: listening games, singing, song tiles and instruments ---------- */
+function audio() {
   try {
-    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
     if (ac.state === 'suspended') ac.resume();
-    const t = ac.currentTime, g = ac.createGain();
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.001, t + dur);
-    g.connect(ac.destination);
-    for (const [type, mult, v] of [['triangle', 1, 1], ['sine', 2, .25]]) {
-      const o = ac.createOscillator(), og = ac.createGain();
-      o.type = type; o.frequency.setValueAtTime(freq * mult, t); og.gain.value = v;
-      o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + .05);
+    return ac;
+  } catch { return null; }
+}
+// one note. kinds: 'bell' (the games), 'xylo' (a wooden bar), 'drum' (a steel tongue drum), 'tick'
+function note(freq, dur = .45, vol = .22, kind = 'bell', when = 0) {
+  if (!opts.sound) return;
+  const a = audio(); if (!a) return;
+  try {
+    const t = a.currentTime + when, g = a.createGain();
+    const parts = kind === 'xylo' ? [['sine', 1, 1, dur], ['sine', 3.98, .35, .08], ['sine', 10.1, .12, .03]]
+      : kind === 'drum' ? [['sine', 1, 1, dur], ['sine', 2.01, .18, dur * .5], ['sine', 3.02, .06, .4]]
+      : kind === 'tick' ? [['triangle', 1, 1, .05]]
+      : [['triangle', 1, 1, dur], ['sine', 2, .25, dur]];
+    g.gain.value = vol; g.connect(a.destination);
+    for (const [type, mult, v, d] of parts) {
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq * mult, t);
+      if (kind === 'drum' && mult === 1) o.frequency.exponentialRampToValueAtTime(freq * .997, t + d);
+      og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(v, t + (kind === 'drum' ? .008 : .004)); og.gain.exponentialRampToValueAtTime(.0005, t + d);
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + d + .05);
     }
   } catch {}
 }
 const semis = (base, n) => base * Math.pow(2, n / 12);
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);                       // MIDI number to frequency
+const NN = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const midi = s => { const m = s.match(/^([A-G])(#|b)?(\d)$/); return 12 * (+m[3] + 1) + NN[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
 
-// four singers, low to high: the bear sings low, the bird sings high
+/* =========== the listening games =========== */
 const PADS = [
   { i: '1F43B', name: 'bear', f: 261.63, c: '#c99a6e' }, { i: '1F438', name: 'frog', f: 329.63, c: '#7fd67a' },
   { i: '1F431', name: 'cat', f: 392.0, c: '#ffb36b' }, { i: '1F426', name: 'bird', f: 523.25, c: '#7fc8ff' },
 ];
-const MUS_MODES = [['copy', 'Copy the tune'], ['pitch', 'Higher or lower']];
+const MUS_MODES = [['copy', 'Copy the tune'], ['pitch', 'Up or down'], ['same', 'Same or different'], ['mood', 'Happy or sad'], ['sing', 'Sing it']];
 let musMode = store.get('musMode') || 'copy';
+if (!MUS_MODES.some(m => m[0] === musMode)) musMode = 'copy';
 let mus = { seq: [], at: 0, len: 2, misses: 0, busy: true, round: 0 };
-let pit = { lv: store.get('pitchLv') ?? 0, run: 0, q: null, busy: false, missed: false };
-const INTERVALS = [12, 9, 7, 5, 4, 3, 2, 1];   // semitones apart: an octave first, down to the smallest step
+
+/* each ear game: levels (easy to hard), make(level) a question, play(q) it, and the answer buttons.
+   Three right first time in a row: a level harder. A miss: a level easier. */
+const PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+const EAR = {
+  pitch: {
+    levels: [12, 9, 7, 5, 4, 3, 2, 1],                   // semitones apart
+    intro: 'Listen to two notes. Does the second one go up, down, or stay the same?',
+    ask: 'Up, down, or the same?',
+    btns: [['up', '1F426', 'Up'], ['same', '<svg viewBox="0 0 64 64"><path d="M14 24h36M14 40h36" stroke="#8f5cff" stroke-width="8" stroke-linecap="round"/></svg>', 'Same'], ['down', '1F43B', 'Down']],
+    make(lv) {
+      const n = this.levels[lv], r = Math.random(), base = semis(220, 3 + Math.floor(Math.random() * 10));
+      const a = r < .2 ? 'same' : r < .6 ? 'up' : 'down';
+      return { a, f1: a === 'down' ? semis(base, n) : base, f2: a === 'up' ? semis(base, n) : base };
+    },
+    async play(q) { await dots([[q.f1], [q.f2]], 800); },
+    right: q => `Yes! It went ${q.a === 'same' ? 'nowhere. They were the same' : q.a}!`,
+    show(q) { const d = $$('#earShow .pn'); if (d[1]) d[1].style.setProperty('--y', q.a === 'up' ? '-1' : q.a === 'down' ? '1' : '0'); },
+  },
+  same: {
+    // [notes in the tune, how far the changed note moves]
+    levels: [[3, 7], [3, 4], [4, 4], [4, 2], [5, 2], [5, 1]],
+    intro: 'Listen to two little tunes. Are they the same, or different?',
+    ask: 'Same, or different?',
+    btns: [['same', '<svg viewBox="0 0 64 64"><circle cx="20" cy="32" r="13" fill="#ff6fb8" stroke="#4a3159" stroke-width="3"/><circle cx="44" cy="32" r="13" fill="#ff6fb8" stroke="#4a3159" stroke-width="3"/></svg>', 'Same'], ['diff', '<svg viewBox="0 0 64 64"><circle cx="20" cy="32" r="13" fill="#ff6fb8" stroke="#4a3159" stroke-width="3"/><rect x="32" y="19" width="26" height="26" rx="5" fill="#9b6bff" stroke="#4a3159" stroke-width="3"/></svg>', 'Different']],
+    make(lv) {
+      const [len, step] = this.levels[lv], base = 60 + Math.floor(Math.random() * 3);
+      const t1 = Array.from({ length: len }, () => base + pick(PENTA));
+      const t2 = t1.slice(), a = Math.random() < .5 ? 'same' : 'diff';
+      if (a === 'diff') { const i = 1 + Math.floor(Math.random() * (len - 1)); t2[i] += Math.random() < .5 || t2[i] - step < base ? step : -step; }
+      return { a, t1, t2 };
+    },
+    async play(q) {
+      el('earShow').innerHTML = `<div class="tune">${q.t1.map(() => '<i></i>').join('')}</div><div class="tune">${q.t2.map(() => '<i></i>').join('')}</div>`;
+      const rows = $$('#earShow .tune');
+      for (const [k, t] of [[0, q.t1], [1, q.t2]]) {
+        for (let i = 0; i < t.length; i++) { const d = rows[k].children[i]; d.classList.add('on'); note(NOTE(t[i]), .45); await wait(430); d.classList.remove('on'); }
+        if (!k) await wait(500);
+      }
+    },
+    right: q => q.a === 'same' ? 'Yes! They were just the same!' : 'Yes! One note was different!',
+    show() {},
+  },
+  mood: {
+    // how it's played: chord and its notes together, just the chord, just the notes, a little tune
+    levels: ['both', 'chord', 'arp', 'tune'],
+    intro: 'Listen. Does the music sound happy, or sad?',
+    ask: 'Happy, or sad?',
+    btns: [['happy', '2600', 'Happy'], ['sad', '1F327', 'Sad']],
+    make(lv) { return { a: Math.random() < .5 ? 'happy' : 'sad', how: this.levels[lv], root: 57 + Math.floor(Math.random() * 6) }; },
+    async play(q) {
+      el('earShow').innerHTML = '<span class="moodnote">♪</span>';
+      const third = q.a === 'happy' ? 4 : 3, ch = [0, third, 7, 12].map(i => NOTE(q.root + i));
+      const chord = () => ch.forEach((f, i) => note(f, 1.6, .12, 'bell', i * .012));
+      if (q.how === 'both' || q.how === 'chord') { chord(); await wait(1500); }
+      if (q.how === 'both' || q.how === 'arp') { for (const f of ch) { note(f, .6); await wait(330); } await wait(400); }
+      if (q.how === 'tune') {
+        const sc = q.a === 'happy' ? [0, 2, 4, 5, 7, 9, 11, 12] : [0, 2, 3, 5, 7, 8, 10, 12];
+        for (const d of [0, 2, 4, 2, 0, 4, 7]) { note(NOTE(q.root + sc[d]), .5); await wait(360); }
+        chord(); await wait(1300);
+      }
+    },
+    right: q => q.a === 'happy' ? 'Yes! That was happy music!' : 'Yes! That was sad music.',
+    show() {},
+  },
+};
+const earSt = {};
+for (const k of Object.keys(EAR)) earSt[k] = { lv: store.get('ear:' + k) ?? 0, run: 0, q: null, missed: false, busy: false };
+async function dots(groups, ms) {
+  el('earShow').innerHTML = groups.map((_, i) => `<span class="pn" style="--y:0">${i + 1}</span>`).join('');
+  const d = $$('#earShow .pn');
+  for (let i = 0; i < groups.length; i++) { d[i].classList.add('on'); groups[i].forEach(f => note(f, .7)); await wait(ms); d[i].classList.remove('on'); }
+}
+function earLvl() {
+  const E = EAR[musMode], s = earSt[musMode];
+  el('earLvl').innerHTML = E.levels.map((_, i) => `<span class="${i <= s.lv ? 'on' : ''}"></span>`).join('');
+  el('earLvl').dataset.say = `Level ${s.lv + 1}`;
+}
 
 function musChips() {
   el('musModes').innerHTML = MUS_MODES.map(([id, n]) => `<button class="chip${musMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('');
   el('pads').classList.toggle('hidden', musMode !== 'copy');
-  el('pitch').classList.toggle('hidden', musMode !== 'pitch');
+  el('ear').classList.toggle('hidden', !EAR[musMode]);
+  el('sing').classList.toggle('hidden', musMode !== 'sing');
+}
+function goBtn(label, again) {
+  const g = el('musGo');
+  g.textContent = label; g.dataset.say = again ? '' : label;
+  if (again) g.dataset.again = '1'; else delete g.dataset.again;
+  g.classList.remove('hidden');
 }
 enter.music = () => {
+  singStop();
   musChips();
   el('pads').innerHTML = PADS.map((p, i) => `<button class="pad" data-p="${i}" style="--c:${p.c}" aria-label="${p.name}">${iconImg(p.i)}</button>`).join('');
   mus.round++; mus.busy = true; mus.seq = []; mus.len = 2; mus.misses = 0;
-  if (musMode === 'copy') { el('musMsg').textContent = 'Listen to the animals sing, then copy them!'; el('musGo').textContent = 'Listen'; }
-  else { el('musMsg').textContent = 'Do the notes go up, or down?'; el('musGo').textContent = 'Listen'; drawPitchLvl(); el('pitchShow').innerHTML = ''; }
-  el('musGo').classList.remove('hidden'); delete el('musGo').dataset.again; el('musGo').dataset.say = 'Listen';
-  pit.q = null;
-  setTimeout(() => say(el('musMsg').textContent), 250);
+  let intro;
+  if (musMode === 'copy') intro = 'Listen to the animals sing, then copy them!';
+  else if (EAR[musMode]) {
+    const E = EAR[musMode];
+    intro = E.intro; earSt[musMode].q = null;
+    el('earBtns').innerHTML = E.btns.map(([a, i, n]) => `<button class="ud" data-a="${a}" data-say="${n}">${i.startsWith('<') ? i : iconImg(i)}<span>${n}</span></button>`).join('');
+    el('earShow').innerHTML = ''; earLvl();
+  } else { intro = 'Listen to the note, then sing it back. Can you make your pet float on the line?'; el('singPet').src = petUrl({ eyes: 'happy', mouth: 'open' }); el('singHint').textContent = ''; el('singFill').style.width = '0'; }
+  el('musMsg').textContent = intro;
+  goBtn(musMode === 'sing' ? 'Start' : 'Listen');
+  setTimeout(() => say(intro), 250);
 };
-leave.music = () => { mus.round++; mus.busy = true; };
+leave.music = () => { mus.round++; mus.busy = true; singStop(); };
 el('musModes').onclick = e => { const c = e.target.closest('[data-m]'); if (!c) return; musMode = c.dataset.m; store.set('musMode', musMode); enter.music(); };
 el('musGo').onclick = () => {
-  if (el('musGo').dataset.again) { if (!pit.busy) playPair(); return; }
+  if (musMode === 'sing') { el('musGo').classList.add('hidden'); singStart(); return; }
+  if (el('musGo').dataset.again) { const s = earSt[musMode]; if (s && s.q && !s.busy) { s.busy = true; EAR[musMode].play(s.q).then(() => { s.busy = false; }); } return; }
   el('musGo').classList.add('hidden');
   if (musMode === 'copy') { mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4)); playTune(); }
-  else pitchNew();
+  else earNew();
 };
 
-// copy the tune: the animals sing, she taps them back; one longer each time she gets it
+// copy the tune: the animals sing, she taps them back; one longer each time
 function lightPad(i, ms = 380) {
   const b = el('pads').children[i]; if (!b) return;
   b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), ms);
@@ -2993,7 +3159,6 @@ el('pads').addEventListener('pointerdown', async e => {
     mus.busy = true; mus.misses++;
     await wait(300); sfx.oops(); buddy('think');
     if (mus.misses >= 2) {
-      // twice wrong: a shorter tune, so it's never stuck
       mus.misses = 0; mus.len = Math.max(2, mus.len - 1);
       mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4));
       el('musMsg').textContent = 'Let’s try a shorter one!'; await say('Let’s try a shorter one!');
@@ -3012,51 +3177,283 @@ el('pads').addEventListener('pointerdown', async e => {
   }
 });
 
-// higher or lower: two notes, did the second go up or down? closer together as she gets them right
-function drawPitchLvl() {
-  el('pitchLvl').innerHTML = INTERVALS.map((_, i) => `<span class="${i <= pit.lv ? 'on' : ''}"></span>`).join('');
-  el('pitchLvl').dataset.say = `Level ${pit.lv + 1}`;
-}
-async function playPair() {
-  const { a, b } = pit.q;
-  el('pitchShow').innerHTML = `<span class="pn" style="--y:0">1</span><span class="pn" style="--y:0">2</span>`;
-  const [s1, s2] = el('pitchShow').children;
-  s1.classList.add('on'); note(a, .7); await wait(800); s1.classList.remove('on');
-  s2.classList.add('on'); note(b, .7); await wait(800); s2.classList.remove('on');
-}
-async function pitchNew() {
-  pit.busy = true; pit.missed = false;
-  const n = INTERVALS[pit.lv], up = Math.random() < .5;
-  const base = semis(220, 3 + Math.floor(Math.random() * 10));             // somewhere from C4 up
-  pit.q = up ? { a: base, b: semis(base, n), up } : { a: semis(base, n), b: base, up };
+// the listening questions
+async function earNew() {
+  const mode = musMode, E = EAR[mode], s = earSt[mode];
+  s.busy = true; s.missed = false; s.q = E.make(s.lv);
   el('musMsg').textContent = 'Listen…';
   await say('Listen.');
-  await playPair();
-  el('musMsg').textContent = 'Did it go up, or down?';
-  el('musGo').textContent = 'Hear it again'; el('musGo').dataset.again = '1'; el('musGo').dataset.say = ''; el('musGo').classList.remove('hidden');
-  pit.busy = false;
+  if (musMode !== mode || screen !== 'music') return;
+  await E.play(s.q);
+  if (musMode !== mode) return;
+  el('musMsg').textContent = E.ask;
+  goBtn('Hear it again', true);
+  s.busy = false;
 }
-document.querySelector('#pitch .updown').onclick = async e => {
-  const b = e.target.closest('.ud'); if (!b || pit.busy || !pit.q) return;
-  const up = b.dataset.a === 'up';
-  if (up === pit.q.up) {
-    pit.busy = true;
-    const [s1, s2] = el('pitchShow').children;
-    if (s2) s2.style.setProperty('--y', pit.q.up ? '-1' : '1');
+el('earBtns').onclick = async e => {
+  const b = e.target.closest('.ud'), mode = musMode, E = EAR[mode], s = earSt[mode];
+  if (!b || !E || s.busy || !s.q) return;
+  if (b.dataset.a === s.q.a) {
+    s.busy = true;
+    E.show(s.q);
     b.classList.add('right'); setTimeout(() => b.classList.remove('right'), 900);
     sfx.yay(); buddy('cheer'); petFun(2);
-    addCoins(pit.missed ? 1 : 3, b);
-    if (!pit.missed && ++pit.run >= 3 && pit.lv < INTERVALS.length - 1) { pit.lv++; pit.run = 0; store.set('pitchLv', pit.lv); drawPitchLvl(); await say(`Yes! It went ${up ? 'up' : 'down'}! Now a bit trickier.`); }
-    else await say(`Yes! It went ${up ? 'up' : 'down'}!`);
-    if (screen === 'music' && musMode === 'pitch') { el('musGo').classList.add('hidden'); pitchNew(); }
+    addCoins(s.missed ? 1 : 3, b);
+    let m = E.right(s.q);
+    if (!s.missed && ++s.run >= 3 && s.lv < E.levels.length - 1) { s.lv++; s.run = 0; store.set('ear:' + mode, s.lv); earLvl(); m += ' Now a bit trickier.'; }
+    await say(m);
+    if (screen === 'music' && musMode === mode) { el('musGo').classList.add('hidden'); earNew(); }
   } else {
-    pit.run = 0; sfx.oops(); buddy('think');
+    s.run = 0; sfx.oops(); buddy('think');
     b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong');
-    if (!pit.missed && pit.lv > 0) { pit.lv--; store.set('pitchLv', pit.lv); drawPitchLvl(); }
-    pit.missed = true;
-    say('Listen again.').then(() => playPair());
+    if (!s.missed && s.lv > 0) { s.lv--; store.set('ear:' + mode, s.lv); earLvl(); }
+    s.missed = true; s.busy = true;
+    await say('Listen again.');
+    await E.play(s.q); s.busy = false;
   }
 };
+
+/* =========== sing it back: the microphone hears her note, her pet floats to show how close =========== */
+const SING_NOTES = [60, 62, 64, 65, 67, 69];          // C4 to A4: comfortable for a small voice
+let sing = null;
+function detectPitch(buf, rate) {
+  // autocorrelation, with the first dip skipped and the peak refined; null if too quiet or unclear
+  let rms = 0; for (const v of buf) rms += v * v; rms = Math.sqrt(rms / buf.length);
+  if (rms < .012) return null;
+  const n = buf.length, minLag = Math.floor(rate / 1000), maxLag = Math.floor(rate / 140);
+  let best = -1, bestC = 0;
+  const c = new Float32Array(maxLag + 2);
+  for (let lag = minLag; lag <= maxLag + 1; lag++) {
+    let s = 0; for (let i = 0; i < n - lag; i++) s += buf[i] * buf[i + lag];
+    c[lag] = s;
+  }
+  let e = 0; for (let i = 0; i < n; i++) e += buf[i] * buf[i];
+  for (let lag = minLag + 1; lag <= maxLag; lag++) if (c[lag] > c[lag - 1] && c[lag] >= c[lag + 1] && c[lag] > bestC) { bestC = c[lag]; best = lag; }
+  if (best < 0 || bestC / e < .45) return null;
+  // the first strong peak, so an octave isn't mistaken for the note
+  for (let lag = minLag + 1; lag < best; lag++) if (c[lag] > c[lag - 1] && c[lag] >= c[lag + 1] && c[lag] > bestC * .88) { best = lag; break; }
+  const a = c[best - 1], b = c[best], d = c[best + 1], shift = (a - d) / (2 * (a - 2 * b + d) || 1);
+  return rate / (best + shift);
+}
+async function singStart() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { el('musMsg').textContent = 'This phone can’t listen, sorry.'; return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const a = audio(), src = a.createMediaStreamSource(stream), an = a.createAnalyser();
+    an.fftSize = 2048; src.connect(an);
+    sing = { stream, an, buf: new Float32Array(an.fftSize), good: 0, target: null, listening: false, raf: 0, tries: 0, start: 0 };
+    singNext();
+  } catch {
+    el('musMsg').textContent = 'Your pet needs to hear you. Ask a grown-up to allow the microphone.';
+    say(el('musMsg').textContent); goBtn('Start');
+  }
+}
+function singStop() {
+  if (!sing) return;
+  cancelAnimationFrame(sing.raf);
+  sing.stream.getTracks().forEach(t => t.stop());
+  sing = null;
+}
+async function singNext() {
+  if (!sing) return;
+  sing.listening = false; sing.good = 0; sing.tries++;
+  sing.target = pick(SING_NOTES.filter(m => m !== sing.target));
+  el('singFill').style.width = '0'; el('singHint').textContent = '';
+  el('singPet').style.setProperty('--y', 0);
+  el('musMsg').textContent = 'Listen…';
+  await say('Listen.');
+  for (let i = 0; i < 2; i++) { if (!sing) return; note(NOTE(sing.target), .9, .26); await wait(1000); }
+  if (!sing) return;
+  el('musMsg').textContent = 'Now you sing it! Laaa…';
+  await wait(250);
+  if (!sing) return;
+  sing.listening = true; sing.start = performance.now(); sing.last = performance.now();
+  singLoop();
+}
+function singLoop() {
+  if (!sing || !sing.listening) return;
+  sing.an.getFloatTimeDomainData(sing.buf);
+  const f = detectPitch(sing.buf, audio().sampleRate), now = performance.now(), dt = (now - sing.last) / 1000;
+  sing.last = now;
+  if (f) {
+    // how far off, in hundredths of a semitone; an octave out still counts (small voices often sing up an octave)
+    let cents = 1200 * Math.log2(f / NOTE(sing.target));
+    cents = ((cents % 1200) + 1800) % 1200 - 600;
+    sing.cents = sing.cents == null ? cents : sing.cents * .6 + cents * .4;
+    const y = clamp(sing.cents / 300, -1, 1);
+    el('singPet').style.setProperty('--y', (-y).toFixed(3));
+    const close = Math.abs(sing.cents) < 60;
+    el('singMeter').classList.toggle('close', close);
+    el('singHint').textContent = close ? '' : sing.cents < 0 ? '↑' : '↓';
+    if (close) sing.good += dt;
+  }
+  el('singFill').style.width = Math.min(100, sing.good / .9 * 100) + '%';
+  if (sing.good >= .9) { singWin(); return; }
+  if (now - sing.start > 9000) { singGiveUp(); return; }
+  sing.raf = requestAnimationFrame(singLoop);
+}
+async function singWin() {
+  sing.listening = false;
+  el('singMeter').classList.remove('close');
+  sfx.yay(); buddy('party'); petFun(5); addCoins(3, el('singMeter'));
+  el('musMsg').textContent = 'You sang it! Beautiful!';
+  await say('You sang it! Beautiful!');
+  await wait(400); singNext();
+}
+async function singGiveUp() {
+  sing.listening = false;
+  el('musMsg').textContent = 'Let’s try another one!';
+  await say('Good try! Let’s try another one.');
+  singNext();
+}
+
+/* =========== song tiles: tiles fall in four lanes; tap each one as it reaches the line and it plays the tune =========== */
+// old songs, free for anyone: [note, beats]
+const SONGS = [
+  { name: 'Twinkle Twinkle', bpm: 1, n: 'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2' },
+  { name: 'Mary Had a Little Lamb', n: 'E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4' },
+  { name: 'Hot Cross Buns', n: 'E4 D4 C4:2 E4 D4 C4:2 C4:.5 C4:.5 C4:.5 C4:.5 D4:.5 D4:.5 D4:.5 D4:.5 E4 D4 C4:2' },
+  { name: 'Row Your Boat', n: 'C4:1.5 C4:1.5 C4 D4:.5 E4:1.5 E4 D4:.5 E4 F4:.5 G4:3 C5:.5 C5:.5 C5:.5 G4:.5 G4:.5 G4:.5 E4:.5 E4:.5 E4:.5 C4:.5 C4:.5 C4:.5 G4 F4:.5 E4 D4:.5 C4:3' },
+  { name: 'Frère Jacques', n: 'C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4:2 E4 F4 G4:2 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 C4 G3 C4:2 C4 G3 C4:2' },
+  { name: 'London Bridge', n: 'G4:1.5 A4:.5 G4 F4 E4 F4 G4:2 D4 E4 F4:2 E4 F4 G4:2 G4:1.5 A4:.5 G4 F4 E4 F4 G4:2 D4:2 G4:2 E4 C4:3' },
+  { name: 'Old MacDonald', n: 'G4 G4 G4 D4 E4 E4 D4:2 B4 B4 A4 A4 G4:3 D4 G4 G4 G4 D4 E4 E4 D4:2 B4 B4 A4 A4 G4:3' },
+  { name: 'Ode to Joy', n: 'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2' },
+];
+const TILE_SPEEDS = [['Slow', 70], ['Medium', 92], ['Fast', 116]];
+const LANE_C = ['#ff4fa3', '#8f5cff', '#ff8cc6', '#4cb5ff'];
+let tlSong = store.get('tileSong') || 0, tlBpm = store.get('tileBpm') || 70;
+let tl = null;
+function songNotes(s) {
+  const raw = s.n.split(' ').map(x => { const [nn, b] = x.split(':'); return { m: midi(nn), beats: b ? +b : 1 }; });
+  // lanes follow the tune's shape: low notes left, high notes right
+  const ps = [...new Set(raw.map(r => r.m))].sort((a, b) => a - b);
+  let t = 0;
+  return raw.map(r => { const o = { m: r.m, beats: r.beats, at: t, lane: Math.min(3, Math.floor(ps.indexOf(r.m) * 4 / ps.length)) }; t += r.beats; return o; });
+}
+function tilesChips() {
+  el('tileSongs').innerHTML = SONGS.map((s, i) => `<button class="chip${i === tlSong ? ' on' : ''}" data-s="${i}" data-say="${s.name}">${s.name}</button>`).join('');
+  el('tileSpeeds').innerHTML = TILE_SPEEDS.map(([n, b]) => `<button class="chip${b === tlBpm ? ' on' : ''}" data-b="${b}" data-say="${n}">${n}</button>`).join('');
+}
+function tilesLayout() {
+  const w = el('tilesWrap'), cv = el('tilesCanvas'), r = w.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; cv.width = r.width * dpr; cv.height = r.height * dpr;
+  if (tl) { tl.w = r.width; tl.h = r.height; tl.dpr = dpr; tl.line = r.height * .82; }
+}
+enter.tiles = () => {
+  tilesChips(); tl = null; tilesLayout(); tilesIdle();
+  el('tilesMsg').textContent = `${SONGS[tlSong].name}. Tap each tile when it reaches the line!`;
+  el('tilesOver').classList.remove('hidden');
+  setTimeout(() => say('Tap each tile when it reaches the line!'), 250);
+};
+leave.tiles = () => { if (tl) { cancelAnimationFrame(tl.raf); tl = null; } };
+function tilesIdle() {
+  const cv = el('tilesCanvas'), g = cv.getContext('2d'), r = el('tilesWrap').getBoundingClientRect(), dpr = cv.width / (r.width || 1);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  for (let l = 0; l < 4; l++) { g.fillStyle = l % 2 ? '#fbf5ff' : '#fff'; g.fillRect(l * r.width / 4, 0, r.width / 4, r.height); }
+}
+el('tileSongs').onclick = e => { const c = e.target.closest('[data-s]'); if (!c || (tl && tl.run)) return; tlSong = +c.dataset.s; store.set('tileSong', tlSong); enter.tiles(); };
+el('tileSpeeds').onclick = e => { const c = e.target.closest('[data-b]'); if (!c) return; tlBpm = +c.dataset.b; store.set('tileBpm', tlBpm); tilesChips(); };
+el('tilesGo').onclick = () => {
+  audio();
+  const notes = songNotes(SONGS[tlSong]);
+  tl = { notes, beat: 60 / tlBpm, run: true, hits: 0, t0: 0, raf: 0, flash: [0, 0, 0, 0], lastTick: -1 };
+  tilesLayout();
+  tl.ahead = 2.6;                                   // seconds a tile takes to fall to the line
+  tl.t0 = performance.now() / 1000 + tl.ahead;      // the first note reaches the line this long after starting
+  el('tilesOver').classList.add('hidden');
+  tl.raf = requestAnimationFrame(tilesLoop);
+};
+function tilesLoop() {
+  if (!tl || !tl.run) return;
+  const now = performance.now() / 1000 - tl.t0, g = el('tilesCanvas').getContext('2d'), { w, h, line, beat, ahead } = tl;
+  // a soft tick on each beat helps her feel the time
+  const bi = Math.floor(now / beat);
+  if (bi > tl.lastTick && bi >= -2) { tl.lastTick = bi; note(bi % 4 === 0 ? 880 : 660, .05, .05, 'tick'); }
+  g.setTransform(tl.dpr, 0, 0, tl.dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const lw = w / 4, speed = line / ahead;
+  for (let l = 0; l < 4; l++) {
+    g.fillStyle = l % 2 ? '#fbf5ff' : '#fff'; g.fillRect(l * lw, 0, lw, h);
+    if (tl.flash[l] > 0) { g.fillStyle = `rgba(255,79,163,${tl.flash[l] * .25})`; g.fillRect(l * lw, 0, lw, h); tl.flash[l] -= .06; }
+  }
+  g.fillStyle = '#ffd6ec'; g.fillRect(0, line - 4, w, 8);
+  let left = 0;
+  for (const n of tl.notes) {
+    const tt = n.at * beat, y = line - (tt - now) * speed, len = Math.max(.6, n.beats * .8) * beat * speed;
+    if (!n.done && tt - now < -.35) { n.done = 'miss'; }
+    if (!n.done) left++;
+    if (y < -10 || y - len > h) continue;
+    g.fillStyle = n.done === 'hit' ? 'rgba(143,92,255,.18)' : n.done === 'miss' ? '#e8dff0' : LANE_C[n.lane];
+    g.beginPath(); g.roundRect(n.lane * lw + 6, y - len, lw - 12, len, 14); g.fill();
+  }
+  if (!left && now > tl.notes.at(-1).at * beat + 1) { tilesEnd(); return; }
+  tl.raf = requestAnimationFrame(tilesLoop);
+}
+el('tilesCanvas').addEventListener('pointerdown', e => {
+  if (!tl || !tl.run) return;
+  e.preventDefault();
+  const r = el('tilesCanvas').getBoundingClientRect(), lane = clamp(Math.floor((e.clientX - r.left) / (r.width / 4)), 0, 3);
+  const now = performance.now() / 1000 - tl.t0;
+  tl.flash[lane] = 1;
+  // the nearest waiting tile in that lane, if it's close to the line (generous for small fingers)
+  let best = null, bd = 1e9;
+  for (const n of tl.notes) if (!n.done && n.lane === lane) { const d = Math.abs(n.at * tl.beat - now); if (d < bd) { bd = d; best = n; } }
+  if (best && bd < .45) { best.done = 'hit'; tl.hits++; note(NOTE(best.m), Math.min(1.2, best.beats * tl.beat + .2), .26); }
+  else note(NOTE(60 + [0, 4, 7, 12][lane]), .15, .06);
+});
+async function tilesEnd() {
+  tl.run = false;
+  const total = tl.notes.length, hits = tl.hits, coinsWon = Math.max(1, Math.round(hits / 5));
+  addCoins(coinsWon, el('tilesWrap')); petFun(10);
+  const m = hits === total ? `Every note! You played ${SONGS[tlSong].name}!` : `You played ${hits} of ${total} notes!`;
+  hits > total * .6 ? (sfx.yay(), buddy('party')) : buddy('cheer');
+  el('tilesMsg').textContent = m; el('tilesGo').textContent = 'Again'; el('tilesGo').dataset.say = 'Again';
+  el('tilesOver').classList.remove('hidden');
+  say(m);
+}
+addEventListener('resize', () => { if (screen === 'tiles') { tilesLayout(); if (!tl || !tl.run) tilesIdle(); } });
+
+/* =========== free play: a xylophone and a steel tongue drum, sounding the moment she touches them =========== */
+const INSTRUMENTS = [['xylo', 'Xylophone'], ['drum', 'Tongue drum']];
+let inst = store.get('inst') || 'xylo';
+const XYLO = [['C5', '#ff6b6b'], ['D5', '#ff9f3a'], ['E5', '#ffd23f'], ['F5', '#5fd38b'], ['G5', '#2ec4b6'], ['A5', '#4cb5ff'], ['B5', '#9b6bff'], ['C6', '#ff6fb8']];
+const DRUM = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5'];     // only notes that sound nice together, so nothing is wrong
+function instDraw() {
+  el('instChips').innerHTML = INSTRUMENTS.map(([id, n]) => `<button class="chip${id === inst ? ' on' : ''}" data-i="${id}" data-say="${n}">${n}</button>`).join('');
+  $$('#s-play .bar h2')[0].textContent = inst === 'xylo' ? 'Xylophone' : 'Tongue drum';
+  if (inst === 'xylo') {
+    el('instWrap').className = 'xylo';
+    el('instWrap').innerHTML = XYLO.map(([n, c], i) => `<button class="bar2" data-n="${n}" style="--c:${c};--h:${100 - i * 6}%" aria-label="${n}"><i></i><i></i></button>`).join('');
+  } else {
+    el('instWrap').className = 'drum';
+    // tongues round a circle, the low ones bigger, like a real tongue drum
+    const t = DRUM.map((n, i) => {
+      const a = (i * 2 * Math.PI / 8) - Math.PI / 2 + (i % 2 ? Math.PI / 8 * 0 : 0), r = 112, x = 160 + r * Math.cos(a), y = 160 + r * Math.sin(a), s = 46 - i * 2.4;
+      return `<ellipse class="tongue" data-n="${n}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(s * .62).toFixed(1)}" ry="${s.toFixed(1)}" transform="rotate(${(a * 180 / Math.PI + 90).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    }).join('');
+    el('instWrap').innerHTML = `<svg viewBox="0 0 320 320"><circle cx="160" cy="160" r="156" class="shell"/><circle cx="160" cy="160" r="54" class="mid"/>${t}<circle cx="160" cy="160" r="22" class="hub"/></svg>`;
+  }
+}
+enter.play = () => { audio(); instDraw(); };
+el('instChips').onclick = e => { const c = e.target.closest('[data-i]'); if (!c) return; inst = c.dataset.i; store.set('inst', inst); instDraw(); };
+const instDown = new Map();
+function instHit(target) {
+  const k = target && target.closest('[data-n]'); if (!k) return null;
+  note(NOTE(midi(k.dataset.n)), inst === 'xylo' ? .9 : 2.4, inst === 'xylo' ? .32 : .3, inst);
+  k.classList.remove('hit'); void k.getBoundingClientRect(); k.classList.add('hit');
+  return k;
+}
+el('instWrap').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  try { el('instWrap').releasePointerCapture(e.pointerId); } catch {}
+  instDown.set(e.pointerId, instHit(e.target));
+});
+// sliding a finger along plays each bar it passes, like running a beater along a xylophone
+el('instWrap').addEventListener('pointermove', e => {
+  if (!instDown.has(e.pointerId)) return;
+  const k = document.elementFromPoint(e.clientX, e.clientY), key = k && k.closest('[data-n]');
+  if (key && key !== instDown.get(e.pointerId)) instDown.set(e.pointerId, instHit(key));
+});
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) el('instWrap').addEventListener(ev, e => instDown.delete(e.pointerId));
 
 /* ---------- what comes next: patterns, from ABAB up to little matrix puzzles ----------
    Six tiers. Three right first time in a row: up a tier. Two missed in a row: down one,
