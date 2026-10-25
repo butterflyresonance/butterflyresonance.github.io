@@ -202,6 +202,25 @@ h3.say { font-size: 26px; color: var(--pink); margin: 8px 0 16px; text-align: ce
 .opt.wrong { animation: shake .4s; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 
+.opt.pic { padding: 12%; }
+.opt.pic img { width: 100%; height: 100%; }
+
+/* ---------- numbers ---------- */
+.numcard { background: #fff; border-radius: 28px; box-shadow: 0 5px 0 #e3d0f5; padding: 16px 12px 14px; margin: 4px auto 18px; max-width: 620px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.numview { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 12px; min-height: 120px; }
+.grp { display: grid; grid-template-columns: repeat(5, auto); gap: 4px; justify-content: center; }
+.thing { width: var(--thing, 56px); height: var(--thing, 56px); position: relative; }
+.thing img { width: 100%; height: 100%; }
+.thing.boop { animation: popin .3s; }
+.thing.gone img { opacity: .3; }
+.thing.gone::after { content: ""; position: absolute; inset: 8%; background:
+  linear-gradient(45deg, transparent 44%, #ff4f6d 44% 56%, transparent 56%),
+  linear-gradient(-45deg, transparent 44%, #ff4f6d 44% 56%, transparent 56%); }
+.op { font-size: 44px; font-weight: 900; color: var(--purple); }
+.op.q { color: var(--pink); }
+.numsum { font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: .04em; min-height: 0; }
+.numsum:empty { display: none; }
+
 /* ---------- dialogs ---------- */
 dialog { border: 0; border-radius: 26px; padding: 22px; width: min(92vw, 380px); box-shadow: 0 10px 40px rgba(80,30,100,.3); font-family: var(--font); color: var(--ink); }
 dialog::backdrop { background: rgba(60,30,80,.35); }
@@ -327,6 +346,17 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
     <div class="chips" id="letModes"></div>
     <div class="prompt" id="letPrompt"></div>
     <div class="opts" id="letOpts"></div>
+  </div></div>
+</section>
+
+<!-- NUMBERS -->
+<section class="screen hidden" id="s-maths">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Numbers">Numbers</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="numModes"></div>
+    <div class="numcard"><div class="numview" id="numView"></div><div class="numsum" id="numSum"></div>
+      <button class="speak" id="numSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Hear it</button></div>
+    <div class="opts" id="numOpts"></div>
   </div></div>
 </section>
 
@@ -614,7 +644,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.1';
+const VERSION = '2026-10-25.2';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -647,15 +677,20 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 function say(text) {
-  if (!opts.voice || !('speechSynthesis' in window) || !text) return;
-  try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    if (voice) u.voice = voice;
-    u.lang = voice ? voice.lang : 'en-AU';
-    u.rate = .9; u.pitch = 1.15;
-    speechSynthesis.speak(u);
-  } catch {}
+  if (!opts.voice || !('speechSynthesis' in window) || !text) return Promise.resolve();
+  return new Promise(done => {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-AU';
+      u.rate = .9; u.pitch = 1.15;
+      // finished, cut off, or (some phones never say) a generous guess at its length
+      const t = setTimeout(done, 1500 + text.length * 110);
+      u.onend = u.onerror = () => { clearTimeout(t); done(); };
+      speechSynthesis.speak(u);
+    } catch { done(); }
+  });
 }
 document.addEventListener('click', e => { const s = e.target.closest('[data-say]'); if (s && s.dataset.say) say(s.dataset.say); }, true);
 
@@ -706,7 +741,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters' };
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {
@@ -774,6 +809,7 @@ const GAMES = [
   { id: 'ttt', name: 'Tic-tac-toe', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="4" width="76" height="76" rx="18" fill="#ffe6f3"/><path d="M30 6v72M54 6v72M6 30h72M6 54h72" stroke="#e7b9db" stroke-width="4"/><path d="M11 11l13 13M24 11 11 24" stroke="#ff4fa3" stroke-width="5" stroke-linecap="round"/><circle cx="42" cy="42" r="7" fill="none" stroke="#8f5cff" stroke-width="5"/><path d="M59 59l13 13M72 59 59 72" stroke="#ff4fa3" stroke-width="5" stroke-linecap="round"/></svg>' },
   { id: 'jump', name: 'Jump', icon: '2B50' },
   { id: 'letters', name: 'Letters', icon: '1F524' },
+  { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>' },
 ];
 enter[''] = () => {
   petTick();
@@ -1427,7 +1463,7 @@ function jumpSize() {
 }
 function jumpReset() {
   jumpSize();
-  Object.assign(J, { y: 0, vy: 0, t: 0, speed: J.w * .42, obs: [], stars: [], clouds: [], deco: [], next: 1.2, nextStar: .8, got: 0, dist: 0, last: 0, over: false });
+  Object.assign(J, { y: 0, vy: 0, t: 0, buffer: -1, speed: J.w * .45, obs: [], stars: [], clouds: [], deco: [], next: 1.2, nextStar: .8, got: 0, dist: 0, last: 0, over: false });
   for (let i = 0; i < 4; i++) J.clouds.push({ x: Math.random() * J.w, y: 20 + Math.random() * J.h * .3, s: 50 + Math.random() * 40 });
   for (let i = 0; i < 6; i++) J.deco.push({ x: Math.random() * J.w, k: Math.random() < .5 ? 'flower' : 'tulip' });
   el('jumpStars').textContent = '0';
@@ -1435,19 +1471,24 @@ function jumpReset() {
 function jumpTap(e) {
   if (e) e.preventDefault();
   if (!J.run) return;
-  if (J.y === 0) { J.vy = -Math.sqrt(2 * 2600 * J.pet * 1.75); sfx.jump(); }
+  if (J.y === 0) jumpUp();
+  else J.buffer = J.t;               // tapped just before landing: it jumps as soon as it lands
 }
+const GRAV = 1500;                   // lower than it was: a longer, floatier jump, easier to time
+function jumpUp() { J.vy = -Math.sqrt(2 * GRAV * J.pet * 2); J.buffer = -1; sfx.jump(); }
 el('jumpWrap').addEventListener('pointerdown', e => { if (e.target.closest('.overlay button')) return; jumpTap(e); });
 function jumpLoop(ts) {
   if (!J.run) return;
   const dt = Math.min(.04, (ts - (J.last || ts)) / 1000); J.last = ts;
   J.t += dt; J.dist += J.speed * dt;
-  J.speed = Math.min(J.w * 1.1, J.speed + J.w * .012 * dt);
+  J.speed = Math.min(J.w * .95, J.speed + J.w * .008 * dt);
   // the pet: gravity and the ground
-  J.vy += 2600 * dt; J.y = Math.min(0, J.y + J.vy * dt); if (J.y === 0) J.vy = 0;
+  const wasUp = J.y < 0;
+  J.vy += GRAV * dt; J.y = Math.min(0, J.y + J.vy * dt); if (J.y === 0) J.vy = 0;
+  if (wasUp && J.y === 0 && J.buffer >= 0 && J.t - J.buffer < .25) jumpUp();
   // new things to jump over, and stars to catch
   J.next -= dt; J.nextStar -= dt;
-  if (J.next <= 0) { J.obs.push({ x: J.w + 40, k: Math.floor(Math.random() * 3), s: J.pet * (.55 + Math.random() * .15) }); J.next = .9 + Math.random() * 1.3 - Math.min(.4, J.t / 120); }
+  if (J.next <= 0) { J.obs.push({ x: J.w + 40, k: Math.floor(Math.random() * 3), s: J.pet * (.55 + Math.random() * .15) }); J.next = 1.15 + Math.random() * 1.3 - Math.min(.35, J.t / 150); }
   if (J.nextStar <= 0) { J.stars.push({ x: J.w + 40, y: J.ground - J.pet * (.6 + Math.random() * 1.6) }); J.nextStar = .7 + Math.random() * 1.2; }
   for (const o of J.obs) o.x -= J.speed * dt;
   for (const s of J.stars) s.x -= J.speed * dt;
@@ -1456,12 +1497,12 @@ function jumpLoop(ts) {
   J.obs = J.obs.filter(o => o.x > -80); J.stars = J.stars.filter(s => s.x > -60 && !s.got);
   // the pet's box, a forgiving one
   const px = J.w * .18, py = J.ground + J.y - J.pet, ps = J.pet;
-  const hit = (x, y, w, h) => px + ps * .25 < x + w && px + ps * .75 > x && py + ps * .3 < y + h && py + ps * .95 > y;
+  const hit = (x, y, w, h) => px + ps * .3 < x + w && px + ps * .7 > x && py + ps * .35 < y + h && py + ps * .92 > y;
   for (const s of J.stars) {
     if (!s.got && hit(s.x - 22, s.y - 22, 44, 44)) { s.got = true; J.got++; el('jumpStars').textContent = J.got; sfx.coin(); }
   }
   for (const o of J.obs) {
-    if (hit(o.x + o.s * .2, J.ground - o.s * .8, o.s * .6, o.s * .8)) { jumpOver(); break; }
+    if (hit(o.x + o.s * .3, J.ground - o.s * .62, o.s * .4, o.s * .62)) { jumpOver(); break; }
   }
   jumpDraw();
   if (J.run) J.raf = requestAnimationFrame(jumpLoop);
@@ -1507,44 +1548,97 @@ enter.jump = async () => {
 leave.jump = () => { J.run = false; cancelAnimationFrame(J.raf); };
 new ResizeObserver(() => { if (screen === 'jump' && !J.run && jimgs) { jumpSize(); jumpDraw(); } }).observe(el('jumpWrap'));
 
-/* ---------- letters ---------- */
+
+/* ---------- letters ----------
+   Four activities. Every spoken line finishes before the next thing starts
+   (say() is waited for), and a round left half-way is abandoned (round token).
+   - Find the letter: hear a letter's name, pick it.
+   - First letter: see and hear a word, pick the letter it starts with.
+   - Rhymes: hear a word, pick the picture that rhymes with it.
+   - Same sound: hear a word, pick the picture that starts with the same sound.
+     Grouped by sound, not spelling: cat, kite and key all start the same. */
 const WORDS = [['A', 'apple', '1F34E'], ['B', 'ball', '26BD'], ['B', 'bird', '1F426'], ['C', 'cat', '1F431'], ['D', 'dog', '1F436'], ['E', 'egg', '1F95A'],
   ['F', 'fish', '1F41F'], ['G', 'grapes', '1F347'], ['H', 'hat', '1F3A9'], ['I', 'ice cream', '1F368'], ['J', 'jellyfish', '1FABC'], ['K', 'kite', '1FA81'],
   ['L', 'lion', '1F981'], ['M', 'moon', '1F319'], ['N', 'nest', '1FAB9'], ['O', 'octopus', '1F419'], ['P', 'pig', '1F437'], ['Q', 'queen', '1F478'],
   ['R', 'rabbit', '1F430'], ['S', 'sun', '2600'], ['T', 'tiger', '1F42F'], ['U', 'umbrella', '2602'], ['V', 'violin', '1F3BB'], ['W', 'watermelon', '1F349'],
   ['Y', 'yo-yo', '1FA80'], ['Z', 'zebra', '1F993'], ['O', 'orange', '1F34A'], ['G', 'guitar', '1F3B8'], ['R', 'rainbow', '1F308'], ['S', 'star', '2B50']];
+const RHYMES = [
+  [['cat', '1F431'], ['hat', '1F3A9'], ['bat', '1F987']], [['bee', '1F41D'], ['tree', '1F333'], ['key', '1F511']],
+  [['frog', '1F438'], ['dog', '1F436'], ['log', '1FAB5']], [['star', '2B50'], ['car', '1F697'], ['jar', '1FAD9']],
+  [['moon', '1F319'], ['spoon', '1F944']], [['cake', '1F370'], ['snake', '1F40D']], [['bear', '1F43B'], ['pear', '1F350'], ['chair', '1FA91']],
+  [['mouse', '1F42D'], ['house', '1F3E0']], [['goat', '1F410'], ['boat', '26F5'], ['coat', '1F9E5']], [['fox', '1F98A'], ['box', '1F4E6']],
+  [['rose', '1F339'], ['nose', '1F443']], [['bell', '1F514'], ['shell', '1F41A']], [['duck', '1F986'], ['truck', '1F69A']],
+  [['train', '1F686'], ['rain', '1F327']], [['clock', '1F570'], ['sock', '1F9E6']], [['ball', '26BD'], ['wall', '1F9F1']],
+];
+const SOUNDS = [
+  [['ball', '26BD'], ['bee', '1F41D'], ['bear', '1F43B'], ['banana', '1F34C'], ['boat', '26F5'], ['bus', '1F68C'], ['bell', '1F514']],
+  [['cat', '1F431'], ['cake', '1F370'], ['car', '1F697'], ['cow', '1F42E'], ['kite', '1FA81'], ['key', '1F511'], ['carrot', '1F955']],
+  [['dog', '1F436'], ['duck', '1F986'], ['dolphin', '1F42C'], ['drum', '1F941']],
+  [['fish', '1F41F'], ['frog', '1F438'], ['fox', '1F98A'], ['flower', '1F33C']],
+  [['goat', '1F410'], ['grapes', '1F347'], ['guitar', '1F3B8']],
+  [['hat', '1F3A9'], ['horse', '1F434'], ['house', '1F3E0'], ['heart', '2764']],
+  [['moon', '1F319'], ['mouse', '1F42D'], ['monkey', '1F435'], ['mushroom', '1F344']],
+  [['pig', '1F437'], ['pear', '1F350'], ['pizza', '1F355'], ['penguin', '1F427']],
+  [['sun', '2600'], ['snake', '1F40D'], ['sock', '1F9E6'], ['seal', '1F9AD']],
+  [['tiger', '1F42F'], ['tomato', '1F345'], ['turtle', '1F422'], ['tent', '26FA']],
+  [['rabbit', '1F430'], ['rainbow', '1F308'], ['ring', '1F48D'], ['rose', '1F339']],
+  [['lion', '1F981'], ['lemon', '1F34B'], ['leaf', '1F341'], ['ladybird', '1F41E']],
+  [['whale', '1F433'], ['watermelon', '1F349'], ['worm', '1FAB1']],
+  [['nose', '1F443'], ['nest', '1FAB9']],
+];
 const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const LMODES = [{ id: 'name', name: 'Find the letter' }, { id: 'sound', name: 'First letter' }, { id: 'case', name: 'abc' }];
+const LET_MODES = [['name', 'Find the letter'], ['sound', 'First letter'], ['rhyme', 'Rhymes'], ['same', 'Same sound']];
 let letMode = store.get('letMode') || 'name', lower = !!store.get('lower');
-let letQ = null, letBusy = false;
+if (!LET_MODES.some(m => m[0] === letMode)) letMode = 'name';
+let letQ = null, letBusy = false, letRound = 0;
 const show = L => lower ? L.toLowerCase() : L;
+const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const listOf = names => names.length === 3 ? `${names[0]}, ${names[1]}, or ${names[2]}` : names.join(' or ');
 function letNew() {
   letBusy = false;
-  let target, prompt, speech;
-  if (letMode === 'sound') {
-    const w = pick(WORDS.filter(x => !letQ || x[1] !== letQ.word));
-    target = w[0];
-    prompt = `<button class="pic2" data-say="${w[1]}">${iconImg(w[2])}</button><button class="speak" id="letSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Hear it</button>`;
-    speech = `${w[1]}. What letter does ${w[1]} start with?`;
-    letQ = { target, word: w[1], speech };
+  const round = ++letRound;
+  let opts, prompt, speech;
+  if (letMode === 'name' || letMode === 'sound') {
+    let target;
+    if (letMode === 'sound') {
+      const w = pick(WORDS.filter(x => !letQ || x[1] !== letQ.word));
+      target = w[0];
+      prompt = `<button class="pic2" data-say="${w[1]}">${iconImg(w[2])}</button><button class="speak" id="letSay">${SPEAKER}Hear it</button>`;
+      speech = `${w[1]}. What letter does ${w[1]} start with?`;
+      letQ = { kind: 'letter', target, word: w[1], speech, right: `Yes! ${w[1]} starts with ${target}!` };
+    } else {
+      target = pick(ABC.filter(x => !letQ || x !== letQ.target));
+      prompt = `<button class="speak" id="letSay">${SPEAKER}Find the letter</button>`;
+      speech = `Find the letter ${target}.`;
+      letQ = { kind: 'letter', target, speech, right: `Yes! That's ${target}!` };
+    }
+    opts = shuffle([target, ...shuffle(ABC.filter(x => x !== target)).slice(0, 2)]).map(L => `<button class="opt" data-l="${L}">${show(L)}</button>`).join('');
   } else {
-    target = pick(ABC.filter(x => !letQ || x !== letQ.target));
-    prompt = `<button class="speak" id="letSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Find the letter</button>`;
-    speech = `Find the letter ${target}.`;
-    letQ = { target, speech };
+    // pictures to choose from: one that rhymes (or starts the same), two that don't
+    const groups = letMode === 'rhyme' ? RHYMES : SOUNDS;
+    const g = pick(groups.filter(x => !letQ || !x.some(w => w[0] === letQ.word)));
+    const [word, match] = shuffle(g).slice(0, 2);
+    const others = shuffle(groups.filter(x => x !== g)).slice(0, 2).map(x => pick(x));
+    // no picture may share the target's sound/rhyme by accident (cat in both b-less groups etc.)
+    const choices = shuffle([match, ...others]);
+    const ask = letMode === 'rhyme' ? `Which one rhymes with ${word[0]}?` : `Which one starts the same as ${word[0]}?`;
+    prompt = `<button class="pic2" data-say="${word[0]}">${iconImg(word[1])}</button><button class="speak" id="letSay">${SPEAKER}Hear it</button>`;
+    speech = `${word[0]}. ${ask} ${listOf(choices.map(c => c[0]))}?`;
+    letQ = { kind: 'pic', target: match[0], word: word[0], speech, ask,
+      right: letMode === 'rhyme' ? `Yes! ${word[0]} and ${match[0]} rhyme!` : `Yes! ${word[0]} and ${match[0]} start the same!` };
+    opts = choices.map(c => `<button class="opt pic" data-l="${c[0]}" aria-label="${c[0]}">${iconImg(c[1])}</button>`).join('');
   }
-  const others = shuffle(ABC.filter(x => x !== target)).slice(0, 2);
   el('letPrompt').innerHTML = prompt;
-  el('letOpts').innerHTML = shuffle([target, ...others]).map(L => `<button class="opt" data-l="${L}">${show(L)}</button>`).join('');
+  el('letOpts').innerHTML = opts;
   el('letSay').onclick = () => say(letQ.speech);
-  setTimeout(() => say(speech), 250);
+  setTimeout(() => { if (round === letRound && screen === 'letters') say(speech); }, 250);
 }
 function letChips() {
-  el('letModes').innerHTML = `<button class="chip${letMode === 'name' ? ' on' : ''}" data-m="name" data-say="Find the letter">Find the letter</button>`
-    + `<button class="chip${letMode === 'sound' ? ' on' : ''}" data-m="sound" data-say="First letter">First letter</button>`
-    + `<button class="chip${lower ? ' on' : ''}" data-m="case" data-say="${lower ? 'small letters' : 'big letters'}">${lower ? 'abc' : 'ABC'}</button>`;
+  el('letModes').innerHTML = LET_MODES.map(([id, n]) => `<button class="chip${letMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('')
+    + (letMode === 'name' || letMode === 'sound' ? `<button class="chip${lower ? ' on' : ''}" data-m="case" data-say="${lower ? 'small letters' : 'big letters'}">${lower ? 'abc' : 'ABC'}</button>` : '');
 }
 enter.letters = () => { letChips(); letQ = null; letNew(); };
+leave.letters = () => { letRound++; };
 el('letModes').onclick = e => {
   const c = e.target.closest('[data-m]'); if (!c) return;
   if (c.dataset.m === 'case') { lower = !lower; store.set('lower', lower); }
@@ -1552,17 +1646,93 @@ el('letModes').onclick = e => {
   letChips(); letQ = null; letNew();
 };
 el('letOpts').onclick = async e => {
-  const b = e.target.closest('.opt'); if (!b || letBusy) return;
-  const L = b.dataset.l;
-  if (L === letQ.target) {
+  const b = e.target.closest('.opt'); if (!b || letBusy || !letQ) return;
+  const pickd = b.dataset.l, round = letRound;
+  if (pickd === letQ.target) {
     letBusy = true;
     b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3);
-    say(letQ.word ? `Yes! ${letQ.word} starts with ${L}!` : `Yes! That's ${L}!`);
-    await wait(1900);
-    if (screen === 'letters') letNew();
+    await say(letQ.right);                       // the whole sentence, then a short pause, then the next one
+    await wait(500);
+    if (round === letRound && screen === 'letters') letNew();
   } else {
     b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops();
-    say(`That's ${L}. ${letQ.word ? `Which letter does ${letQ.word} start with?` : `Find ${letQ.target}.`}`);
+    say(letQ.kind === 'letter'
+      ? `That's ${pickd}. ${letQ.word ? `Which letter does ${letQ.word} start with?` : `Find ${letQ.target}.`}`
+      : `That's ${pickd}. ${letQ.ask}`);
+  }
+};
+
+/* ---------- numbers: count, add, take away, with cute things ---------- */
+const THINGS = [['1F34E', 'apple', 'apples'], ['1F353', 'strawberry', 'strawberries'], ['2B50', 'star', 'stars'], ['1F986', 'duck', 'ducks'],
+  ['1F98B', 'butterfly', 'butterflies'], ['1F9C1', 'cupcake', 'cupcakes'], ['1F388', 'balloon', 'balloons'], ['1F33C', 'flower', 'flowers'],
+  ['1F41F', 'fish', 'fish'], ['1F41E', 'ladybird', 'ladybirds'], ['1F430', 'bunny', 'bunnies'], ['1F36A', 'cookie', 'cookies']];
+const NUM_MODES = [['count', 'Count'], ['plus', 'Plus'], ['minus', 'Take away']];
+let numMode = store.get('numMode') || 'count', numMax = store.get('numMax') || 5;
+let numQ = null, numBusy = false, numRound = 0;
+const thing = (t, n) => n === 1 ? t[1] : t[2];
+function group(t, n, gone = 0) {
+  // in rows of up to 5, so they're easy to count
+  let h = '';
+  for (let i = 0; i < n; i++) h += `<span class="thing${i >= n - gone ? ' gone' : ''}">${iconImg(t[0])}</span>`;
+  return `<div class="grp">${h}</div>`;
+}
+function numNew() {
+  numBusy = false;
+  const round = ++numRound, t = pick(THINGS), max = numMax;
+  let a, b = 0, ans, view, speech, right;
+  if (numMode === 'count') {
+    ans = a = 1 + Math.floor(Math.random() * max);
+    view = group(t, a);
+    speech = `How many ${t[2]}?`;
+    right = `Yes! ${a} ${thing(t, a)}!`;
+  } else if (numMode === 'plus') {
+    a = 1 + Math.floor(Math.random() * (max - 1)); b = 1 + Math.floor(Math.random() * (max - a)); ans = a + b;
+    view = `${group(t, a)}<span class="op">+</span>${group(t, b)}`;
+    speech = `${a} ${thing(t, a)}, and ${b} more. How many ${t[2]} altogether?`;
+    right = `Yes! ${a} plus ${b} is ${ans}!`;
+  } else {
+    a = 2 + Math.floor(Math.random() * (max - 1)); b = 1 + Math.floor(Math.random() * (a - 1)); ans = a - b;
+    view = `${group(t, a, b)}`;
+    speech = `${a} ${thing(t, a)}. Take away ${b}. How many are left?`;
+    right = `Yes! ${a} take away ${b} is ${ans}!`;
+  }
+  // the answer and two near it, all from 0 to 10
+  const near = shuffle([ans - 2, ans - 1, ans + 1, ans + 2].filter(n => n >= (numMode === 'count' ? 1 : 0) && n <= Math.max(max, 10) && n !== ans)).slice(0, 2);
+  numQ = { ans, speech, right };
+  // bigger pictures when there are fewer of them
+  const total = numMode === 'plus' ? a + b : a;
+  el('numView').style.setProperty('--thing', total <= 3 ? 'min(22vw, 96px)' : total <= 5 ? 'min(15vw, 72px)' : total <= 8 ? 'min(12vw, 60px)' : 'min(10.5vw, 52px)');
+  el('numView').innerHTML = view;
+  el('numSum').textContent = numMode === 'plus' ? `${a} + ${b} = ?` : numMode === 'minus' ? `${a} − ${b} = ?` : '';
+  el('numOpts').innerHTML = shuffle([ans, ...near]).map(n => `<button class="opt" data-n="${n}">${n}</button>`).join('');
+  setTimeout(() => { if (round === numRound && screen === 'maths') say(speech); }, 250);
+}
+function numChips() {
+  el('numModes').innerHTML = NUM_MODES.map(([id, n]) => `<button class="chip${numMode === id ? ' on' : ''}" data-m="${id}" data-say="${n}">${n}</button>`).join('')
+    + `<button class="chip on" data-m="max" data-say="Up to ${numMax}">Up to ${numMax}</button>`;
+}
+enter.maths = () => { numChips(); numNew(); };
+leave.maths = () => { numRound++; };
+el('numModes').onclick = e => {
+  const c = e.target.closest('[data-m]'); if (!c) return;
+  if (c.dataset.m === 'max') { numMax = numMax === 5 ? 10 : 5; store.set('numMax', numMax); }
+  else { numMode = c.dataset.m; store.set('numMode', numMode); }
+  numChips(); numNew();
+};
+el('numSay').onclick = () => numQ && say(numQ.speech);
+el('numView').onclick = e => { const s = e.target.closest('.thing'); if (s) { sfx.pop(); s.classList.remove('boop'); void s.offsetWidth; s.classList.add('boop'); } };
+el('numOpts').onclick = async e => {
+  const b = e.target.closest('.opt'); if (!b || numBusy || !numQ) return;
+  const n = +b.dataset.n, round = numRound;
+  if (n === numQ.ans) {
+    numBusy = true;
+    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3);
+    await say(numQ.right);
+    await wait(500);
+    if (round === numRound && screen === 'maths') numNew();
+  } else {
+    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops();
+    say(`That's ${n}. Let's count them.`);
   }
 };
 
