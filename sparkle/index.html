@@ -482,6 +482,9 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .chip { white-space: nowrap; }
 .updown { width: 100%; max-width: 460px; justify-content: center; padding: 0 8px; }
 .ud { min-width: 0; flex: 1; max-width: 150px; padding: 10px 6px; }
+.singmeter .band { height: 15%; }
+.singpet { top: calc(50% + var(--y, 0) * 40%); transform: translate(-50%, -50%); transition: top .1s linear, opacity .2s; }
+.singpet.quiet { opacity: .45; }
 
 </style>
 </head>
@@ -1220,7 +1223,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.9';
+const VERSION = '2026-10-26.2';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -3025,7 +3028,7 @@ const EAR = {
     levels: [12, 9, 7, 5, 4, 3, 2, 1],                   // semitones apart
     intro: 'Listen to two notes. Does the second one go up, down, or stay the same?',
     ask: 'Up, down, or the same?',
-    btns: [['up', '1F426', 'Up'], ['same', '<svg viewBox="0 0 64 64"><path d="M14 24h36M14 40h36" stroke="#8f5cff" stroke-width="8" stroke-linecap="round"/></svg>', 'Same'], ['down', '1F43B', 'Down']],
+    btns: [['down', '1F43B', 'Down'], ['same', '<svg viewBox="0 0 64 64"><path d="M14 24h36M14 40h36" stroke="#8f5cff" stroke-width="8" stroke-linecap="round"/></svg>', 'Same'], ['up', '1F426', 'Up']],
     make(lv) {
       const n = this.levels[lv], r = Math.random(), base = semis(220, 3 + Math.floor(Math.random() * 10));
       const a = r < .2 ? 'same' : r < .6 ? 'up' : 'down';
@@ -3216,25 +3219,32 @@ el('earBtns').onclick = async e => {
 /* =========== sing it back: the microphone hears her note, her pet floats to show how close =========== */
 const SING_NOTES = [60, 62, 64, 65, 67, 69];          // C4 to A4: comfortable for a small voice
 let sing = null;
+/* Pitch from the microphone, using YIN (de Cheveigné & Kawahara, 2002): it compares the sound with itself
+   shifted by each possible period, and takes the first period that matches well. That makes it far less likely
+   than plain autocorrelation to jump to an octave or a fifth. Works from about 70 Hz (a man's low voice) to 1100 Hz. */
 function detectPitch(buf, rate) {
-  // autocorrelation, with the first dip skipped and the peak refined; null if too quiet or unclear
-  let rms = 0; for (const v of buf) rms += v * v; rms = Math.sqrt(rms / buf.length);
-  if (rms < .012) return null;
-  const n = buf.length, minLag = Math.floor(rate / 1000), maxLag = Math.floor(rate / 140);
-  let best = -1, bestC = 0;
-  const c = new Float32Array(maxLag + 2);
-  for (let lag = minLag; lag <= maxLag + 1; lag++) {
-    let s = 0; for (let i = 0; i < n - lag; i++) s += buf[i] * buf[i + lag];
-    c[lag] = s;
+  const n = buf.length >> 1, x = new Float32Array(n), sr = rate / 2;     // half the sample rate is plenty, and twice as fast
+  let rms = 0;
+  for (let i = 0; i < n; i++) { x[i] = (buf[2 * i] + buf[2 * i + 1]) / 2; rms += x[i] * x[i]; }
+  rms = Math.sqrt(rms / n);
+  if (rms < .004) return null;                                            // silence
+  const maxT = Math.min(n >> 1, Math.floor(sr / 70)), minT = Math.max(2, Math.floor(sr / 1100)), W = n - maxT;
+  const d = new Float32Array(maxT + 2);
+  for (let t = 1; t <= maxT + 1; t++) { let s = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + t]; s += v * v; } d[t] = s; }
+  // cumulative mean normalised difference
+  d[0] = 1; let run = 0;
+  for (let t = 1; t <= maxT + 1; t++) { run += d[t]; d[t] = run ? d[t] * t / run : 1; }
+  let tau = -1;
+  for (let t = minT; t <= maxT; t++) if (d[t] < .15) { while (t + 1 <= maxT && d[t + 1] < d[t]) t++; tau = t; break; }
+  if (tau < 0) {                                                           // nothing clear: take the best, if it's good enough
+    let m = minT; for (let t = minT; t <= maxT; t++) if (d[t] < d[m]) m = t;
+    if (d[m] > .3) return null;
+    tau = m;
   }
-  let e = 0; for (let i = 0; i < n; i++) e += buf[i] * buf[i];
-  for (let lag = minLag + 1; lag <= maxLag; lag++) if (c[lag] > c[lag - 1] && c[lag] >= c[lag + 1] && c[lag] > bestC) { bestC = c[lag]; best = lag; }
-  if (best < 0 || bestC / e < .45) return null;
-  // the first strong peak, so an octave isn't mistaken for the note
-  for (let lag = minLag + 1; lag < best; lag++) if (c[lag] > c[lag - 1] && c[lag] >= c[lag + 1] && c[lag] > bestC * .88) { best = lag; break; }
-  const a = c[best - 1], b = c[best], d = c[best + 1], shift = (a - d) / (2 * (a - 2 * b + d) || 1);
-  return rate / (best + shift);
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c;
+  return sr / (tau + (den ? (a - c) / (2 * den) : 0));
 }
+const median = a => { const s = a.slice().sort((p, q) => p - q); return s[s.length >> 1]; };
 async function singStart() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { el('musMsg').textContent = 'This phone can’t listen, sorry.'; return; }
   try {
@@ -3267,29 +3277,40 @@ async function singNext() {
   el('musMsg').textContent = 'Now you sing it! Laaa…';
   await wait(250);
   if (!sing) return;
-  sing.listening = true; sing.start = performance.now(); sing.last = performance.now();
+  sing.listening = true; sing.start = sing.last = performance.now(); sing.recent = []; sing.oct = null; sing.heard = 0;
   singLoop();
 }
 function singLoop() {
   if (!sing || !sing.listening) return;
   sing.an.getFloatTimeDomainData(sing.buf);
-  const f = detectPitch(sing.buf, audio().sampleRate), now = performance.now(), dt = (now - sing.last) / 1000;
+  const f = detectPitch(sing.buf, audio().sampleRate), now = performance.now(), dt = Math.min(.1, (now - sing.last) / 1000);
   sing.last = now;
   if (f) {
-    // how far off, in hundredths of a semitone; an octave out still counts (small voices often sing up an octave)
-    let cents = 1200 * Math.log2(f / NOTE(sing.target));
-    cents = ((cents % 1200) + 1800) % 1200 - 600;
-    sing.cents = sing.cents == null ? cents : sing.cents * .6 + cents * .4;
-    const y = clamp(sing.cents / 300, -1, 1);
+    sing.heard = now;
+    const raw = 1200 * Math.log2(f / NOTE(sing.target));
+    sing.recent.push(raw); if (sing.recent.length > 5) sing.recent.shift();
+    const c = median(sing.recent);
+    // which octave she's singing in: picked from her first steady notes, changed only if she clearly moves
+    const k = Math.round(c / 1200);
+    if (sing.oct == null || (k !== sing.oct && (sing.octVotes = (sing.octVotes || 0) + 1) > 12)) { sing.oct = k; sing.octVotes = 0; }
+    else if (k === sing.oct) sing.octVotes = 0;
+    const cents = c - 1200 * sing.oct;
+    const y = clamp(cents / 400, -1, 1);
     el('singPet').style.setProperty('--y', (-y).toFixed(3));
-    const close = Math.abs(sing.cents) < 60;
+    el('singPet').classList.remove('quiet');
+    const close = Math.abs(cents) < 60;
     el('singMeter').classList.toggle('close', close);
-    el('singHint').textContent = close ? '' : sing.cents < 0 ? '↑' : '↓';
+    el('singHint').textContent = close ? '' : cents < 0 ? '↑' : '↓';
     if (close) sing.good += dt;
+  } else if (now - (sing.heard || 0) > 350) {
+    // can't hear her: say so, rather than leaving the pet stuck where it was
+    sing.recent = [];
+    el('singPet').classList.add('quiet'); el('singMeter').classList.remove('close');
+    el('singHint').textContent = '🎤';
   }
   el('singFill').style.width = Math.min(100, sing.good / .9 * 100) + '%';
   if (sing.good >= .9) { singWin(); return; }
-  if (now - sing.start > 9000) { singGiveUp(); return; }
+  if (now - sing.start > 12000) { singGiveUp(); return; }
   sing.raf = requestAnimationFrame(singLoop);
 }
 async function singWin() {
@@ -3321,14 +3342,40 @@ const SONGS = [
 ];
 const TILE_SPEEDS = [['Slow', 70], ['Medium', 92], ['Fast', 116]];
 const LANE_C = ['#ff4fa3', '#8f5cff', '#ff8cc6', '#4cb5ff'];
+const TILE_WIN = .4;     // seconds early or late a tap still counts: the band between the two pink lines
 let tlSong = store.get('tileSong') || 0, tlBpm = store.get('tileBpm') || 70;
 let tl = null;
 function songNotes(s) {
   const raw = s.n.split(' ').map(x => { const [nn, b] = x.split(':'); return { m: midi(nn), beats: b ? +b : 1 }; });
-  // lanes follow the tune's shape: low notes left, high notes right
-  const ps = [...new Set(raw.map(r => r.m))].sort((a, b) => a - b);
+  const lanes = laneFit(raw.map(r => r.m));
   let t = 0;
-  return raw.map(r => { const o = { m: r.m, beats: r.beats, at: t, lane: Math.min(3, Math.floor(ps.indexOf(r.m) * 4 / ps.length)) }; t += r.beats; return o; });
+  return raw.map((r, i) => { const o = { m: r.m, beats: r.beats, at: t, lane: lanes[i] }; t += r.beats; return o; });
+}
+/* Lanes follow the tune: a higher note is to the right of the one before, a lower one to the left, the same note
+   in the same lane. With only four lanes that can't always work, so this finds the lanes that break it least
+   (trying every lane for every note, Viterbi-style), and otherwise keeps low notes leftish and high notes rightish. */
+function laneFit(ms) {
+  const lo = Math.min(...ms), hi = Math.max(...ms), home = m => hi === lo ? 1.5 : (m - lo) / (hi - lo) * 3;
+  const step = (a, b, la, lb) => {
+    const d = b - a, dl = lb - la;
+    if (d === 0) return dl ? 10 : 0;                        // same note: same lane
+    if (dl === 0) return 6;                                 // a different note in the same lane
+    if (Math.sign(d) !== Math.sign(dl)) return 9;           // going the wrong way
+    return Math.abs(Math.abs(dl) - (Math.abs(d) > 4 ? 2 : 1)) * .6;   // small steps move one lane, leaps two
+  };
+  let cost = [0, 1, 2, 3].map(l => Math.abs(l - home(ms[0])) * .3), back = [];
+  for (let i = 1; i < ms.length; i++) {
+    const nc = [], bk = [];
+    for (let l = 0; l < 4; l++) {
+      let best = 1e9, bl = 0;
+      for (let k = 0; k < 4; k++) { const c = cost[k] + step(ms[i - 1], ms[i], k, l); if (c < best) { best = c; bl = k; } }
+      nc.push(best + Math.abs(l - home(ms[i])) * .3); bk.push(bl);
+    }
+    cost = nc; back.push(bk);
+  }
+  const out = [cost.indexOf(Math.min(...cost))];
+  for (let i = back.length - 1; i >= 0; i--) out.unshift(back[i][out[0]]);
+  return out;
 }
 function tilesChips() {
   el('tileSongs').innerHTML = SONGS.map((s, i) => `<button class="chip${i === tlSong ? ' on' : ''}" data-s="${i}" data-say="${s.name}">${s.name}</button>`).join('');
@@ -3337,7 +3384,7 @@ function tilesChips() {
 function tilesLayout() {
   const w = el('tilesWrap'), cv = el('tilesCanvas'), r = w.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
   cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; cv.width = r.width * dpr; cv.height = r.height * dpr;
-  if (tl) { tl.w = r.width; tl.h = r.height; tl.dpr = dpr; tl.line = r.height * .82; }
+  if (tl) { tl.w = r.width; tl.h = r.height; tl.dpr = dpr; tl.line = r.height * .76; }
 }
 enter.tiles = () => {
   tilesChips(); tl = null; tilesLayout(); tilesIdle();
@@ -3351,9 +3398,11 @@ function tilesIdle() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
   for (let l = 0; l < 4; l++) { g.fillStyle = l % 2 ? '#fbf5ff' : '#fff'; g.fillRect(l * r.width / 4, 0, r.width / 4, r.height); }
 }
-el('tileSongs').onclick = e => { const c = e.target.closest('[data-s]'); if (!c || (tl && tl.run)) return; tlSong = +c.dataset.s; store.set('tileSong', tlSong); enter.tiles(); };
+el('tileSongs').onclick = e => { const c = e.target.closest('[data-s]'); if (!c || (tl && tl.run)) return; tlSong = +c.dataset.s; store.set('tileSong', tlSong); tilesChips(); el('tilesMsg').textContent = `${SONGS[tlSong].name}. Tap each tile when it reaches the line!`; el('tilesGo').textContent = 'Play'; el('tilesGo').dataset.say = 'Play'; };
 el('tileSpeeds').onclick = e => { const c = e.target.closest('[data-b]'); if (!c) return; tlBpm = +c.dataset.b; store.set('tileBpm', tlBpm); tilesChips(); };
 el('tilesGo').onclick = () => {
+  // stop any talking first: on some phones the voice holds the sound, and the first notes go silent
+  try { speechSynthesis.cancel(); } catch {}
   audio();
   const notes = songNotes(SONGS[tlSong]);
   tl = { notes, beat: 60 / tlBpm, run: true, hits: 0, t0: 0, raf: 0, flash: [0, 0, 0, 0], lastTick: -1 };
@@ -3375,15 +3424,19 @@ function tilesLoop() {
     g.fillStyle = l % 2 ? '#fbf5ff' : '#fff'; g.fillRect(l * lw, 0, lw, h);
     if (tl.flash[l] > 0) { g.fillStyle = `rgba(255,79,163,${tl.flash[l] * .25})`; g.fillRect(l * lw, 0, lw, h); tl.flash[l] -= .06; }
   }
-  g.fillStyle = '#ffd6ec'; g.fillRect(0, line - 4, w, 8);
+  const zt = line - TILE_WIN * speed, zb = line + TILE_WIN * speed;
+  g.fillStyle = 'rgba(255,140,198,.16)'; g.fillRect(0, zt, w, zb - zt);
+  g.fillStyle = '#ff8cc6'; g.fillRect(0, zt - 2, w, 4); g.fillRect(0, zb - 2, w, 4);
   let left = 0;
   for (const n of tl.notes) {
     const tt = n.at * beat, y = line - (tt - now) * speed, len = Math.max(.6, n.beats * .8) * beat * speed;
-    if (!n.done && tt - now < -.35) { n.done = 'miss'; }
+    if (!n.done && tt - now < -TILE_WIN) { n.done = 'miss'; }
     if (!n.done) left++;
     if (y < -10 || y - len > h) continue;
+    const live = !n.done && Math.abs(tt - now) <= TILE_WIN;
     g.fillStyle = n.done === 'hit' ? 'rgba(143,92,255,.18)' : n.done === 'miss' ? '#e8dff0' : LANE_C[n.lane];
     g.beginPath(); g.roundRect(n.lane * lw + 6, y - len, lw - 12, len, 14); g.fill();
+    if (live) { g.lineWidth = 5; g.strokeStyle = '#ffe066'; g.stroke(); }
   }
   if (!left && now > tl.notes.at(-1).at * beat + 1) { tilesEnd(); return; }
   tl.raf = requestAnimationFrame(tilesLoop);
@@ -3396,8 +3449,9 @@ el('tilesCanvas').addEventListener('pointerdown', e => {
   tl.flash[lane] = 1;
   // the nearest waiting tile in that lane, if it's close to the line (generous for small fingers)
   let best = null, bd = 1e9;
-  for (const n of tl.notes) if (!n.done && n.lane === lane) { const d = Math.abs(n.at * tl.beat - now); if (d < bd) { bd = d; best = n; } }
-  if (best && bd < .45) { best.done = 'hit'; tl.hits++; note(NOTE(best.m), Math.min(1.2, best.beats * tl.beat + .2), .26); }
+  // the oldest waiting tile in that lane that's in the zone (so a late tap takes the late tile, not the next one)
+  for (const n of tl.notes) if (!n.done && n.lane === lane) { const d = Math.abs(n.at * tl.beat - now); if (d <= TILE_WIN) { bd = d; best = n; break; } }
+  if (best && bd <= TILE_WIN) { best.done = 'hit'; tl.hits++; note(NOTE(best.m), Math.min(1.2, best.beats * tl.beat + .2), .26); }
   else note(NOTE(60 + [0, 4, 7, 12][lane]), .15, .06);
 });
 async function tilesEnd() {
@@ -3577,7 +3631,7 @@ el('patOpts').onclick = async e => {
     b.disabled = true; b.classList.add('out'); sfx.oops(); buddy('think');
     if (!pat.missed) {
       pat.missed = true; pat.run = 0;
-      if (++pat.missRun >= 2 && pat.lv > 1) { pat.lv--; pat.missRun = 0; store.set('patLv', pat.lv); patLvl(); }
+      if (pat.lv > 1) { pat.lv--; store.set('patLv', pat.lv); patLvl(); }     // down a level at once; three right takes her back up
     }
     say('Not that one. Look again!');
   }
@@ -3884,10 +3938,11 @@ async function puzzleTap(r, c) {
   if (ch.stars.length < before) { sfx.coin(); buddy('cheer'); } else sfx.pop();
   if (!ch.stars.length) {
     ch.over = true; puzzleDraw();
+    const me = ch;
     sfx.yay(); buddy('party'); petFun(8); addCoins(ch.n, el('chessMsg'));
     store.set('pz:' + ch.kind, Math.min(7, ch.n + 1));
     await chMsg(`All the stars, in ${ch.moves} moves! Well done!`);
-    await wait(600); if (!ch.gone && screen === 'chess') puzzleStart(false);
+    await wait(600); if (me === ch && !me.gone && screen === 'chess') puzzleStart(false);
     return;
   }
   puzzleDraw();
