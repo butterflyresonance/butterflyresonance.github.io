@@ -3517,7 +3517,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-25.9-popup-notes';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-10-25.10-review-not-gated';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -7335,8 +7335,9 @@ function drawHint() {
        position it leads to first, so their move and its badge land together
        instead of the badge trailing the move by a few seconds.
 
-   It runs against the computer always, and in a game against a person only if
-   both of you switch it on — otherwise it is simply engine help. */
+   It runs whenever you have it switched on, against the computer or a person.
+   Against a person it isn't hidden: the other player is told you have it on
+   (the line under the buttons, from the 'hint' message). */
 
 const AN_MIN = 12;            // never grade from a search shallower than this
 const AN_GRADE = 18;          // depth a position needs before moves into or out of it are graded
@@ -7379,7 +7380,7 @@ let viewPly = null;          // ply whose starting position is being shown on th
    a person's move just arrives underneath it. */
 let lineView = null;         // { ply, which: 'best' | 'reply', idx, at, id }
 
-const reviewActive = () => !!code && code !== 'puzzle' && !anBroken && (solo ? reviewOn : reviewOn && peerReview);
+const reviewActive = () => !!code && code !== 'puzzle' && !anBroken && reviewOn;
 const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
 const uciOf = m => m.from + m.to + (m.promotion || '');
 const moveId = m => posKey(m.before) + '|' + uciOf(m);
@@ -8254,7 +8255,6 @@ function drawReviewState() {
   if (!st) return;
   if (anBroken) { st.textContent = 'unavailable'; return; }
   if (!reviewOn) { st.textContent = ''; return; }
-  if (!solo && !peerReview) { st.textContent = 'waiting for them to switch it on too'; return; }
   const e = anCache.get(posKey(game.fen()));
   st.textContent = e && e.depth && !e.terminal ? `depth ${e.depth}` : '';
 }
@@ -8271,8 +8271,7 @@ function drawReview() {
   const body = el('reviewBody');
   if (anBroken) { body.innerHTML = `<p class="coach-note">${esc(anNote)}</p>`; return; }
   if (!reviewActive()) {
-    body.innerHTML = !reviewOn ? ''
-      : '<p class="coach-note">Against a person, the eval bar and the move badges only show when you both switch them on — otherwise they’re engine help.</p>';
+    body.innerHTML = '';
     return;
   }
   const hist = game.history({ verbose: true });
@@ -9403,12 +9402,11 @@ function setLink() {
   updateConnecting();
   el('invite').querySelector('.label').textContent = joinByCode ? 'Your table · your colour is set when they arrive' : `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
   drawConn();
-  const tell = peerAuto
-    ? 'They’re letting the engine play their moves.'
-    : peerHints ? 'They have Best move switched on.'
-    : peerCoach ? 'They have the tactics coach switched on.'
-    : peerReview && !reviewOn ? 'They’ve switched the review on. It shows for both of you only if you switch it on too.'
-    : peerReview && reviewOn ? 'The review is on for both of you.' : '';
+  // what the other player has helping them, kept to one short line (fits a 320px phone)
+  const tell = peerAuto ? 'The engine is playing their moves.'
+    : peerHints ? 'They have Best move on.'
+    : peerCoach ? 'They have the tactics coach on.'
+    : peerReview ? 'They have the review on.' : '';
   el('peerHint').textContent = tell;
   el('peerHint').classList.toggle('hidden', !(tell && peers.size));
   if (!el('game').classList.contains('hidden')) drawStatus();
