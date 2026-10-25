@@ -3517,7 +3517,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-25.10-review-not-gated';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-10-25.11-no-chat-note';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4249,7 +4249,7 @@ function drawChat() {
   const log = el('chatLog');
   const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   log.innerHTML = list.length ? list.map(m => `<div class="chatmsg${m.me ? ' me' : ''}">${escText(m.text)}<span class="t">${chatTime(m.at)}${m.me ? ' · ' + chatStatus(m) : ''}</span></div>`).join('')
-    : '<p class="note">Messages go only to the other player at this table.</p>';
+    : '';
   if (atEnd) log.scrollTop = log.scrollHeight;
 }
 el('chatBtn').onclick = openChat;
