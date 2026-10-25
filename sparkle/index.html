@@ -383,6 +383,10 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .pic.newpage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 4px dashed var(--pink-2); background: #fff; }
 .plus2 { font-size: 64px; font-weight: 800; color: var(--pink); line-height: 1; }
 .np { font-size: 17px; font-weight: 800; color: var(--purple); }
+.tpip { flex: none; display: flex; align-items: center; gap: 1px; font-size: 14px; font-weight: 800; color: var(--purple); background: var(--purple-3); border-radius: 999px; padding: 2px 7px 2px 3px; }
+.tpip img { width: 22px; height: 22px; }
+.tpip.full { background: #ffe6f3; color: var(--pink); }
+.growbox:has(.tpip) .gl span { display: none; }
 
 </style>
 </head>
@@ -689,42 +693,98 @@ function petSVG(kind, look = {}) {
       <path d="M292 314 C330 314 358 290 362 254 C346 270 330 272 320 266 C326 288 310 300 290 300 Z" fill="#ff8a4c" ${L}/>`;
   }
 
-  // ---- what it ate while growing: features
-  const feat = (p, which) => {
-    if (p === 'blossom') return which === 'child'
-      ? { head: flower(266, 86, 34, '#ff8cc6') }
-      : { back: `<path d="M110 260 C40 250 30 180 70 160 C90 200 110 214 130 222 Z" fill="#9be08e" ${L}/><path d="M290 260 C360 250 370 180 330 160 C310 200 290 214 270 222 Z" fill="#9be08e" ${L}/>`,
-          body: [0, 1, 2, 3, 4, 5, 6].map(i => { const a = Math.PI * (.15 + i * .7 / 6); return `<ellipse cx="${(200 - 92 * Math.cos(a)).toFixed(1)}" cy="${(250 - 24 * Math.sin(a)).toFixed(1)}" rx="18" ry="12" fill="#ffb0d6" stroke="${PET_LINE}" stroke-width="4"/>`; }).join('') };
-    if (p === 'sparkle') return which === 'child'
-      ? { head: star5(276, 206, 16, '#ffe066'), body: star5(244, 330, 12, '#fff3a8') }
-      : { back: `<path d="M140 240 C80 170 50 200 70 250 C80 280 120 280 140 262 Z" fill="#efe4ff" opacity=".9" ${L}/><path d="M260 240 C320 170 350 200 330 250 C320 280 280 280 260 262 Z" fill="#efe4ff" opacity=".9" ${L}/>`,
-          aura: star5(70, 70, 16, '#ffe066') + star5(338, 92, 12, '#fff3a8') + star5(340, 360, 10, '#ffe066') };
-    if (p === 'ocean') return which === 'child'
-      ? { body: [[160, 270, 10], [240, 300, 8], [196, 330, 7], [262, 252, 6]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>`).join(''),
-          head: `<circle cx="120" cy="150" r="7" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>` }
-      : { head: `<path d="M96 160 C60 140 56 104 74 90 C86 118 100 126 112 128 Z" fill="#8fe3f0" ${L}/><path d="M304 160 C340 140 344 104 326 90 C314 118 300 126 288 128 Z" fill="#8fe3f0" ${L}/>`,
-          body: `<path d="M176 256 Q200 236 224 256 Q212 274 200 270 Q188 274 176 256 Z" fill="#ffd6e6" stroke="${PET_LINE}" stroke-width="4"/><path d="M200 246 L200 268 M188 252 L194 268 M212 252 L206 268" stroke="${PET_LINE}" stroke-width="3"/>` };
-    if (p === 'sunny') return which === 'child'
-      ? { head: `<circle cx="200" cy="104" r="13" fill="#ffd25e" stroke="${PET_LINE}" stroke-width="4"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i * Math.PI / 4; return `<path d="M${(200 + 19 * Math.cos(a)).toFixed(1)} ${(104 + 19 * Math.sin(a)).toFixed(1)} L${(200 + 27 * Math.cos(a)).toFixed(1)} ${(104 + 27 * Math.sin(a)).toFixed(1)}" stroke="#ffb400" stroke-width="5" stroke-linecap="round"/>`; }).join('') }
-      : { backH: Array.from({ length: 14 }, (_, i) => { const a = i * Math.PI * 2 / 14; const x = 200 + 156 * Math.cos(a), y = 170 + 156 * Math.sin(a), x1 = 200 + 104 * Math.cos(a - .18), y1 = 170 + 104 * Math.sin(a - .18), x2 = 200 + 104 * Math.cos(a + .18), y2 = 170 + 104 * Math.sin(a + .18); return `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x.toFixed(1)} ${y.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${i % 2 ? '#ffd25e' : '#ffb347'}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`; }).join('') };
-    return {};
-  };
-  const f1 = stage === 'baby' ? {} : feat(p1, 'child'), f2 = stage === 'adult' ? feat(p2, 'adult') : {};
-  back = (f2.back || '') + back;
-  backH = (f2.backH || '') + backH;
-  bodyExtra = (f1.body || '') + (f2.body || '');
-  headExtra = (f1.head || '') + (f2.head || '');
-  aura = (f2.aura || '');
-
-  // ---- body and feet (step lifts one foot for running)
+  // ---- what it ate while growing decides its body: the stage's path is the body plan,
+  //      and (for a grown-up) what it ate as a child shows as markings
+  const plan = stage === 'baby' ? 'plain' : stage === 'adult' ? p2 : p1;
+  const big = stage === 'adult', pure = big && p1 === p2 && plan !== 'plain';
   const fl = step === 0 ? -14 : 0, fr = step === 1 ? -14 : 0;
-  const foot = kind === 'phoenix' ? '#ff8a4c' : kind === 'unicorn' ? '#d9c6ff' : k.body;
-  let body = `<ellipse cx="200" cy="292" rx="102" ry="82" fill="${k.body}" ${L}/>
-    <ellipse cx="200" cy="304" rx="58" ry="52" fill="${k.belly}"/>
-    <ellipse cx="152" cy="${370 + fl}" rx="38" ry="22" fill="${foot}" ${L}/>
-    <ellipse cx="248" cy="${370 + fr}" rx="38" ry="22" fill="${foot}" ${L}/>`;
-  if (kind !== 'phoenix') body += `<ellipse cx="112" cy="${290 + (step === 1 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(20 112 290)"/>
-    <ellipse cx="288" cy="${290 + (step === 0 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(-20 288 290)"/>`;
+  const S4 = `stroke="${PET_LINE}" stroke-width="4"`;
+  const tone = (c, t) => mix(c, k.body, 1 - t);   // mostly the path's colour, a little of the animal's
+  const kindBack = back;
+  const keepWings = (kind === 'dragon' || kind === 'phoenix') && plan !== 'sparkle' && plan !== 'ocean';
+  back = plan === 'plain' ? kindBack : keepWings ? kindBack.split('<path d="M290')[0].split('<path d="M286')[0] : '';
+  let body = '';
+  if (plan === 'plain') {
+    const foot = kind === 'phoenix' ? '#ff8a4c' : kind === 'unicorn' ? '#d9c6ff' : k.body;
+    body = `<ellipse cx="200" cy="292" rx="102" ry="82" fill="${k.body}" ${L}/>
+      <ellipse cx="200" cy="304" rx="58" ry="52" fill="${k.belly}"/>
+      <ellipse cx="152" cy="${370 + fl}" rx="38" ry="22" fill="${foot}" ${L}/>
+      <ellipse cx="248" cy="${370 + fr}" rx="38" ry="22" fill="${foot}" ${L}/>`;
+    if (kind !== 'phoenix') body += `<ellipse cx="112" cy="${290 + (step === 1 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(20 112 290)"/>
+      <ellipse cx="288" cy="${290 + (step === 0 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(-20 288 290)"/>`;
+  } else if (plan === 'blossom') {
+    // a flower for a body: a skirt of petals, a stem and leaves to stand on, leaves for arms; the face sits in a ring of petals
+    const pa = tone('#ff9fd0', .78), pb = tone('#ffd0e8', .72);
+    if (big) back += `<path d="M262 360 C330 380 372 330 352 290 C340 268 312 276 318 296 C324 316 300 330 270 326" fill="none" stroke="#6cc070" stroke-width="12" stroke-linecap="round"/>${flower(356, 284, 24, pa)}`;
+    body += `<path d="M200 330 L200 ${big ? 400 : 392}" stroke="#6cc070" stroke-width="16" stroke-linecap="round"/>
+      <path d="M200 ${380 + fl / 2} C160 350 110 360 92 392 C140 402 180 398 200 386 Z" fill="#9be08e" ${L}/><path d="M200 ${380 + fr / 2} C240 350 290 360 308 392 C260 402 220 398 200 386 Z" fill="#9be08e" ${L}/>`;
+    const n = big ? 8 : 6, rx = big ? 50 : 44;
+    for (let layer = big ? 1 : 0; layer >= 0; layer--) for (let i = 0; i < n; i++) {
+      const a = Math.PI * (.06 + i * .88 / (n - 1)), R = layer ? 122 : 108, x = 200 - R * Math.cos(a), y = 300 + (layer ? 78 : 62) * Math.sin(a) - 10;
+      body += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${layer ? rx + 6 : rx}" ry="${layer ? 66 : 60}" fill="${(i + layer) % 2 ? pa : pb}" ${L} transform="rotate(${(90 - a * 180 / Math.PI).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    }
+    body += `<ellipse cx="200" cy="266" rx="74" ry="56" fill="${k.belly}" ${L}/>
+      <path d="M126 252 C96 236 86 208 102 194 C112 212 128 222 142 226 Z" fill="#9be08e" ${L}/><path d="M274 252 C304 236 314 208 298 194 C288 212 272 222 258 226 Z" fill="#9be08e" ${L}/>`;
+    const ring = big ? 14 : 11;
+    for (let i = 0; i < ring; i++) {
+      const a = i * Math.PI * 2 / ring, R = big ? 122 : 108, x = 200 + R * Math.cos(a), y = 170 + R * Math.sin(a);
+      backH += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${big ? 34 : 28}" ry="${big ? 52 : 40}" fill="${i % 2 ? pa : pb}" ${S4} transform="rotate(${(a * 180 / Math.PI + 90).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    }
+  } else if (plan === 'sparkle') {
+    // a floating star-sprite: no feet, the body trails off like a comet; wings; star antennae
+    const wing = `fill="#efe4ff" opacity=".88" ${L}`;
+    aura += `<ellipse cx="200" cy="400" rx="${big ? 110 : 88}" ry="15" fill="#c9a8ff" opacity=".4"/><circle cx="200" cy="220" r="${big ? 230 : 200}" fill="#fff6b0" opacity=".28"/>`;
+    back += `<path d="M110 240 C30 170 20 260 70 300 C96 318 130 300 140 280 Z" ${wing}/><path d="M290 240 C370 170 380 260 330 300 C304 318 270 300 260 280 Z" ${wing}/>`;
+    if (big) back += `<path d="M120 200 C40 110 0 150 30 200 C50 232 100 236 130 222 Z" ${wing}/><path d="M280 200 C360 110 400 150 370 200 C350 232 300 236 270 222 Z" ${wing}/>`;
+    body += big
+      ? `<path d="M116 256 C116 204 284 204 284 256 C284 316 254 336 232 350 C266 352 300 330 330 336 C372 344 384 388 352 400 C368 376 352 360 326 364 C280 372 240 398 204 380 C152 372 116 316 116 256 Z" fill="${k.body}" ${L}/>`
+      : `<path d="M120 260 C120 210 280 210 280 260 C280 312 250 330 228 344 C252 352 268 368 300 372 C250 392 210 380 196 352 C150 340 120 310 120 260 Z" fill="${k.body}" ${L}/>`;
+    body += `<ellipse cx="200" cy="272" rx="50" ry="40" fill="${k.belly}" opacity=".85"/>` + star5(172, 300, 10, '#fff6b0') + star5(240, 316, 8, '#fff') + star5(258, 262, 6, '#fff6b0');
+    backH += `<path d="M178 80 C170 40 152 8 130 -14" fill="none" stroke="${PET_LINE}" stroke-width="7" stroke-linecap="round"/><path d="M222 80 C230 40 248 8 270 -14" fill="none" stroke="${PET_LINE}" stroke-width="7" stroke-linecap="round"/>`
+      + star5(128, -18, big ? 34 : 28, '#ffe066') + star5(272, -18, big ? 34 : 28, '#ffe066');
+    if (big) headExtra += `<path d="M206 76 A20 20 0 1 0 206 112 A15 15 0 1 1 206 76 Z" fill="#ffe066" stroke="${PET_LINE}" stroke-width="4"/>`;
+  } else if (plan === 'ocean') {
+    // a mer-pet: a fish tail instead of legs, fins for arms, a fin crest on its head
+    const fin = tone('#7fd6e8', .82), tail = tone('#b8eef7', .7);
+    body += big
+      ? `<path d="M106 250 C106 196 294 196 294 250 C300 300 280 330 264 350 C320 352 372 320 392 280 C410 330 390 396 340 400 C360 376 340 360 318 368 C270 398 180 404 144 368 C108 336 104 292 106 250 Z" fill="${tail}" ${L}/>
+         <path d="M340 400 C376 410 410 390 418 360 C398 370 380 368 372 356 Z" fill="${fin}" ${L}/>`
+      : `<path d="M110 250 C110 200 290 200 290 250 C296 300 270 330 250 350 C290 340 320 312 340 290 C356 330 340 390 300 392 C320 368 300 352 280 360 C240 388 180 392 150 360 C110 330 108 290 110 250 Z" fill="${tail}" ${L}/>
+         <path d="M300 392 C330 400 360 384 370 366 C350 372 336 370 330 360 Z" fill="${fin}" ${L}/>`;
+    body += `<ellipse cx="200" cy="262" rx="54" ry="40" fill="${k.belly}"/><path d="M150 304 Q166 294 182 304 M182 304 Q198 294 214 304 M214 304 Q230 294 246 304 M166 334 Q182 324 198 334 M198 334 Q214 324 230 334" fill="none" stroke="${mix(fin, PET_LINE, .3)}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M114 262 C${big ? '64 262 40 310 52 330' : '80 270 62 300 72 316'} C${big ? '84 312' : '92 304'} 108 300 124 296 Z" fill="${fin}" ${L}/><path d="M286 262 C${big ? '336 262 360 310 348 330' : '320 270 338 300 328 316'} C${big ? '316 312' : '308 304'} 292 300 276 296 Z" fill="${fin}" ${L}/>`;
+    const crest = big ? 'M120 110 C110 40 150 -30 200 -46 C250 -30 290 40 280 110 Z' : 'M140 100 C136 50 164 0 200 -14 C236 0 264 50 260 100 Z';
+    backH += `<path d="${crest}" fill="${fin}" ${L}/><path d="M200 ${big ? -40 : -8} L200 90 M160 ${big ? 0 : 30} L176 96 M240 ${big ? 0 : 30} L224 96" stroke="${mix(fin, PET_LINE, .3)}" stroke-width="5" stroke-linecap="round"/>`;
+    if (big) backH += `<path d="M96 170 C50 150 44 112 66 96 C76 126 92 136 106 140 Z" fill="${fin}" ${L}/><path d="M304 170 C350 150 356 112 334 96 C324 126 308 136 294 140 Z" fill="${fin}" ${L}/>`;
+    aura += [[60, 60, 12], [84, 20, 7], [350, 200, 10], [368, 160, 6], [40, 340, 9]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>`).join('');
+  } else if (plan === 'sunny') {
+    // a sun-lion: four sturdy paws, a mane of rays round its face, a flame for a tail
+    const m1 = '#ffc44d', m2 = '#ff9f3a', fur = tone('#ffe08a', .62);
+    back += big
+      ? `<path d="M300 300 C360 300 384 236 360 200 C390 206 412 240 402 280 C424 262 428 236 422 220 C452 262 424 340 340 340 Z" fill="#ff7a2e" ${L}/><path d="M318 312 C360 304 376 268 366 240 C384 256 390 290 360 316 Z" fill="#ffd25e"/>`
+      : `<path d="M300 300 C350 300 370 250 350 220 C372 226 392 250 384 280 C400 270 404 250 400 240 C420 270 400 330 340 336 Z" fill="#ff8a3a" ${L}/>`;
+    body += `<ellipse cx="200" cy="294" rx="${big ? 128 : 116}" ry="${big ? 86 : 78}" fill="${fur}" ${L}/><ellipse cx="200" cy="312" rx="62" ry="44" fill="${k.belly}"/>`
+      + [[108, fl], [158, fr], [242, fl], [292, fr]].map(([x, up]) => `<rect x="${x - 25}" y="${330 + up}" width="50" height="${big ? 62 : 56}" rx="23" fill="${fur}" ${L}/><path d="M${x - 10} ${378 + up} L${x - 10} ${366 + up} M${x + 10} ${378 + up} L${x + 10} ${366 + up}" stroke="${PET_LINE}" stroke-width="4" stroke-linecap="round"/>`).join('');
+    const rays = big ? 18 : 16, R = big ? 162 : 146;
+    for (let layer = big ? 1 : 0; layer >= 0; layer--) for (let i = 0; i < rays; i++) {
+      const a = (i + layer * .5) * Math.PI * 2 / rays, RR = R - layer * 0 + (layer ? 18 : 0), w = .22;
+      const pt = (r, da) => `${(200 + r * Math.cos(a + da)).toFixed(1)} ${(170 + r * Math.sin(a + da)).toFixed(1)}`;
+      backH += `<path d="M${pt(94, -w)} Q${pt(RR - 10, -.1)} ${pt(RR, 0)} Q${pt(RR - 10, .1)} ${pt(94, w)} Z" fill="${(i + layer) % 2 ? m1 : m2}" stroke="${PET_LINE}" stroke-width="5" stroke-linejoin="round"/>`;
+    }
+    if (big) headExtra += `<circle cx="200" cy="96" r="13" fill="#ffd25e" stroke="${PET_LINE}" stroke-width="4"/>`;
+  }
+  // markings: what a grown-up ate as a child
+  if (big && p1 !== 'plain' && p1 !== p2) {
+    if (p1 === 'blossom') body += [[150, 286], [252, 300], [196, 336], [236, 258]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="11" ry="7" fill="#ff8cc6" ${S4} transform="rotate(30 ${x} ${y})"/>`).join('') + flower(268, 92, 18, '#ff8cc6');
+    if (p1 === 'sparkle') body += star5(150, 290, 9, '#fff3a8') + star5(250, 320, 8, '#fff3a8') + star5(206, 344, 6, '#fff'), headExtra += star5(270, 206, 12, '#ffe066');
+    if (p1 === 'ocean') body += `<path d="M150 276 Q164 266 178 276 M222 276 Q236 266 250 276 M186 340 Q200 330 214 340" fill="none" stroke="#5ab8cc" stroke-width="4" stroke-linecap="round"/>`, headExtra += `<circle cx="122" cy="140" r="7" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/><circle cx="110" cy="118" r="4" fill="#e6fbff" stroke="#6cc8da" stroke-width="3"/>`;
+    if (p1 === 'sunny') body += `<path d="M140 270 l14 10 l-14 10 M246 270 l14 10 l-14 10" fill="none" stroke="#ff9f3a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`, headExtra += `<circle cx="200" cy="96" r="10" fill="#ffd25e" stroke="${PET_LINE}" stroke-width="4"/>`;
+  }
+  // the same treat all the way: a little extra magic around it
+  if (pure && plan === 'blossom') aura += [[50, 60], [350, 40], [380, 230], [24, 250]].map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="12" ry="8" fill="#ffb3d9" ${S4} transform="rotate(${i * 50} ${x} ${y})"/>`).join('');
+  if (pure && plan === 'sparkle') aura += star5(40, 60, 16, '#ffe066') + star5(370, 70, 12, '#fff3a8') + star5(390, 330, 10, '#ffe066') + star5(10, 300, 9, '#fff3a8');
+  if (pure && plan === 'ocean') aura += `<path d="M-20 392 Q40 372 100 392 T220 392 T340 392 T460 392" fill="none" stroke="#8fe3f0" stroke-width="8" stroke-linecap="round" opacity=".7"/>`;
+  if (pure && plan === 'sunny') aura += `<circle cx="200" cy="170" r="200" fill="#ffd25e" opacity=".22"/>`;
   body += bodyExtra;
 
   // ---- head
@@ -793,7 +853,7 @@ function petSVG(kind, look = {}) {
   // ---- the stage: a baby is small with a big head; a grown-up is taller
   let bodyT = '', headT = '', allT = '';
   if (stage === 'baby') { bodyT = 'translate(200 392) scale(.78) translate(-200 -392)'; headT = 'translate(0 46) translate(200 170) scale(1.02) translate(-200 -170)'; allT = 'translate(200 392) scale(.86) translate(-200 -392)'; }
-  if (stage === 'adult') { bodyT = 'translate(200 392) scale(1.1 1.2) translate(-200 -392)'; headT = 'translate(0 -30) translate(200 170) scale(.94) translate(-200 -170)'; allT = 'translate(200 392) scale(1.04) translate(-200 -392)'; }
+  if (stage === 'adult') { bodyT = plan === 'plain' ? 'translate(200 392) scale(1.1 1.2) translate(-200 -392)' : 'translate(200 392) scale(1 1.08) translate(-200 -392)'; headT = 'translate(0 -30) translate(200 170) scale(.94) translate(-200 -170)'; allT = 'translate(200 392) scale(1.04) translate(-200 -392)'; }
   const svg = `<g transform="${allT}">${aura}<g transform="${bodyT}">${back}</g><g transform="${headT}">${backH}</g>`
     + `<g transform="${bodyT}">${body}${dirtBody(dirt)}${wearNeck}</g><g transform="${headT}">${head}${face}${dirtHead(dirt)}${wearFace}${wearHead}</g></g>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -70 480 480">${svg}</svg>`;
@@ -1001,7 +1061,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.5';
+const VERSION = '2026-10-25.6';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -1155,6 +1215,7 @@ const PET_NAMES = { bunny: 'Bella', kitten: 'Mittens', puppy: 'Biscuit', dragon:
 const GROW_MS = 20 * 3600e3;          // about a day in each stage
 const GROW_FEEDS = 3;                 // and a few meals
 const TREAT_PATHS = ['blossom', 'sparkle', 'ocean', 'sunny'];
+const TREAT_NEED = 4;                 // magic treats of one kind in a stage to grow that way
 function newPet(kind, special) {
   return { id: Math.random().toString(36).slice(2, 9), kind, name: PET_NAMES[kind] || 'Pip', special: !!special, stage: 'egg', since: Date.now(),
     fed: 0, treats: {}, paths: [], wear: {}, food: 80, clean: 90, fun: 80, at: Date.now(), warm: 0 };
@@ -1229,6 +1290,12 @@ function growNote(p) {
   }
   return meals > 0 ? `Ready to grow after ${meals} more meal${meals === 1 ? '' : 's'}!` : 'Ready to grow!';
 }
+function treatNote(p) {
+  const t = topTreat(p); if (!t) return '';
+  const left = TREAT_NEED - t.n, nm = t.f.name.toLowerCase();
+  return left > 0 ? ` ${left} more ${nm}${left === 1 ? '' : 's'} to grow the ${t.f.path === 'blossom' ? 'flower' : t.f.path === 'sparkle' ? 'sparkly' : t.f.path === 'ocean' ? 'sea' : 'sunny'} way.`
+    : ` Enough ${nm}s! It will grow the ${t.f.path === 'blossom' ? 'flower' : t.f.path === 'sparkle' ? 'sparkly' : t.f.path === 'ocean' ? 'sea' : 'sunny'} way.`;
+}
 // the growing clock, and the potion that takes an hour off it
 const POTION = { cost: 30, ms: 3600e3 };
 const POTION_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M25 6h14v5h-2v11c8 3 13 10 13 18 0 11-8 19-18 19S14 51 14 40c0-8 5-15 13-18V11h-2z" fill="#fff"/><path d="M15.6 37c5-3.5 10 1.5 16-1.5s10-3 16.8 0C49 48 42 57 32 57S15 48 15.6 37z" fill="#ff6fb8"/><path d="M25 6h14v5h-2v11c8 3 13 10 13 18 0 11-8 19-18 19S14 51 14 40c0-8 5-15 13-18V11h-2z" fill="none" stroke="#4a3159" stroke-width="3.5" stroke-linejoin="round"/><rect x="23" y="2.5" width="18" height="7" rx="3.5" fill="#b99bff" stroke="#4a3159" stroke-width="3"/><circle cx="26" cy="44" r="2.6" fill="#fff"/><circle cx="35" cy="49" r="1.8" fill="#fff"/><circle cx="39" cy="42" r="1.4" fill="#fff"/><path d="M52 8l1.6 4.2 4.2 1.6-4.2 1.6L52 19.6l-1.6-4.2-4.2-1.6 4.2-1.6z" fill="#ffc93a" stroke="#4a3159" stroke-width="1.6" stroke-linejoin="round"/></svg>';
@@ -1240,14 +1307,24 @@ function clock(ms) {
 }
 function drawGrow() {
   const g = el('grow');
-  g.dataset.say = growNote(pet);
+  g.dataset.say = growNote(pet) + (pet.stage === 'baby' || pet.stage === 'child' ? treatNote(pet) : '');
   if (pet.stage === 'egg' || pet.stage === 'adult') { g.className = 'growbox plain'; g.textContent = growNote(pet); return; }
   const left = growLeft(pet), meals = Math.min(pet.fed || 0, GROW_FEEDS);
   g.className = 'growbox';
   g.innerHTML = `<div class="gt"><div class="gl"><span>${pet.stage === 'baby' ? 'Growing big' : 'Growing up'}</span><b id="growClock">${left ? clock(left) : 'Ready!'}</b></div>`
     + `<div class="gbar"><i id="growBar" style="width:${(100 * (1 - left / GROW_MS)).toFixed(1)}%"></i></div></div>`
-    + `<div class="meals">${Array.from({ length: GROW_FEEDS }, (_, i) => `<span class="${i < meals ? 'on' : ''}">${iconImg('1F34E')}</span>`).join('')}</div>`
+    + treatPip(pet) + `<div class="meals">${Array.from({ length: GROW_FEEDS }, (_, i) => `<span class="${i < meals ? 'on' : ''}">${iconImg('1F34E')}</span>`).join('')}</div>`
     + (left ? `<button class="potion${coins < POTION.cost ? ' poor' : ''}" id="potionBtn" aria-label="Growing potion"><img alt="" src="${potionUrl}"><span class="p">${iconImg('1FA99')}${POTION.cost}</span></button>` : '');
+}
+// the magic treat it has eaten most of this stage, and how many more it needs
+function topTreat(p) {
+  let best = null, n = 0;
+  for (const f of TREATS) { const c = (p.treats || {})[f.path] || 0; if (c > n) { n = c; best = f; } }
+  return best ? { f: best, n } : null;
+}
+function treatPip(p) {
+  const t = topTreat(p); if (!t) return '';
+  return `<span class="tpip${t.n >= TREAT_NEED ? ' full' : ''}">${iconImg(t.f.i)}${Math.min(t.n, TREAT_NEED)}/${TREAT_NEED}</span>`;
 }
 // once a second while she watches: the clock counts down, and when it runs out it's ready
 function tickGrow() {
@@ -1261,7 +1338,7 @@ function tickGrow() {
 // what it ate the most of while in this stage decides what it grows into
 function growUp(p) {
   const t = p.treats || {};
-  let path = 'plain', most = 0;
+  let path = 'plain', most = TREAT_NEED - 1;
   for (const k of TREAT_PATHS) if ((t[k] || 0) > most) { most = t[k]; path = k; }
   p.paths = [...(p.paths || []), path];
   p.stage = p.stage === 'baby' ? 'child' : 'adult';
@@ -1321,10 +1398,10 @@ const FOODS = [
 ];
 // magic treats: what it eats most of while it's a baby or a child decides what it grows into
 const TREATS = [
-  { i: '1F338', name: 'Magic flower', path: 'blossom', cost: 15, food: 10, tell: 'A magic flower! Pets that eat these grow into flower pets.' },
-  { i: '2B50', name: 'Magic star', path: 'sparkle', cost: 15, food: 10, tell: 'A magic star! Pets that eat these grow sparkly.' },
-  { i: '1F41A', name: 'Magic shell', path: 'ocean', cost: 15, food: 10, tell: 'A magic shell! Pets that eat these grow into sea pets.' },
-  { i: '2600', name: 'Magic sun', path: 'sunny', cost: 15, food: 10, tell: 'A magic sun! Pets that eat these grow sunny and golden.' },
+  { i: '1F338', name: 'Magic flower', path: 'blossom', cost: 15, food: 10, tell: 'A magic flower! Four of them, and your pet grows into a flower pet.' },
+  { i: '2B50', name: 'Magic star', path: 'sparkle', cost: 15, food: 10, tell: 'A magic star! Four of them, and your pet grows into a floating star sprite.' },
+  { i: '1F41A', name: 'Magic shell', path: 'ocean', cost: 15, food: 10, tell: 'A magic shell! Four of them, and your pet grows a mermaid tail.' },
+  { i: '2600', name: 'Magic sun', path: 'sunny', cost: 15, food: 10, tell: 'A magic sun! Four of them, and your pet grows a sunny lion mane.' },
 ];
 let petMode = '';        // '' | 'feed' | 'wash'
 let busy = false, cuddles = [];
@@ -1404,6 +1481,7 @@ el('grow').onclick = async e => {
 async function celebrateGrowth() {
   if (celebrateGrowth.on || !growReady(pet)) return;     // only once, even if the clock and the screen both notice
   celebrateGrowth.on = true; busy = true;
+  petMode = ''; el('tray').classList.add('hidden');
   const r = el('petBox').getBoundingClientRect();
   speakPet('Something is happening!');
   for (let i = 0; i < 6; i++) { el('petImg').style.opacity = i % 2 ? 1 : .35; await wait(250); }
@@ -1960,8 +2038,9 @@ const COLOURS = [
 const COIN_CAP = 15;                   // coins one picture can earn
 const mine = p => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><style>*{fill:none;stroke:#000;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}.f{fill:#000}.w{fill:#fff;stroke:none}</style>${p.svg}</svg>`;
 let ALL = [];                          // every page: { id, name, cat, svg }
-const CATS = ['My drawings', 'Animals', 'Birds', 'Sea and bugs', 'Flowers and trees', 'Food', 'Things and places', 'Sky'];
-let cat = store.get('cat') || 'My drawings';
+const CATS = ['My drawings', 'Animals', 'Birds', 'Sea and bugs', 'Fairy tales', 'Flowers and trees', 'Food', 'People', 'Faces and hearts', 'Toys and fun', 'Clothes', 'Home things', 'Places', 'Going places', 'Sky'];
+let cat = store.get('cat');
+if (!CATS.includes(cat)) cat = 'My drawings';          // a category from an older version
 const pageUrl = p => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
 // blank pages: she can start as many as she likes; each one keeps its drawing
 const BLANK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>';
