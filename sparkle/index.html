@@ -380,6 +380,9 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 .give .food { padding: 6px 6px 5px; flex: 1; max-width: 90px; }
 .give .food .p { font-size: 15px; white-space: nowrap; }
 .thing2 { z-index: 3; }
+.pic.newpage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 4px dashed var(--pink-2); background: #fff; }
+.plus2 { font-size: 64px; font-weight: 800; color: var(--pink); line-height: 1; }
+.np { font-size: 17px; font-weight: 800; color: var(--purple); }
 
 </style>
 </head>
@@ -998,7 +1001,7 @@ const PICTURES = [
 `},
 ];
 
-const VERSION = '2026-10-25.4';
+const VERSION = '2026-10-25.5';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -1960,6 +1963,11 @@ let ALL = [];                          // every page: { id, name, cat, svg }
 const CATS = ['My drawings', 'Animals', 'Birds', 'Sea and bugs', 'Flowers and trees', 'Food', 'Things and places', 'Sky'];
 let cat = store.get('cat') || 'My drawings';
 const pageUrl = p => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
+// blank pages: she can start as many as she likes; each one keeps its drawing
+const BLANK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>';
+let blanks = store.get('blanks') || [];
+const blankPage = id => ({ id, name: 'My drawing', cat: 'My drawings', svg: BLANK_SVG, blank: true });
+const pageById = id => id.startsWith('blank-') ? blankPage(id) : ALL.find(x => x.id === id);
 
 const db = new Promise(resolve => {
   try {
@@ -1984,9 +1992,16 @@ enter.colour = async () => {
   await saving;                        // a picture just left may still be saving
   el('cats').innerHTML = CATS.map(c => `<button class="chip${c === cat ? ' on' : ''}" data-c="${c}" data-say="${c}">${c}</button>`).join('');
   thumbUrls.forEach(u => URL.revokeObjectURL(u)); thumbUrls = [];
-  const list = ALL.filter(p => p.cat === cat);
+  let list = ALL.filter(p => p.cat === cat);
+  if (cat === 'My drawings') {
+    // a blank page left empty isn't kept
+    const kept = [];
+    for (const id of blanks) if (await artGet(id)) kept.push(id);
+    blanks = kept; store.set('blanks', blanks);
+    list = blanks.slice().reverse().map(blankPage).concat(list);
+  }
   const grid = el('picGrid');
-  grid.innerHTML = list.map(p => `<button class="pic" data-id="${p.id}" data-say="${p.name}" aria-label="${p.name}"><img class="l" alt="" loading="lazy" src="${pageUrl(p)}"></button>`).join('');
+  grid.innerHTML = (cat === 'My drawings' ? `<button class="pic newpage" data-new="1" data-say="A blank page. Draw anything!" aria-label="New blank page"><span class="plus2">+</span><span class="np">Blank page</span></button>` : '') + list.map(p => `<button class="pic" data-id="${p.id}" data-say="${p.name}" aria-label="${p.name}"><img class="l" alt="" loading="lazy" src="${pageUrl(p)}"></button>`).join('');
   for (const p of list) {
     const saved = await artGet(p.id);
     if (!saved || screen !== 'colour') continue;
@@ -1997,7 +2012,10 @@ enter.colour = async () => {
   }
 };
 el('cats').onclick = e => { const c = e.target.closest('[data-c]'); if (!c) return; cat = c.dataset.c; store.set('cat', cat); enter.colour(); el('picGrid').parentElement.parentElement.scrollTop = 0; };
-el('picGrid').onclick = e => { const b = e.target.closest('[data-id]'); if (b) go('paint/' + b.dataset.id); };
+el('picGrid').onclick = e => {
+  if (e.target.closest('[data-new]')) { const id = 'blank-' + Date.now().toString(36); blanks.push(id); store.set('blanks', blanks); go('paint/' + id); return; }
+  const b = e.target.closest('[data-id]'); if (b) go('paint/' + b.dataset.id);
+};
 
 const art = el('art'), lines = el('lines');
 art.width = art.height = lines.width = lines.height = SIZE;
@@ -2085,7 +2103,7 @@ function areaAt(x, y) {
 // a coin the first time each area gets colour, up to COIN_CAP for the picture
 function colouredArea(label, from) {
   if (!label || coloured.has(label) || !pic) return;
-  if (regions[label] && regions[label].count < 400) return;      // specks between lines don't count
+  if (label < 1000 && regions[label] && regions[label].count < 400) return;      // specks between lines don't count
   coloured.add(label);
   store.set('col:' + pic.id, [...coloured]);
   if (coloured.size <= COIN_CAP) { addCoins(1, from); petFun(1); buddy('cheer'); }
@@ -2107,7 +2125,7 @@ function drawLines(img) {
 }
 
 enter.paint = async id => {
-  const p = ALL.find(x => x.id === id);
+  const p = id && pageById(id);
   if (!p) { go('colour'); return; }
   pic = p; undo = []; labels = null;
   coloured = new Set(store.get('col:' + p.id) || []);
@@ -2119,7 +2137,7 @@ enter.paint = async id => {
   drawLines(img);
   if (saved) { try { const s = await loadImg(URL.createObjectURL(saved)); ax.drawImage(s, 0, 0, SIZE, SIZE); } catch {} }
   findAreas();
-  say(p.name);
+  say(p.blank ? 'A blank page. Draw anything you like!' : p.name);
 };
 leave.paint = () => { const p = pic; saveNow().then(() => { if (pic === p) pic = null; }); };
 el('paintBack').onclick = () => go('colour');
@@ -2173,7 +2191,9 @@ function fillArea(p, e) {
   sx.globalCompositeOperation = 'source-in';
   sx.fillStyle = colour; sx.fillRect(m.x, m.y, m.w, m.h);
   sx.globalCompositeOperation = 'source-over';
+  if (pic.blank) ax.globalCompositeOperation = 'destination-over';      // on a blank page, fill is the background, behind her drawing
   ax.drawImage(scratch, m.x, m.y, m.w, m.h, m.x, m.y, m.w, m.h);
+  ax.globalCompositeOperation = 'source-over';
   remember({ x0: m.x, y0: m.y, x1: m.x + m.w, y1: m.y + m.h });
   sfx.pop();
   colouredArea(label, e && e.target);
@@ -2198,7 +2218,10 @@ art.addEventListener('pointermove', e => {
 function endStroke(e) {
   if (!stroke || e.pointerId !== stroke.id) return;
   remember(stroke.box);
-  if (tool !== 'eraser' && stroke.len > 30) colouredArea(stroke.label, art);
+  if (tool !== 'eraser' && stroke.len > 30) {
+    if (pic.blank) { pic.strokes = (pic.strokes || 0) + 1; if (pic.strokes % 4 === 0) colouredArea(1000 + pic.strokes, art); }
+    else colouredArea(stroke.label, art);
+  }
   stroke = null;
   saveSoon();
 }
