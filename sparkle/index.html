@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sparkle</title>
+<meta name="description" content="Colouring, games, letters, and a pet to look after.">
+<meta name="theme-color" content="#ffd6ec">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root {
+  --pink: #ff4fa3;
+  --pink-2: #ff8cc6;
+  --pink-3: #ffd6ec;
+  --purple: #8f5cff;
+  --purple-2: #b99bff;
+  --purple-3: #ece3ff;
+  --ink: #4a3159;
+  --soft: #8d7aa0;
+  --card: #ffffff;
+  --gold: #ffb400;
+  --font: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; color: var(--ink); font-family: var(--font); }
+body { background: linear-gradient(165deg, #ffe0f0 0%, #f3e3ff 55%, #e6dcff 100%) fixed; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; overflow: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.hidden { display: none !important; }
+img { -webkit-user-drag: none; }
+
+/* every screen fills the window; the content under the bar scrolls */
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.bar h2 { margin: 0; font-size: 26px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purple); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 14px 24px; }
+.wrap { max-width: 900px; margin: 0 auto; }
+
+.round { width: 54px; height: 54px; flex: none; border-radius: 18px; border: 0; background: var(--card); display: grid; place-items: center; padding: 0; box-shadow: 0 3px 0 #ead7f4; }
+.round svg, .round img { width: 28px; height: 28px; }
+.round:active, .tile:active, .big:active { transform: translateY(2px) scale(.97); }
+.round:disabled { opacity: .35; }
+.round.on { background: var(--purple-3); color: var(--purple); box-shadow: 0 3px 0 var(--purple-2); }
+.coins { flex: none; display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 6px 14px 6px 8px; font-size: 22px; font-weight: 700; color: #b37800; box-shadow: 0 3px 0 #ead7f4; }
+.coins img { width: 32px; height: 32px; }
+.coins.bump { animation: bump .45s; }
+@keyframes bump { 30% { transform: scale(1.25); } }
+.plus { position: fixed; z-index: 90; font-size: 28px; font-weight: 800; color: #e09a00; text-shadow: 0 2px 0 #fff; pointer-events: none; animation: rise 1s ease-out forwards; }
+@keyframes rise { to { transform: translateY(-60px); opacity: 0; } }
+
+.big { border: 0; border-radius: 22px; padding: 14px 22px; font-size: 22px; font-weight: 700; background: var(--pink); color: #fff; box-shadow: 0 4px 0 #d12e7d; }
+.big.alt { background: var(--purple); box-shadow: 0 4px 0 #6a3ad6; }
+.big.soft { background: #fff; color: var(--ink); box-shadow: 0 4px 0 #ead7f4; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 0; border-radius: 999px; padding: 10px 16px; font-size: 17px; font-weight: 700; background: #fff; color: var(--soft); box-shadow: 0 3px 0 #ead7f4; }
+.chip.on { background: var(--purple); color: #fff; box-shadow: 0 3px 0 #6a3ad6; }
+
+/* ---------- home ---------- */
+.logo { font-size: 44px; font-weight: 900; margin: 0; letter-spacing: .02em; flex: 1; }
+.logo span { display: inline-block; animation: twinkle 2.8s infinite; }
+.logo span:nth-child(odd) { color: var(--pink); } .logo span:nth-child(even) { color: var(--purple); }
+.logo span:nth-child(2) { animation-delay: .2s; } .logo span:nth-child(3) { animation-delay: .4s; } .logo span:nth-child(4) { animation-delay: .6s; }
+.logo span:nth-child(5) { animation-delay: .8s; } .logo span:nth-child(6) { animation-delay: 1s; } .logo span:nth-child(7) { animation-delay: 1.2s; }
+@keyframes twinkle { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-4px) rotate(-4deg); } }
+.petcard { width: 100%; display: flex; align-items: center; gap: 14px; border: 0; border-radius: 28px; background: #fff; padding: 12px 18px 12px 12px; box-shadow: 0 5px 0 #f0c6e1; margin-bottom: 16px; text-align: left; }
+.petcard img { width: 120px; height: 120px; flex: none; }
+.petcard .t { font-size: 28px; font-weight: 800; color: var(--pink); }
+.petcard .needs { display: flex; gap: 6px; margin-top: 6px; }
+.petcard .needs img { width: 34px; height: 34px; animation: wiggle 1.2s infinite; }
+@keyframes wiggle { 50% { transform: rotate(-10deg) scale(1.1); } }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.tile { border: 0; border-radius: 28px; background: #fff; padding: 16px 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 5px 0 #e3d0f5; }
+.tile .ic { width: 84px; height: 84px; display: grid; place-items: center; }
+.tile .ic img, .tile .ic svg { width: 84px; height: 84px; }
+.tile .t { font-size: 21px; font-weight: 800; }
+.tile:nth-child(odd) .t { color: var(--pink); } .tile:nth-child(even) .t { color: var(--purple); }
+
+/* ---------- choose a pet ---------- */
+.choose { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 560px; margin: 0 auto; }
+.choose button { border: 4px solid transparent; border-radius: 28px; background: #fff; padding: 10px; box-shadow: 0 5px 0 #e3d0f5; }
+.choose button.on { border-color: var(--pink); }
+.choose img { width: 100%; aspect-ratio: 1; display: block; }
+.choose .t { font-size: 22px; font-weight: 800; color: var(--purple); }
+.center { text-align: center; }
+h3.say { font-size: 26px; color: var(--pink); margin: 8px 0 16px; text-align: center; }
+
+/* ---------- the pet ---------- */
+.room { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.petbox { position: relative; width: min(78vw, 46vh, 420px); aspect-ratio: 1; touch-action: none; }
+.petbox img.pet { width: 100%; height: 100%; display: block; animation: idle 2.6s ease-in-out infinite; transform-origin: 50% 95%; }
+.petbox.wash { cursor: grab; }
+@keyframes idle { 50% { transform: scale(1.02, .98) translateY(2px); } }
+.petbox.jump img.pet { animation: hop .6s; }
+@keyframes hop { 30% { transform: translateY(-30px) scale(.97, 1.04); } 60% { transform: translateY(0) scale(1.05, .95); } }
+.bubble { position: absolute; left: 50%; top: -6px; transform: translate(-50%, -100%); background: #fff; border-radius: 22px; padding: 10px 16px; font-size: 20px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 0 #ead7f4; color: var(--purple); }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -10px; border: 10px solid transparent; border-top-color: #fff; border-bottom: 0; transform: translateX(-50%); }
+.float { position: absolute; pointer-events: none; animation: floatup 1.3s ease-out forwards; }
+@keyframes floatup { to { transform: translateY(-120px) scale(1.3); opacity: 0; } }
+.foam { position: absolute; width: 40px; height: 40px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle at 35% 35%, #fff 0 25%, #cdeeff 60%, rgba(160,210,255,.5)); animation: pop 1s ease-out forwards; }
+@keyframes pop { 0% { transform: scale(.3); } 60% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.2); opacity: 0; } }
+.stats { display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 560px; padding: 6px 14px; }
+.stat { flex: 1; display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 18px; padding: 6px 10px 6px 6px; box-shadow: 0 3px 0 #ead7f4; }
+.stat img { width: 34px; height: 34px; flex: none; }
+.meter { flex: 1; height: 14px; border-radius: 9px; background: #f2e9f8; overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(90deg, var(--pink-2), var(--pink)); transition: width .4s; }
+.meter.low i { background: linear-gradient(90deg, #ffb27a, #ff6b6b); }
+.actions { display: flex; gap: 12px; justify-content: center; padding: 10px 14px 16px; flex-wrap: wrap; }
+.act { border: 0; border-radius: 24px; background: #fff; padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 92px; box-shadow: 0 4px 0 #e3d0f5; font-size: 17px; font-weight: 800; color: var(--purple); }
+.act img { width: 48px; height: 48px; }
+.act.on { background: var(--purple-3); box-shadow: 0 4px 0 var(--purple-2); }
+.tray { display: flex; gap: 10px; overflow-x: auto; padding: 8px 14px 4px; max-width: 100%; scrollbar-width: none; }
+.tray::-webkit-scrollbar { display: none; }
+.food { flex: none; border: 0; border-radius: 22px; background: #fff; padding: 8px 10px 6px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 0 #e3d0f5; }
+.food img.f { width: 58px; height: 58px; }
+.food .p { display: flex; align-items: center; gap: 2px; font-weight: 800; color: #b37800; font-size: 17px; }
+.food .p img { width: 20px; height: 20px; }
+.food.poor { opacity: .45; }
+.flyfood { position: fixed; z-index: 80; width: 64px; height: 64px; pointer-events: none; transition: transform .6s cubic-bezier(.3,.1,.3,1), opacity .6s; }
+
+/* ---------- colouring ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.pic { position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 22px; background: #fff; overflow: hidden; box-shadow: 0 4px 0 #e3d0f5; }
+.pic img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pic img.l { mix-blend-mode: multiply; padding: 8%; }
+.pic img.p { padding: 8%; }
+.pic .done { position: absolute; right: 8px; top: 8px; width: 26px; height: 26px; }
+#paint { display: grid; grid-template-rows: auto 1fr auto auto; grid-template-columns: 1fr; grid-template-areas: "top" "stage" "tools" "palette"; }
+#paint .bar { grid-area: top; gap: 6px; min-width: 0; }
+#paint { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 440px) {
+  #paint .round { width: 46px; height: 46px; border-radius: 15px; }
+  #paint .round svg { width: 24px; height: 24px; }
+  #paint .coins { font-size: 18px; padding: 4px 10px 4px 6px; }
+  #paint .coins img { width: 26px; height: 26px; }
+}
+#stage { grid-area: stage; min-height: 0; min-width: 0; display: grid; place-items: center; padding: 4px 10px; }
+#sheet { position: relative; background: #fff; border-radius: 22px; box-shadow: 0 6px 24px rgba(120,60,140,.15); overflow: hidden; touch-action: none; }
+#sheet canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#lines { pointer-events: none; }
+.tools { grid-area: tools; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 8px 10px 4px; flex-wrap: wrap; }
+.tool { width: 56px; height: 56px; border-radius: 18px; border: 3px solid transparent; background: #fff; display: grid; place-items: center; padding: 0; box-shadow: 0 3px 0 #ead7f4; }
+.tool.on { border-color: var(--purple); }
+.tool svg { width: 28px; height: 28px; }
+.dot { border-radius: 50%; background: var(--ink); }
+.sep { width: 3px; height: 34px; background: #ead7f4; margin: 0 2px; border-radius: 2px; }
+.palette { grid-area: palette; display: grid; grid-template-columns: repeat(12, 1fr); gap: 7px; padding: 6px 12px 12px; max-width: 760px; width: 100%; justify-self: center; }
+.sw { aspect-ratio: 1; border-radius: 50%; border: 3px solid rgba(0,0,0,.08); padding: 0; position: relative; }
+.sw.on { border-color: var(--ink); transform: scale(1.12); }
+.sw.on::after { content: ""; position: absolute; inset: 22%; border-radius: 50%; border: 3px solid #fff; }
+.sw.light.on::after { border-color: var(--ink); }
+@media (min-aspect-ratio: 5/4) {
+  #paint { grid-template-columns: 1fr minmax(260px, 340px); grid-template-rows: auto 1fr auto; grid-template-areas: "top top" "stage tools" "stage palette"; }
+  #paint .tools { display: grid; grid-template-columns: repeat(3, 56px); justify-content: center; align-content: end; padding-top: 0; }
+  #paint .sep { display: none; }
+  #paint .palette { grid-template-columns: repeat(6, 1fr); align-self: start; }
+}
+@media (max-width: 360px) and (max-aspect-ratio: 5/4) { .palette { grid-template-columns: repeat(8, 1fr); } }
+
+/* ---------- memory ---------- */
+.board { display: grid; gap: 10px; margin: 0 auto; }
+.card { position: relative; aspect-ratio: 1; border: 0; padding: 0; background: none; perspective: 600px; }
+.card .in { position: absolute; inset: 0; transition: transform .35s; transform-style: preserve-3d; }
+.card.up .in { transform: rotateY(180deg); }
+.card .f, .card .b { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; }
+.card .b { background: linear-gradient(135deg, var(--pink-2), var(--purple-2)); box-shadow: 0 4px 0 #c79ce8; }
+.card .b::after { content: "✦"; color: #fff; font-size: 34px; opacity: .9; }
+.card .f { background: #fff; transform: rotateY(180deg); box-shadow: 0 4px 0 #e3d0f5; }
+.card .f img { width: 74%; height: 74%; }
+.card.got .f { background: #fff5d6; box-shadow: 0 4px 0 #f3d47a; }
+.msg { text-align: center; font-size: 24px; font-weight: 800; color: var(--pink); min-height: 1.4em; margin: 10px 0; }
+
+/* ---------- noughts and crosses ---------- */
+.ttt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: min(92vw, 52vh, 460px); margin: 6px auto; }
+.cell { aspect-ratio: 1; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 4px 0 #e3d0f5; display: grid; place-items: center; padding: 0; }
+.cell svg { width: 70%; height: 70%; }
+.cell.win { background: #fff5d6; box-shadow: 0 4px 0 #f3d47a; }
+.cell.pop svg { animation: popin .25s; }
+@keyframes popin { from { transform: scale(.2); } }
+
+/* ---------- jump ---------- */
+#jumpWrap { position: relative; flex: 1; min-height: 0; margin: 0 10px 14px; border-radius: 26px; overflow: hidden; background: linear-gradient(#cfe9ff, #fbe4ff 75%); touch-action: none; }
+#jumpCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 20px; }
+.overlay .msg { margin: 0; }
+.stars { position: absolute; left: 14px; top: 12px; display: flex; align-items: center; gap: 6px; font-size: 26px; font-weight: 800; color: #b37800; background: rgba(255,255,255,.8); border-radius: 999px; padding: 4px 14px 4px 6px; }
+.stars img { width: 34px; height: 34px; }
+
+/* ---------- letters ---------- */
+.prompt { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 6px 0 18px; }
+.prompt .pic2 { width: 150px; height: 150px; border: 0; border-radius: 28px; background: #fff; box-shadow: 0 5px 0 #e3d0f5; padding: 14px; }
+.prompt .pic2 img { width: 100%; height: 100%; }
+.speak { border: 0; border-radius: 999px; background: var(--purple); color: #fff; padding: 12px 22px; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 0 #6a3ad6; }
+.speak svg { width: 28px; height: 28px; }
+.opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 520px; margin: 0 auto; }
+.opt { aspect-ratio: 1; border: 0; border-radius: 28px; background: #fff; box-shadow: 0 5px 0 #e3d0f5; font-size: min(17vw, 96px); font-weight: 800; color: var(--purple); padding: 0; }
+.opt:nth-child(2) { color: var(--pink); }
+.opt.right { background: #e7ffe9; box-shadow: 0 5px 0 #8fd99a; }
+.opt.wrong { animation: shake .4s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+
+/* ---------- dialogs ---------- */
+dialog { border: 0; border-radius: 26px; padding: 22px; width: min(92vw, 380px); box-shadow: 0 10px 40px rgba(80,30,100,.3); font-family: var(--font); color: var(--ink); }
+dialog::backdrop { background: rgba(60,30,80,.35); }
+dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
+.row { display: flex; gap: 10px; }
+.row button { flex: 1; }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 2px solid #f4ecf9; font-size: 17px; }
+.set input[type=text] { font: inherit; font-size: 17px; padding: 8px 10px; border-radius: 12px; border: 2px solid #e3d0f5; width: 150px; color: var(--ink); }
+.set button { border: 0; border-radius: 14px; padding: 8px 14px; background: var(--purple-3); color: var(--purple); font-weight: 800; }
+.credits { font-size: 12px; color: var(--soft); line-height: 1.5; margin-top: 12px; }
+.credits a { color: var(--purple); }
+
+</style>
+</head>
+<body>
+<!-- HOME -->
+<section class="screen" id="s-home">
+  <div class="bar">
+    <h1 class="logo" data-say="Sparkle" aria-label="Sparkle"><span>S</span><span>p</span><span>a</span><span>r</span><span>k</span><span>l</span><span>e</span></h1>
+    <div class="coins" data-coins></div>
+    <button class="round" id="setBtn" aria-label="Settings for grown-ups"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>
+  </div>
+  <div class="scroll"><div class="wrap">
+    <button class="petcard" id="petCard"></button>
+    <div class="tiles" id="tiles"></div>
+  </div></div>
+</section>
+
+<!-- CHOOSE A PET -->
+<section class="screen hidden" id="s-choose">
+  <div class="scroll"><div class="wrap">
+    <h3 class="say" data-say="Choose your pet!">Choose your pet!</h3>
+    <div class="choose" id="chooseGrid"></div>
+    <p class="center"><button class="big hidden" id="chooseGo" data-say="Yes, this one!">Yes, this one!</button></p>
+  </div></div>
+</section>
+
+<!-- THE PET -->
+<section class="screen hidden" id="s-pet">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 id="petName" data-say=""></h2><div class="coins" data-coins></div></div>
+  <div class="stats" id="stats"></div>
+  <div class="room">
+    <div class="petbox" id="petBox"><img class="pet" id="petImg" alt=""><div class="bubble hidden" id="bubble"></div></div>
+  </div>
+  <div class="tray hidden" id="tray"></div>
+  <div class="actions">
+    <button class="act" id="feedBtn" data-say="Feed"><img alt="" data-icon="1F34E">Feed</button>
+    <button class="act" id="washBtn" data-say="Wash"><img alt="" data-icon="1F9FC">Wash</button>
+    <button class="act" id="playBtn" data-say="Play"><img alt="" data-icon="1F388">Play</button>
+  </div>
+</section>
+
+<!-- COLOURING: THE PICTURES -->
+<section class="screen hidden" id="s-colour">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Colouring">Colouring</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="cats"></div>
+    <div class="grid" id="picGrid"></div>
+  </div></div>
+</section>
+
+<!-- COLOURING: ONE PICTURE -->
+<section class="screen hidden" id="paint">
+  <div class="bar">
+    <button class="round" id="paintBack" aria-label="Back to the pictures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div style="flex:1"></div>
+    <div class="coins" data-coins></div>
+    <button class="round" id="insideBtn" aria-label="Keep the colour inside the lines" title="Keep the colour inside the lines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 15 9"/><path d="M15 9l2-2"/><path d="M18 2v3M16.5 3.5h3M21 8v2M20 9h2M11 3v2M10 4h2"/></svg></button>
+    <button class="round" id="shareBtn" aria-label="Save the picture" title="Save the picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg></button>
+    <button class="round" id="clearBtn" aria-label="Start this picture again" title="Start again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6.5 7l1 13h9l1-13"/></svg></button>
+    <button class="round" id="undoBtn" aria-label="Undo" title="Undo" data-say="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+  </div>
+  <div id="stage"><div id="sheet"><canvas id="art"></canvas><canvas id="lines"></canvas></div></div>
+  <div class="tools" id="tools">
+    <button class="tool" data-size="0" aria-label="Thin brush" data-say="Thin"><span class="dot" style="width:9px;height:9px"></span></button>
+    <button class="tool" data-size="1" aria-label="Medium brush" data-say="Medium"><span class="dot" style="width:17px;height:17px"></span></button>
+    <button class="tool" data-size="2" aria-label="Thick brush" data-say="Thick"><span class="dot" style="width:27px;height:27px"></span></button>
+    <span class="sep"></span>
+    <button class="tool" data-tool="fill" aria-label="Fill a whole shape" data-say="Fill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 11 11 5l7 7-6 6Z" fill="currentColor" fill-opacity=".15"/><path d="M11 5 9 3"/><path d="M19.5 15.5c0 0-1.8 2.2-1.8 3.3a1.8 1.8 0 0 0 3.6 0c0-1.1-1.8-3.3-1.8-3.3Z" fill="currentColor"/></svg></button>
+    <button class="tool" data-tool="eraser" aria-label="Rubber" data-say="Rubber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 15.5 13 6l5.5 5.5-7.5 7.5H7Z" fill="#ffb3c7"/><path d="M8.5 10.5l5.5 5.5"/><path d="M11 19h9"/></svg></button>
+  </div>
+  <div class="palette" id="palette"></div>
+</section>
+
+<!-- MEMORY -->
+<section class="screen hidden" id="s-memory">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Memory">Memory</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="memSizes"></div>
+    <div class="board" id="memBoard"></div>
+    <div class="msg" id="memMsg"></div>
+    <p class="center"><button class="big hidden" id="memAgain" data-say="Play again">Play again</button></p>
+  </div></div>
+</section>
+
+<!-- NOUGHTS AND CROSSES -->
+<section class="screen hidden" id="s-ttt">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Tic-tac-toe">Tic-tac-toe</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="msg" id="tttMsg"></div>
+    <div class="ttt" id="tttBoard"></div>
+    <p class="center"><button class="big hidden" id="tttAgain" data-say="Play again">Play again</button></p>
+  </div></div>
+</section>
+
+<!-- JUMP -->
+<section class="screen hidden" id="s-jump">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Jump">Jump</h2><div class="coins" data-coins></div></div>
+  <div id="jumpWrap">
+    <canvas id="jumpCanvas"></canvas>
+    <div class="stars"><img alt="" data-icon="2B50"><span id="jumpStars">0</span></div>
+    <div class="overlay" id="jumpOver">
+      <div class="msg" id="jumpMsg" data-say="Tap to jump! Catch the stars!">Tap to jump! Catch the stars!</div>
+      <button class="big" id="jumpGo" data-say="Go!">Go!</button>
+    </div>
+  </div>
+</section>
+
+<!-- LETTERS -->
+<section class="screen hidden" id="s-letters">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Letters">Letters</h2><div class="coins" data-coins></div></div>
+  <div class="scroll"><div class="wrap">
+    <div class="chips" id="letModes"></div>
+    <div class="prompt" id="letPrompt"></div>
+    <div class="opts" id="letOpts"></div>
+  </div></div>
+</section>
+
+<dialog id="ask"><p id="askText"></p><div class="row"><button class="big soft" id="askNo">No</button><button class="big" id="askYes">Yes</button></div></dialog>
+
+<dialog id="settings">
+  <p><b>For grown-ups</b></p>
+  <div class="set"><span>Read things aloud</span><button id="optVoice"></button></div>
+  <div class="set"><span>Sounds</span><button id="optSound"></button></div>
+  <div class="set"><span>Pet's name</span><input type="text" id="optName" maxlength="20"></div>
+  <div class="set"><span>Choose a different pet</span><button id="optPet">Choose</button></div>
+  <div class="set"><span>Coins</span><span><button id="optCoinsMinus">−10</button> <b id="optCoins"></b> <button id="optCoinsPlus">+10</button></span></div>
+  <p class="credits">Most colouring pages and pictures are from <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>, the open-source emoji and icon project, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>; the colouring pages are outlines made from them, shared under the same licence. The pets and the "My drawings" pictures were drawn for Sparkle. <span id="ver"></span></p>
+  <p class="center" style="margin:0"><button class="big alt" id="setClose">Done</button></p>
+</dialog>
+
+<script>
+/* The four pets, drawn here (original art). petSVG(kind, look) returns an SVG
+   string, viewBox 0 0 400 400, facing the viewer.
+   look: { eyes: 'open'|'happy'|'sad'|'sleep', mouth: 'smile'|'grin'|'sad'|'open'|'chew',
+           dirt: 0..1, step: 0|1 (running: which foot is up), blush: bool } */
+const PET_KINDS = {
+  bunny:  { name: 'Bunny',  body: '#f6eefe', belly: '#ffffff', ear: '#ffc2dc', accent: '#e7d6fb' },
+  kitten: { name: 'Kitten', body: '#ffd1a8', belly: '#fff3e6', ear: '#ffb0c4', accent: '#f6a96c' },
+  puppy:  { name: 'Puppy',  body: '#f2d7b6', belly: '#fff6ea', ear: '#a9744f', accent: '#c99a6e' },
+  dragon: { name: 'Dragon', body: '#c6b3ff', belly: '#fff0a8', ear: '#ff9ccb', accent: '#a58bff' },
+};
+const PET_LINE = '#4a3159';
+function petSVG(kind, look = {}) {
+  const k = PET_KINDS[kind] || PET_KINDS.bunny;
+  const L = `stroke="${PET_LINE}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"`;
+  const eyes = look.eyes || 'open', mouth = look.mouth || 'smile', step = look.step;
+  let back = '', front = '', head = '';
+  // ---- behind the head: ears, tail, wings
+  if (kind === 'bunny') {
+    back += `<path d="M150 120 C118 40 128 -8 160 -6 C190 -4 198 54 184 112 Z" fill="${k.body}" ${L}/>
+      <path d="M156 102 C138 52 144 22 160 22 C176 24 178 62 170 100 Z" fill="${k.ear}"/>
+      <path d="M250 120 C282 40 272 -8 240 -6 C210 -4 202 54 216 112 Z" fill="${k.body}" ${L}/>
+      <path d="M244 102 C262 52 256 22 240 22 C224 24 222 62 230 100 Z" fill="${k.ear}"/>
+      <circle cx="300" cy="320" r="26" fill="#fff" ${L}/>`;
+  } else if (kind === 'kitten') {
+    back += `<path d="M300 330 C360 330 372 260 344 236 C334 228 322 238 330 250 C346 274 330 306 296 306 Z" fill="${k.body}" ${L}/>`;
+    head += `<path d="M112 120 L104 40 L178 84 Z" fill="${k.body}" ${L}/><path d="M124 104 L120 62 L158 86 Z" fill="${k.ear}"/>
+      <path d="M288 120 L296 40 L222 84 Z" fill="${k.body}" ${L}/><path d="M276 104 L280 62 L242 86 Z" fill="${k.ear}"/>`;
+  } else if (kind === 'puppy') {
+    back += `<path d="M300 318 C340 300 352 262 336 250 C326 246 318 262 312 274 C306 288 296 296 288 300 Z" fill="${k.body}" ${L}/>`;
+  } else if (kind === 'dragon') {
+    back += `<path d="M120 250 C60 220 40 170 64 150 C80 186 100 200 128 206 Z" fill="${k.ear}" ${L}/>
+      <path d="M280 250 C340 220 360 170 336 150 C320 186 300 200 272 206 Z" fill="${k.ear}" ${L}/>
+      <path d="M290 320 C350 320 380 290 386 250 L360 262 C350 286 320 298 292 298 Z" fill="${k.body}" ${L}/>
+      <path d="M380 254 L396 236 L392 266 Z" fill="${k.ear}" ${L}/>`;
+    head += `<path d="M150 82 L142 34 L176 72 Z" fill="#fff6d6" ${L}/><path d="M250 82 L258 34 L224 72 Z" fill="#fff6d6" ${L}/>
+      <path d="M186 64 L200 40 L214 64 Z" fill="${k.ear}" ${L}/>`;
+  }
+  // ---- body and feet (step lifts one foot for running)
+  const fl = step === 0 ? -14 : 0, fr = step === 1 ? -14 : 0;
+  const body = `<ellipse cx="200" cy="292" rx="102" ry="82" fill="${k.body}" ${L}/>
+    <ellipse cx="200" cy="304" rx="58" ry="52" fill="${k.belly}"/>
+    <ellipse cx="152" cy="${370 + fl}" rx="38" ry="22" fill="${k.body}" ${L}/>
+    <ellipse cx="248" cy="${370 + fr}" rx="38" ry="22" fill="${k.body}" ${L}/>
+    <ellipse cx="112" cy="${290 + (step === 1 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(20 112 290)"/>
+    <ellipse cx="288" cy="${290 + (step === 0 ? -10 : 0)}" rx="22" ry="30" fill="${k.body}" ${L} transform="rotate(-20 288 290)"/>`;
+  // ---- head
+  head = `<circle cx="200" cy="170" r="108" fill="${k.body}" ${L}/>` + head;
+  if (kind === 'puppy') head += `<path d="M104 120 C70 130 66 220 96 236 C120 246 130 200 128 160 Z" fill="${k.ear}" ${L}/>
+      <path d="M296 120 C330 130 334 220 304 236 C280 246 270 200 272 160 Z" fill="${k.ear}" ${L}/>
+      <ellipse cx="232" cy="136" rx="34" ry="28" fill="${k.accent}" opacity=".55"/>`;
+  if (kind === 'kitten') head += `<path d="M186 70 L190 98 M200 66 L200 96 M214 70 L210 98" stroke="${k.accent}" stroke-width="8" stroke-linecap="round"/>`;
+  if (kind === 'dragon') head += `<ellipse cx="200" cy="214" rx="56" ry="34" fill="${k.belly}" opacity=".9"/>`;
+  // ---- face
+  let face = '';
+  const ey = 168;
+  if (eyes === 'open') face += `<ellipse cx="160" cy="${ey}" rx="17" ry="21" fill="${PET_LINE}"/><ellipse cx="240" cy="${ey}" rx="17" ry="21" fill="${PET_LINE}"/>
+      <circle cx="166" cy="${ey - 8}" r="6" fill="#fff"/><circle cx="246" cy="${ey - 8}" r="6" fill="#fff"/><circle cx="155" cy="${ey + 8}" r="3" fill="#fff"/><circle cx="235" cy="${ey + 8}" r="3" fill="#fff"/>`;
+  if (eyes === 'happy') face += `<path d="M142 ${ey + 6} Q160 ${ey - 18} 178 ${ey + 6} M222 ${ey + 6} Q240 ${ey - 18} 258 ${ey + 6}" fill="none" stroke="${PET_LINE}" stroke-width="8" stroke-linecap="round"/>`;
+  if (eyes === 'sleep') face += `<path d="M142 ${ey} Q160 ${ey + 14} 178 ${ey} M222 ${ey} Q240 ${ey + 14} 258 ${ey}" fill="none" stroke="${PET_LINE}" stroke-width="8" stroke-linecap="round"/>`;
+  if (eyes === 'sad') face += `<ellipse cx="160" cy="${ey + 4}" rx="14" ry="16" fill="${PET_LINE}"/><ellipse cx="240" cy="${ey + 4}" rx="14" ry="16" fill="${PET_LINE}"/>
+      <circle cx="165" cy="${ey - 2}" r="4.5" fill="#fff"/><circle cx="245" cy="${ey - 2}" r="4.5" fill="#fff"/>
+      <path d="M140 ${ey - 22} L174 ${ey - 34} M260 ${ey - 22} L226 ${ey - 34}" stroke="${PET_LINE}" stroke-width="7" stroke-linecap="round"/>
+      <path d="M150 ${ey + 26} C146 ${ey + 38} 152 ${ey + 46} 158 ${ey + 40} C162 ${ey + 34} 156 ${ey + 30} 150 ${ey + 26} Z" fill="#7fd0ff"/>`;
+  face += `<ellipse cx="132" cy="206" rx="20" ry="12" fill="#ff8fbf" opacity="${look.blush === false ? 0 : .55}"/><ellipse cx="268" cy="206" rx="20" ry="12" fill="#ff8fbf" opacity="${look.blush === false ? 0 : .55}"/>`;
+  // nose
+  face += kind === 'dragon'
+    ? `<circle cx="188" cy="200" r="4" fill="${PET_LINE}"/><circle cx="212" cy="200" r="4" fill="${PET_LINE}"/>`
+    : `<path d="M190 196 L210 196 L200 207 Z" fill="${kind === 'puppy' ? PET_LINE : '#ff6fa8'}" stroke="${PET_LINE}" stroke-width="4" stroke-linejoin="round"/>`;
+  if (mouth === 'smile') face += `<path d="M178 216 Q189 230 200 216 Q211 230 222 216" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
+  if (mouth === 'grin') face += `<path d="M174 214 Q200 252 226 214 Z" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6" stroke-linejoin="round"/>`;
+  if (mouth === 'sad') face += `<path d="M180 230 Q200 214 220 230" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/>`;
+  if (mouth === 'open') face += `<ellipse cx="200" cy="226" rx="17" ry="19" fill="#ff6f91" stroke="${PET_LINE}" stroke-width="6"/>`;
+  if (mouth === 'chew') face += `<path d="M182 222 Q200 236 218 222" fill="none" stroke="${PET_LINE}" stroke-width="6" stroke-linecap="round"/><ellipse cx="236" cy="214" rx="12" ry="9" fill="#ff8fbf" opacity=".8"/>`;
+  // ---- dirt: muddy spots that show more the grubbier the pet gets
+  let dirt = '';
+  const d = Math.max(0, Math.min(1, look.dirt || 0));
+  if (d > .05) {
+    const spots = [[150, 300, 18], [250, 270, 14], [230, 330, 16], [128, 130, 13], [262, 118, 11], [180, 250, 9], [300, 300, 12], [100, 280, 10]];
+    dirt = spots.slice(0, Math.ceil(d * spots.length)).map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * .75}" fill="#9a6b45" opacity="${.35 + d * .4}"/>`).join('');
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -30 420 430">${back}${body}${head}${face}${dirt}</svg>`;
+}
+
+// Original line drawings for colouring. Every shape is closed so each part is
+// its own area to colour. Lines only (no fills) except eyes and noses.
+// viewBox 0 0 1000 1000; the app adds the stroke style.
+const PICTURES = [
+{ id: 'cat', name: 'Cat', svg: `
+  <circle cx="500" cy="360" r="170"/>
+  <path d="M380 480 C300 560 290 820 340 880 L660 880 C710 820 700 560 620 480"/>
+  <path d="M362 252 L352 118 L455 196"/>
+  <path d="M638 252 L648 118 L545 196"/>
+  <path d="M380 220 L376 165 L420 198"/>
+  <path d="M620 220 L624 165 L580 198"/>
+  <circle class="f" cx="440" cy="345" r="24"/><circle class="w" cx="448" cy="337" r="7"/>
+  <circle class="f" cx="560" cy="345" r="24"/><circle class="w" cx="568" cy="337" r="7"/>
+  <path class="f" d="M484 400 L516 400 L500 420 Z"/>
+  <path d="M500 420 Q484 452 458 440 M500 420 Q516 452 542 440"/>
+  <path d="M430 405 L330 385 M430 420 L335 430 M570 405 L670 385 M570 420 L665 430"/>
+  <path d="M686 830 C820 840 870 700 800 615 C782 595 752 610 768 636 C820 712 772 800 690 795"/>
+  <path d="M395 880 Q430 835 465 880 M535 880 Q570 835 605 880"/>
+  <ellipse cx="500" cy="720" rx="95" ry="115"/>
+  <path d="M120 900 L880 900"/>
+`},
+{ id: 'fish', name: 'Fish', svg: `
+  <path d="M200 500 C260 330 520 280 680 420 C720 455 720 545 680 580 C520 720 260 670 200 500 Z"/>
+  <path d="M690 430 L860 320 C830 420 830 580 860 680 L690 570"/>
+  <path d="M400 345 C430 250 540 250 580 340"/>
+  <path d="M420 640 C450 720 520 720 540 660"/>
+  <circle cx="300" cy="470" r="44"/><circle class="f" cx="306" cy="472" r="22"/><circle class="w" cx="312" cy="464" r="7"/>
+  <path d="M250 545 Q275 565 300 550"/>
+  <path d="M430 430 Q470 470 430 520 M500 410 Q545 465 500 540 M570 420 Q615 470 570 560"/>
+  <circle cx="150" cy="330" r="30"/><circle cx="110" cy="220" r="22"/><circle cx="170" cy="140" r="16"/>
+  <path d="M60 880 C160 820 260 940 360 880 C460 820 560 940 660 880 C760 820 860 940 940 880"/>
+`},
+{ id: 'butterfly', name: 'Butterfly', svg: `
+  <path d="M470 330 C470 300 530 300 530 330 L530 720 C530 760 470 760 470 720 Z"/>
+  <circle cx="500" cy="280" r="45"/>
+  <circle class="f" cx="484" cy="275" r="8"/><circle class="f" cx="516" cy="275" r="8"/>
+  <path d="M484 300 Q500 314 516 300"/>
+  <path d="M485 240 C460 170 420 130 380 120 M515 240 C540 170 580 130 620 120"/>
+  <circle cx="372" cy="118" r="20"/><circle cx="628" cy="118" r="20"/>
+  <path d="M470 380 C380 220 140 180 130 330 C120 450 300 520 470 520"/>
+  <path d="M530 380 C620 220 860 180 870 330 C880 450 700 520 530 520"/>
+  <path d="M470 540 C320 540 190 620 230 740 C270 850 420 800 470 680"/>
+  <path d="M530 540 C680 540 810 620 770 740 C730 850 580 800 530 680"/>
+  <circle cx="270" cy="330" r="55"/><circle cx="730" cy="330" r="55"/>
+  <circle cx="380" cy="430" r="28"/><circle cx="620" cy="430" r="28"/>
+  <circle cx="320" cy="680" r="40"/><circle cx="680" cy="680" r="40"/>
+`},
+{ id: 'flower', name: 'Flower', svg: `
+  <circle cx="500" cy="300" r="70"/>
+  <circle cx="500" cy="165" r="65"/><circle cx="617" cy="232" r="65"/><circle cx="617" cy="368" r="65"/>
+  <circle cx="500" cy="435" r="65"/><circle cx="383" cy="368" r="65"/><circle cx="383" cy="232" r="65"/>
+  <path d="M485 500 L485 720 M515 500 L515 720"/>
+  <path d="M485 640 C420 560 330 570 300 600 C360 660 440 670 485 640"/>
+  <path d="M515 590 C580 510 670 520 700 550 C640 610 560 620 515 590"/>
+  <path d="M330 720 L670 720 L670 770 L330 770 Z"/>
+  <path d="M350 770 L390 900 L610 900 L650 770"/>
+  <circle class="f" cx="478" cy="292" r="9"/><circle class="f" cx="522" cy="292" r="9"/>
+  <path d="M475 318 Q500 340 525 318"/>
+`},
+{ id: 'bunny', name: 'Bunny', svg: `
+  <circle cx="500" cy="420" r="140"/>
+  <path d="M440 293 C380 160 395 60 440 60 C485 60 500 160 480 285"/>
+  <path d="M560 293 C620 160 605 60 560 60 C515 60 500 160 520 285"/>
+  <path d="M445 260 C420 180 425 110 442 105 C458 110 468 180 462 255 M555 260 C580 180 575 110 558 105 C542 110 532 180 538 255"/>
+  <path d="M413 530 C330 600 320 820 380 870 L620 870 C680 820 670 600 587 530"/>
+  <ellipse cx="500" cy="720" rx="90" ry="105"/>
+  <circle cx="690" cy="800" r="45"/>
+  <ellipse cx="430" cy="885" rx="65" ry="28"/><ellipse cx="570" cy="885" rx="65" ry="28"/>
+  <circle class="f" cx="450" cy="400" r="22"/><circle class="w" cx="457" cy="393" r="7"/>
+  <circle class="f" cx="550" cy="400" r="22"/><circle class="w" cx="557" cy="393" r="7"/>
+  <path class="f" d="M486 450 L514 450 L500 466 Z"/>
+  <path d="M500 466 Q486 494 466 484 M500 466 Q514 494 534 484"/>
+  <path d="M440 460 L360 445 M440 475 L365 490 M560 460 L640 445 M560 475 L635 490"/>
+  <circle cx="420" cy="470" r="20"/><circle cx="580" cy="470" r="20"/>
+`},
+{ id: 'car', name: 'Car', svg: `
+  <path d="M150 650 L150 560 C150 532 175 520 205 520 L300 520 L382 402 C392 388 410 380 430 380 L620 380 C648 380 668 392 688 412 L790 520 L830 520 C858 520 870 540 870 568 L870 650 L805 650 A85 85 0 0 0 635 650 L385 650 A85 85 0 0 0 215 650 Z"/>
+  <path d="M325 515 L398 412 L490 412 L490 515 Z"/>
+  <path d="M520 412 L618 412 C638 412 652 420 664 434 L735 515 L520 515 Z"/>
+  <circle cx="300" cy="660" r="72"/><circle cx="300" cy="660" r="30"/>
+  <circle cx="720" cy="660" r="72"/><circle cx="720" cy="660" r="30"/>
+  <circle cx="838" cy="572" r="20"/>
+  <path d="M150 590 L190 590"/>
+  <path d="M520 560 L560 560"/>
+  <path d="M60 740 L940 740"/>
+  <path d="M120 300 C120 260 175 250 195 280 C215 245 280 255 280 300 C305 300 312 335 285 342 L135 342 C105 342 100 305 120 300 Z"/>
+  <circle cx="820" cy="200" r="65"/>
+`},
+{ id: 'house', name: 'House', svg: `
+  <path d="M250 480 L750 480 L750 880 L250 880 Z"/>
+  <path d="M200 500 L500 220 L800 500 Z"/>
+  <path d="M620 330 L620 230 L690 230 L690 395"/>
+  <path d="M440 880 L440 700 C440 650 560 650 560 700 L560 880"/>
+  <circle class="f" cx="540" cy="780" r="10"/>
+  <path d="M300 560 L400 560 L400 660 L300 660 Z M350 560 L350 660 M300 610 L400 610"/>
+  <path d="M600 560 L700 560 L700 660 L600 660 Z M650 560 L650 660 M600 610 L700 610"/>
+  <circle cx="500" cy="390" r="45"/>
+  <circle cx="160" cy="160" r="70"/>
+  <path d="M160 50 L160 70 M160 250 L160 270 M50 160 L70 160 M250 160 L270 160 M82 82 L96 96 M224 224 L238 238 M82 238 L96 224 M224 96 L238 82"/>
+  <path d="M600 140 C600 100 660 90 680 120 C700 80 770 90 770 140 C800 140 810 180 780 190 L610 190 C580 190 575 145 600 140 Z"/>
+  <path d="M60 880 L940 880"/>
+  <path d="M90 880 L90 800 C90 760 150 760 150 800 L150 880 M850 880 L850 790 C850 750 910 750 910 790 L910 880"/>
+`},
+{ id: 'rocket', name: 'Rocket', svg: `
+  <path d="M420 300 C420 200 460 130 500 90 C540 130 580 200 580 300 Z"/>
+  <path d="M420 300 L580 300 L580 680 L420 680 Z"/>
+  <circle cx="500" cy="420" r="55"/>
+  <circle cx="500" cy="420" r="35"/>
+  <path d="M420 560 L330 680 L330 740 L420 680 M580 560 L670 680 L670 740 L580 680"/>
+  <path d="M440 680 L560 680 L540 730 L460 730 Z"/>
+  <path d="M460 730 C440 800 480 860 500 900 C520 860 560 800 540 730"/>
+  <path d="M480 740 C470 790 495 820 500 840 C505 820 530 790 520 740"/>
+  <path d="M500 600 L500 680"/>
+  <path d="M180 200 L195 240 L235 245 L205 270 L215 310 L180 290 L145 310 L155 270 L125 245 L165 240 Z"/>
+  <path d="M800 380 L812 410 L842 414 L820 433 L827 464 L800 448 L773 464 L780 433 L758 414 L788 410 Z"/>
+  <circle cx="220" cy="560" r="30"/><circle cx="780" cy="170" r="22"/>
+  <path d="M760 760 C700 760 690 840 760 850 C720 820 730 770 760 760 Z"/>
+`},
+{ id: 'dino', name: 'Dinosaur', svg: `
+  <path d="M90 650 C200 560 280 480 400 470 C520 460 590 470 630 430 C660 400 650 300 665 250 C680 180 770 170 800 215 C830 260 805 305 755 305 C715 305 708 360 708 420 C708 490 725 570 690 640 C650 730 530 760 420 752 C300 744 210 700 90 650 Z"/>
+  <path d="M380 748 L380 860 L450 860 L450 754 M570 742 L570 860 L640 860 L640 712"/>
+  <path d="M700 520 Q740 528 745 556"/>
+  <circle class="f" cx="750" cy="235" r="16"/><circle class="w" cx="755" cy="230" r="5"/>
+  <path d="M768 278 Q788 284 798 268"/>
+  <path d="M330 505 L350 455 L385 476 M430 466 L455 418 L490 462 M540 458 L575 412 L600 450"/>
+  <circle cx="430" cy="610" r="42"/><circle cx="560" cy="650" r="30"/><circle cx="330" cy="640" r="26"/><circle cx="600" cy="550" r="22"/>
+  <path d="M60 860 L940 860"/>
+  <path d="M120 860 C110 780 170 760 200 790 C230 740 300 760 290 820 C320 820 330 850 320 860"/>
+`},
+{ id: 'owl', name: 'Owl', svg: `
+  <path d="M300 300 C300 200 380 160 500 160 C620 160 700 200 700 300 L700 650 C700 780 620 840 500 840 C380 840 300 780 300 650 Z"/>
+  <path d="M300 300 L280 180 L380 220 M700 300 L720 180 L620 220"/>
+  <circle cx="415" cy="350" r="80"/><circle cx="585" cy="350" r="80"/>
+  <circle cx="415" cy="350" r="40"/><circle cx="585" cy="350" r="40"/>
+  <circle class="f" cx="420" cy="355" r="20"/><circle class="w" cx="428" cy="347" r="6"/>
+  <circle class="f" cx="590" cy="355" r="20"/><circle class="w" cx="598" cy="347" r="6"/>
+  <path d="M475 440 L525 440 L500 490 Z"/>
+  <path d="M300 480 C240 560 250 680 320 740 M700 480 C760 560 750 680 680 740"/>
+  <path d="M400 560 Q430 590 460 560 M540 560 Q570 590 600 560 M440 640 Q470 670 500 640 Q530 670 560 640 M400 720 Q430 750 460 720 M540 720 Q570 750 600 720"/>
+  <path d="M120 870 L880 870 L880 910 L120 910 Z"/>
+  <path d="M430 840 L420 870 M460 840 L460 870 M540 840 L540 870 M570 840 L580 870"/>
+  <path d="M800 870 C820 820 870 810 900 830 C880 860 840 870 800 870 Z"/>
+`},
+{ id: 'cupcake', name: 'Cupcake', svg: `
+  <path d="M280 560 L720 560 L660 880 L340 880 Z"/>
+  <path d="M350 560 L385 880 M420 560 L440 880 M500 560 L500 880 M580 560 L560 880 M650 560 L615 880"/>
+  <path d="M250 560 C200 560 200 470 270 460 C240 390 320 340 380 370 C380 300 450 270 500 300 C550 270 620 300 620 370 C680 340 760 390 730 460 C800 470 800 560 750 560 Z"/>
+  <path d="M330 470 C380 500 450 480 500 450 C550 480 620 500 670 470"/>
+  <circle cx="500" cy="240" r="55"/>
+  <path d="M505 185 C510 140 540 110 580 100"/>
+  <path d="M380 400 L400 420 M600 410 L580 430 M460 380 L470 405 M540 380 L530 405 M300 510 L320 525 M690 510 L670 525"/>
+`},
+{ id: 'turtle', name: 'Turtle', svg: `
+  <path d="M220 620 C220 400 360 300 500 300 C640 300 780 400 780 620 Z"/>
+  <path d="M180 620 L820 620 C820 660 790 680 760 680 L240 680 C210 680 180 660 180 620 Z"/>
+  <path d="M430 400 L570 400 L610 500 L570 600 L430 600 L390 500 Z"/>
+  <path d="M430 400 L380 330 M570 400 L620 330 M610 500 L760 500 M390 500 L240 500 M430 600 L420 620 M570 600 L580 620"/>
+  <path d="M780 560 C850 520 930 540 930 600 C930 650 870 660 820 640"/>
+  <circle class="f" cx="880" cy="580" r="13"/><circle class="w" cx="884" cy="575" r="4"/>
+  <path d="M870 615 Q890 625 905 612"/>
+  <path d="M280 680 L270 780 L360 780 L350 680 M650 680 L640 780 L730 780 L720 680"/>
+  <path d="M220 630 L130 600 L150 650 Z"/>
+  <path d="M60 860 L940 860"/>
+`},
+{ id: 'rainbow', name: 'Rainbow', svg: `
+  <path d="M120 700 A380 380 0 0 1 880 700"/>
+  <path d="M190 700 A310 310 0 0 1 810 700"/>
+  <path d="M260 700 A240 240 0 0 1 740 700"/>
+  <path d="M330 700 A170 170 0 0 1 670 700"/>
+  <path d="M400 700 A100 100 0 0 1 600 700"/>
+  <path d="M60 720 C40 650 110 600 170 630 C190 570 290 570 310 630 C370 610 420 660 390 720 C380 760 340 770 310 760 L110 760 C70 760 55 740 60 720 Z"/>
+  <path d="M610 720 C590 650 660 600 720 630 C740 570 840 570 860 630 C920 610 970 660 940 720 C930 760 890 770 860 760 L660 760 C620 760 605 740 610 720 Z"/>
+  <circle cx="820" cy="170" r="70"/>
+  <path d="M820 60 L820 80 M820 260 L820 280 M710 170 L730 170 M910 170 L930 170 M742 92 L756 106 M884 234 L898 248 M742 248 L756 234 M884 106 L898 92"/>
+  <path d="M180 250 L194 286 L232 290 L204 314 L212 352 L180 332 L148 352 L156 314 L128 290 L166 286 Z"/>
+`},
+{ id: 'icecream', name: 'Ice cream', svg: `
+  <path d="M340 520 L660 520 L500 920 Z"/>
+  <path d="M380 520 L560 770 M460 520 L590 700 M540 520 L620 630 M620 520 L640 570 M620 520 L440 770 M540 520 L410 700 M460 520 L380 630 M380 520 L360 570"/>
+  <path d="M320 530 C260 530 250 450 310 430 C290 340 380 300 420 340 C440 290 520 280 540 330 C600 300 690 340 680 420 C740 440 740 530 680 530 C660 570 620 560 610 540 C600 590 540 590 530 540 C500 580 450 570 450 535 C420 570 370 570 360 530 Z"/>
+  <path d="M400 330 C380 230 460 170 520 180 C600 170 660 250 620 330"/>
+  <circle cx="530" cy="140" r="45"/>
+  <path d="M535 95 C540 60 570 40 600 40"/>
+  <path d="M400 420 L410 440 M480 380 L470 405 M560 410 L575 430 M620 460 L600 475 M450 230 L465 250 M560 230 L545 250"/>
+`},
+];
+
+const VERSION = '2026-10-25.1';
+const el = id => document.getElementById(id);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('sparkle:' + k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('sparkle:' + k, JSON.stringify(v)); } catch {} },
+};
+const opts = Object.assign({ voice: true, sound: true }, store.get('opts') || {});
+const saveOpts = () => store.set('opts', opts);
+
+/* ---------- pictures from OpenMoji (icons.json, pages.json beside this page) ---------- */
+let ICONS = {}, PAGES = [];
+const iconUrls = new Map();
+function iconUrl(hex) {
+  if (!iconUrls.has(hex)) iconUrls.set(hex, ICONS[hex] ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ICONS[hex]) : '');
+  return iconUrls.get(hex);
+}
+const iconImg = (hex, cls = '') => `<img alt="" class="${cls}" src="${iconUrl(hex)}">`;
+function fillIcons(root = document) { for (const i of $$('img[data-icon]', root)) i.src = iconUrl(i.dataset.icon); }
+
+/* ---------- reading aloud: anything with data-say speaks when tapped ---------- */
+let voice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const v = speechSynthesis.getVoices();
+  voice = v.find(x => /en[-_]AU/i.test(x.lang)) || v.find(x => /en[-_]GB/i.test(x.lang)) || v.find(x => /^en/i.test(x.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function say(text) {
+  if (!opts.voice || !('speechSynthesis' in window) || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.lang = voice ? voice.lang : 'en-AU';
+    u.rate = .9; u.pitch = 1.15;
+    speechSynthesis.speak(u);
+  } catch {}
+}
+document.addEventListener('click', e => { const s = e.target.closest('[data-say]'); if (s && s.dataset.say) say(s.dataset.say); }, true);
+
+/* ---------- little sounds, made on the spot ---------- */
+let ac = null;
+function tone(freqs, dur = .1, type = 'sine', gap = .08, vol = .12) {
+  if (!opts.sound) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    freqs.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * gap;
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .03);
+    });
+  } catch {}
+}
+const sfx = {
+  coin: () => tone([988, 1319], .14, 'square', .07, .05),
+  pop: () => tone([620], .07, 'sine', 0, .14),
+  flip: () => tone([520], .05, 'triangle', 0, .1),
+  yay: () => tone([523, 659, 784, 1047], .2, 'triangle', .1, .12),
+  oops: () => tone([330, 247], .2, 'sine', .14, .12),
+  jump: () => tone([400, 640], .1, 'sine', .05, .1),
+  munch: () => tone([300, 260, 300], .06, 'square', .09, .04),
+  scrub: () => tone([900 + Math.random() * 400], .04, 'sine', 0, .03),
+};
+
+/* ---------- coins ---------- */
+let coins = store.get('coins') ?? 10;
+function drawCoins() { for (const c of $$('[data-coins]')) c.innerHTML = `${iconImg('1FA99')}<span>${coins}</span>`; }
+function addCoins(n, from) {
+  if (!n) return;
+  coins = Math.max(0, coins + n); store.set('coins', coins);
+  drawCoins();
+  if (n > 0) {
+    sfx.coin();
+    const box = $$('[data-coins]').find(c => c.offsetParent);
+    if (box) {
+      box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump');
+      const r = (from || box).getBoundingClientRect(), p = document.createElement('div');
+      p.className = 'plus'; p.textContent = '+' + n;
+      p.style.left = (r.left + r.width / 2 - 14) + 'px'; p.style.top = (r.top - 10) + 'px';
+      document.body.appendChild(p); setTimeout(() => p.remove(), 1000);
+    }
+  }
+}
+
+/* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
+const SCREENS = { '': 's-home', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters' };
+let screen = null;
+const leave = {}, enter = {};
+function route() {
+  const [name, arg] = location.hash.slice(1).split('/');
+  let s = name in SCREENS ? name : '';
+  if (!pet && s !== 'choose') { location.replace('#choose'); return; }
+  if (screen && leave[screen]) leave[screen]();
+  if (window.speechSynthesis && screen !== null) try { speechSynthesis.cancel(); } catch {}
+  for (const id of Object.values(SCREENS)) el(id).classList.toggle('hidden', id !== SCREENS[s]);
+  screen = s;
+  drawCoins();
+  if (enter[s]) enter[s](arg);
+}
+addEventListener('hashchange', route);
+const go = h => { location.hash = h; };
+for (const b of $$('[data-home]')) {
+  b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg>';
+  b.dataset.say = 'Home';
+  b.onclick = () => go('');
+}
+
+function ask(text) {
+  const d = el('ask');
+  el('askText').textContent = text;
+  say(text);
+  return new Promise(res => {
+    el('askYes').onclick = () => { d.close(); res(true); };
+    el('askNo').onclick = () => { d.close(); res(false); };
+    d.oncancel = () => res(false);
+    d.showModal();
+  });
+}
+
+/* ---------- the pet ---------- */
+const PET_NAMES = { bunny: 'Bella', kitten: 'Mittens', puppy: 'Biscuit', dragon: 'Sparky' };
+let pet = store.get('pet');      // { kind, name, food, clean, fun, at }
+const savePet = () => store.set('pet', pet);
+// needs go down slowly over real time, even with the app closed; never below 0, and it never dies
+function petTick() {
+  if (!pet) return;
+  const now = Date.now(), h = Math.max(0, (now - (pet.at || now)) / 3.6e6);
+  pet.food = clamp(pet.food - 5 * h); pet.clean = clamp(pet.clean - 3 * h); pet.fun = clamp(pet.fun - 4 * h);
+  pet.at = now; savePet();
+}
+function petFun(n) { if (!pet) return; petTick(); pet.fun = clamp(pet.fun + n); savePet(); }
+function petLook(extra = {}) {
+  const low = Math.min(pet.food, pet.clean, pet.fun);
+  const look = low < 25 ? { eyes: 'sad', mouth: 'sad' } : low > 65 ? { eyes: 'happy', mouth: 'grin' } : { eyes: 'open', mouth: 'smile' };
+  look.dirt = pet.clean < 70 ? (70 - pet.clean) / 70 : 0;
+  return Object.assign(look, extra);
+}
+const petUrl = (look, kind = pet.kind) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(petSVG(kind, look));
+function needsOf() {
+  const n = [];
+  if (pet.food < 35) n.push(['1F34E', 'I’m hungry!']);
+  if (pet.clean < 35) n.push(['1F9FC', 'I need a bath!']);
+  if (pet.fun < 35) n.push(['1F388', 'I’m bored. Let’s play!']);
+  return n;
+}
+
+/* ---------- home ---------- */
+const GAMES = [
+  { id: 'colour', name: 'Colouring', icon: '1F3A8' },
+  { id: 'memory', name: 'Memory', svg: '<svg viewBox="0 0 84 84"><rect x="8" y="14" width="40" height="56" rx="9" fill="#ff8cc6" stroke="#4a3159" stroke-width="3" transform="rotate(-10 28 42)"/><path d="M24 40l3-7 3 7 7 3-7 3-3 7-3-7-7-3Z" fill="#fff" transform="rotate(-10 28 42)"/><rect x="36" y="14" width="40" height="56" rx="9" fill="#fff" stroke="#4a3159" stroke-width="3" transform="rotate(8 56 42)"/><path d="M56 52c-9-6-13-10-13-15a6 6 0 0 1 13-3 6 6 0 0 1 13 3c0 5-4 9-13 15Z" fill="#ff4fa3" transform="rotate(8 56 42)"/></svg>' },
+  { id: 'ttt', name: 'Tic-tac-toe', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="4" width="76" height="76" rx="18" fill="#ffe6f3"/><path d="M30 6v72M54 6v72M6 30h72M6 54h72" stroke="#e7b9db" stroke-width="4"/><path d="M11 11l13 13M24 11 11 24" stroke="#ff4fa3" stroke-width="5" stroke-linecap="round"/><circle cx="42" cy="42" r="7" fill="none" stroke="#8f5cff" stroke-width="5"/><path d="M59 59l13 13M72 59 59 72" stroke="#ff4fa3" stroke-width="5" stroke-linecap="round"/></svg>' },
+  { id: 'jump', name: 'Jump', icon: '2B50' },
+  { id: 'letters', name: 'Letters', icon: '1F524' },
+];
+enter[''] = () => {
+  petTick();
+  const needs = needsOf();
+  el('petCard').innerHTML = `<img alt="" src="${petUrl(petLook())}"><div><div class="t">${pet.name}</div><div class="needs">${needs.map(([i]) => iconImg(i)).join('')}</div></div>`;
+  el('petCard').dataset.say = needs.length ? `${pet.name} says: ${needs.map(n => n[1]).join(' ')}` : `${pet.name} is happy!`;
+  el('tiles').innerHTML = GAMES.map(g => `<button class="tile" data-go="${g.id}" data-say="${g.name}"><span class="ic">${g.svg || iconImg(g.icon)}</span><span class="t">${g.name}</span></button>`).join('');
+  if (screen === '' && GAMES.find(g => g.id === 'jump')) {   // the jump tile shows her own pet
+    const j = $$('#tiles [data-go="jump"] .ic')[0];
+    if (j) j.innerHTML = `<img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })}">`;
+  }
+};
+el('petCard').onclick = () => go('pet');
+el('tiles').onclick = e => { const t = e.target.closest('[data-go]'); if (t) go(t.dataset.go); };
+
+/* ---------- choosing a pet ---------- */
+let chosen = null;
+enter.choose = () => {
+  chosen = null;
+  el('chooseGo').classList.add('hidden');
+  el('chooseGrid').innerHTML = Object.entries(PET_KINDS).map(([k, v]) =>
+    `<button data-k="${k}" data-say="${v.name}"><img alt="" src="${petUrl({ eyes: 'happy', mouth: 'grin' }, k)}"><div class="t">${v.name}</div></button>`).join('');
+  setTimeout(() => say('Choose your pet!'), 300);
+};
+el('chooseGrid').onclick = e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  chosen = b.dataset.k;
+  $$('#chooseGrid button').forEach(x => x.classList.toggle('on', x === b));
+  el('chooseGo').classList.remove('hidden');
+};
+el('chooseGo').onclick = () => {
+  if (!chosen) return;
+  const was = pet;
+  pet = { kind: chosen, name: was && was.kind === chosen ? was.name : PET_NAMES[chosen], food: was ? was.food : 80, clean: was ? was.clean : 90, fun: was ? was.fun : 80, at: Date.now() };
+  savePet();
+  setTimeout(() => say(`Hello! I'm ${pet.name}!`), 400);
+  go('pet');
+};
+
+/* ---------- looking after the pet ---------- */
+const FOODS = [
+  { i: '1F34E', name: 'Apple', cost: 1, food: 15 }, { i: '1F34C', name: 'Banana', cost: 1, food: 15 },
+  { i: '1F955', name: 'Carrot', cost: 1, food: 15 }, { i: '1F353', name: 'Strawberry', cost: 2, food: 20 },
+  { i: '1F95B', name: 'Milk', cost: 2, food: 20 }, { i: '1F349', name: 'Watermelon', cost: 2, food: 25 },
+  { i: '1F41F', name: 'Fish', cost: 3, food: 30 }, { i: '1F95E', name: 'Pancakes', cost: 3, food: 35 },
+  { i: '1F355', name: 'Pizza', cost: 4, food: 45 }, { i: '1F36A', name: 'Cookie', cost: 3, food: 15, fun: 10 },
+  { i: '1F9C1', name: 'Cupcake', cost: 4, food: 20, fun: 15 }, { i: '1F368', name: 'Ice cream', cost: 5, food: 20, fun: 20 },
+  { i: '1F382', name: 'Birthday cake', cost: 8, food: 50, fun: 30 },
+];
+let petMode = '';        // '' | 'feed' | 'wash'
+let busy = false, cuddles = [];
+function drawPet(extra) {
+  el('petImg').src = petUrl(petLook(extra));
+  el('petName').textContent = pet.name; el('petName').dataset.say = pet.name;
+  el('stats').innerHTML = [['1F34E', pet.food, 'Food'], ['1F9FC', pet.clean, 'Clean'], ['1F388', pet.fun, 'Fun']].map(([i, v, n]) =>
+    `<div class="stat" data-say="${n}">${iconImg(i)}<div class="meter${v < 30 ? ' low' : ''}"><i style="width:${Math.max(4, v)}%"></i></div></div>`).join('');
+  el('feedBtn').classList.toggle('on', petMode === 'feed');
+  el('washBtn').classList.toggle('on', petMode === 'wash');
+  el('petBox').classList.toggle('wash', petMode === 'wash');
+}
+function speakPet(text, ms = 2200) {
+  const b = el('bubble');
+  b.textContent = text; b.classList.remove('hidden');
+  say(text);
+  clearTimeout(speakPet.t); speakPet.t = setTimeout(() => b.classList.add('hidden'), ms);
+}
+function floatIcon(hex, x, y, size = 46) {
+  const f = document.createElement('img');
+  f.className = 'float'; f.src = iconUrl(hex); f.alt = '';
+  Object.assign(f.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px' });
+  el('petBox').appendChild(f); setTimeout(() => f.remove(), 1300);
+}
+function hop() { const b = el('petBox'); b.classList.remove('jump'); void b.offsetWidth; b.classList.add('jump'); }
+let petTimer = null;
+enter.pet = () => {
+  petTick(); petMode = ''; el('tray').classList.add('hidden');
+  drawPet();
+  const needs = needsOf();
+  setTimeout(() => speakPet(needs.length ? needs[0][1] : pick([`Hi! I missed you!`, `Yay, you're here!`, `Hello!`])), 350);
+  petTimer = setInterval(() => { petTick(); if (!busy && petMode !== 'wash') drawPet(); }, 30000);
+};
+leave.pet = () => { clearInterval(petTimer); petMode = ''; };
+
+el('feedBtn').onclick = () => {
+  petMode = petMode === 'feed' ? '' : 'feed';
+  const t = el('tray');
+  t.classList.toggle('hidden', petMode !== 'feed');
+  if (petMode === 'feed') t.innerHTML = FOODS.map((f, i) =>
+    `<button class="food${coins < f.cost ? ' poor' : ''}" data-i="${i}" data-say="${f.name}">${iconImg(f.i, 'f')}<span class="p">${iconImg('1FA99')}${f.cost}</span></button>`).join('');
+  drawPet();
+};
+el('tray').onclick = async e => {
+  const b = e.target.closest('[data-i]'); if (!b || busy) return;
+  const f = FOODS[+b.dataset.i];
+  petTick();
+  if (pet.food >= 96 && !f.fun) { speakPet('I’m full!'); return; }
+  if (coins < f.cost) { sfx.oops(); speakPet('Not enough coins. Play a game to earn more!', 3200); return; }
+  busy = true;
+  addCoins(-f.cost);
+  // the food flies to the pet's mouth
+  const from = b.querySelector('img.f').getBoundingClientRect(), to = el('petBox').getBoundingClientRect();
+  const fly = document.createElement('img');
+  fly.className = 'flyfood'; fly.src = iconUrl(f.i); fly.style.left = from.left + 'px'; fly.style.top = from.top + 'px';
+  document.body.appendChild(fly);
+  await wait(20);
+  fly.style.transform = `translate(${to.left + to.width / 2 - from.left - 32}px, ${to.top + to.height * .52 - from.top - 32}px) scale(.6)`;
+  drawPet({ eyes: 'happy', mouth: 'open', dirt: petLook().dirt });
+  await wait(600); fly.remove();
+  for (let i = 0; i < 3; i++) { drawPet({ eyes: 'happy', mouth: i % 2 ? 'open' : 'chew', dirt: petLook().dirt }); sfx.munch(); await wait(260); }
+  pet.food = clamp(pet.food + f.food); if (f.fun) pet.fun = clamp(pet.fun + f.fun); savePet();
+  hop(); drawPet({ eyes: 'happy', mouth: 'grin', dirt: petLook().dirt });
+  speakPet(pick(['Yum!', 'Yummy!', 'Thank you!', `I love ${f.name.toLowerCase()}!`]));
+  floatIcon('1F496', to.width * .7, to.height * .25);
+  $$('.food', el('tray')).forEach((x, i) => x.classList.toggle('poor', coins < FOODS[i].cost));
+  busy = false;
+};
+
+el('washBtn').onclick = () => {
+  petMode = petMode === 'wash' ? '' : 'wash';
+  el('tray').classList.add('hidden');
+  drawPet();
+  if (petMode === 'wash') speakPet(pet.clean > 95 ? 'I’m already clean!' : 'Rub me to wash me!', 2600);
+};
+el('playBtn').onclick = () => go('');
+
+// tapping the pet: a cuddle; rubbing it in wash mode: a wash
+let rub = null;
+el('petBox').addEventListener('pointerdown', e => {
+  if (busy) return;
+  const r = el('petBox').getBoundingClientRect();
+  if (petMode === 'wash') { el('petBox').setPointerCapture(e.pointerId); rub = { x: e.clientX, y: e.clientY, n: 0 }; return; }
+  // a cuddle: hearts, a happy face, and a little fun (a few per minute count)
+  petTick();
+  const now = Date.now();
+  cuddles = cuddles.filter(t => now - t < 60000);
+  if (cuddles.length < 6) { cuddles.push(now); pet.fun = clamp(pet.fun + 3); savePet(); }
+  floatIcon(pick(['1F496', '1F49C', '2764']), e.clientX - r.left, e.clientY - r.top);
+  sfx.pop(); hop();
+  drawPet({ eyes: 'happy', mouth: 'grin', dirt: petLook().dirt });
+  const needs = needsOf();
+  speakPet(needs.length ? needs[0][1] : pick(['Hehe!', 'I love you!', 'You’re my best friend!', 'That tickles!', 'Yay!']));
+  setTimeout(() => { if (!busy && petMode !== 'wash') drawPet(); }, 1600);
+});
+el('petBox').addEventListener('pointermove', e => {
+  if (!rub || petMode !== 'wash') return;
+  const d = Math.hypot(e.clientX - rub.x, e.clientY - rub.y);
+  if (d < 14) return;
+  rub.x = e.clientX; rub.y = e.clientY; rub.n++;
+  const r = el('petBox').getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'foam';
+  const s = 26 + Math.random() * 30;
+  Object.assign(f.style, { left: e.clientX - r.left - s / 2 + 'px', top: e.clientY - r.top - s / 2 + 'px', width: s + 'px', height: s + 'px' });
+  el('petBox').appendChild(f); setTimeout(() => f.remove(), 1000);
+  if (rub.n % 3 === 0) sfx.scrub();
+  petTick();
+  const was = pet.clean;
+  pet.clean = clamp(pet.clean + 1.6); savePet();
+  if (rub.n % 6 === 0) drawPet({ eyes: 'happy', mouth: 'smile' });
+  if (was < 100 && pet.clean >= 100) {
+    rub = null; petMode = ''; drawPet({ eyes: 'happy', mouth: 'grin' }); hop(); sfx.yay();
+    floatIcon('2728', r.width * .3, r.height * .3, 60); floatIcon('2728', r.width * .7, r.height * .4, 50);
+    speakPet('Squeaky clean! Thank you!');
+  }
+});
+const endRub = () => { if (rub) { rub = null; drawPet(); } };
+el('petBox').addEventListener('pointerup', endRub);
+el('petBox').addEventListener('pointercancel', endRub);
+
+/* ---------- settings, for grown-ups ---------- */
+function drawSettings() {
+  el('optVoice').textContent = opts.voice ? 'On' : 'Off';
+  el('optSound').textContent = opts.sound ? 'On' : 'Off';
+  el('optName').value = pet ? pet.name : '';
+  el('optCoins').textContent = coins;
+  el('ver').textContent = 'Version ' + VERSION + '.';
+}
+el('setBtn').onclick = () => { drawSettings(); el('settings').showModal(); };
+el('optVoice').onclick = () => { opts.voice = !opts.voice; saveOpts(); drawSettings(); };
+el('optSound').onclick = () => { opts.sound = !opts.sound; saveOpts(); drawSettings(); };
+el('optName').onchange = () => { const v = el('optName').value.trim(); if (v && pet) { pet.name = v; savePet(); } };
+el('optPet').onclick = () => { el('settings').close(); go('choose'); };
+el('optCoinsPlus').onclick = () => { addCoins(10); drawSettings(); };
+el('optCoinsMinus').onclick = () => { addCoins(-10); drawSettings(); };
+el('setClose').onclick = () => { el('optName').onchange(); el('settings').close(); if (screen === '') enter['']() ; };
+
+/* ---------- colouring ---------- */
+const SIZE = 1200;                     // the drawing is SIZE x SIZE pixels, whatever the screen
+const BRUSH = [14, 34, 70];
+const COLOURS = [
+  '#e63946', '#ff4fa3', '#ff9f1c', '#ffd23f', '#a7e04b', '#2ec27e', '#2ec4b6', '#4cc9f0', '#3a86ff', '#7c5cff', '#b15cff', '#8d5524',
+  '#7a0f1e', '#ffc4d6', '#ffcf99', '#fff3a8', '#d7f7b5', '#0b6e4f', '#b8f2e6', '#cdeffd', '#14327a', '#d9ccff', '#2b2b33', '#ffffff',
+];
+const COIN_CAP = 15;                   // coins one picture can earn
+const mine = p => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><style>*{fill:none;stroke:#000;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}.f{fill:#000}.w{fill:#fff;stroke:none}</style>${p.svg}</svg>`;
+let ALL = [];                          // every page: { id, name, cat, svg }
+const CATS = ['My drawings', 'Animals', 'Birds', 'Sea and bugs', 'Flowers and trees', 'Food', 'Things and places', 'Sky'];
+let cat = store.get('cat') || 'My drawings';
+const pageUrl = p => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(p.svg);
+
+const db = new Promise(resolve => {
+  try {
+    const r = indexedDB.open('sparkle', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('art');
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => resolve(null);
+  } catch { resolve(null); }
+});
+async function artGet(id) {
+  const d = await db; if (!d) return null;
+  return new Promise(res => { try { const q = d.transaction('art').objectStore('art').get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch { res(null); } });
+}
+async function artPut(id, blob) {
+  const d = await db; if (!d) return;
+  return new Promise(res => { try { const t = d.transaction('art', 'readwrite'); blob ? t.objectStore('art').put(blob, id) : t.objectStore('art').delete(id); t.oncomplete = t.onerror = () => res(); } catch { res(); } });
+}
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+let thumbUrls = [];
+enter.colour = async () => {
+  await saving;                        // a picture just left may still be saving
+  el('cats').innerHTML = CATS.map(c => `<button class="chip${c === cat ? ' on' : ''}" data-c="${c}" data-say="${c}">${c}</button>`).join('');
+  thumbUrls.forEach(u => URL.revokeObjectURL(u)); thumbUrls = [];
+  const list = ALL.filter(p => p.cat === cat);
+  const grid = el('picGrid');
+  grid.innerHTML = list.map(p => `<button class="pic" data-id="${p.id}" data-say="${p.name}" aria-label="${p.name}"><img class="l" alt="" loading="lazy" src="${pageUrl(p)}"></button>`).join('');
+  for (const p of list) {
+    const saved = await artGet(p.id);
+    if (!saved || screen !== 'colour') continue;
+    const b = grid.querySelector(`[data-id="${p.id}"]`);
+    if (!b) continue;
+    const u = URL.createObjectURL(saved); thumbUrls.push(u);
+    b.insertAdjacentHTML('afterbegin', `<img class="p" alt="" src="${u}">`);
+  }
+};
+el('cats').onclick = e => { const c = e.target.closest('[data-c]'); if (!c) return; cat = c.dataset.c; store.set('cat', cat); enter.colour(); el('picGrid').parentElement.parentElement.scrollTop = 0; };
+el('picGrid').onclick = e => { const b = e.target.closest('[data-id]'); if (b) go('paint/' + b.dataset.id); };
+
+const art = el('art'), lines = el('lines');
+art.width = art.height = lines.width = lines.height = SIZE;
+const ax = art.getContext('2d', { willReadFrequently: true });
+const lx = lines.getContext('2d', { willReadFrequently: true });
+const before = document.createElement('canvas'); before.width = before.height = SIZE;
+const bx = before.getContext('2d', { willReadFrequently: true });
+const scratch = document.createElement('canvas'); scratch.width = scratch.height = SIZE;
+const sx = scratch.getContext('2d');
+
+let pic = null;
+let colour = store.get('colour') || COLOURS[1];
+let size = store.get('size') ?? 1;
+let tool = 'brush';
+let inside = store.get('inside') !== false;
+let undo = [];
+let coloured = new Set();              // areas of this picture that have earned their coin
+
+/* Every area of the drawing gets a number (label); a line is 0. Colouring
+   that starts in an area stays inside it, through a mask made from its
+   number, widened a little so the colour tucks under the edge of the line. */
+let labels = null, regions = [], masks = new Map();
+function findAreas() {
+  const px = lx.getImageData(0, 0, SIZE, SIZE).data;
+  const N = SIZE * SIZE, wall = new Uint8Array(N);
+  for (let i = 0; i < N; i++) wall[i] = px[i * 4 + 3] > 90 ? 1 : 0;
+  labels = new Int32Array(N); regions = [null]; masks = new Map();
+  const stack = new Int32Array(N);
+  let next = 1;
+  for (let s = 0; s < N; s++) {
+    if (wall[s] || labels[s]) continue;
+    let sp = 0, minx = SIZE, miny = SIZE, maxx = 0, maxy = 0, count = 0;
+    stack[sp++] = s; labels[s] = next;
+    while (sp) {
+      const i = stack[--sp], x = i % SIZE, y = (i / SIZE) | 0;
+      count++; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y;
+      if (x > 0 && !wall[i - 1] && !labels[i - 1]) { labels[i - 1] = next; stack[sp++] = i - 1; }
+      if (x < SIZE - 1 && !wall[i + 1] && !labels[i + 1]) { labels[i + 1] = next; stack[sp++] = i + 1; }
+      if (y > 0 && !wall[i - SIZE] && !labels[i - SIZE]) { labels[i - SIZE] = next; stack[sp++] = i - SIZE; }
+      if (y < SIZE - 1 && !wall[i + SIZE] && !labels[i + SIZE]) { labels[i + SIZE] = next; stack[sp++] = i + SIZE; }
+    }
+    regions.push({ x: minx, y: miny, w: maxx - minx + 1, h: maxy - miny + 1, count });
+    next++;
+  }
+}
+const GROW = 5;
+function maskFor(label) {
+  if (masks.has(label)) return masks.get(label);
+  const r = regions[label];
+  const x0 = Math.max(0, r.x - GROW), y0 = Math.max(0, r.y - GROW);
+  const x1 = Math.min(SIZE, r.x + r.w + GROW), y1 = Math.min(SIZE, r.y + r.h + GROW);
+  const w = x1 - x0, h = y1 - y0;
+  let m = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) m[y * w + x] = labels[(y + y0) * SIZE + x + x0] === label ? 1 : 0;
+  for (let pass = 0; pass < GROW; pass++) {
+    const n = m.slice();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (m[i]) continue;
+      if ((x > 0 && m[i - 1]) || (x < w - 1 && m[i + 1]) || (y > 0 && m[i - w]) || (y < h - 1 && m[i + w])) n[i] = 1;
+    }
+    m = n;
+  }
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const cx = c.getContext('2d'), id = cx.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) if (m[i]) id.data[i * 4 + 3] = 255;
+  cx.putImageData(id, 0, 0);
+  const out = { canvas: c, x: x0, y: y0, w, h };
+  masks.set(label, out);
+  return out;
+}
+function areaAt(x, y) {
+  if (!labels) return 0;
+  x = Math.round(x); y = Math.round(y);
+  const at = (a, b) => (a >= 0 && b >= 0 && a < SIZE && b < SIZE) ? labels[b * SIZE + a] : 0;
+  if (at(x, y)) return at(x, y);
+  for (let r = 1; r <= 24; r++)
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const l = at(x + dx, y + dy);
+      if (l) return l;
+    }
+  return 0;
+}
+// a coin the first time each area gets colour, up to COIN_CAP for the picture
+function colouredArea(label, from) {
+  if (!label || coloured.has(label) || !pic) return;
+  if (regions[label] && regions[label].count < 400) return;      // specks between lines don't count
+  coloured.add(label);
+  store.set('col:' + pic.id, [...coloured]);
+  if (coloured.size <= COIN_CAP) { addCoins(1, from); petFun(1); }
+}
+
+/* The page is drawn white-filled (so shapes hide what's behind them), then the
+   white is made see-through: what's left is the lines, over the colouring. */
+function drawLines(img) {
+  lx.clearRect(0, 0, SIZE, SIZE);
+  lx.fillStyle = '#fff'; lx.fillRect(0, 0, SIZE, SIZE);
+  const pad = pic.id.startsWith('om-') ? SIZE * .02 : 0;
+  lx.drawImage(img, pad, pad, SIZE - 2 * pad, SIZE - 2 * pad);
+  const d = lx.getImageData(0, 0, SIZE, SIZE), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const lum = (p[i] * 3 + p[i + 1] * 6 + p[i + 2]) / 10;
+    p[i] = 38; p[i + 1] = 38; p[i + 2] = 46; p[i + 3] = 255 - lum;
+  }
+  lx.putImageData(d, 0, 0);
+}
+
+enter.paint = async id => {
+  const p = ALL.find(x => x.id === id);
+  if (!p) { go('colour'); return; }
+  pic = p; undo = []; labels = null;
+  coloured = new Set(store.get('col:' + p.id) || []);
+  drawButtons();
+  fitSheet();
+  ax.clearRect(0, 0, SIZE, SIZE); lx.clearRect(0, 0, SIZE, SIZE);
+  const [img, saved] = await Promise.all([loadImg(pageUrl(p)), artGet(p.id)]);
+  if (pic !== p) return;
+  drawLines(img);
+  if (saved) { try { const s = await loadImg(URL.createObjectURL(saved)); ax.drawImage(s, 0, 0, SIZE, SIZE); } catch {} }
+  findAreas();
+  say(p.name);
+};
+leave.paint = () => { const p = pic; saveNow().then(() => { if (pic === p) pic = null; }); };
+el('paintBack').onclick = () => go('colour');
+
+let stroke = null;
+function toDrawing(e) {
+  const r = art.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * SIZE / r.width, y: (e.clientY - r.top) * SIZE / r.height };
+}
+function grow(box, x, y, pad) {
+  box.x0 = Math.min(box.x0, x - pad); box.y0 = Math.min(box.y0, y - pad);
+  box.x1 = Math.max(box.x1, x + pad); box.y1 = Math.max(box.y1, y + pad);
+}
+function paintSegment(a, b) {
+  const w = tool === 'eraser' ? BRUSH[size] * 1.3 : BRUSH[size], pad = w / 2 + 2;
+  const x0 = Math.floor(Math.max(0, Math.min(a.x, b.x) - pad)), y0 = Math.floor(Math.max(0, Math.min(a.y, b.y) - pad));
+  const x1 = Math.ceil(Math.min(SIZE, Math.max(a.x, b.x) + pad)), y1 = Math.ceil(Math.min(SIZE, Math.max(a.y, b.y) + pad));
+  if (x1 <= x0 || y1 <= y0) return;
+  sx.clearRect(x0, y0, x1 - x0, y1 - y0);
+  sx.strokeStyle = tool === 'eraser' ? '#000' : colour;
+  sx.lineWidth = w; sx.lineCap = sx.lineJoin = 'round';
+  sx.beginPath(); sx.moveTo(a.x, a.y); sx.lineTo(b.x + 0.01, b.y); sx.stroke();
+  const m = stroke.mask;
+  if (m) {
+    sx.save();
+    sx.beginPath(); sx.rect(x0, y0, x1 - x0, y1 - y0); sx.clip();
+    sx.globalCompositeOperation = 'destination-in';
+    sx.drawImage(m.canvas, m.x, m.y);
+    sx.restore();
+  }
+  ax.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+  ax.drawImage(scratch, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+  ax.globalCompositeOperation = 'source-over';
+  grow(stroke.box, (a.x + b.x) / 2, (a.y + b.y) / 2, Math.hypot(a.x - b.x, a.y - b.y) / 2 + pad);
+}
+function remember(box) {
+  const x = Math.max(0, Math.floor(box.x0)), y = Math.max(0, Math.floor(box.y0));
+  const w = Math.min(SIZE, Math.ceil(box.x1)) - x, h = Math.min(SIZE, Math.ceil(box.y1)) - y;
+  if (w <= 0 || h <= 0) return;
+  undo.push({ x, y, w, h, data: bx.getImageData(x, y, w, h) });
+  if (undo.length > 40) undo.shift();
+  drawButtons();
+}
+function fillArea(p, e) {
+  const label = areaAt(p.x, p.y);
+  if (!label) return;
+  const m = maskFor(label);
+  bx.clearRect(0, 0, SIZE, SIZE); bx.drawImage(art, 0, 0);
+  sx.clearRect(m.x, m.y, m.w, m.h);
+  sx.drawImage(m.canvas, m.x, m.y);
+  sx.globalCompositeOperation = 'source-in';
+  sx.fillStyle = colour; sx.fillRect(m.x, m.y, m.w, m.h);
+  sx.globalCompositeOperation = 'source-over';
+  ax.drawImage(scratch, m.x, m.y, m.w, m.h, m.x, m.y, m.w, m.h);
+  remember({ x0: m.x, y0: m.y, x1: m.x + m.w, y1: m.y + m.h });
+  sfx.pop();
+  colouredArea(label, e && e.target);
+  saveSoon();
+}
+art.addEventListener('pointerdown', e => {
+  if (!pic || !labels || stroke) return;          // one finger at a time: a resting palm doesn't paint
+  e.preventDefault();
+  const p = toDrawing(e);
+  if (tool === 'fill') { fillArea(p, e); return; }
+  art.setPointerCapture(e.pointerId);
+  bx.clearRect(0, 0, SIZE, SIZE); bx.drawImage(art, 0, 0);
+  const label = areaAt(p.x, p.y);
+  stroke = { id: e.pointerId, last: p, label, mask: inside && label ? maskFor(label) : null, box: { x0: p.x, y0: p.y, x1: p.x, y1: p.y }, len: 0 };
+  paintSegment(p, p);
+});
+art.addEventListener('pointermove', e => {
+  if (!stroke || e.pointerId !== stroke.id) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (evs.length ? evs : [e])) { const p = toDrawing(ev); stroke.len += Math.hypot(p.x - stroke.last.x, p.y - stroke.last.y); paintSegment(stroke.last, p); stroke.last = p; }
+});
+function endStroke(e) {
+  if (!stroke || e.pointerId !== stroke.id) return;
+  remember(stroke.box);
+  if (tool !== 'eraser' && stroke.len > 30) colouredArea(stroke.label, art);
+  stroke = null;
+  saveSoon();
+}
+art.addEventListener('pointerup', endStroke);
+art.addEventListener('pointercancel', endStroke);
+art.addEventListener('contextmenu', e => e.preventDefault());
+
+let saveTimer = null;
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); }
+let saving = Promise.resolve();
+function saveNow() { saving = saving.then(saveIt); return saving; }
+async function saveIt() {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!pic || !labels) return;
+  const id = pic.id;
+  const px = ax.getImageData(0, 0, SIZE, SIZE).data;
+  let any = false;
+  for (let i = 3; i < px.length; i += 64) if (px[i]) { any = true; break; }
+  if (!any) { await artPut(id, null); return; }
+  const b = await new Promise(r => art.toBlob(r, 'image/png'));
+  if (b) await artPut(id, b);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+
+function drawButtons() {
+  el('undoBtn').disabled = !undo.length;
+  el('insideBtn').classList.toggle('on', inside);
+  el('insideBtn').setAttribute('aria-pressed', inside);
+  $$('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool ? b.dataset.tool === tool : (tool === 'brush' && +b.dataset.size === size)));
+  $$('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === colour && tool !== 'eraser'));
+}
+const COLOUR_NAMES = ['red', 'pink', 'orange', 'yellow', 'lime green', 'green', 'teal', 'sky blue', 'blue', 'purple', 'violet', 'brown',
+  'dark red', 'light pink', 'peach', 'light yellow', 'light green', 'dark green', 'mint', 'light blue', 'navy blue', 'lilac', 'black', 'white'];
+el('palette').innerHTML = COLOURS.map((c, i) => `<button class="sw${['#ffffff', '#fff3a8', '#ffc4d6', '#cdeffd', '#d7f7b5', '#b8f2e6'].includes(c) ? ' light' : ''}" data-c="${c}" data-say="${COLOUR_NAMES[i]}" style="background:${c}" aria-label="${COLOUR_NAMES[i]}"></button>`).join('');
+el('palette').onclick = e => {
+  const b = e.target.closest('.sw'); if (!b) return;
+  colour = b.dataset.c; store.set('colour', colour);
+  if (tool === 'eraser') tool = 'brush';
+  drawButtons();
+};
+el('tools').onclick = e => {
+  const b = e.target.closest('.tool'); if (!b) return;
+  if (b.dataset.tool) tool = b.dataset.tool;
+  else { tool = 'brush'; size = +b.dataset.size; store.set('size', size); }
+  drawButtons();
+};
+el('undoBtn').onclick = () => { const u = undo.pop(); if (!u) return; ax.putImageData(u.data, u.x, u.y); drawButtons(); saveSoon(); };
+el('insideBtn').onclick = () => { inside = !inside; store.set('inside', inside); drawButtons(); say(inside ? 'Colour stays inside the lines' : 'Colour anywhere'); };
+el('clearBtn').onclick = async () => {
+  if (!await ask('Start this picture again?')) return;
+  bx.clearRect(0, 0, SIZE, SIZE); bx.drawImage(art, 0, 0);
+  remember({ x0: 0, y0: 0, x1: SIZE, y1: SIZE });
+  ax.clearRect(0, 0, SIZE, SIZE);
+  saveSoon();
+};
+el('shareBtn').onclick = async () => {
+  if (!pic) return;
+  const c = document.createElement('canvas'); c.width = c.height = SIZE;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, SIZE, SIZE);
+  x.drawImage(art, 0, 0); x.drawImage(lines, 0, 0);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], `${pic.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`, { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] }) && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ files: [file] }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+function fitSheet() {
+  const r = el('stage').getBoundingClientRect();
+  const s = Math.max(120, Math.floor(Math.min(r.width - 20, r.height - 8)));
+  el('sheet').style.width = el('sheet').style.height = s + 'px';
+}
+new ResizeObserver(fitSheet).observe(el('stage'));
+
+/* ---------- memory ---------- */
+const MEM_FACES = [['1F436', 'puppy'], ['1F431', 'kitty'], ['1F430', 'bunny'], ['1F98A', 'fox'], ['1F43B', 'bear'], ['1F43C', 'panda'], ['1F428', 'koala'],
+  ['1F42F', 'tiger'], ['1F981', 'lion'], ['1F984', 'unicorn'], ['1F437', 'pig'], ['1F438', 'frog'], ['1F435', 'monkey'], ['1F414', 'chicken'],
+  ['1F427', 'penguin'], ['1F419', 'octopus'], ['1F98B', 'butterfly'], ['1F41D', 'bee'], ['1F422', 'tortoise'], ['1F42C', 'dolphin']];
+const MEM_SIZES = [{ n: 3, cols: 3, name: 'Easy' }, { n: 6, cols: 4, name: 'Medium' }, { n: 8, cols: 4, name: 'Hard' }, { n: 10, cols: 5, name: 'Super' }];
+let memSize = store.get('memSize') ?? 1;
+let mem = null;
+function memStart() {
+  const S = MEM_SIZES[memSize];
+  const faces = shuffle(MEM_FACES).slice(0, S.n);
+  mem = { cards: shuffle([...faces, ...faces]), up: [], got: 0, lock: false, tries: 0 };
+  el('memSizes').innerHTML = MEM_SIZES.map((s, i) => `<button class="chip${i === memSize ? ' on' : ''}" data-i="${i}" data-say="${s.name}">${s.name}</button>`).join('');
+  const b = el('memBoard');
+  b.style.gridTemplateColumns = `repeat(${S.cols}, 1fr)`;
+  b.style.maxWidth = `min(100%, ${S.cols * 120}px, calc((100vh - 230px) / ${Math.ceil(S.n * 2 / S.cols)} * ${S.cols}))`;
+  b.innerHTML = mem.cards.map(([h, w], i) => `<button class="card" data-i="${i}" aria-label="card"><div class="in"><div class="b"></div><div class="f">${iconImg(h)}</div></div></button>`).join('');
+  el('memMsg').textContent = ''; el('memAgain').classList.add('hidden');
+}
+enter.memory = () => { memStart(); setTimeout(() => say('Find the pairs!'), 300); };
+el('memSizes').onclick = e => { const c = e.target.closest('[data-i]'); if (!c) return; memSize = +c.dataset.i; store.set('memSize', memSize); memStart(); };
+el('memAgain').onclick = memStart;
+el('memBoard').onclick = async e => {
+  const c = e.target.closest('.card'); if (!c || !mem || mem.lock) return;
+  const i = +c.dataset.i;
+  if (c.classList.contains('up')) return;
+  c.classList.add('up'); sfx.flip();
+  say(mem.cards[i][1]);
+  mem.up.push(i);
+  if (mem.up.length < 2) return;
+  const [a, b] = mem.up; mem.up = []; mem.tries++;
+  const ca = el('memBoard').children[a], cb = el('memBoard').children[b];
+  if (mem.cards[a][0] === mem.cards[b][0]) {
+    await wait(350);
+    ca.classList.add('got'); cb.classList.add('got');
+    mem.got++; addCoins(1, cb); petFun(3);
+    if (mem.got === mem.cards.length / 2) {
+      await wait(400);
+      sfx.yay(); addCoins(3, el('memMsg')); petFun(10);
+      el('memMsg').textContent = 'You found them all!'; say('You found them all! Well done!');
+      el('memAgain').classList.remove('hidden');
+    }
+  } else {
+    mem.lock = true;
+    await wait(1000);
+    ca.classList.remove('up'); cb.classList.remove('up');
+    mem.lock = false;
+  }
+};
+
+/* ---------- tic-tac-toe, against a computer that often gets it wrong ---------- */
+const LINES3 = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+const MARK = {
+  X: '<svg viewBox="0 0 100 100"><path d="M22 22 78 78M78 22 22 78" stroke="#ff4fa3" stroke-width="16" stroke-linecap="round"/></svg>',
+  O: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#8f5cff" stroke-width="15"/></svg>',
+};
+let ttt = null, tttFirst = 'X';
+const winner = b => { for (const l of LINES3) if (b[l[0]] && b[l[0]] === b[l[1]] && b[l[0]] === b[l[2]]) return l; return null; };
+function tttStart() {
+  ttt = { b: Array(9).fill(''), over: false, busy: false };
+  el('tttBoard').innerHTML = ttt.b.map((_, i) => `<button class="cell" data-i="${i}" aria-label="square ${i + 1}"></button>`).join('');
+  el('tttAgain').classList.add('hidden');
+  if (tttFirst === 'O') { el('tttMsg').textContent = 'My turn first!'; say('My turn first!'); ttt.busy = true; setTimeout(aiMove, 900); }
+  else { el('tttMsg').textContent = 'You are X. Your turn!'; say('You are X. Your turn!'); }
+  tttFirst = tttFirst === 'X' ? 'O' : 'X';      // take turns going first
+}
+function put(i, m) {
+  ttt.b[i] = m;
+  const c = el('tttBoard').children[i];
+  c.innerHTML = MARK[m]; c.classList.add('pop'); sfx.pop();
+}
+// about half the time it plays well (win, block, centre, corner); otherwise anywhere
+function aiChoice() {
+  const b = ttt.b, free = b.map((v, i) => v ? -1 : i).filter(i => i >= 0);
+  if (Math.random() < .45) {
+    for (const m of ['O', 'X']) for (const l of LINES3) {
+      const v = l.map(i => b[i]);
+      if (v.filter(x => x === m).length === 2 && v.includes('')) return l[v.indexOf('')];
+    }
+    if (!b[4]) return 4;
+    const corners = [0, 2, 6, 8].filter(i => !b[i]);
+    if (corners.length) return pick(corners);
+  }
+  return pick(free);
+}
+function tttEnd() {
+  const w = winner(ttt.b);
+  if (w) {
+    ttt.over = true;
+    w.forEach(i => el('tttBoard').children[i].classList.add('win'));
+    if (ttt.b[w[0]] === 'X') { sfx.yay(); addCoins(3, el('tttMsg')); petFun(15); el('tttMsg').textContent = 'You win!'; say('You win! Hooray!'); }
+    else { sfx.oops(); petFun(10); el('tttMsg').textContent = 'I win this time!'; say('I win this time! Try again?'); }
+  } else if (ttt.b.every(Boolean)) {
+    ttt.over = true; addCoins(1, el('tttMsg')); petFun(10);
+    el('tttMsg').textContent = 'A draw!'; say('It’s a draw!');
+  }
+  if (ttt.over) el('tttAgain').classList.remove('hidden');
+  return ttt.over;
+}
+function aiMove() {
+  if (!ttt || ttt.over) return;
+  put(aiChoice(), 'O');
+  ttt.busy = false;
+  if (!tttEnd()) { el('tttMsg').textContent = 'Your turn!'; }
+}
+enter.ttt = () => tttStart();
+el('tttAgain').onclick = tttStart;
+el('tttBoard').onclick = e => {
+  const c = e.target.closest('.cell'); if (!c || !ttt || ttt.over || ttt.busy) return;
+  const i = +c.dataset.i; if (ttt.b[i]) return;
+  put(i, 'X');
+  if (tttEnd()) return;
+  ttt.busy = true; el('tttMsg').textContent = 'My turn…';
+  setTimeout(aiMove, 700 + Math.random() * 500);
+};
+
+/* ---------- jump: her pet runs, she taps to jump, stars are coins ---------- */
+const J = { run: false, raf: 0 };
+const jc = el('jumpCanvas'), jx = jc.getContext('2d');
+let jimgs = null;
+async function jumpImages() {
+  const im = async u => { try { return await loadImg(u); } catch { return null; } };
+  return {
+    run: [await im(petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })), await im(petUrl({ eyes: 'happy', mouth: 'grin', step: 1 }))],
+    air: await im(petUrl({ eyes: 'open', mouth: 'open' })),
+    sad: await im(petUrl({ eyes: 'sad', mouth: 'sad' })),
+    obs: [await im(iconUrl('1F335')), await im(iconUrl('1F344')), await im(iconUrl('1FAA8'))],
+    star: await im(iconUrl('2B50')), cloud: await im(iconUrl('2601')), flower: await im(iconUrl('1F33C')), tulip: await im(iconUrl('1F337')),
+  };
+}
+function jumpSize() {
+  const r = el('jumpWrap').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  jc.width = Math.round(r.width * dpr); jc.height = Math.round(r.height * dpr);
+  J.w = r.width; J.h = r.height; J.dpr = dpr;
+  J.ground = J.h * .8; J.pet = Math.min(110, J.h * .22);
+}
+function jumpReset() {
+  jumpSize();
+  Object.assign(J, { y: 0, vy: 0, t: 0, speed: J.w * .42, obs: [], stars: [], clouds: [], deco: [], next: 1.2, nextStar: .8, got: 0, dist: 0, last: 0, over: false });
+  for (let i = 0; i < 4; i++) J.clouds.push({ x: Math.random() * J.w, y: 20 + Math.random() * J.h * .3, s: 50 + Math.random() * 40 });
+  for (let i = 0; i < 6; i++) J.deco.push({ x: Math.random() * J.w, k: Math.random() < .5 ? 'flower' : 'tulip' });
+  el('jumpStars').textContent = '0';
+}
+function jumpTap(e) {
+  if (e) e.preventDefault();
+  if (!J.run) return;
+  if (J.y === 0) { J.vy = -Math.sqrt(2 * 2600 * J.pet * 1.75); sfx.jump(); }
+}
+el('jumpWrap').addEventListener('pointerdown', e => { if (e.target.closest('.overlay button')) return; jumpTap(e); });
+function jumpLoop(ts) {
+  if (!J.run) return;
+  const dt = Math.min(.04, (ts - (J.last || ts)) / 1000); J.last = ts;
+  J.t += dt; J.dist += J.speed * dt;
+  J.speed = Math.min(J.w * 1.1, J.speed + J.w * .012 * dt);
+  // the pet: gravity and the ground
+  J.vy += 2600 * dt; J.y = Math.min(0, J.y + J.vy * dt); if (J.y === 0) J.vy = 0;
+  // new things to jump over, and stars to catch
+  J.next -= dt; J.nextStar -= dt;
+  if (J.next <= 0) { J.obs.push({ x: J.w + 40, k: Math.floor(Math.random() * 3), s: J.pet * (.55 + Math.random() * .15) }); J.next = .9 + Math.random() * 1.3 - Math.min(.4, J.t / 120); }
+  if (J.nextStar <= 0) { J.stars.push({ x: J.w + 40, y: J.ground - J.pet * (.6 + Math.random() * 1.6) }); J.nextStar = .7 + Math.random() * 1.2; }
+  for (const o of J.obs) o.x -= J.speed * dt;
+  for (const s of J.stars) s.x -= J.speed * dt;
+  for (const c of J.clouds) { c.x -= J.speed * .15 * dt; if (c.x < -100) { c.x = J.w + 50; c.y = 20 + Math.random() * J.h * .3; } }
+  for (const d of J.deco) { d.x -= J.speed * dt; if (d.x < -40) d.x = J.w + Math.random() * J.w * .5; }
+  J.obs = J.obs.filter(o => o.x > -80); J.stars = J.stars.filter(s => s.x > -60 && !s.got);
+  // the pet's box, a forgiving one
+  const px = J.w * .18, py = J.ground + J.y - J.pet, ps = J.pet;
+  const hit = (x, y, w, h) => px + ps * .25 < x + w && px + ps * .75 > x && py + ps * .3 < y + h && py + ps * .95 > y;
+  for (const s of J.stars) {
+    if (!s.got && hit(s.x - 22, s.y - 22, 44, 44)) { s.got = true; J.got++; el('jumpStars').textContent = J.got; sfx.coin(); }
+  }
+  for (const o of J.obs) {
+    if (hit(o.x + o.s * .2, J.ground - o.s * .8, o.s * .6, o.s * .8)) { jumpOver(); break; }
+  }
+  jumpDraw();
+  if (J.run) J.raf = requestAnimationFrame(jumpLoop);
+}
+function jumpDraw() {
+  const g = jx, d = J.dpr;
+  g.setTransform(d, 0, 0, d, 0, 0);
+  g.clearRect(0, 0, J.w, J.h);
+  for (const c of J.clouds) if (jimgs.cloud) g.drawImage(jimgs.cloud, c.x, c.y, c.s * 1.4, c.s * 1.4);
+  g.fillStyle = '#c9f0c4'; g.fillRect(0, J.ground, J.w, J.h - J.ground);
+  g.fillStyle = '#a6e3a1'; g.fillRect(0, J.ground, J.w, 6);
+  for (const dd of J.deco) if (jimgs[dd.k]) g.drawImage(jimgs[dd.k], dd.x, J.ground + 10, 30, 30);
+  for (const s of J.stars) if (!s.got && jimgs.star) g.drawImage(jimgs.star, s.x - 24, s.y - 24, 48, 48);
+  for (const o of J.obs) if (jimgs.obs[o.k]) g.drawImage(jimgs.obs[o.k], o.x, J.ground - o.s, o.s, o.s);
+  const im = J.over ? jimgs.sad : J.y < 0 ? jimgs.air : jimgs.run[Math.floor(J.t * 8) % 2];
+  if (im) g.drawImage(im, J.w * .18, J.ground + J.y - J.pet * 1.04, J.pet, J.pet);
+}
+async function jumpStart() {
+  if (!jimgs) jimgs = await jumpImages();
+  jumpReset();
+  el('jumpOver').classList.add('hidden');
+  J.run = true; J.last = 0;
+  J.raf = requestAnimationFrame(jumpLoop);
+}
+function jumpOver() {
+  J.run = false; J.over = true; cancelAnimationFrame(J.raf);
+  jumpDraw(); sfx.oops();
+  if (J.got) addCoins(J.got, el('jumpStars'));
+  if (J.t > 5) petFun(Math.min(20, 5 + Math.round(J.t / 3)));
+  const m = J.got ? `Oops! You caught ${J.got} star${J.got === 1 ? '' : 's'}!` : 'Oops! Try again!';
+  el('jumpMsg').textContent = m; el('jumpMsg').dataset.say = m; say(m);
+  el('jumpGo').textContent = 'Again'; el('jumpGo').dataset.say = 'Again';
+  el('jumpOver').classList.remove('hidden');
+}
+el('jumpGo').onclick = jumpStart;
+enter.jump = async () => {
+  jimgs = null; jimgs = await jumpImages();       // her pet, as it looks now
+  jumpReset(); jumpDraw();
+  el('jumpMsg').textContent = 'Tap to jump! Catch the stars!'; el('jumpGo').textContent = 'Go!';
+  el('jumpOver').classList.remove('hidden');
+  setTimeout(() => say('Tap to jump! Catch the stars!'), 300);
+};
+leave.jump = () => { J.run = false; cancelAnimationFrame(J.raf); };
+new ResizeObserver(() => { if (screen === 'jump' && !J.run && jimgs) { jumpSize(); jumpDraw(); } }).observe(el('jumpWrap'));
+
+/* ---------- letters ---------- */
+const WORDS = [['A', 'apple', '1F34E'], ['B', 'ball', '26BD'], ['B', 'bird', '1F426'], ['C', 'cat', '1F431'], ['D', 'dog', '1F436'], ['E', 'egg', '1F95A'],
+  ['F', 'fish', '1F41F'], ['G', 'grapes', '1F347'], ['H', 'hat', '1F3A9'], ['I', 'ice cream', '1F368'], ['J', 'jellyfish', '1FABC'], ['K', 'kite', '1FA81'],
+  ['L', 'lion', '1F981'], ['M', 'moon', '1F319'], ['N', 'nest', '1FAB9'], ['O', 'octopus', '1F419'], ['P', 'pig', '1F437'], ['Q', 'queen', '1F478'],
+  ['R', 'rabbit', '1F430'], ['S', 'sun', '2600'], ['T', 'tiger', '1F42F'], ['U', 'umbrella', '2602'], ['V', 'violin', '1F3BB'], ['W', 'watermelon', '1F349'],
+  ['Y', 'yo-yo', '1FA80'], ['Z', 'zebra', '1F993'], ['O', 'orange', '1F34A'], ['G', 'guitar', '1F3B8'], ['R', 'rainbow', '1F308'], ['S', 'star', '2B50']];
+const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const LMODES = [{ id: 'name', name: 'Find the letter' }, { id: 'sound', name: 'First letter' }, { id: 'case', name: 'abc' }];
+let letMode = store.get('letMode') || 'name', lower = !!store.get('lower');
+let letQ = null, letBusy = false;
+const show = L => lower ? L.toLowerCase() : L;
+function letNew() {
+  letBusy = false;
+  let target, prompt, speech;
+  if (letMode === 'sound') {
+    const w = pick(WORDS.filter(x => !letQ || x[1] !== letQ.word));
+    target = w[0];
+    prompt = `<button class="pic2" data-say="${w[1]}">${iconImg(w[2])}</button><button class="speak" id="letSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Hear it</button>`;
+    speech = `${w[1]}. What letter does ${w[1]} start with?`;
+    letQ = { target, word: w[1], speech };
+  } else {
+    target = pick(ABC.filter(x => !letQ || x !== letQ.target));
+    prompt = `<button class="speak" id="letSay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9Z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>Find the letter</button>`;
+    speech = `Find the letter ${target}.`;
+    letQ = { target, speech };
+  }
+  const others = shuffle(ABC.filter(x => x !== target)).slice(0, 2);
+  el('letPrompt').innerHTML = prompt;
+  el('letOpts').innerHTML = shuffle([target, ...others]).map(L => `<button class="opt" data-l="${L}">${show(L)}</button>`).join('');
+  el('letSay').onclick = () => say(letQ.speech);
+  setTimeout(() => say(speech), 250);
+}
+function letChips() {
+  el('letModes').innerHTML = `<button class="chip${letMode === 'name' ? ' on' : ''}" data-m="name" data-say="Find the letter">Find the letter</button>`
+    + `<button class="chip${letMode === 'sound' ? ' on' : ''}" data-m="sound" data-say="First letter">First letter</button>`
+    + `<button class="chip${lower ? ' on' : ''}" data-m="case" data-say="${lower ? 'small letters' : 'big letters'}">${lower ? 'abc' : 'ABC'}</button>`;
+}
+enter.letters = () => { letChips(); letQ = null; letNew(); };
+el('letModes').onclick = e => {
+  const c = e.target.closest('[data-m]'); if (!c) return;
+  if (c.dataset.m === 'case') { lower = !lower; store.set('lower', lower); }
+  else { letMode = c.dataset.m; store.set('letMode', letMode); }
+  letChips(); letQ = null; letNew();
+};
+el('letOpts').onclick = async e => {
+  const b = e.target.closest('.opt'); if (!b || letBusy) return;
+  const L = b.dataset.l;
+  if (L === letQ.target) {
+    letBusy = true;
+    b.classList.add('right'); sfx.yay(); addCoins(1, b); petFun(3);
+    say(letQ.word ? `Yes! ${letQ.word} starts with ${L}!` : `Yes! That's ${L}!`);
+    await wait(1900);
+    if (screen === 'letters') letNew();
+  } else {
+    b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); sfx.oops();
+    say(`That's ${L}. ${letQ.word ? `Which letter does ${letQ.word} start with?` : `Find ${letQ.target}.`}`);
+  }
+};
+
+/* ---------- start ---------- */
+(async () => {
+  const get = async f => { try { return await (await fetch(f)).json(); } catch { return null; } };
+  const [icons, pages] = await Promise.all([get('icons.json'), get('pages.json')]);
+  ICONS = icons || {}; PAGES = pages || [];
+  ALL = PICTURES.map(p => ({ id: p.id, name: p.name, cat: 'My drawings', svg: mine(p) })).concat(PAGES);
+  fillIcons();
+  drawCoins();
+  route();
+})();
+// installable and offline: sw.js beside this page
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {}));
+}
+
+</script>
+</body>
+</html>
