@@ -547,6 +547,12 @@
   .controls { display: flex; gap: 8px; margin-top: 22px; }
   .controls button { flex: 1; }
   .controls .flipbtn { flex: none; padding-left: 12px; padding-right: 12px; display: flex; align-items: center; justify-content: center; }
+  .controls .flipbtn[aria-pressed="true"] { color: var(--brass); border-color: var(--brass); }
+  /* One device laid flat between two players: the far side's pieces face them. */
+  body.turn-b .sq .pc-b, body.turn-b .drag-ghost .pc-b,
+  body.turn-w .sq .pc-w, body.turn-w .drag-ghost .pc-w { rotate: 180deg; }
+  .ledger-export { display: flex; gap: 8px; margin-top: 14px; }
+  .openblock .oforcerow { margin-top: 10px; min-height: 0; }
 
   .setrow {
     display: flex;
@@ -861,7 +867,7 @@
   body.puzzlemode .tabs, body.puzzlemode .controls, body.puzzlemode #hintPanel,
   body.puzzlemode .pane[data-pane="open"], body.puzzlemode .pane[data-pane="review"], body.puzzlemode .pane[data-pane="moves"],
   body.puzzlemode #hintRow, body.puzzlemode #oppRow, body.puzzlemode #onlyRow, body.puzzlemode #onlyNote,
-  body.puzzlemode #thinkRow, body.puzzlemode #pgnBtn { display: none !important; }
+  body.puzzlemode #thinkRow, body.puzzlemode #movesExport { display: none !important; }
   body.puzzlemode .pane[data-pane="puzzle"], body.puzzlemode .pane[data-pane="set"] { display: block; }
   body.puzzlemode .pane[data-pane="set"] { border-top: 1px solid var(--edge); margin-top: 14px; padding-top: 4px; }
   .pzbtns { display: flex; gap: 8px; margin: 10px 0 4px; }
@@ -885,7 +891,10 @@
   .diag-slot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--edge); }
   .histrow { margin-top: 22px !important; padding-top: 14px; border-top: 1px solid var(--edge); }
   .pane .setrow.approw { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--edge); }
-  .pane .setrow.approw:first-child { margin-top: 12px; padding-top: 0; border-top: 0; }
+  /* The divider drops its line when nothing visible comes before it, whichever
+     rows a mode hides, so no mode starts with a stray line. Rows above it must
+     be hidden with .hidden (not a mode's CSS) for this to see them. */
+  .pane .setrow.approw:not(.pane > :not(.hidden) ~ .approw) { margin-top: 12px; padding-top: 0; border-top: 0; }
   .diag-slot .verstamp { margin: 0; }
 
   /* landscape phones, tablets and desktops: board left, everything else right */
@@ -1148,12 +1157,14 @@
 
   .reviewblock { margin-top: 18px; }
   .reviewblock .setrow { margin-top: 0; }
-  /* the same gap between every row, as in Settings */
-  .reviewblock .setrow + .setrow { margin-top: 18px; }
+  /* the same gap between every row, as in Settings. The gaps sit inside the
+     sliding parts, so a part that closes takes its gap with it. */
+  .reviewblock .revopt, #bestRow { margin-top: 18px; }
+  #reviewIntro { margin-top: 14px; }
   .revrow.hid { cursor: default; }
   .revrow.hid .rlab { color: var(--muted); }
   .reviewblock .state { color: var(--brass); letter-spacing: .04em; text-transform: none; }
-  #reviewBody { margin-top: 10px; }
+  #reviewBody { padding-bottom: 18px; }
   .revrow {
     display: flex;
     align-items: center;
@@ -1368,8 +1379,7 @@
   /* ---- famous games and your own: stepping through a game ---- */
   body:not(.studymode) .tabs [data-tab="game"], body:not(.studymode) .studynav { display: none !important; }
   body.studymode #takebackBtn, body.studymode #resignBtn, body.studymode #rematchBtn,
-  body.studymode .tabs [data-tab="open"], body.studymode .tabs [data-tab="moves"],
-  body.studymode #posRow { display: none !important; }
+  body.studymode .tabs [data-tab="open"], body.studymode .tabs [data-tab="moves"] { display: none !important; }
   .controls .studynav { flex: 1; display: flex; align-items: center; justify-content: center; padding-left: 0; padding-right: 0; }
   /* Engine takes over: the game's bar shrinks to a way back, and a second bar steps through Stockfish's moves */
   #stReturn, .engbar { display: none; }
@@ -1476,6 +1486,18 @@
   .joinrow button.primary { width: auto; padding-left: 18px; padding-right: 18px; }
 
   .hidden { display: none !important; }
+  /* Something that appears or goes by sliding, pushing what is below it down
+     or drawing it up, rather than jumping. Wrap the content in two divs,
+     <div class="reveal"><div>...</div></div>, and toggle .open on the outer one
+     instead of .hidden. A grid row going from 0fr to 1fr slides to the
+     content's own height, whatever it is, and a toggle made mid-slide turns
+     back from where it is. Margins go inside, so they slide too. */
+  .reveal { display: grid; grid-template-rows: 0fr; visibility: hidden;
+            transition: grid-template-rows .3s ease, visibility 0s .3s; }
+  .reveal.open { grid-template-rows: 1fr; visibility: visible;
+                 transition: grid-template-rows .3s ease, visibility 0s 0s; }
+  .reveal > * { min-height: 0; overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) { .reveal, .reveal.open { transition: none; } }
 
   @media (prefers-reduced-motion: reduce) {
     body[data-link="searching"] .thread::after { animation: none; transform: scaleX(.35); }
@@ -1739,6 +1761,7 @@
         </div>
         <div class="controls">
           <button id="flipBtn" class="flipbtn" aria-label="Flip the board" title="Flip the board"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2v11M2.5 10.5 5 13l2.5-2.5M11 14V3M8.5 5.5 11 3l2.5 2.5"/></svg></button>
+          <button id="turnBtn" class="flipbtn hidden" aria-pressed="false" aria-label="Turn the far side’s pieces round, for a phone laid flat between two players" title="Turn the far side’s pieces round (phone laid flat)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 11.6 3.9"/><path d="M12.2 1.4v2.8H9.4"/></svg></button>
           <button class="studynav" id="stFirst" aria-label="To the start" title="To the start"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v10M12 3 6 8l6 5"/></svg></button>
           <button class="studynav" id="stPrev" aria-label="Back one move" title="Back one move (left arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
           <button class="studynav" id="stNext" aria-label="Forward one move" title="Forward one move (right arrow)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
@@ -1806,18 +1829,25 @@
               <div class="setrow">
                 <span>Openings</span>
                 <select class="opp" id="openPick" aria-label="Opening to practise"></select>
-                <label class="oforce"><input type="checkbox" id="openForce"> Opponent plays along</label>
               </div>
+              <div class="reveal" id="openForceWrap"><div>
+                <div class="setrow oforcerow"><label class="oforce"><input type="checkbox" id="openForce"> Opponent plays along</label></div>
+              </div></div>
               <div id="openBody"></div>
             </section>
           </div>
           <div class="pane" data-pane="review">
             <section class="reviewblock" id="reviewBlock">
+              <!-- the moves under review: above the settings, sliding open once there are any -->
+              <div class="reveal" id="reviewReveal"><div>
+                <div id="reviewBody"></div>
+              </div></div>
               <div class="setrow">
                 <span>Review</span>
                 <button id="reviewBtn">On</button>
                 <span class="state" id="reviewState"></span>
               </div>
+              <div class="reveal open" id="revOptReveal"><div>
               <div class="setrow revopt">
                 <span>Eval bar</span>
                 <button id="revBarBtn">On</button>
@@ -1832,11 +1862,12 @@
                 <span>Explanations</span>
                 <button id="revExplainBtn">On</button>
               </div>
+              </div></div>
               <div class="setrow" id="bestRow">
                 <span id="hintLabel">Best move</span>
                 <button id="hintBtn">Off</button>
               </div>
-              <div id="reviewBody"></div>
+              <p class="coach-note hidden" id="reviewIntro"></p>
             </section>
             <!-- The old tactics coach. Its code is still below and still tested;
                  it is just no longer shown. Remove `hidden` to bring it back. -->
@@ -1856,14 +1887,13 @@
             <div class="ledger">
               <h2>Moves</h2>
               <div id="ledgerBody"><p class="empty-ledger">Nothing played yet.</p></div>
+              <div class="ledger-export" id="movesExport">
+                <button id="movesCopy" disabled>Copy PGN</button>
+                <button id="movesDownload" disabled>Download .pgn</button>
+              </div>
             </div>
           </div>
           <div class="pane" data-pane="set">
-            <div class="setrow" id="posRow">
-              <span>Position</span>
-              <button id="posSaveBtn">Save</button>
-              <button id="posOpenBtn">Open saved</button>
-            </div>
             <div class="setrow" id="hintRow">
               <span id="autoLabel">Engine plays</span>
               <button id="autoBtn">Off</button>
@@ -3697,7 +3727,10 @@ let myColor = 'w';
 const isLocal = () => code === 'local' || code === 'study';   // a game being stepped through shows both sides, like one device
 const moverColor = () => isLocal() ? game.turn() : myColor;
 let flipView = false;              // the board turned round from your side
-const viewColor = () => flipView ? (myColor === 'w' ? 'b' : 'w') : myColor;
+// Flipping is for one device, a game being stepped through, or a set-up position.
+const canFlip = () => code === 'local' || code === 'study' || !!startFen;
+const viewColor = () => flipView && canFlip() ? (myColor === 'w' ? 'b' : 'w') : myColor;
+let turnTop = store.get('table:turnTop') === true;   // one device: the far side's pieces turned to face them
 let code = null;
 let result = null;
 let selected = null;
@@ -3903,9 +3936,9 @@ const STAUNTON = {
 function pieceSVG(type, color, cls = '', set = pieceSet) {
   if (set !== 'staunton') {
     const s = PIECE_SETS.find(x => x.id === set);
-    if (s) return `<img class="pc ${cls}" src="pieces/${s.id}/${color}${type.toUpperCase()}.${s.ext}" alt="" draggable="false">`;
+    if (s) return `<img class="pc pc-${color} ${cls}" src="pieces/${s.id}/${color}${type.toUpperCase()}.${s.ext}" alt="" draggable="false">`;
   }
-  return `<svg class="pc ${cls}" viewBox="0 0 45 45" aria-hidden="true"
+  return `<svg class="pc pc-${color} ${cls}" viewBox="0 0 45 45" aria-hidden="true"
     >${STAUNTON[color + type]}</svg>`;
 }
 
@@ -6917,6 +6950,7 @@ function analyze(fen, me, opts = {}) {
 }
 
 function draw() {
+  syncWake();
   if (!lineView && oppHold) pokeHold();   // a reply held back while a line was open
   requestCoach();        // before drawBoard: its marks come from the last reading
   drawBoard();
@@ -6944,13 +6978,18 @@ function draw() {
   el('autoBtn').classList.toggle('hidden', solo);
   el('autoLabel').classList.toggle('hidden', solo);
   el('hintRow').classList.toggle('hidden', solo);                       // only Engine plays is left in it
-  el('posRow').classList.toggle('hidden', code !== 'local' && code !== 'solo');
   // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
   el('hintLabel').textContent = 'Best move';
   el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
   el('rematchBtn').classList.toggle('hidden', !result);
   el('rematchBtn').textContent = isLocal() ? 'New game' : rematchAsked ? 'Rematch offered' : 'Rematch';
   el('rematchBtn').disabled = rematchAsked;
+  el('flipBtn').classList.toggle('hidden', !canFlip());
+  el('turnBtn').classList.toggle('hidden', code !== 'local');
+  el('turnBtn').setAttribute('aria-pressed', String(turnTop));
+  const far = viewColor() === 'w' ? 'b' : 'w';
+  document.body.classList.toggle('turn-b', code === 'local' && turnTop && far === 'b');
+  document.body.classList.toggle('turn-w', code === 'local' && turnTop && far === 'w');
   el('setBtn').textContent = PIECE_SETS.find(x => x.id === pieceSet).name;
   el('boardBtn').textContent = BOARDS.find(x => x.id === boardLook).name;
   el('autoBtn').textContent = autoPlay ? 'On' : 'Off';
@@ -6959,13 +6998,14 @@ function draw() {
   // Rated Stockfish always thinks for the same time, so the slider would only
   // mislead. Hints come from the analysis Stockfish, which has no time limit,
   // so they only need it when the table engine is standing in for it.
-  el('oppRow').classList.toggle('hidden', !solo || onePiece || isLocal());     // one-piece games are always the Table engine
+  el('oppRow').classList.toggle('hidden', !solo || onePiece || isLocal() || code === 'puzzle');     // one-piece games are always the Table engine
   el('oppGame').value = opponent;
   el('onlyRow').classList.toggle('hidden', !onePiece);
   el('oppOnly').value = oppOnly;
   el('onlyNote').classList.toggle('hidden', !onePiece);
   const sliderMatters = (hintsOn && anBroken) || autoPlay || (solo && (!usingSF() || sfFull(opponent)));
-  el('thinkRow').classList.toggle('hidden', !sliderMatters);
+  el('thinkRow').classList.toggle('hidden', !sliderMatters || isLocal() || code === 'puzzle');
+  el('pzResetRow').classList.toggle('hidden', code !== 'puzzle');
 }
 
 function drawBoard() {
@@ -7211,6 +7251,7 @@ function drawStatus() {
 function drawLedger() {
   const hist = game.history();
   const body = el('ledgerBody');
+  el('movesCopy').disabled = el('movesDownload').disabled = !hist.length;
   if (!hist.length) {
     body.innerHTML = '<p class="empty-ledger">Nothing played yet.</p>';
     return;
@@ -8262,22 +8303,36 @@ function drawReviewState() {
 function drawReview() {
   const blk = el('reviewBlock');
   el('reviewBtn').textContent = reviewOn ? 'On' : 'Off';
-  document.querySelectorAll('#reviewBlock .revopt').forEach(r => r.classList.toggle('hidden', !reviewOn));
+  el('revOptReveal').classList.toggle('open', reviewOn);
   el('revBarBtn').textContent = revBar ? 'On' : 'Off';
   el('revBadgesBtn').textContent = revBadges ? 'On' : 'Off';
   el('revExplainBtn').textContent = revExplain ? 'On' : 'Off';
   el('revTheirsBtn').textContent = revTheirs ? 'On' : 'Off';
   drawReviewState();
   const body = el('reviewBody');
-  if (anBroken) { body.innerHTML = `<p class="coach-note">${esc(anNote)}</p>`; return; }
-  if (!reviewActive()) {
-    body.innerHTML = '';
+  // The list sits above the review's settings and slides open once there is
+  // something in it. Closing keeps the old rows, so they slide away rather
+  // than vanish first.
+  const show = html => {
+    if (html) body.innerHTML = html;
+    el('reviewReveal').classList.toggle('open', !!html);
+  };
+  const intro = el('reviewIntro');
+  intro.classList.add('hidden');
+  if (anBroken) { show(`<p class="coach-note">${esc(anNote)}</p>`); return; }
+  if (!reviewActive()) { show(''); return; }
+  const hist = game.history({ verbose: true });
+  if (!hist.length) {
+    if (revExplain) {
+      intro.textContent = `Make a move. ${revBadges ? 'Each one gets a badge on its square as soon as the engine has judged it. ' : ''}Your moves appear above these settings. Tap one there, or in Moves, for what was better.`;
+      intro.classList.remove('hidden');
+    }
+    show('');
     return;
   }
-  const hist = game.history({ verbose: true });
   if (revPick != null && (!revExplain || revPick >= hist.length || theirsHidden(hist[revPick]))) { revPick = null; viewPly = null; }
   if (!revExplain) {
-    body.innerHTML = revBadges ? tallyHTML(hist) : '';
+    show(revBadges ? tallyHTML(hist) : '');
     return;
   }
 
@@ -8300,9 +8355,7 @@ function drawReview() {
   };
 
   let html = '';
-  if (!hist.length) {
-    html = `<p class="coach-note">Make a move. ${revBadges ? 'Each one gets a badge on its square as soon as the engine has judged it. ' : ''}Tap a move here or in the list for what was better.</p>`;
-  } else {
+  {
     const shown = [];
     for (let i = hist.length - 1; i >= Math.max(0, hist.length - 2); i--) shown.push(i);
     if (revPick != null && !shown.includes(revPick)) shown.push(revPick);
@@ -8320,7 +8373,7 @@ function drawReview() {
   }
 
   if (revBadges) html += tallyHTML(hist);
-  body.innerHTML = html;
+  show(html);
 }
 
 // how your moves have gone this game
@@ -8398,7 +8451,10 @@ el('revTheirsBtn').onclick = () => {
 
 el('ledgerBody').addEventListener('click', e => {
   const b = e.target.closest('[data-ply]');
-  if (b && reviewActive() && revExplain) openReview(Number(b.dataset.ply));
+  if (!b || !reviewActive() || !revExplain) return;
+  const ply = Number(b.dataset.ply);
+  if (revPick !== ply) openReview(ply);       // open it, never toggle it shut from here
+  showTab('review');                           // the list is at the top of the tab
 });
 
 el('reviewBtn').onclick = () => {
@@ -9014,7 +9070,7 @@ function drawOpenings() {
   el('openForce').checked = openForce && !!FAM[openPick];
   el('openForce').disabled = !FAM[openPick] || onlyActive();
   // only worth showing once an opening is chosen, and only the computer can play along
-  el('openForce').closest('label').classList.toggle('hidden', !solo || !FAM[openPick] || onlyActive());
+  el('openForceWrap').classList.toggle('open', !(!solo || isLocal() || !FAM[openPick] || onlyActive()));
 
   const body = el('openBody');
   const hist = game.history({ verbose: true });
@@ -9845,6 +9901,47 @@ el('flipBtn').onclick = () => {
   persist();                  // remembered with the game
   draw();
 };
+el('turnBtn').onclick = () => {
+  turnTop = !turnTop;
+  store.set('table:turnTop', turnTop);
+  draw();
+};
+
+/* The moves so far as PGN: the saved record's, with its tags, when it is up
+   to date; otherwise the bare game. */
+function livePgn() {
+  const rec = gameId && gamesLoaded ? loadGames().find(g => g.id === gameId) : null;
+  return rec && rec.moves.join(' ') === game.history().join(' ') ? pgnFor(rec) : game.pgn();
+}
+el('movesCopy').onclick = async e => {
+  const btn = e.currentTarget, text = livePgn();
+  if (!await copyText(text, btn)) showTextModal('PGN', text);
+};
+el('movesDownload').onclick = () =>
+  downloadText(`table-game-${new Date().toISOString().slice(0, 10)}.pgn`, livePgn());
+
+/* Keep the screen on while a game is open. Android Chrome, and iPhone Safari
+   from iOS 16.4 (an app added to the home screen from iOS 18.4). The browser
+   lets go when the page is hidden, so it is asked for again on return. */
+var wakeLock = null, wakeAsking = false;   // var: draw() may run before this line
+async function syncWake() {
+  if (!('wakeLock' in navigator)) return;
+  const want = !document.hidden && !el('game').classList.contains('hidden');
+  if (want && !wakeLock && !wakeAsking) {
+    wakeAsking = true;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch {}
+    wakeAsking = false;
+  } else if (!want && wakeLock) {
+    const w = wakeLock; wakeLock = null;
+    w.release().catch(() => {});
+  }
+}
+document.addEventListener('visibilitychange', syncWake);
+document.addEventListener('click', () => setTimeout(syncWake, 0));
+window.addEventListener('hashchange', () => setTimeout(syncWake, 0));
 
 el('takebackBtn').onclick = () => {
   // against the computer or on one device, a finished game can be taken back too:
@@ -11750,30 +11847,6 @@ el('setupSave').onclick = async () => {
   store.set('table:positions', list);
   drawSavedPositions();
   el('setupSaved').value = String(list.length - 1);
-};
-el('posSaveBtn').onclick = async () => {
-  const name = await namePrompt(game.history().length ? 'Save this position and its moves' : 'Save this position');
-  if (!name) return;
-  const list = store.get('table:positions') || [];
-  list.push({ name, fen: startFen || STD_FEN, moves: game.history(), mode: code === 'local' ? 'local' : 'solo', myColor, flip: flipView, at: Date.now() });
-  store.set('table:positions', list);
-  el('posSaveBtn').textContent = 'Saved';
-  setTimeout(() => { el('posSaveBtn').textContent = 'Save'; }, 1600);
-};
-el('posOpenBtn').onclick = async () => {
-  const list = store.get('table:positions') || [];
-  const items = getLines().filter(x => x.fen && !x.result && x.id !== lineId).map(x => ['line:' + x.id, x]).concat(list.map((x, i) => [String(i), x]));
-  if (!items.length) { await openModal({ title: 'No saved positions', body: '<p>Save one with Save, here or on the Set up a position page.</p>' }); return; }
-  const v = await openModal({
-    title: 'Open a saved position',
-    body: `<p>It replaces the game on the board${isLocal() ? '' : ', against the same computer opponent'}. This game stays in Game history.</p>` +
-      items.map(([k, x]) => `<button type="button" class="posPick" data-k="${k}" style="display:block;width:100%;text-align:left;margin:6px 0">${escText(x.name)}${(x.moves || []).length ? ' · ' + lineMoves(x) : ''}</button>`).join(''),
-    actions: [{ label: 'Cancel', value: null }],
-    onOpen: b => b.querySelectorAll('.posPick').forEach(btn => btn.onclick = () => closeModal(btn.dataset.k)),
-  });
-  if (v === null || v === undefined) return;
-  const x = savedLine(v);
-  if (x) playLine(x, code === 'local' ? 'local' : 'solo');
 };
 el('setupDelete').onclick = async () => {
   const list = store.get('table:positions') || [];
