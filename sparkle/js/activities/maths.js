@@ -418,7 +418,7 @@ function mxCheck() {
 }
 enter.mx = kind => {
   mxKind = kind;
-  const k = kindsOf(gameById('mx')).find(x => x.id === kind);
+  const k = kindsOf(gameById('maths')).find(x => x.id === kind);
   el('mxKind').textContent = el('mxKind').dataset.say = k ? k.name : '';
   mxNew();
 };

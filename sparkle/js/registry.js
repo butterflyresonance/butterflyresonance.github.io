@@ -5,6 +5,9 @@
    A tile with several kinds has      types: [{ id, name, ages, art }]
      - id is what comes after the slash in the address: #maths/plus
      - art() draws the little picture on its button in the chooser
+     - screen (optional): a kind that opens a different screen from the
+       tile's own: Maths' written sums are #mx/dec-add, its picture sums
+       #maths/plus. The chooser and the settings don't mind which.
    Ages are whole years and include both ends; 99 means "no upper limit".
 
    Which kinds are switched on: whatever a grown-up has set in Settings, and
@@ -30,25 +33,22 @@ const GAMES = [
     { id: 'rhyme', name: 'Rhymes', ages: [4, 7], art: () => iconImg('1F431') + iconImg('1F3A9') },
     { id: 'same', name: 'Same sound', ages: [4, 7], art: () => iconImg('2600') + iconImg('1F9E6') },
   ] },
-  { id: 'maths', name: 'Numbers', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>',
+  { id: 'maths', name: 'Maths', svg: '<svg viewBox="0 0 84 84"><rect x="4" y="12" width="76" height="60" rx="18" fill="#efe6ff"/><text x="42" y="56" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="30"><tspan fill="#ff4fa3">1</tspan><tspan fill="#8f5cff">+</tspan><tspan fill="#ff4fa3">2</tspan></text></svg>',
     types: [
     { id: 'count', name: 'Count', ages: [3, 6], art: () => iconImg('1F34E').repeat(3) },
     { id: 'plus', name: 'Plus', ages: [4, 7], art: () => iconImg('2B50') + '<b class="eg">+</b>' + iconImg('2B50') },
     { id: 'minus', name: 'Take away', ages: [4, 7], art: () => iconImg('1F9C1') + '<b class="eg">−</b>' + iconImg('1F9C1') },
     { id: 'nplus', name: 'Plus, just numbers', ages: [5, 8], art: () => '<b class="eg">1 + 2</b>' },
     { id: 'nminus', name: 'Take away, just numbers', ages: [5, 8], art: () => '<b class="eg">3 − 1</b>' },
-  ] },
-  { id: 'mx', name: 'Maths', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="16" fill="#e8f4ff"/><text x="42" y="36" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="22" fill="#8f5cff">3.5</text><text x="42" y="64" text-anchor="middle" font-family="ui-rounded, Arial Rounded MT Bold, sans-serif" font-weight="800" font-size="22" fill="#ff4fa3">× ½</text></svg>',
-    types: [
-    { id: 'dec-add', name: 'Adding decimals', ages: [9, 99], art: () => '<b class="eg">2.5 + 1.75</b>' },
-    { id: 'dec-sub', name: 'Taking away decimals', ages: [9, 99], art: () => '<b class="eg">4.2 − 1.35</b>' },
-    { id: 'mul', name: 'Long multiplication', ages: [8, 99], art: () => '<b class="eg">347 × 26</b>' },
-    { id: 'div', name: 'Division with remainders', ages: [8, 99], art: () => '<b class="eg">347 ÷ 6</b>' },
-    { id: 'missing', name: 'Missing number', ages: [7, 99], art: () => '<b class="eg">□ + 7 = 15</b>' },
-    { id: 'frac-add', name: 'Adding fractions', ages: [9, 99], art: () => fr(1, 2) + '<b class="eg">+</b>' + fr(1, 3) },
-    { id: 'frac-sub', name: 'Taking away fractions', ages: [9, 99], art: () => fr(3, 4) + '<b class="eg">−</b>' + fr(1, 6) },
-    { id: 'frac-mul', name: 'Multiplying fractions', ages: [9, 99], art: () => fr(2, 3) + '<b class="eg">×</b>' + fr(3, 5) },
-    { id: 'seq', name: 'Number sequences', ages: [7, 99], art: () => '<b class="eg">2, 5, 8, ?</b>' },
+    { id: 'dec-add', screen: 'mx', name: 'Adding decimals', ages: [9, 99], art: () => '<b class="eg">2.5 + 1.75</b>' },
+    { id: 'dec-sub', screen: 'mx', name: 'Taking away decimals', ages: [9, 99], art: () => '<b class="eg">4.2 − 1.35</b>' },
+    { id: 'mul', screen: 'mx', name: 'Long multiplication', ages: [8, 99], art: () => '<b class="eg">347 × 26</b>' },
+    { id: 'div', screen: 'mx', name: 'Division with remainders', ages: [8, 99], art: () => '<b class="eg">347 ÷ 6</b>' },
+    { id: 'missing', screen: 'mx', name: 'Missing number', ages: [7, 99], art: () => '<b class="eg">□ + 7 = 15</b>' },
+    { id: 'frac-add', screen: 'mx', name: 'Adding fractions', ages: [9, 99], art: () => fr(1, 2) + '<b class="eg">+</b>' + fr(1, 3) },
+    { id: 'frac-sub', screen: 'mx', name: 'Taking away fractions', ages: [9, 99], art: () => fr(3, 4) + '<b class="eg">−</b>' + fr(1, 6) },
+    { id: 'frac-mul', screen: 'mx', name: 'Multiplying fractions', ages: [9, 99], art: () => fr(2, 3) + '<b class="eg">×</b>' + fr(3, 5) },
+    { id: 'seq', screen: 'mx', name: 'Number sequences', ages: [7, 99], art: () => '<b class="eg">2, 5, 8, ?</b>' },
   ] },
   { id: 'pattern', name: 'What next?', svg: '<svg viewBox="0 0 84 84"><circle cx="14" cy="42" r="10" fill="#ff6fb8"/><rect x="28" y="32" width="20" height="20" rx="4" fill="#9b6bff"/><circle cx="62" cy="42" r="10" fill="#ff6fb8"/><rect x="58" y="58" width="22" height="22" rx="7" fill="none" stroke="#9b6bff" stroke-width="3" stroke-dasharray="5 4"/><text x="69" y="75" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="16" fill="#9b6bff">?</text></svg>',
     ages: [3, 9] },
@@ -93,7 +93,13 @@ function ageNow() {
   return Math.max(0, a);
 }
 const kindKey = (g, k) => k.id ? `${g.id}/${k.id}` : g.id;
-const chosenKinds = () => store.get('kinds') || {};          // { 'maths/plus': true, 'maze': false } — a grown-up's choices only
+const kindHash = (g, k) => `${k.screen || g.id}/${k.id}`;      // where a kind is played
+const chosenKinds = () => store.get('kinds') || {};
+{ // Numbers and Maths were two tiles (Oct 2026): "mx/dec-add" is now "maths/dec-add"
+  const c = chosenKinds(); let moved = false;
+  for (const k of Object.keys(c)) if (k.startsWith('mx/')) { c['maths/' + k.slice(3)] = c[k]; delete c[k]; moved = true; }
+  if (moved) store.set('kinds', c);
+}          // { 'maths/plus': true, 'maze': false } — a grown-up's choices only
 function suggested(k) {
   const a = ageNow(), [lo, hi] = k.ages;
   return a === null ? lo < 7 : a >= lo && a <= hi;
@@ -115,7 +121,7 @@ function openGame(id) {
   const g = gameById(id); if (!g) return go(id);
   const on = kindsOn(g);
   if (!g.types) return go(g.id);
-  if (on.length === 1) return go(`${g.id}/${on[0].id}`);
+  if (on.length === 1) return go(kindHash(g, on[0]));
   go(`pick/${g.id}`);
 }
 
@@ -130,8 +136,8 @@ enter.pick = id => {
 };
 el('pickGrid').onclick = e => {
   const b = e.target.closest('[data-k]'); if (!b) return;
-  const id = location.hash.slice(1).split('/')[1];
-  go(`${id}/${b.dataset.k}`);
+  const g = gameById(location.hash.slice(1).split('/')[1]);
+  if (g) go(kindHash(g, g.types.find(k => k.id === b.dataset.k)));
 };
 
 /* In a game with a chooser, the button in the corner goes back to the
@@ -141,12 +147,13 @@ el('pickGrid').onclick = e => {
 const HOME_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg>';
 const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
 function gameRoute(name, arg) {
-  const g = gameById(name);
-  if (!g || !g.types) return true;
+  // the tile this screen belongs to: its own, or the one with a kind played here
+  const g = GAMES.find(x => x.types && (x.id === name || x.types.some(k => k.screen === name)));
+  if (!g) return true;
   const on = kindsOn(g);
-  if (!on.some(k => k.id === arg)) {
+  if (!on.some(k => k.id === arg && (k.screen || g.id) === name)) {
     if (!on.length) location.replace('#');
-    else if (on.length === 1) location.replace(`#${g.id}/${on[0].id}`);
+    else if (on.length === 1) location.replace('#' + kindHash(g, on[0]));
     else location.replace(`#pick/${g.id}`);
     return false;
   }

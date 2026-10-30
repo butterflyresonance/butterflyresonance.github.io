@@ -1356,6 +1356,10 @@
   #resumeClear { margin-top: 10px; }
   .carryrow { display: flex; gap: 8px; align-items: stretch; margin: 0 0 12px; }
   .carryrow button.choice { margin: 0; flex: 1; min-width: 0; }
+  .carrytools { flex: none; display: flex; flex-direction: column; gap: 6px; }
+  .carrytools button { flex: 1; min-height: 36px; }
+  .carryname { width: 44px; padding: 0; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .carryname:hover:not(:disabled) { color: var(--brass); border-color: var(--brass); }
   .carryx { flex: none; width: 44px; padding: 0; font-size: 20px; line-height: 1; color: var(--muted); }
   .carryx:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
   .lfoot { margin-top: 18px; }
@@ -3547,7 +3551,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-28.1-review-slide-turn-pieces-pgn-export';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-10-30.1-rename-games-flip-per-game';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3730,7 +3734,7 @@ let flipView = false;              // the board turned round from your side
 // Flipping is for one device, a game being stepped through, or a set-up position.
 const canFlip = () => code === 'local' || code === 'study' || !!startFen;
 const viewColor = () => flipView && canFlip() ? (myColor === 'w' ? 'b' : 'w') : myColor;
-let turnTop = store.get('table:turnTop') === true;   // one device: the far side's pieces turned to face them
+let turnTop = false;   // one device: the far side's pieces turned to face them. Kept with each game, like flipView
 let code = null;
 let result = null;
 let selected = null;
@@ -4627,6 +4631,7 @@ function checkEnd() {
 }
 
 function startFresh(colorForMe, keepLine = false) {
+  if (!keepLine) { flipView = false; turnTop = false; }   // a new game starts unflipped: flips belong to the game they were made in
   if (!keepLine && OFFLINE.includes(code) && lineId) {
     const old = getLines().find(x => x.id === lineId) || {};
     lineId = newLineId();
@@ -4675,11 +4680,13 @@ function persist() {
   // tell whether the choices made there still match this game
   if (OFFLINE.includes(code) && lineId) {
     const l = getLines().find(x => x.id === lineId);
-    if (l) putLine({ ...l, fen: startFen || undefined, moves: game.history(), mode: code, myColor, flip: flipView, result: result || null,
+    if (l) putLine({ ...l, fen: startFen || undefined, moves: game.history(), mode: code, myColor, flip: flipView, turn: turnTop || undefined, result: result || null,
       opp: code === 'solo' ? opponent : undefined, only: code === 'onepiece' ? oppOnly : undefined, at: Date.now() });
     if (startFen) store.set('table:setupFen', startFen);     // so Analyse a position opens on this line
   }
+  const prev = store.get('table:' + code);
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
+    turn: (code === 'local' && turnTop) || undefined, name: (ownTable(code) && prev && prev.name) || undefined,
     lineId: lineId || undefined, at: Date.now(), owner: ownTable(code) && tableOwner || undefined,
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
@@ -4691,6 +4698,7 @@ function restore() {
   plyAway = document.hidden;
   startFen = null;
   flipView = !!(saved && saved.flip && code !== 'puzzle');
+  turnTop = !!(saved && saved.turn && code === 'local');
   if (!saved || !Array.isArray(saved.history)) return;
   if (saved.fen && !ownTable(code)) startFen = saved.fen;
   lineId = OFFLINE.includes(code) ? saved.lineId || null : null;
@@ -9903,7 +9911,7 @@ el('flipBtn').onclick = () => {
 };
 el('turnBtn').onclick = () => {
   turnTop = !turnTop;
-  store.set('table:turnTop', turnTop);
+  persist();                  // remembered with the game, not for every board
   draw();
 };
 
@@ -11556,6 +11564,7 @@ function playLine(x, mode) {
   if (inGame) {                          // already at the board: swap the game in place
     startFen = x.fen || null;
     flipView = !!x.flip && mine === (x.myColor || mine);
+    turnTop = !!x.turn && local;
     startFresh(mine, true);
     if ((x.moves || []).length) adopt(x.moves, null, true);
     showTab(activeTab);
@@ -11563,6 +11572,7 @@ function playLine(x, mode) {
   }
   store.set('table:' + mode, { history: x.moves || [], myColor: mine, result: null, gameId: null, fen: x.fen || undefined, lineId, at: Date.now(),
     flip: (!!x.flip && mine === (x.myColor || mine)) || undefined,
+    turn: (!!x.turn && local) || undefined,
     setting: (x.fen ? 'setup:' : '') + (local ? 'local' : mode === 'onepiece' ? oppOnly : opponent) });
   myColor = mine;
   setHash();
@@ -11727,7 +11737,12 @@ function carryOnItems() {
     // how it's being played, when the title doesn't say: the opponent, and your colour
     const how = x.mode === 'local' ? (x.name ? 'playing both sides' : '')
       : `${x.name && x.mode === 'solo' ? oppTitle(x.opp) + ' · ' : ''}you play ${x.myColor === 'b' ? 'Black' : 'White'}`;
-    out.push({ at: x.at || 0, title, how, sub: movesIn(n) + (lm ? ` · last ${lm}` : ''),
+    out.push({ at: x.at || 0, title, how, sub: movesIn(n) + (lm ? ` · last ${lm}` : ''), name: x.name || '',
+      rename: v => {
+        const l = getLines().find(y => y.id === x.id); if (!l) return;
+        // a set-up position always had a name ('Position'); other games go back to their usual title
+        putLine({ ...l, name: v || (l.fen ? 'Position' : undefined) });
+      },
       go: () => playLine(x, OFFLINE.includes(x.mode) ? x.mode : 'local'),
       drop: () => {
         dropLine(x.id);
@@ -11741,8 +11756,10 @@ function carryOnItems() {
       const m = /^table:([a-z0-9]{9})$/.exec(k || '');
       if (!m) continue;
       const t = store.get(k);
-      if (live(t)) out.push({ at: t.at || 0, title: `Online game, table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`,
-        how: `you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
+      const tbl = `table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`;
+      if (live(t)) out.push({ at: t.at || 0, title: t.name || `Online game, ${tbl}`, name: t.name || '',
+        how: `${t.name ? `online, ${tbl} · ` : ''}you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
+        rename: v => { const cur = store.get(k); if (cur) store.set(k, { ...cur, name: v || undefined }); },
         sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
         go: () => swapScreen(() => { location.hash = `r=${m[1]}`; }),
         drop: () => { try { localStorage.removeItem(k); localStorage.removeItem('table:chat:' + m[1]); } catch {} } });
@@ -11790,14 +11807,32 @@ el('resumeClear').onclick = async () => {
   for (const x of items) x.drop();
   goBack();
 };
+// only when asked, from the pencil on the Resume list: never when a game opens or closes
+function renamePrompt(current) {
+  const done = i => closeModal((i.value || '').trim().slice(0, 60));
+  return openModal({
+    title: 'Name this game',
+    body: '<p>Who you’re playing, or anything that helps you find it again. Leave it empty to go back to the usual name.</p><input id="rnName" class="fen" style="width:100%" autocomplete="off" maxlength="60">',
+    actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'go', run: () => { done(el('rnName')); return true; } }],
+    onOpen: b => { const i = b.querySelector('#rnName'); i.value = current || ''; i.focus(); i.select(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); done(i); } }); },
+  });
+}
 function drawCarryOn() {
   const items = carryOnItems();
   if (!items.length && !el('scrResume').classList.contains('hidden')) { goBack(); return; }   // nothing left: back home
   const box = el('carryOn');
   box.innerHTML = items.map((x, i) =>
     `<div class="carryrow"><button class="choice carry" data-i="${i}"><span class="ct">${escText(x.title)}</span>${x.how ? `<span class="cd">${escText(x.how[0].toUpperCase() + x.how.slice(1))}</span>` : ''}<span class="cd">${escText(x.sub[0].toUpperCase() + x.sub.slice(1) + (x.at ? ' · ' + ago(x.at) : ''))}</span></button>` +
-    `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from this list" title="Remove from this list">×</button></div>`).join('');
+    `<div class="carrytools"><button class="carryname" data-n="${i}" aria-label="Rename ${escText(x.title)}" title="Rename"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M10.5 2.5l3 3L5 14H2v-3z"/><path d="M9 4l3 3"/></svg></button>`
+    + `<button class="carryx" data-x="${i}" aria-label="Remove ${escText(x.title)} from this list" title="Remove from this list">×</button></div></div>`).join('');
   box.querySelectorAll('button.carry').forEach(b => b.onclick = () => items[+b.dataset.i].go());
+  box.querySelectorAll('button.carryname').forEach(b => b.onclick = async () => {
+    const x = items[+b.dataset.n];
+    const v = await renamePrompt(x.name);
+    if (v === null) return;          // cancelled
+    x.rename(v);
+    drawCarryOn();
+  });
   box.querySelectorAll('button.carryx').forEach(b => b.onclick = async () => {
     const x = items[+b.dataset.x];
     if (!await confirmModal('Remove this game?', `“${x.title}” won’t be offered to resume any more. Its moves so far stay in Game history.`, 'Remove')) return;

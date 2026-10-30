@@ -12,7 +12,13 @@
      3. Chances: it picks the most valuable one (taking wins a tie), then rolls.
         With probability "brain" it acts on it; otherwise a random legal move.
    brain starts at 10%. Each win: +5%. Each loss: −5%. Never below 5% or
-   above 75%. Draws change nothing. Shown to her as Level 1–15. */
+   above 75%. Draws change nothing. Shown to her as Level 1–15.
+
+   Coins for her moves: a capture pays the piece's value (pawn 1, knight and
+   bishop 3, rook 5, queen 9), a check pays CHECK_COINS, checkmate pays
+   MATE_COINS. Taking a move back takes back what that move earned (kept with
+   the saved game, so reloading doesn't get round it). */
+const CHECK_COINS = 2, MATE_COINS = 10;
 
 let ChessLib = null;
 const loadChess = async () => ChessLib || (ChessLib = (await import(new URL('vendor/chess.js', document.baseURI).href)).Chess);
@@ -87,13 +93,15 @@ function botMove(g) {
 
 /* ---- the game on the screen ---- */
 let gm = null;            // { g, sel, promo: {from,to} | null, over, busy }
-const gameSave = () => { if (gm && gm.g) store.set('chessGame', gm.over ? null : gm.g.pgn()); };
+// saved as { pgn, earned: { ply: coins } }; an older save is just the pgn
+const gameSave = () => { if (gm && gm.g) store.set('chessGame', gm.over ? null : { pgn: gm.g.pgn(), earned: gm.earned }); };
 async function gameStart(resume) {
   const Chess = await loadChess();
   const g = new Chess();
   const saved = resume && store.get('chessGame');
-  if (saved) try { g.loadPgn(saved); } catch { g.reset(); }
-  gm = { g, sel: null, promo: null, over: false, busy: false };
+  const pgn = saved && (typeof saved === 'string' ? saved : saved.pgn);
+  if (pgn) try { g.loadPgn(pgn); } catch { g.reset(); }
+  gm = { g, sel: null, promo: null, over: false, busy: false, earned: (saved && saved.earned) || {} };
   ch = { mode: 'game', gone: false };
   gameSave(); gameDraw();
   if (g.turn() === 'b') return gameBot();
@@ -133,9 +141,14 @@ function gamePlay(mv) {
   const m = gm.g.move(mv);
   gm.sel = null; gm.promo = null;
   m.captured ? sfx.munch() : sfx.pop();
+  const mate = gm.g.isCheckmate(), check = !mate && gm.g.inCheck();
+  const n = (m.captured ? PVAL[m.captured] : 0) + (mate ? MATE_COINS : check ? CHECK_COINS : 0);
+  if (n) gm.earned[gm.g.history().length] = n;
   gameSave(); gameDraw();
+  if (n) addCoins(n, el('cboard').querySelector(`[data-s="${m.to}"]`));
   if (gameEnd()) return;
-  if (m.captured) chMsg(`You took my ${PIECE_NAMES[m.captured]}!`, false);
+  if (m.captured) chMsg(`You took my ${PIECE_NAMES[m.captured]}!${check ? ' And check!' : ''}`, false);
+  else if (check) chMsg('Check! My king is under attack.', false);
   gameBot();
 }
 async function gameBot() {
@@ -164,7 +177,7 @@ function gameEnd() {
     const b0 = brain();
     store.set('chessBrain', Math.min(75, Math.max(5, b0 + (won ? 5 : -5))));
     if (won) {
-      sfx.yay(); buddy('party'); petFun(10); addCoins(20, el('cboard'));
+      sfx.yay(); buddy('party'); petFun(10);          // the coins for checkmate came with the move
       chMsg(b0 >= 75 ? `Checkmate! You won! I'm at my strongest, Level ${brainLevel()}, and you still beat me!` : `Checkmate! You won! I'll try harder next time: Level ${brainLevel()}.`);
     } else {
       sfx.oops(); buddy('think'); addCoins(3, el('cboard'));
@@ -184,7 +197,11 @@ function gameEnd() {
 el('chessUndo').onclick = () => {
   if (!gm || gm.over || gm.busy || gm.g.turn() !== 'w' || gm.g.history().length < 2) return;
   gm.g.undo(); gm.g.undo(); gm.sel = null; gm.promo = null;
-  gameSave(); gameDraw(); chMsg('Taken back. Have another go.', false);
+  // the coins her taken-back move earned go back too
+  let back = 0;
+  for (const ply of Object.keys(gm.earned)) if (+ply > gm.g.history().length) { back += gm.earned[ply]; delete gm.earned[ply]; }
+  if (back) addCoins(-back);
+  gameSave(); gameDraw(); chMsg(back ? `Taken back, and the ${back} coin${back === 1 ? '' : 's'} from that move. Have another go.` : 'Taken back. Have another go.', false);
 };
 el('chessPromo').onclick = e => {
   const b = e.target.closest('[data-p]'); if (!b || !gm || !gm.promo) return;
