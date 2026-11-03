@@ -1,11 +1,5 @@
 /* ---------- music: listening games, singing, song tiles and instruments ---------- */
-function audio() {
-  try {
-    ac = ac || new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
-    if (ac.state === 'suspended') ac.resume();
-    return ac;
-  } catch { return null; }
-}
+// audio() is in core.js
 // one note. kinds: 'bell' (the games), 'xylo' (a wooden bar), 'drum' (a steel tongue drum), 'tick'
 function note(freq, dur = .45, vol = .22, kind = 'bell', when = 0) {
   if (!opts.sound) return;
@@ -152,7 +146,7 @@ leave.music = () => { mus.round++; mus.busy = true; singStop(); };
 el('musModes').onclick = e => { const c = e.target.closest('[data-m]'); if (!c) return; musMode = c.dataset.m; store.set('musMode', musMode); enter.music(); };
 el('musGo').onclick = () => {
   if (musMode === 'sing') { el('musGo').classList.add('hidden'); singStart(); return; }
-  if (el('musGo').dataset.again) { const s = earSt[musMode]; if (s && s.q && !s.busy) { s.busy = true; EAR[musMode].play(s.q).then(() => { s.busy = false; }); } return; }
+  if (el('musGo').dataset.again) { const s = earSt[musMode]; if (s && s.q && !s.busy) { s.busy = true; try { speechSynthesis.cancel(); } catch {} afterSpeech().then(() => EAR[musMode].play(s.q)).then(() => { s.busy = false; }); } return; }
   el('musGo').classList.add('hidden');
   if (musMode === 'copy') { mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4)); playTune(); }
   else earNew();
@@ -169,6 +163,7 @@ async function playTune() {
   mus.busy = true; mus.at = 0;
   el('musMsg').textContent = 'Listen…';
   await wait(600);
+  await afterSpeech();
   const gap = Math.max(420, 640 - mus.len * 25);
   for (const i of mus.seq) { if (round !== mus.round) return; lightPad(i, gap - 120); await wait(gap); }
   if (round !== mus.round) return;
@@ -207,6 +202,7 @@ async function earNew() {
   s.busy = true; s.missed = false; s.q = E.make(s.lv);
   el('musMsg').textContent = 'Listen…';
   await say('Listen.');
+  await afterSpeech();
   if (musMode !== mode || screen !== 'music') return;
   await E.play(s.q);
   if (musMode !== mode) return;
@@ -233,6 +229,7 @@ el('earBtns').onclick = async e => {
     if (!s.missed && s.lv > 0) { s.lv--; store.set('ear:' + mode, s.lv); earLvl(); }
     s.missed = true; s.busy = true;
     await say('Listen again.');
+    await afterSpeech();
     await E.play(s.q); s.busy = false;
   }
 };
@@ -293,6 +290,7 @@ async function singNext() {
   el('singPet').style.setProperty('--y', 0);
   el('musMsg').textContent = 'Listen…';
   await say('Listen.');
+  await afterSpeech();
   for (let i = 0; i < 2; i++) { if (!sing) return; note(NOTE(sing.target), .9, .26); await wait(1000); }
   if (!sing) return;
   el('musMsg').textContent = 'Now you sing it! Laaa…';
@@ -423,7 +421,7 @@ el('tileSongs').onclick = e => { const c = e.target.closest('[data-s]'); if (!c 
 el('tileSpeeds').onclick = e => { const c = e.target.closest('[data-b]'); if (!c) return; tlBpm = +c.dataset.b; store.set('tileBpm', tlBpm); tilesChips(); };
 el('tilesGo').onclick = () => {
   // stop any talking first: on some phones the voice holds the sound, and the first notes go silent
-  try { speechSynthesis.cancel(); } catch {}
+  try { if (speechSynthesis.speaking) { speechSynthesis.cancel(); speechEnd = performance.now(); } } catch {}
   audio();
   const notes = songNotes(SONGS[tlSong]);
   tl = { notes, beat: 60 / tlBpm, run: true, hits: 0, t0: 0, raf: 0, flash: [0, 0, 0, 0], lastTick: -1 };

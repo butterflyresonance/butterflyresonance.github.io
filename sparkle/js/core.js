@@ -1,4 +1,4 @@
-const VERSION = '2026-10-30.4';
+const VERSION = '2026-11-04.1';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -64,6 +64,18 @@ function pickVoice() {
   if (el('settings') && el('settings').open && typeof drawVoices === 'function') drawVoices();
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+/* iPhone and iPad (every browser on them is Safari underneath) */
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let speechEnd = 0;
+/* On an iPhone the voice and the sounds share one audio channel: while the voice talks, iOS turns the sounds
+   down, then fades them back up over most of a second. So a tune that starts straight after the voice begins
+   quiet and gets louder. Music waits for this before its first note; elsewhere it makes no difference. */
+async function afterSpeech() {
+  if (!IOS || !('speechSynthesis' in window)) return;
+  for (let i = 0; i < 40 && speechSynthesis.speaking; i++) await wait(100);
+  const left = speechEnd + 900 - performance.now();
+  if (left > 0) await wait(left);
+}
 function say(text, v = voice, force = false) {
   if ((!opts.voice && !force) || !('speechSynthesis' in window) || !text) return Promise.resolve();
   return new Promise(done => {
@@ -74,8 +86,9 @@ function say(text, v = voice, force = false) {
       u.lang = v ? v.lang : 'en-AU';
       u.rate = .9; u.pitch = 1;
       // finished, cut off, or (some phones never say) a generous guess at its length
-      const t = setTimeout(done, 1500 + text.length * 110);
-      u.onend = u.onerror = () => { clearTimeout(t); done(); };
+      const end = () => { speechEnd = performance.now(); done(); };
+      const t = setTimeout(end, 1500 + text.length * 110);
+      u.onend = u.onerror = () => { clearTimeout(t); end(); };
       speechSynthesis.speak(u);
     } catch { done(); }
   });
@@ -83,12 +96,36 @@ function say(text, v = voice, force = false) {
 document.addEventListener('click', e => { const s = e.target.closest('[data-say]'); if (s && s.dataset.say) say(s.dataset.say); }, true);
 
 /* ---------- little sounds, made on the spot ---------- */
-let ac = null;
+let ac = null, keepAwake = null;
+function audio() {
+  try {
+    if (!ac) {
+      // iPhone (iOS 17+): sound plays even with the side switch on silent, as it does on Android
+      if (IOS) try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+      ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    }
+    // 'suspended', or on an iPhone 'interrupted' (after the voice, a call, another app): either way, wake it
+    if (ac.state !== 'running') { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); }
+    // iPhone: when no sound has played for a moment, iOS switches the sound off, and the next sound fades in
+    // as it comes back on. A loop of silence keeps it on while Sparkle is open.
+    if (IOS && !keepAwake) {
+      keepAwake = ac.createBufferSource();
+      keepAwake.buffer = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      keepAwake.loop = true; keepAwake.connect(ac.destination); keepAwake.start();
+    }
+    return ac;
+  } catch { return null; }
+}
+if (IOS) {
+  // iOS only lets sound start from a tap: wake it on every tap, so it's ready before a game needs it
+  const wake = () => { if (opts.sound && (!ac || ac.state !== 'running')) audio(); };
+  for (const ev of ['touchend', 'click']) document.addEventListener(ev, wake, true);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && ac) try { ac.suspend(); } catch {} });
+}
 function tone(freqs, dur = .1, type = 'sine', gap = .08, vol = .12) {
   if (!opts.sound) return;
   try {
-    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-    if (ac.state === 'suspended') ac.resume();
+    if (!audio()) return;
     freqs.forEach((f, i) => {
       const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * gap;
       o.type = type; o.frequency.setValueAtTime(f, t);

@@ -486,9 +486,9 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 input[type=date] { font: inherit; font-size: 18px; padding: 8px 10px; border-radius: 12px; border: 2px solid #e3d0f5; color: var(--ink); background: #fff; }
 
 /* ---------- settings: long enough now to scroll ---------- */
-#settings { width: min(94vw, 460px); max-height: 90vh; display: none; flex-direction: column; padding: 18px 18px 16px; }
+#settings { width: min(94vw, 460px); max-height: 90vh; max-height: 90dvh; display: none; flex-direction: column; padding: 18px 18px 16px; }
 #settings[open] { display: flex; }
-.setscroll { overflow-y: auto; min-height: 0; flex: 1; margin-bottom: 12px; padding-right: 4px; }
+.setscroll { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 auto; margin-bottom: 12px; padding-right: 4px; }
 .set small { color: var(--soft); font-weight: 700; }
 .set input[type=date] { font-size: 16px; padding: 6px 8px; }
 .seth { font-weight: 800; color: var(--purple); margin: 18px 0 4px !important; text-align: left !important; }

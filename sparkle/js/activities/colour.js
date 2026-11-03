@@ -73,7 +73,7 @@ const lx = lines.getContext('2d', { willReadFrequently: true });
 const before = document.createElement('canvas'); before.width = before.height = SIZE;
 const bx = before.getContext('2d', { willReadFrequently: true });
 const scratch = document.createElement('canvas'); scratch.width = scratch.height = SIZE;
-const sx = scratch.getContext('2d');
+const sx = scratch.getContext('2d', { willReadFrequently: true });
 
 let pic = null;
 let colour = store.get('colour') || COLOURS[1];
@@ -129,7 +129,7 @@ function maskFor(label) {
     m = n;
   }
   const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const cx = c.getContext('2d'), id = cx.createImageData(w, h);
+  const cx = c.getContext('2d', { willReadFrequently: true }), id = cx.createImageData(w, h);
   for (let i = 0; i < w * h; i++) if (m[i]) id.data[i * 4 + 3] = 255;
   cx.putImageData(id, 0, 0);
   const out = { canvas: c, x: x0, y: y0, w, h };
@@ -279,7 +279,8 @@ art.addEventListener('pointercancel', endStroke);
 art.addEventListener('contextmenu', e => e.preventDefault());
 
 let saveTimer = null;
-function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); }
+// Safari makes the PNG on the main thread, which freezes drawing for a moment: on iPhone/iPad, wait for a real pause
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, IOS ? 4000 : 700); }
 let saving = Promise.resolve();
 function saveNow() { saving = saving.then(saveIt); return saving; }
 async function saveIt() {
