@@ -99,7 +99,7 @@ el('letOpts').onclick = async e => {
   const pickd = b.dataset.l, round = letRound;
   if (pickd === letQ.target) {
     letBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(letQ.missed ? 2 : 4, b); petFun(3); buddy('cheer');
+    b.classList.add('right'); sfx.yay(); addCoins(letQ.missed ? 1 : 2, b); petFun(3); buddy('cheer');
     await say(letQ.right);                       // the whole sentence, then a short pause, then the next one
     await wait(500);
     if (round === letRound && screen === 'letters') letNew();

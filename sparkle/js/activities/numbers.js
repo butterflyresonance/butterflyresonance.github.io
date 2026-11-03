@@ -72,7 +72,7 @@ el('numOpts').onclick = async e => {
   const n = +b.dataset.n, round = numRound;
   if (n === numQ.ans) {
     numBusy = true;
-    b.classList.add('right'); sfx.yay(); addCoins(numQ.missed ? 2 : 4, b); petFun(3); buddy('cheer');
+    b.classList.add('right'); sfx.yay(); addCoins(numQ.missed ? 1 : 2, b); petFun(3); buddy('cheer');
     await say(numQ.right);
     await wait(500);
     if (round === numRound && screen === 'maths') numNew();

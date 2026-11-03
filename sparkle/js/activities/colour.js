@@ -5,7 +5,8 @@ const COLOURS = [
   '#e63946', '#ff4fa3', '#ff9f1c', '#ffd23f', '#a7e04b', '#2ec27e', '#2ec4b6', '#4cc9f0', '#3a86ff', '#7c5cff', '#b15cff', '#8d5524',
   '#7a0f1e', '#ffc4d6', '#ffcf99', '#fff3a8', '#d7f7b5', '#0b6e4f', '#b8f2e6', '#cdeffd', '#14327a', '#d9ccff', '#2b2b33', '#ffffff',
 ];
-const COIN_CAP = 15;                   // coins one picture can earn
+const COIN_CAP = 40;                   // coins one picture can earn: nearly three minutes of colouring
+const SEC_PER_COIN = 4;                // a coin for every four seconds spent drawing or filling
 const mine = p => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><style>*{fill:none;stroke:#000;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}.f{fill:#000}.w{fill:#fff;stroke:none}</style>${p.svg}</svg>`;
 let ALL = [];                          // every page: { id, name, cat, svg }
 const CATS = ['My drawings', 'Animals', 'Birds', 'Sea and bugs', 'Fairy tales', 'Flowers and trees', 'Food', 'People', 'Faces and hearts', 'Toys and fun', 'Clothes', 'Home things', 'Places', 'Going places', 'Sky'];
@@ -149,13 +150,24 @@ function areaAt(x, y) {
     }
   return 0;
 }
-// a coin the first time each area gets colour, up to COIN_CAP for the picture
-function colouredArea(label, from) {
+/* Coins for the time she spends colouring: each stroke counts for as long as it lasted, and filling a shape
+   for the first time counts as two seconds (a quick tap, but it took choosing). Up to COIN_CAP for a picture.
+   Before Nov 2026 it was a coin per shape, which a few taps of the fill could collect in seconds. */
+let earn = { t: 0, n: 0 };
+function earnDrawing(sec, from) {
+  if (!pic || earn.n >= COIN_CAP) return;
+  earn.t += sec;
+  let got = 0;
+  while (earn.t >= SEC_PER_COIN && earn.n < COIN_CAP) { earn.t -= SEC_PER_COIN; earn.n++; got++; }
+  store.set('ce:' + pic.id, earn);
+  if (got) { addCoins(got, from); petFun(got); buddy('cheer'); }
+}
+function colouredArea(label, from) {               // a shape filled: two seconds' worth, the first time only
   if (!label || coloured.has(label) || !pic) return;
-  if (label < 1000 && regions[label] && regions[label].count < 400) return;      // specks between lines don't count
+  if (regions[label] && regions[label].count < 400) return;      // specks between lines don't count
   coloured.add(label);
   store.set('col:' + pic.id, [...coloured]);
-  if (coloured.size <= COIN_CAP) { addCoins(1, from); petFun(1); buddy('cheer'); }
+  earnDrawing(2, from);
 }
 
 /* The page is drawn white-filled (so shapes hide what's behind them), then the
@@ -178,6 +190,8 @@ enter.paint = async id => {
   if (!p) { go('colour'); return; }
   pic = p; undo = []; labels = null;
   coloured = new Set(store.get('col:' + p.id) || []);
+  // what this picture has paid so far; a picture from before counts the coins its shapes paid then
+  earn = store.get('ce:' + p.id) || { t: 0, n: Math.min(15, coloured.size) };
   drawButtons();
   fitSheet();
   ax.clearRect(0, 0, SIZE, SIZE); lx.clearRect(0, 0, SIZE, SIZE);
@@ -256,7 +270,7 @@ art.addEventListener('pointerdown', e => {
   art.setPointerCapture(e.pointerId);
   bx.clearRect(0, 0, SIZE, SIZE); bx.drawImage(art, 0, 0);
   const label = areaAt(p.x, p.y);
-  stroke = { id: e.pointerId, last: p, label, mask: inside && label ? maskFor(label) : null, box: { x0: p.x, y0: p.y, x1: p.x, y1: p.y }, len: 0 };
+  stroke = { id: e.pointerId, last: p, label, mask: inside && label ? maskFor(label) : null, box: { x0: p.x, y0: p.y, x1: p.x, y1: p.y }, len: 0, start: performance.now() };
   paintSegment(p, p);
 });
 art.addEventListener('pointermove', e => {
@@ -267,10 +281,8 @@ art.addEventListener('pointermove', e => {
 function endStroke(e) {
   if (!stroke || e.pointerId !== stroke.id) return;
   remember(stroke.box);
-  if (tool !== 'eraser' && stroke.len > 30) {
-    if (pic.blank) { pic.strokes = (pic.strokes || 0) + 1; if (pic.strokes % 4 === 0) colouredArea(1000 + pic.strokes, art); }
-    else colouredArea(stroke.label, art);
-  }
+  // a stroke counts for as long as it took, up to 4 seconds (a finger resting on the page isn't colouring)
+  if (tool !== 'eraser' && stroke.len > 30) earnDrawing(Math.min(4, (performance.now() - stroke.start) / 1000), art);
   stroke = null;
   saveSoon();
 }

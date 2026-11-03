@@ -38,10 +38,10 @@ function tttEnd() {
   if (w) {
     ttt.over = true;
     w.forEach(i => el('tttBoard').children[i].classList.add('win'));
-    if (ttt.b[w[0]] === 'X') { buddy('party'); sfx.yay(); addCoins(3, el('tttMsg')); petFun(15); el('tttMsg').textContent = 'You win!'; say('You win! Hooray!'); }
-    else { buddy('think'); sfx.oops(); petFun(10); el('tttMsg').textContent = 'I win this time!'; say('I win this time! Try again?'); }
+    if (ttt.b[w[0]] === 'X') { buddy('party'); sfx.yay(); addCoins(6, el('tttMsg')); petFun(15); el('tttMsg').textContent = 'You win!'; say('You win! Hooray!'); }
+    else { buddy('think'); sfx.oops(); addCoins(1, el('tttMsg')); petFun(10); el('tttMsg').textContent = 'I win this time!'; say('I win this time! Try again?'); }
   } else if (ttt.b.every(Boolean)) {
-    ttt.over = true; addCoins(1, el('tttMsg')); petFun(10); buddy('cheer');
+    ttt.over = true; addCoins(3, el('tttMsg')); petFun(10); buddy('cheer');
     el('tttMsg').textContent = 'A draw!'; say('It’s a draw!');
   }
   if (ttt.over) el('tttAgain').classList.remove('hidden');

@@ -18,7 +18,7 @@
    bishop 3, rook 5, queen 9), a check pays CHECK_COINS, checkmate pays
    MATE_COINS. Taking a move back takes back what that move earned (kept with
    the saved game, so reloading doesn't get round it). */
-const CHECK_COINS = 2, MATE_COINS = 10;
+const CHECK_COINS = 3, MATE_COINS = 40, TAKE_COINS = 3;     // a taken piece pays its value × TAKE_COINS (a game is long: this keeps it in line with the others)
 
 let ChessLib = null;
 const loadChess = async () => ChessLib || (ChessLib = (await import(new URL('vendor/chess.js', document.baseURI).href)).Chess);
@@ -142,7 +142,7 @@ function gamePlay(mv) {
   gm.sel = null; gm.promo = null;
   m.captured ? sfx.munch() : sfx.pop();
   const mate = gm.g.isCheckmate(), check = !mate && gm.g.inCheck();
-  const n = (m.captured ? PVAL[m.captured] : 0) + (mate ? MATE_COINS : check ? CHECK_COINS : 0);
+  const n = (m.captured ? PVAL[m.captured] * TAKE_COINS : 0) + (mate ? MATE_COINS : check ? CHECK_COINS : 0);
   if (n) gm.earned[gm.g.history().length] = n;
   gameSave(); gameDraw();
   if (n) addCoins(n, el('cboard').querySelector(`[data-s="${m.to}"]`));
@@ -180,11 +180,11 @@ function gameEnd() {
       sfx.yay(); buddy('party'); petFun(10);          // the coins for checkmate came with the move
       chMsg(b0 >= 75 ? `Checkmate! You won! I'm at my strongest, Level ${brainLevel()}, and you still beat me!` : `Checkmate! You won! I'll try harder next time: Level ${brainLevel()}.`);
     } else {
-      sfx.oops(); buddy('think'); addCoins(3, el('cboard'));
+      sfx.oops(); buddy('think'); addCoins(15, el('cboard'));
       chMsg(`Checkmate. I won this time! ${b0 > 5 ? `I'll go a bit easier: Level ${brainLevel()}.` : ''} Want another game?`);
     }
   } else {
-    addCoins(5, el('cboard'));
+    addCoins(25, el('cboard'));
     const why = g.isStalemate() ? 'Stalemate: the side to move has no legal moves but isn’t in check, so nobody wins.'
       : g.isInsufficientMaterial() ? 'There aren’t enough pieces left for anyone to checkmate.'
       : g.isThreefoldRepetition() ? 'The same position came up three times.'

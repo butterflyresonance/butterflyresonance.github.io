@@ -11,8 +11,10 @@ function note(freq, dur = .45, vol = .22, kind = 'bell', when = 0) {
       : kind === 'tick' ? [['triangle', 1, 1, .05]]
       : [['triangle', 1, 1, dur], ['sine', 2, .25, dur]];
     g.gain.value = vol; g.connect(a.destination);
+    let left = parts.length;            // when every part has finished, unplug the lot (see tone() in core.js)
     for (const [type, mult, v, d] of parts) {
       const o = a.createOscillator(), og = a.createGain();
+      o.onended = () => { try { o.disconnect(); og.disconnect(); if (--left === 0) g.disconnect(); } catch {} };
       o.type = type; o.frequency.setValueAtTime(freq * mult, t);
       if (kind === 'drum' && mult === 1) o.frequency.exponentialRampToValueAtTime(freq * .997, t + d);
       og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(v, t + (kind === 'drum' ? .008 : .004)); og.gain.exponentialRampToValueAtTime(.0005, t + d);
@@ -188,7 +190,7 @@ el('pads').addEventListener('pointerdown', async e => {
   if (mus.at === mus.seq.length) {
     mus.busy = true; mus.misses = 0;
     await wait(350); sfx.yay(); buddy('cheer'); petFun(3);
-    addCoins(Math.max(1, mus.len - 1), el('musMsg'));
+    addCoins(Math.ceil(mus.len / 2), el('musMsg'));
     const m = mus.len >= 3 ? `Yes! ${mus.len} notes!` : 'Yes!';
     el('musMsg').textContent = m; await say(m + (mus.len < 12 ? ' Now one more.' : ''));
     if (mus.len < 12) { mus.len++; mus.seq.push(Math.floor(Math.random() * 4)); }
@@ -218,7 +220,7 @@ el('earBtns').onclick = async e => {
     E.show(s.q);
     b.classList.add('right'); setTimeout(() => b.classList.remove('right'), 900);
     sfx.yay(); buddy('cheer'); petFun(2);
-    addCoins(s.missed ? 1 : 3, b);
+    addCoins(s.missed ? 1 : mode === 'same' ? 3 : 2, b);      // 'same or different' takes longest to hear
     let m = E.right(s.q);
     if (!s.missed && ++s.run >= 3 && s.lv < E.levels.length - 1) { s.lv++; s.run = 0; store.set('ear:' + mode, s.lv); earLvl(); m += ' Now a bit trickier.'; }
     await say(m);
@@ -475,7 +477,7 @@ el('tilesCanvas').addEventListener('pointerdown', e => {
 });
 async function tilesEnd() {
   tl.run = false;
-  const total = tl.notes.length, hits = tl.hits, coinsWon = Math.max(1, Math.round(hits / 5));
+  const total = tl.notes.length, hits = tl.hits, coinsWon = Math.max(1, Math.round(hits / 4)) + (hits === total ? 2 : 0);
   addCoins(coinsWon, el('tilesWrap')); petFun(10);
   const m = hits === total ? `Every note! You played ${SONGS[tlSong].name}!` : `You played ${hits} of ${total} notes!`;
   hits > total * .6 ? (sfx.yay(), buddy('party')) : buddy('cheer');
@@ -506,11 +508,14 @@ function instDraw() {
     el('instWrap').innerHTML = `<svg viewBox="0 0 320 320"><circle cx="160" cy="160" r="156" class="shell"/><circle cx="160" cy="160" r="54" class="mid"/>${t}<circle cx="160" cy="160" r="22" class="hub"/></svg>`;
   }
 }
-enter.play = () => { audio(); instDraw(); };
+enter.play = () => { audio(); instNotes = 0; instPaid = 0; instDraw(); };
 el('instChips').onclick = e => { const c = e.target.closest('[data-i]'); if (!c) return; inst = c.dataset.i; store.set('inst', inst); instDraw(); };
 const instDown = new Map();
+// free play has no right or wrong, so it pays a little: a coin for every 20 notes, up to 10 a visit
+let instNotes = 0, instPaid = 0;
 function instHit(target) {
   const k = target && target.closest('[data-n]'); if (!k) return null;
+  if (++instNotes % 20 === 0 && instPaid < 10) { instPaid++; addCoins(1, k); }
   note(NOTE(midi(k.dataset.n)), inst === 'xylo' ? .9 : 2.4, inst === 'xylo' ? .32 : .3, inst);
   k.classList.remove('hit'); void k.getBoundingClientRect(); k.classList.add('hit');
   return k;

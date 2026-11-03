@@ -398,13 +398,20 @@ function mxFinish() {
   el('mxNext').textContent = el('mxNext').dataset.say = 'Next';
   el('mxNext').classList.remove('hidden');
 }
+/* coins for a step: by how long that kind of sum takes (a long multiplication is many times a missing number),
+   a bit more at higher levels, less than half after a mistake */
+const MX_PAY = { missing: 4, seq: 4, 'dec-add': 8, 'dec-sub': 8, 'frac-add': 5, 'frac-sub': 5, 'frac-mul': 7, div: 12, mul: 18 };
+function mxPay() {
+  const lv = Math.min(mxSt(mxKind).lv, MX_LEVELS - 1), full = Math.round((MX_PAY[mxKind] || 5) * (.7 + .15 * lv));
+  return mxMiss ? Math.max(1, Math.round(full * .4)) : full;
+}
 function mxCheck() {
   const res = pad.step.check(pad.vals);
   const last = mxStep === mxQn.steps.length - 1;
   if (res.ok) {
     padMark([], true); pad.locked = true; padSelect(null);
     sfx.yay(); buddy('cheer'); petFun(3);
-    addCoins(last ? (mxMiss ? 2 : 5) : (mxMiss ? 1 : 2), el('mxQ'));
+    addCoins(mxPay(), el('mxQ'));
     mxMsg(res.msg, 'good'); say(res.msg);
     el('mxShow').classList.add('hidden');
     if (last) mxFinish();

@@ -113,7 +113,7 @@ async function mazeWin() {
   mz.won = true; mz.drag = null;
   for (let i = 0; i < 3; i++) { sfx.munch(); await wait(220); }
   mazeDraw(); sfx.yay(); buddy('party'); petFun(10);
-  addCoins(mzSize === 4 ? 3 : mzSize === 6 ? 5 : 8, el('mazeCanvas'));
+  addCoins(mzSize === 4 ? 3 : mzSize === 6 ? 6 : 12, el('mazeCanvas'));
   const m = `Yum! ${pet.name} found the ${mz.treatName}!`;
   el('mazeMsg').textContent = m; el('mazeDone').classList.remove('hidden');
   say(m);

@@ -1,4 +1,4 @@
-const VERSION = '2026-11-04.1';
+const VERSION = '2026-11-04.2';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -131,6 +131,8 @@ function tone(freqs, dur = .1, type = 'sine', gap = .08, vol = .12) {
       o.type = type; o.frequency.setValueAtTime(f, t);
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + dur);
       o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .03);
+      // unplug it when it's done: Safari otherwise keeps every finished sound in the mix, and the game slowly stutters
+      o.onended = () => { try { o.disconnect(); g.disconnect(); } catch {} };
     });
   } catch {}
 }

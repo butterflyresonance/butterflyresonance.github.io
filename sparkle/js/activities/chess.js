@@ -91,8 +91,8 @@ function pawnWinner(justMoved) {
 }
 async function pawnEnd(w) {
   ch.over = true; pawnDraw();
-  if (w[0] === 'w') { sfx.yay(); buddy('party'); petFun(15); addCoins(8, el('chessMsg')); await chMsg(w[1] === 'You can’t move' ? 'You win!' : `You ${w[1]}! You win!`); }
-  else { sfx.oops(); buddy('think'); petFun(8); await chMsg(w[1] === 'You can’t move' ? 'You can’t move, so I win this time!' : `I ${w[1]}. I win this time! Try again?`); }
+  if (w[0] === 'w') { sfx.yay(); buddy('party'); petFun(15); addCoins(24, el('chessMsg')); await chMsg(w[1] === 'You can’t move' ? 'You win!' : `You ${w[1]}! You win!`); }
+  else { sfx.oops(); buddy('think'); petFun(8); addCoins(8, el('chessMsg')); await chMsg(w[1] === 'You can’t move' ? 'You can’t move, so I win this time!' : `I ${w[1]}. I win this time! Try again?`); }
 }
 // a friendly opponent: likes to win and to take, sometimes careful, often not
 function pawnAI() {

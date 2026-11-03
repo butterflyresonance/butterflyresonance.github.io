@@ -2,7 +2,8 @@
 const MEM_FACES = [['1F436', 'puppy'], ['1F431', 'kitty'], ['1F430', 'bunny'], ['1F98A', 'fox'], ['1F43B', 'bear'], ['1F43C', 'panda'], ['1F428', 'koala'],
   ['1F42F', 'tiger'], ['1F981', 'lion'], ['1F984', 'unicorn'], ['1F437', 'pig'], ['1F438', 'frog'], ['1F435', 'monkey'], ['1F414', 'chicken'],
   ['1F427', 'penguin'], ['1F419', 'octopus'], ['1F98B', 'butterfly'], ['1F41D', 'bee'], ['1F422', 'tortoise'], ['1F42C', 'dolphin']];
-const MEM_SIZES = [{ n: 3, cols: 3, name: 'Easy' }, { n: 6, cols: 4, name: 'Medium' }, { n: 8, cols: 4, name: 'Hard' }, { n: 10, cols: 5, name: 'Super' }];
+// coins: each pair, then all of them. Bigger boards take much longer per pair, so they pay more for each
+const MEM_SIZES = [{ n: 3, cols: 3, name: 'Easy', pair: 1, all: 2 }, { n: 6, cols: 4, name: 'Medium', pair: 2, all: 3 }, { n: 8, cols: 4, name: 'Hard', pair: 3, all: 3 }, { n: 10, cols: 5, name: 'Super', pair: 3, all: 8 }];
 let memSize = store.get('memSize') ?? 1;
 let mem = null;
 function memStart() {
@@ -32,10 +33,10 @@ el('memBoard').onclick = async e => {
   if (mem.cards[a][0] === mem.cards[b][0]) {
     await wait(350);
     ca.classList.add('got'); cb.classList.add('got');
-    mem.got++; addCoins(1, cb); petFun(3); buddy('cheer');
+    mem.got++; addCoins(MEM_SIZES[memSize].pair, cb); petFun(3); buddy('cheer');
     if (mem.got === mem.cards.length / 2) {
       await wait(400);
-      sfx.yay(); addCoins(3, el('memMsg')); petFun(10); buddy('party');
+      sfx.yay(); addCoins(MEM_SIZES[memSize].all, el('memMsg')); petFun(10); buddy('party');
       el('memMsg').textContent = 'You found them all!'; say('You found them all! Well done!');
       el('memAgain').classList.remove('hidden');
     }

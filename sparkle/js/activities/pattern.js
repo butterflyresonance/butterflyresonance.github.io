@@ -111,7 +111,7 @@ el('patOpts').onclick = async e => {
     pat.busy = true;
     b.classList.add('right'); sfx.yay(); buddy('cheer'); petFun(3);
     const g = $$('.gap', el('patQ'))[0]; if (g) { g.classList.remove('gap'); g.classList.add('pop'); g.innerHTML = pItem(pat.q.answer); }
-    addCoins(pat.missed ? 1 : 2 + Math.ceil(pat.lv / 2), b);
+    addCoins(pat.missed ? 1 : 2 + Math.floor(pat.lv / 3), b);
     let msg = pick(['Yes!', 'You got it!', 'Clever!', 'That’s right!']);
     if (!pat.missed) { pat.missRun = 0; if (++pat.run >= 3 && pat.lv < 6) { pat.lv++; pat.run = 0; store.set('patLv', pat.lv); msg += ' Ooh, now some trickier ones!'; } }
     await say(msg); await wait(400);

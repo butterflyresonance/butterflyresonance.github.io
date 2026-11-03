@@ -2,8 +2,16 @@
 const J = { run: false, raf: 0 };
 const jc = el('jumpCanvas'), jx = jc.getContext('2d');
 let jimgs = null;
+/* Each picture is turned into plain pixels once, here. Safari redraws an SVG picture from scratch every time
+   it's put on a canvas, which is dozens of times a frame here, and that's what made the game stutter. */
+function rasterise(img, s = 256) {
+  if (!img) return null;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  c.getContext('2d').drawImage(img, 0, 0, s, s);
+  return c;
+}
 async function jumpImages() {
-  const im = async u => { try { return await loadImg(u); } catch { return null; } };
+  const im = async u => { try { return rasterise(await loadImg(u)); } catch { return null; } };
   return {
     run: [await im(petUrl({ eyes: 'happy', mouth: 'grin', step: 0 })), await im(petUrl({ eyes: 'happy', mouth: 'grin', step: 1 }))],
     air: await im(petUrl({ eyes: 'open', mouth: 'open' })),
@@ -87,7 +95,7 @@ async function jumpStart() {
 function jumpOver() {
   J.run = false; J.over = true; cancelAnimationFrame(J.raf);
   jumpDraw(); sfx.oops();
-  const pay = Math.ceil(J.got / 2);          // two stars make a coin
+  const pay = Math.round(J.got * 2 / 3);     // three stars make two coins
   if (pay) addCoins(pay, el('jumpStars'));
   if (J.t > 5) petFun(Math.min(20, 5 + Math.round(J.t / 3)));
   const m = J.got ? `Oops! You caught ${J.got} star${J.got === 1 ? '' : 's'}! That’s ${pay} coin${pay === 1 ? '' : 's'}!` : 'Oops! Try again!';
