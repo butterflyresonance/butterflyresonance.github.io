@@ -416,6 +416,12 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 #mazeWrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px 10px 14px; }
 #mazeCanvas { touch-action: none; border-radius: 22px; box-shadow: 0 5px 0 #e3d0f5; }
 #mazeDone { background: rgba(255,255,255,.72); border-radius: 22px; }
+/* ---------- tilt maze ---------- */
+#tiltWrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 10px 14px; touch-action: none; }
+#tiltCanvas { touch-action: none; border-radius: 22px; box-shadow: 0 5px 0 #e3d0f5; }
+#tiltBox { position: relative; }
+#tiltCanvas { display: block; }
+#tiltOver { background: rgba(255,255,255,.8); border-radius: 22px; }
 
 /* ---------- chess ---------- */
 .cboard { display: grid; grid-template-columns: repeat(6, 1fr); width: min(94vw, 58vh, 520px); margin: 6px auto 14px; border-radius: 18px; overflow: hidden; box-shadow: 0 5px 0 #e3d0f5; }

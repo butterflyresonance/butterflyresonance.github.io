@@ -1,4 +1,4 @@
-const VERSION = '2026-11-04.2';
+const VERSION = '2026-11-04.3';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -168,7 +168,7 @@ function addCoins(n, from) {
 }
 
 /* ---------- screens: the address (#pet, #colour …) says which, so the phone's Back works ---------- */
-const SCREENS = { '': 's-home', hello: 's-hello', pick: 's-pick', mx: 's-mx', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter', music: 's-music', pattern: 's-pattern', maze: 's-maze', chess: 's-chess', tiles: 's-tiles', play: 's-play' };
+const SCREENS = { '': 's-home', hello: 's-hello', pick: 's-pick', mx: 's-mx', choose: 's-choose', pet: 's-pet', colour: 's-colour', paint: 'paint', memory: 's-memory', ttt: 's-ttt', jump: 's-jump', letters: 's-letters', maths: 's-maths', shop: 's-shop', pets: 's-pets', trips: 's-trips', trip: 's-trip', shelter: 's-shelter', music: 's-music', pattern: 's-pattern', maze: 's-maze', tilt: 's-tilt', chess: 's-chess', tiles: 's-tiles', play: 's-play' };
 let screen = null;
 const leave = {}, enter = {};
 function route() {

@@ -248,6 +248,13 @@
   <div id="mazeWrap"><canvas id="mazeCanvas"></canvas><div class="overlay hidden" id="mazeDone"><div class="msg" id="mazeMsg"></div><button class="big" id="mazeAgain" data-say="Another one">Another one</button></div></div>
 </section>
 
+<!-- TILT MAZE -->
+<section class="screen hidden" id="s-tilt">
+  <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Tilt maze">Tilt maze</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
+  <div class="lvl" id="tiltLvl"></div>
+  <div id="tiltWrap"><div id="tiltBox"><canvas id="tiltCanvas"></canvas><div class="overlay hidden" id="tiltOver"><div class="msg" id="tiltMsg"></div><button class="big" id="tiltGo">Go!</button></div></div></div>
+</section>
+
 <!-- CHESS -->
 <section class="screen hidden" id="s-chess">
   <div class="bar"><button class="round" data-home aria-label="Home"></button><h2 data-say="Chess">Chess</h2><img class="buddy hidden" alt=""><div class="coins" data-coins></div></div>
@@ -332,6 +339,7 @@
 <script src="js/activities/music.js"></script>
 <script src="js/activities/pattern.js"></script>
 <script src="js/activities/maze.js"></script>
+<script src="js/activities/tilt.js"></script>
 <script src="js/activities/chess.js"></script>
 <script src="js/activities/chess-game.js"></script>
 <script src="js/mathpad.js"></script>

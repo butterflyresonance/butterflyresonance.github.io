@@ -65,7 +65,10 @@ const GAMES = [
   { id: 'play', name: 'Xylophone', svg: '<svg viewBox="0 0 84 84"><g stroke="#4a3159" stroke-width="2.5"><rect x="6" y="14" width="10" height="60" rx="4" fill="#ff6b6b"/><rect x="18" y="18" width="10" height="52" rx="4" fill="#ff9f3a"/><rect x="30" y="22" width="10" height="44" rx="4" fill="#ffd23f"/><rect x="42" y="26" width="10" height="36" rx="4" fill="#5fd38b"/><rect x="54" y="30" width="10" height="28" rx="4" fill="#4cb5ff"/><rect x="66" y="34" width="10" height="20" rx="4" fill="#9b6bff"/></g><path d="M58 70l18-16" stroke="#8d5524" stroke-width="4" stroke-linecap="round"/><circle cx="76" cy="54" r="5" fill="#ff4fa3"/></svg>',
     ages: [3, 99] },
   { id: 'maze', name: 'Maze', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#fff4fb"/><path d="M8 8h68v68H8zM26 8v40M26 62v14M44 26v50M44 26h16M62 8v12M62 44v18M44 44h18" fill="none" stroke="#8f5cff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="17" r="6" fill="#ff4fa3"/><path d="M68 64l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#ffc93a"/></svg>',
-    ages: [3, 9] },
+    types: [
+    { id: 'drag', name: 'Drag maze', ages: [3, 9], art: () => '<svg viewBox="0 0 84 84"><path d="M10 10h64v64H10zM30 10v38M52 30v44M30 48h22" fill="none" stroke="#8f5cff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="20" r="6" fill="#ff4fa3"/><path d="M26 28c8 6 14 14 16 26" fill="none" stroke="#ff8cc6" stroke-width="4" stroke-dasharray="2 6" stroke-linecap="round"/></svg>' },
+    { id: 'tilt', screen: 'tilt', name: 'Tilt maze', ages: [6, 99], art: () => '<svg viewBox="0 0 84 84"><g transform="rotate(-14 42 42)"><rect x="18" y="8" width="48" height="68" rx="9" fill="#fff" stroke="#4a3159" stroke-width="3.5"/><path d="M26 18h32v48H26zM40 18v22M26 40h16" fill="none" stroke="#8f5cff" stroke-width="3.5" stroke-linejoin="round"/><circle cx="50" cy="54" r="5" fill="#3a2347"/><circle cx="33" cy="27" r="5" fill="#ff4fa3"/></g></svg>' },
+  ] },
   { id: 'chess', name: 'Chess', svg: '<svg viewBox="0 0 84 84"><rect x="6" y="6" width="72" height="72" rx="14" fill="#ffe3f1"/><path d="M6 24h18V6M42 6v18h18v18h18M6 60h18V42h18v18h18v18M24 78V60M60 24h18" fill="none"/><rect x="24" y="6" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="6" width="18" height="18" rx="0" fill="#ffc6e2"/><rect x="6" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="24" width="18" height="18" fill="#ffc6e2"/><rect x="24" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="60" y="42" width="18" height="18" fill="#ffc6e2"/><rect x="6" y="60" width="18" height="18" fill="#ffc6e2"/><rect x="42" y="60" width="18" height="18" fill="#ffc6e2"/><path d="M42 20a8 8 0 0 1 5 14l4 14h5v8H28v-8h5l4-14a8 8 0 0 1 5-14z" fill="#fff" stroke="#4a3159" stroke-width="3" stroke-linejoin="round"/></svg>',
     types: [
     { id: 'game', name: 'Play a game', ages: [7, 99], art: () => pieceSvg('king', 'w') + pieceSvg('queen', 'b') },
@@ -98,6 +101,8 @@ const chosenKinds = () => store.get('kinds') || {};
 { // Numbers and Maths were two tiles (Oct 2026): "mx/dec-add" is now "maths/dec-add"
   const c = chosenKinds(); let moved = false;
   for (const k of Object.keys(c)) if (k.startsWith('mx/')) { c['maths/' + k.slice(3)] = c[k]; delete c[k]; moved = true; }
+  // Maze had one kind until the tilt maze (Nov 2026): a choice about "maze" is now about the drag maze
+  if (typeof c.maze === 'boolean') { c['maze/drag'] = c.maze; delete c.maze; moved = true; }
   if (moved) store.set('kinds', c);
 }          // { 'maths/plus': true, 'maze': false } — a grown-up's choices only
 function suggested(k) {
