@@ -2,7 +2,7 @@
    Network first: online you always get the newest page; every good response is
    also kept, and used when there's no network, so the app works offline once
    it has been opened. */
-const CACHE = 'sparkle-v6';
+const CACHE = 'sparkle-v7';
 const CORE = ['./', 'manifest.json', 'icons.json', 'pages.json', 'icon-192.png', 'sparkle.css', 'vendor/chess.js',
   'js/pet-art.js', 'js/core.js', 'js/registry.js', 'js/pets.js', 'js/settings.js', 'js/trips.js', 'js/shelter.js', 'js/activities/colour.js', 'js/activities/memory.js', 'js/activities/ttt.js', 'js/activities/jump.js', 'js/activities/letters.js', 'js/activities/numbers.js', 'js/activities/music.js', 'js/activities/pattern.js', 'js/activities/maze.js', 'js/activities/tilt.js', 'js/activities/chess.js', 'js/activities/chess-game.js', 'js/mathpad.js', 'js/activities/maths.js', 'js/boot.js'];
 self.addEventListener('install', e => {
@@ -22,7 +22,9 @@ self.addEventListener('fetch', e => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const res = await fetch(req);
+      // always ask GitHub whether a file has changed (a quick "no" if it hasn't), rather than trusting the phone's
+      // own cache, which can hold an old copy for a while after an update
+      const res = await (req.mode === 'navigate' ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(new Request(req, { cache: 'no-cache' })));
       if (res && res.ok) cache.put(key, res.clone()).catch(() => {});
       return res;
     } catch {

@@ -1,4 +1,4 @@
-const VERSION = '2026-11-04.3';
+const VERSION = '2026-11-04.4';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -174,6 +174,8 @@ const leave = {}, enter = {};
 function route() {
   const [name, arg] = location.hash.slice(1).split('/');
   let s = name in SCREENS ? name : '';
+  // a newer version is waiting: the home screen is a quiet moment to switch to it (once per version, so never a loop)
+  if (s === '' && newerVersion && store.get('reloadedFor') !== newerVersion) { store.set('reloadedFor', newerVersion); location.reload(); return; }
   // the very first time: a grown-up's question (the birthday), then she chooses her pet
   if (!pet && !store.get('helloDone') && s !== 'hello') { location.replace('#hello'); return; }
   if (!pet && store.get('helloDone') && s !== 'choose') { location.replace('#choose'); return; }
@@ -187,6 +189,27 @@ function route() {
   if (typeof buddy === 'function') buddy('idle');
 }
 addEventListener('hashchange', route);
+
+/* Staying up to date. An app on an iPhone's home screen is hardly ever restarted (going back to it just
+   carries on where it was), so it could keep running an old version for days. So whenever Sparkle comes back
+   to the front, it asks whether there's a newer version; if there is, it switches over the next time she's on
+   the home screen, or straight away if she's there now. */
+let newerVersion = null, lastCheck = 0;
+async function checkUpdate() {
+  if (!location.protocol.startsWith('http') || Date.now() - lastCheck < 60e3) return;
+  lastCheck = Date.now();
+  try {
+    const t = await (await fetch('js/core.js', { cache: 'no-store' })).text();
+    const m = t.match(/const VERSION = '([^']+)'/);
+    if (!m || m[1] === VERSION) return;
+    newerVersion = m[1];
+    try { const r = await navigator.serviceWorker.getRegistration(); if (r) r.update(); } catch {}
+    if (screen === '') route();
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+addEventListener('pageshow', e => { if (e.persisted) checkUpdate(); });
+setTimeout(checkUpdate, 5000);
 const go = h => { location.hash = h; };
 for (const b of $$('[data-home]')) {
   b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg>';
