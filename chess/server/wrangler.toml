@@ -1,4 +1,4 @@
-# Étude table server. Cloudflare reads this when it builds the Worker from GitHub.
+# Étude server. Cloudflare reads this when it builds the Worker from GitHub.
 name = "etude-tables"
 main = "worker.js"
 compatibility_date = "2025-09-01"
@@ -8,10 +8,24 @@ workers_dev = true
 preview_urls = false
 
 [[durable_objects.bindings]]
-name = "TABLES"
-class_name = "Table"
+name = "USERS"
+class_name = "User"
+
+[[durable_objects.bindings]]
+name = "GAMES"
+class_name = "Game"
+
+[[durable_objects.bindings]]
+name = "DIR"
+class_name = "Directory"
 
 # Durable Objects on the free plan must use the SQLite storage backend.
+# v1 was the old table relay (a Table per link, keeping nothing); v2 replaces it.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Table"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["User", "Game", "Directory"]
+deleted_classes = ["Table"]

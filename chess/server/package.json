@@ -1,6 +1,6 @@
 {
   "name": "etude-tables",
   "private": true,
-  "description": "Étude table server: passes moves between the two phones at a table.",
+  "description": "Étude server: accounts, friends and online games, with push notifications.",
   "devDependencies": { "wrangler": "^4.0.0" }
 }

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server update</title>
+<style>
+  :root { --bg: #15181b; --text: #e8e6e1; --muted: #9aa0a6; --brass: #c8a35b; --edge: #2c3237; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, sans-serif; margin: 0; padding: 24px 16px 60px; }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-weight: 500; font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin: 34px 0 10px; font-weight: 600; }
+  p.lead { color: var(--muted); margin-top: 0; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 10px 0; }
+  code { background: #22272b; border: 1px solid var(--edge); padding: 1px 6px; border-radius: 3px; font-size: 14px; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Putting the new online games live</h1>
+  <p class="lead">Build 2026-11-04.1-server-games-accounts. About 5 minutes. Nothing to set up in Cloudflare: the Worker keeps its name and address.</p>
+
+  <h2>1 · Push to GitHub</h2>
+  <ol>
+    <li>Run <code>commit.bat</code> as usual. It commits everything in the folder, including the changed <code>server</code> files and the new <code>vendor/qrcode.js</code>.</li>
+    <li>Cloudflare rebuilds the Worker from the push by itself.</li>
+  </ol>
+
+  <h2>2 · Check the Worker built</h2>
+  <ol>
+    <li>In the Cloudflare dashboard, open <b>Workers &amp; Pages</b>, then <b>etude-tables</b>, then <b>Deployments</b> (or <b>Builds</b>).</li>
+    <li>The newest build should say it succeeded. If it failed, open it, copy the last 20 or so lines of the log, and paste them to Claude.</li>
+    <li>Open <code>https://etude-tables.subjectification.workers.dev</code> in a browser. It should say <b>“Étude server. Nothing to see here.”</b> (The old message said “table server”; if you still see that, the new build hasn’t gone live yet.)</li>
+  </ol>
+
+  <h2>3 · Make your account</h2>
+  <ol>
+    <li>Open Étude on your phone and press <b>Force reload</b> (Settings in any game) if the version at the bottom of the home screen isn’t <code>2026-11-04.1-server-games-accounts</code>.</li>
+    <li>Tap the person icon at the top right of the home screen. Type your name and press <b>Create</b>.</li>
+    <li>Save the key it shows: <b>Copy key</b>, and paste it into a password manager or a private note.</li>
+    <li>To use the same account on another phone: on this one, <b>Show key</b>, and scan the QR code with the other phone’s camera. For your PC: <b>Show key</b>, <b>Copy link</b>, send the link to yourself, and open it on the PC.</li>
+  </ol>
+
+  <h2>4 · Notifications</h2>
+  <ul>
+    <li><b>Android (Chrome):</b> in Your account, set <b>When it’s your move</b> to On and allow notifications. <b>Send a test notification</b> checks it; the test shows once Étude is off screen.</li>
+    <li><b>iPhone:</b> first add Étude to the Home Screen (Safari, Share, Add to Home Screen) and open it from there. Then turn notifications on inside that copy. In a Safari tab the switch can’t work, and the app says so.</li>
+  </ul>
+
+  <h2>5 · Playing</h2>
+  <ul>
+    <li>Your friend makes an account the same way. Then add each other in Your account (search for the name, or type the code beside it), or skip that and send them an invite link from <b>Play a game → Against a person → Online</b>: opening it asks their name, starts the game and makes you friends.</li>
+    <li>A challenge appears on their home screen with Accept and Decline. Games under way are in <b>Resume a game</b>, with “your move” first.</li>
+    <li>Old table links stop working with this build, and games on them can’t be reopened. Their moves are still in Game history.</li>
+  </ul>
+
+  <h2>If something doesn’t work</h2>
+  <p>In any game, Settings → <b>Copy report</b>, and paste the report to Claude along with what happened.</p>
+  <p class="muted">Usage stays on the free plan: each move, chat message or list update is one Durable Object request, against 100,000 a day.</p>
+</main>
+</body>
+</html>

@@ -137,7 +137,7 @@
 
   header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding-top: 22px;
@@ -830,9 +830,6 @@
   .conn { container-type: inline-size; }
   @container (max-width: 300px) { .conn .invite-actions button { flex: 1 1 calc(50% - 4px); } }
   .conn .debug { margin-top: 10px; }
-  #connDebugSlot #reloadBtn, #diagSlot #reloadBtn { display: none; }
-  /* the version is in the Version row; an online table has its connection tools in the Table tab instead */
-  #diagSlot .verstamp, #diagSlot #debugPanel { display: none !important; }
   body.online #diagSlot { display: none; }
   .verval { color: var(--muted); letter-spacing: .04em; text-transform: none; font-size: 11px; }
   .invite-slot .invite .code { font-size: 26px; margin: 4px 0 10px; }
@@ -1281,7 +1278,7 @@
     min-width: 0; overflow: hidden;
   }
   .shelf .bin svg { width: clamp(16px, 5vw, 24px); height: auto; }
-  body.insetup header, body.insetup .verstamp { display: none; }
+  body.insetup header { display: none; }
   /* castling: a label, then White's two and Black's two as a tidy 2x2 */
   #setupCastle { display: grid; grid-template-columns: auto auto auto; justify-content: start; column-gap: 14px; row-gap: 6px; }
   #setupCastle .lbl { grid-row: 1 / span 2; align-self: center; }
@@ -1362,11 +1359,66 @@
   .carryname:hover:not(:disabled) { color: var(--brass); border-color: var(--brass); }
   .carryx { flex: none; width: 44px; padding: 0; font-size: 20px; line-height: 1; color: var(--muted); }
   .carryx:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
-  .lfoot { margin-top: 18px; }
+  .lfoot { margin-top: 18px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .verfoot { font-size: 10px; letter-spacing: .08em; color: var(--muted); opacity: .7; }
+
+  /* ---- your account ---- */
+  .profbtn { flex: none; position: relative; width: 40px; height: 40px; padding: 0; display: grid; place-items: center; color: var(--muted); border-radius: 50%; }
+  .profbtn:hover:not(:disabled) { color: var(--brass); }
+  .profbtn .ndot { min-width: 10px; width: 10px; height: 10px; padding: 0; top: 0; right: 0; }
+  .profme { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 4px; }
+  .profname { font-family: var(--display); font-size: 24px; color: var(--brass); overflow-wrap: anywhere; }
+  .profcode { font-size: 12px; letter-spacing: .12em; color: var(--muted); }
+  #profHave .invite-actions { margin-top: 10px; flex-wrap: wrap; }
+  #profLink { width: 100%; margin-top: 12px; }
+  .prow { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--edge); }
+  .prow:first-child { border-top: 1px solid var(--edge); }
+  .prow .who { flex: 1; min-width: 0; }
+  .prow .nm { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow .cd { display: block; font-size: 11px; letter-spacing: .08em; color: var(--muted); }
+  .prow button { flex: none; padding: 7px 10px; font-size: 11px; letter-spacing: .08em; }
+  .prow button.primary { width: auto; }
+  .prow .tag { flex: none; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+  #profResults, #profOut { margin-top: 12px; }
+  .pnone { font-size: 12.5px; color: var(--muted); margin: 0; }
+  button.dangerbtn { border-color: var(--danger); color: var(--danger); }
+  button.dangerbtn:hover:not(:disabled) { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+  #profPushTest { margin-top: 6px; }
+  .linknote { border: 1px solid var(--brass); padding: 12px 14px; margin: 0 0 18px; font-size: 13px; color: var(--text); }
+  .qr { background: #fff; padding: 10px; width: min(220px, 70vw); margin: 12px auto; line-height: 0; }
+  .qr svg { width: 100%; height: auto; display: block; }
+  .keytext { display: block; font-family: var(--mono); font-size: 13px; letter-spacing: .06em; line-height: 1.7; word-spacing: .2em; padding: 10px 12px; border: 1px solid var(--edge); user-select: all; overflow-wrap: anywhere; }
+  .terms { display: grid; gap: 14px; margin-top: 4px; }
+  .terms fieldset { margin: 0; }
+  .terms select { width: 100%; }
+  /* a challenge waiting for you, on the home screen */
+  .chal { border: 1px solid var(--brass); padding: 14px 16px; margin: 0 0 12px; }
+  .chal .ct { display: block; font-family: var(--display); font-size: 18px; color: var(--brass); margin-bottom: 3px; }
+  .chal .cd { display: block; font-size: 12.5px; line-height: 1.55; color: var(--muted); margin-bottom: 10px; }
+  .chal .invite-actions button { flex: 1; }
+  /* news from the server, on any screen */
+  .pop {
+    position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 40;
+    transform: translateX(-50%);
+    width: max-content; max-width: min(520px, calc(100vw - 24px)); box-sizing: border-box;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 8px 9px 14px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--edge); border-left: 2px solid var(--brass);
+    box-shadow: 0 6px 24px rgba(0,0,0,.3);
+    font-size: 12.5px; line-height: 1.45;
+    transition: opacity .2s, transform .2s;
+  }
+  .pop.off { opacity: 0; transform: translate(-50%, 8px); pointer-events: none; }
+  body.toasting .pop { bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .pop .poptext { flex: 1; min-width: 0; }
+  .pop b { font-weight: 500; color: var(--brass); }
+  .pop button { flex: none; padding: 7px 12px; font-size: 11px; letter-spacing: .08em; border-color: var(--brass); color: var(--brass); }
+  .pop button.popx { border: 0; color: var(--muted); font-size: 18px; padding: 4px 8px; }
   .lsec.first { border-top: 0; padding-top: 0; }
   .lsec.first .note + button.primary { margin-top: 12px; }
   .sideslot fieldset { margin-bottom: 14px; }
-  body.lobbysub header, body.lobbysub .verstamp, body.lobbysub #debugPanel { display: none; }
+  body.lobbysub header { display: none; }
   body.lobbysub .lobby { margin-top: 0; }
   /* screens come in with a short fade */
   .fadein { animation: fadein .16s ease-out; }
@@ -1516,17 +1568,8 @@
 
   <header>
     <h1>Étude</h1>
+    <button class="profbtn" id="profBtn" aria-label="Your account" title="Your account"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="7.5" r="3.6"/><path d="M3.6 19.5c0-4.1 3.3-6.9 7.4-6.9s7.4 2.8 7.4 6.9"/></svg><span class="ndot hidden" id="profDot"></span></button>
   </header>
-  <button class="verstamp" id="verBtn" title="Build version — tap for diagnostics"></button>
-
-  <section class="debug hidden" id="debugPanel">
-    <div class="label">Diagnostics</div>
-    <pre id="debugText">…</pre>
-    <div class="invite-actions">
-      <button id="copyDiagBtn">Copy report</button>
-      <button id="reloadBtn">Force reload</button>
-    </div>
-  </section>
 
   <!-- LOBBY: a home screen with three choices, each leading to a short screen of its own -->
   <section class="lobby" id="lobby">
@@ -1535,8 +1578,9 @@
       <button class="choice" id="pzBtn"><span class="ct">Puzzles</span><span class="cd">Find the winning move in positions from real games. They adapt to your level, and a wrong move shows you why it fails.</span></button>
       <button class="choice" id="goPlay"><span class="ct">Play a game</span><span class="cd">Against the computer, or against a friend on this device or online.</span></button>
       <button class="choice" id="goStudy"><span class="ct">Study</span><span class="cd">Step through famous games or games you import, or set up a position from a book and work through it.</span></button>
+      <div id="challenges"></div>
       <button class="choice hidden" id="goResume"><span class="ct">Resume a game</span><span class="cd" id="goResumeSub"></span></button>
-      <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button></div>
+      <div class="lfoot"><button class="linkish" id="gamesLobbyBtn">Game history</button><span class="verfoot" id="verFoot"></span></div>
     </div>
 
     <div class="scr hidden" id="scrResume">
@@ -1546,6 +1590,59 @@
       </div>
       <div id="carryOn"></div>
       <button class="linkish" id="resumeClear">Clear all</button>
+    </div>
+
+    <div class="scr hidden" id="scrProfile">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Your account</div>
+      </div>
+      <div id="profNone">
+        <p class="linknote hidden" id="profLinkNote"></p>
+        <div class="lsec first">
+          <p class="note">An account lets you play friends online, each of you moving whenever suits you. It’s only a name: no email and no password.</p>
+          <label class="label" for="profNewName" style="margin-top:16px">Your name</label>
+          <div class="joinrow"><input id="profNewName" class="fen" maxlength="30" autocomplete="nickname" placeholder="What friends will see"><button class="primary" id="profCreate">Create</button></div>
+          <p class="setup-msg bad" id="profNewMsg"></p>
+        </div>
+        <div class="lsec">
+          <h2 class="lhead">Already have an account?</h2>
+          <p class="note">On the device that has it, open this screen and press Show key. Scan its QR code with this device’s camera, or paste the key or the link here.</p>
+          <div class="joinrow"><input id="profKeyIn" class="fen" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Key or link" aria-label="Your key or link"><button class="primary" id="profImport">Use it</button></div>
+          <p class="setup-msg bad" id="profKeyMsg"></p>
+        </div>
+      </div>
+      <div id="profHave" class="hidden">
+        <div class="lsec first">
+          <div class="profme"><span class="profname" id="profName"></span><span class="profcode" id="profCode"></span></div>
+          <p class="note" id="profConn"></p>
+          <button class="primary" id="profLink">Share friend link</button>
+          <p class="note">Anyone who opens your friend link becomes your friend straight away. Remove or block them in Friends if you need to.</p>
+          <div class="invite-actions"><button id="profShare">Share my code</button><button id="profRename">Change name</button></div>
+        </div>
+        <div class="lsec hidden" id="profReqSec"><h2 class="lhead">Friend requests</h2><div id="profReqs"></div></div>
+        <div class="lsec"><h2 class="lhead">Friends</h2><div id="profFriends"></div></div>
+        <div class="lsec">
+          <h2 class="lhead">Add a friend</h2>
+          <p class="note">Search for their name, or type the code shown beside it. They’re asked to accept.</p>
+          <div class="joinrow"><input id="profSearch" class="fen" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Name or code" aria-label="Name or code"><button class="primary" id="profSearchBtn">Search</button></div>
+          <div id="profResults"></div>
+          <div id="profOut"></div>
+        </div>
+        <div class="lsec">
+          <h2 class="lhead">Notifications</h2>
+          <div class="setrow"><span>When it’s your move, and other news</span><button id="profPush">Off</button></div>
+          <p class="note" id="profPushNote"></p>
+          <button class="linkish hidden" id="profPushTest">Send a test notification</button>
+        </div>
+        <div class="lsec">
+          <h2 class="lhead">Your key</h2>
+          <p class="note">Your key is your account. Use it to sign in on another device, and keep a copy somewhere private, like a password manager. If this device loses it and you have no copy, the account is gone and you make a new one.</p>
+          <button class="primary alt" id="profKey">Show key</button>
+        </div>
+        <div class="lsec hidden" id="profBlockSec"><h2 class="lhead">Blocked</h2><div id="profBlocked"></div></div>
+        <div class="lsec"><button class="dangerbtn" id="profRemove">Remove account from this device</button></div>
+      </div>
     </div>
 
     <div class="scr hidden" id="scrStudy">
@@ -1610,7 +1707,7 @@
         <div class="status">Against a person</div>
       </div>
       <button class="choice" id="localBtn"><span class="ct">On this device</span><span class="cd">Both of you on one phone or tablet, taking turns. The board faces White.</span></button>
-      <button class="choice" id="goOnline"><span class="ct">Online</span><span class="cd">Send your friend a link. Moves pass between your two devices while you both have the page open.</span></button>
+      <button class="choice" id="goOnline"><span class="ct">Online</span><span class="cd">Challenge a friend, or send someone a link. Each of you moves whenever suits you, and the game waits for you.</span></button>
     </div>
 
     <div class="scr hidden" id="scrOnline">
@@ -1618,22 +1715,32 @@
         <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
         <div class="status">Play online</div>
       </div>
-      <div class="sideslot"></div>
-      <div class="lsec first">
-        <button class="primary" id="startBtn">Open a table</button>
-        <p class="note">You’ll get a link and a code to send them. They play the other colour.</p>
+      <div class="lsec first hidden" id="onNoAcct">
+        <p class="note">Online games need an account. It’s only a name, and takes a few seconds.</p>
+        <button class="primary" id="onSetup">Set up your account</button>
       </div>
-      <div class="lsec">
-        <h2 class="lhead">Join a table</h2>
-        <p class="note">Got a code from a friend? Type it here, or paste the link they sent. Your colour comes from the table.</p>
-        <div class="joinrow"><input id="joinCode" class="fen" placeholder="e.g. abc def ghi" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Table code"><button class="primary" id="joinBtn">Join</button></div>
-        <p class="setup-msg bad" id="joinMsg"></p>
+      <div id="onAcct">
+        <div class="lsec first">
+          <h2 class="lhead">Challenge a friend</h2>
+          <div id="onFriends"></div>
+        </div>
+        <div class="lsec">
+          <h2 class="lhead">Invite with a link</h2>
+          <p class="note">For someone who isn’t your friend in Étude yet. When they open the link and enter their name, the game starts and you become friends.</p>
+          <button class="primary" id="startBtn">Create an invite link</button>
+        </div>
+        <div class="lsec">
+          <h2 class="lhead">Join with a code</h2>
+          <p class="note">Got a code from a friend? Type it here, or paste the link they sent.</p>
+          <div class="joinrow"><input id="joinCode" class="fen" placeholder="e.g. abc def ghi" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Game code"><button class="primary" id="joinBtn">Join</button></div>
+          <p class="setup-msg bad" id="joinMsg"></p>
+        </div>
       </div>
       <details class="how">
         <summary>How this works</summary>
-        <p>No account to make, and the game is kept only on your two devices. While you both have the page open, each device stays connected to a small table server, which hands each move to the other device as it’s made. The server keeps nothing: it only passes moves along. It’s closer to a phone call than to posting letters through an office.</p>
-        <p>The catch is the same as a phone call: you both have to be there. A move only crosses while both pages are open. Play one and close the tab before the other person looks, and it’ll wait and go through next time you’re both on.</p>
-        <p>Your own device remembers the position, so refreshing or coming back tomorrow picks up where you left off.</p>
+        <p>Every online game is kept on Étude’s server. When you move, your move goes to the server, which checks it and passes it to the other player. If they have the app open, it appears straight away. If not, it waits for them, and they get a notification if they’ve turned those on.</p>
+        <p>So you can play a game in one sitting, or a move a day. Choose a time limit per move when you start a game if you want one: whoever runs out of time loses.</p>
+        <p>Your account is a name and a key kept on your device. The server never has your key, so nobody can sign in as you without it. Keep a copy (Your account, Show key) if you want to use the account on another device or keep it if this device is reset.</p>
       </details>
     </div>
 
@@ -1703,6 +1810,9 @@
     </div>
   </section>
 
+  <!-- news from the server while the app is open: another game's move, a challenge, a friend request -->
+  <div class="pop off" id="pop" role="status" aria-live="polite"><span class="poptext"><b id="popTitle"></b> <span id="popBody"></span></span><button type="button" id="popGo">Open</button><button type="button" class="popx" id="popX" aria-label="Dismiss">×</button></div>
+
   <!-- the pop-up note: floats over the page, so nothing moves when it comes and goes -->
   <div class="toast off" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button type="button" id="toastBtn" class="hidden"></button></div>
 
@@ -1720,15 +1830,20 @@
     </div>
   </section>
 
-  <!-- INVITE -->
+  <!-- INVITE: an online game that hasn't started, or can't be opened -->
   <section class="invite hidden" id="invite">
-    <div class="label">Your table</div>
-    <div class="code" id="codeText">— — —</div>
-    <div class="invite-actions">
-      <button id="waBtn">Share link</button>
-      <button id="copyBtn">Share code</button>
+    <div class="label" id="inviteLabel">Your game</div>
+    <div id="inviteLink">
+      <div class="code" id="codeText">— — —</div>
+      <div class="invite-actions">
+        <button id="waBtn">Share link</button>
+        <button id="copyBtn">Share code</button>
+      </div>
+      <p class="note">Send the link, or just the code. When they open it in Étude and enter their name, the game starts and you become friends.</p>
     </div>
-    <p class="note">Send the link, or just the code: they can type it in under Play a game, Against a person, Online. After that either of you can reopen the table any time.</p>
+    <p class="note hidden" id="inviteMsg"></p>
+    <div class="joinrow hidden" id="inviteName"><input id="inviteNameIn" class="fen" maxlength="30" autocomplete="nickname" placeholder="Your name" aria-label="Your name"><button class="primary" id="inviteNameBtn">Continue</button></div>
+    <div class="invite-actions" id="pendActs"></div>
   </section>
 
   <!-- GAME
@@ -1802,10 +1917,8 @@
             <p class="conn-line" id="connLine"></p>
             <div class="invite-actions">
               <button id="connCopy">Share link</button>
-              <button id="connDiag">Diagnostics</button>
               <button id="connReload">Force reload</button>
             </div>
-            <div id="connDebugSlot"></div>
           </section>
           </div>
           <div class="pane" data-pane="puzzle">
@@ -1974,6 +2087,7 @@
                 <span>Version</span>
                 <span class="verval" id="verVal"></span>
                 <button id="setReload">Force reload</button>
+                <button id="copyDiagBtn">Copy report</button>
               </div>
             </div>
           </div>
@@ -3541,6 +3655,7 @@ self.onmessage = e => {
 };
 </script>
 
+<script src="vendor/qrcode.js"></script>   <!-- qrcode-generator 1.4.4 (MIT, vendor/qrcode.js-LICENSE.txt): the QR code for your key -->
 <script type="module">
 import { Chess } from './vendor/chess.js';   // chess.js 1.4.0, kept beside the page (BSD-2, vendor/chess.js-LICENSE.txt)
 
@@ -3551,7 +3666,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-10-30.1-rename-games-flip-per-game';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-11-04.2-friend-links';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -3739,14 +3854,12 @@ let code = null;
 let result = null;
 let selected = null;
 let lastMove = null;
-let peers = new Set();
 
 /* engine / hints */
 let hintsOn = false;
 let peerHints = false;
 let navigating = false;        // true while we write our own hash
 let solo = false;              // playing the engine, no peer, no relays
-let seatClash = false;         // both ended up on the same side
 let takebackAsked = false;     // we have a request outstanding
 let rematchAsked = false;      // we've offered a rematch and are waiting for an answer
 /* ---------- the pop-up note ----------
@@ -3806,7 +3919,6 @@ let soundOn = sfxStyle !== 'off';
 let audioCtx = null;
 let faviconState = null;
 let healthTimer = null;
-let lastRejoin = 0;
 let engine = null;
 let hint = null;        // {san, from, to, score, depth, mate, fen}
 let hintFen = null;     // position the current request was for
@@ -3970,155 +4082,421 @@ function makeCode() {
   return [...bytes].map(b => alphabet[b % alphabet.length]).join('');
 }
 
-/* ---------- networking ---------- */
-/* The table server (server/worker.js, on Cloudflare). Both phones keep a
-   WebSocket open to it and it passes messages between them. Messages carry an
-   id, so one that somehow arrives twice is only used once. */
-const TABLE_SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:server')) || ''; } catch { return ''; } })()
+/* ---------- the server ----------
+   Online games live on Étude's server (server/worker.js, on Cloudflare). While
+   the app is open and you have an account, the page keeps one WebSocket open to
+   it, whatever screen you're on. Everything goes over it as a request with an
+   id, and each request gets one reply. The server also sends, unasked: the game
+   on screen whenever it changes, a line for the games list when any of your
+   games changes, your friends lists, and news ('event') for a pop-up.
+
+   The server is the record. A move is shown at once, sent with the number of
+   moves before it (its ply), and the server answers with the game as it now has
+   it: with the move, or without it if it wasn't accepted, and the board takes
+   whatever comes back. */
+const SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:server')) || ''; } catch { return ''; } })()
   || 'wss://etude-tables.subjectification.workers.dev';   // localStorage 'table:server' overrides it, for testing
-let srv = null, srvTimer = null, srvTries = 0, srvPeers = new Set();
-function srvState() { return !TABLE_SERVER ? 'not set up' : !srv ? 'closed' : ['connecting', 'open', 'closing', 'closed'][srv.readyState]; }
-function srvOpen() {
-  clearTimeout(srvTimer);
-  if (!TABLE_SERVER || !code || solo || code === 'puzzle') return;
+
+/* ---- your account ----
+   An Ed25519 key pair. The private half is 32 random bytes (the "key"), kept
+   here and shown to you as 52 letters and digits; the public half is the
+   account's id. Signing in is signing "etude:<id>:<time>" with the key. */
+const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';     // Crockford base32: no I, L, O or U
+function toB32(bytes) {
+  let out = '', bits = 0, val = 0;
+  for (const b of bytes) {
+    val = (val << 8) | b; bits += 8;
+    while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits) out += B32[(val << (5 - bits)) & 31];
+  return out;
+}
+function fromB32(text) {
+  const t = String(text).toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
+  const out = [];
+  let bits = 0, val = 0;
+  for (const ch of t) {
+    const v = B32.indexOf(ch);
+    if (v < 0) return null;
+    val = ((val << 5) | v) & 0xffff; bits += 5;
+    if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((t.length + 3) % 4)), c => c.charCodeAt(0));
+// a raw Ed25519 private key wrapped as PKCS#8, the form browsers import
+const PK8_HEAD = [0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20];
+async function keyFrom(seed) {
+  const key = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PK8_HEAD, ...seed]), { name: 'Ed25519' }, true, ['sign']);
+  const jwk = await crypto.subtle.exportKey('jwk', key);
+  return { key, id: jwk.x };
+}
+let acct = store.get('etude:account');          // { seed, id, name }
+if (acct && !(acct.seed && acct.id)) acct = null;
+let acctKey = null;
+const shortOf = id => toB32(unb64u(id)).slice(0, 8);
+const fmtCode = c => c.slice(0, 4) + '-' + c.slice(4);
+const myCode = () => acct ? fmtCode(shortOf(acct.id)) : '';
+const keyGroups = seed => seed.match(/.{1,4}/g).join(' ');
+const keyLink = () => `${location.origin}${location.pathname}#key=${acct.seed}`;
+// the 32 bytes in a pasted key, or in a link with #key=
+function seedFrom(text) {
+  const m = /[#&]key=([0-9A-Za-z]+)/.exec(text || '');
+  const bytes = fromB32(m ? m[1] : text);
+  return bytes && bytes.length >= 32 ? bytes.slice(0, 32) : null;
+}
+async function makeAccount(name) {
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const k = await keyFrom(seed);
+  acct = { seed: toB32(seed), id: k.id, name };
+  acctKey = k.key;
+  store.set('etude:account', acct);
+  srvData = blankData();
+  netSave();
+  netOpen(true);
+  useFriendLink();
+}
+async function useKey(seed) {
+  const k = await keyFrom(seed);
+  acct = { seed: toB32(seed), id: k.id, name: '' };
+  acctKey = k.key;
+  store.set('etude:account', acct);
+  srvData = blankData();
+  netSave();
+  netClose();
+  netOpen(true);
+  useFriendLink();
+}
+function dropAccount() {
+  netClose();
+  acct = null; acctKey = null;
+  try { localStorage.removeItem('etude:account'); localStorage.removeItem('etude:net'); } catch {}
+  srvData = blankData();
+  pushUnsubscribeLocal();
+  netChanged();
+}
+// can this browser sign in? (Ed25519 arrived in Chrome 137, Safari 17, Firefox 129)
+let edCheck = null;
+const edOK = () => edCheck || (edCheck = keyFrom(new Uint8Array(32)).then(() => true, () => false));
+
+/* ---- the connection ---- */
+const blankData = () => ({ friends: {}, reqIn: {}, reqOut: {}, blocked: {}, games: {}, push: [], vapid: null });
+let srvData = Object.assign(blankData(), store.get('etude:net') || {});
+function netSave() { store.set('etude:net', srvData); }
+let net = { ws: null, open: false, tries: 0, timer: null, n: 0, wait: new Map(), queue: [], downAt: 0 };
+let newerBuild = null;          // a newer build of the app, as the server has seen
+const netState = () => !acct ? 'no account' : net.open ? 'connected' : net.ws ? 'connecting' : 'not connected';
+// the online game on screen, if there is one
+const onlineCode = () => ownTable(code) && !el('game').classList.contains('hidden') ? code : null;
+
+async function netOpen(now) {
+  if (now) { net.tries = 0; clearTimeout(net.timer); }
+  if (!acct || !SERVER) return;
+  if (net.ws && net.ws.readyState <= 1) return;
+  clearTimeout(net.timer);
   let ws;
-  try { ws = new WebSocket(`${TABLE_SERVER}/table/${code}`); } catch (e) { console.warn('table server', e); srvRetry(); return; }
-  srv = ws;
-  ws.onopen = () => {
-    if (srv !== ws) return;
-    srvTries = 0;
-    note('table server: connected');
-    setTimeout(chatResend, 300);
+  try {
+    if (!acctKey) acctKey = (await keyFrom(fromB32(acct.seed).slice(0, 32))).key;
+    if (net.ws && net.ws.readyState <= 1) return;        // another call got there while this one was signing
+    const t = String(Date.now());
+    const sig = b64u(await crypto.subtle.sign({ name: 'Ed25519' }, acctKey, new TextEncoder().encode(`etude:${acct.id}:${t}`)));
+    if (net.ws && net.ws.readyState <= 1) return;
+    ws = new WebSocket(`${SERVER}/u/${acct.id}?t=${t}&s=${sig}&v=${encodeURIComponent(VERSION)}`);
+  } catch (e) { console.warn('server', e); netRetry(); return; }
+  net.ws = ws;
+  net.open = false;
+  ws.onopen = async () => {
+    if (net.ws !== ws) return;
     ws.keepAlive = setInterval(() => { try { ws.send('ping'); } catch {} }, 25000);
-    drawConn();
+    const h = await netSend(ws, 'hello', { name: acct.name || '', v: VERSION, visible: !document.hidden, game: onlineCode() });
+    if (net.ws !== ws || !h.ok) return;
+    net.open = true;
+    net.tries = 0;
+    note('server: connected');
+    takeSnapshot(h);
+    const q = net.queue;
+    net.queue = [];
+    for (const job of q) netSend(ws, job.op, job.a).then(job.res);
+    netChanged();
+    if (onlineCode()) loadGame();
   };
   ws.onmessage = e => {
-    if (srv !== ws || e.data === 'pong') return;
+    if (net.ws !== ws || e.data === 'pong') return;
     let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (m.k === 'join') {
-      const id = 's:' + m.id;
-      srvPeers.add(id); peers.add(id);
-      note('table server: they arrived');
-      setTimeout(chatResend, 500);
-      setLink(); sendState(); announce(); ping();
-    } else if (m.k === 'leave') {
-      const id = 's:' + m.id;
-      srvPeers.delete(id); peers.delete(id);
-      note('table server: they left');
-      setLink();
-    } else if (m.k === 'msg') {
-      let d; try { d = JSON.parse(m.data); } catch { return; }
-      handleMessage(d);
+    if (m.k === 'res') { const r = net.wait.get(m.id); if (r) { net.wait.delete(m.id); r(m); } return; }
+    if (m.k === 'lists') {
+      for (const k of ['friends', 'reqIn', 'reqOut', 'blocked', 'games']) if (m[k]) srvData[k] = m[k];
+      netSave(); netChanged(); return;
     }
+    if (m.k === 'me') { if (m.me && m.me.name) { acct.name = m.me.name; store.set('etude:account', acct); } netChanged(); return; }
+    if (m.k === 'gsum') { srvData.games[m.sum.g] = m.sum; netSave(); netChanged(); return; }
+    if (m.k === 'game') { if (m.state && m.state.id === onlineCode()) applyServer(m.state); return; }
+    if (m.k === 'event') { onEvent(m.event); return; }
   };
   ws.onclose = e => {
     clearInterval(ws.keepAlive);
-    if (srv !== ws) return;
-    srv = null;
-    for (const id of srvPeers) peers.delete(id);
-    srvPeers.clear();
-    note(`table server: closed (${e.code}${e.reason ? ' ' + e.reason : ''})`);
-    setLink();
-    srvRetry();
+    if (net.ws !== ws) return;
+    net.ws = null;
+    net.open = false;
+    net.downAt = Date.now();
+    for (const r of net.wait.values()) r({ ok: false, err: 'offline' });
+    net.wait.clear();
+    note(`server: closed (${e.code}${e.reason ? ' ' + e.reason : ''})`);
+    netChanged();
+    netRetry();
   };
   ws.onerror = () => {};
 }
 // try again after 1, 2, 4, 8, 16, then every 30 seconds
-function srvRetry() {
-  clearTimeout(srvTimer);
-  if (!TABLE_SERVER || !code || solo) return;
-  srvTimer = setTimeout(srvOpen, Math.min(30000, 1000 * 2 ** Math.min(srvTries++, 5)));
+function netRetry() {
+  clearTimeout(net.timer);
+  if (!acct) return;
+  net.timer = setTimeout(netOpen, Math.min(30000, 1000 * 2 ** Math.min(net.tries++, 5)));
 }
-function srvClose() {
-  clearTimeout(srvTimer);
-  const ws = srv;
-  srv = null;
-  for (const id of srvPeers) peers.delete(id);
-  srvPeers.clear();
+function netClose() {
+  clearTimeout(net.timer);
+  const ws = net.ws;
+  net.ws = null;
+  net.open = false;
+  for (const r of net.wait.values()) r({ ok: false, err: 'offline' });
+  net.wait.clear();
   if (ws) { clearInterval(ws.keepAlive); try { ws.close(1000, 'leaving'); } catch {} }
+}
+function netSend(ws, op, a = {}) {
+  return new Promise(res => {
+    const id = ++net.n;
+    net.wait.set(id, res);
+    try { ws.send(JSON.stringify({ id, op, ...a })); } catch { net.wait.delete(id); res({ ok: false, err: 'offline' }); }
+  });
+}
+/* A request to the server. Not connected: { ok: false, err: 'offline' } straight
+   away, or, for things that should go as soon as it's back (a move, a chat
+   message), held until then. */
+function netReq(op, a = {}, { queue = false } = {}) {
+  if (net.open && net.ws) return netSend(net.ws, op, a);
+  if (!queue) return Promise.resolve({ ok: false, err: acct ? 'offline' : 'noAccount' });
+  return new Promise(res => net.queue.push({ op, a, res }));
+}
+function takeSnapshot(h) {
+  for (const k of ['friends', 'reqIn', 'reqOut', 'blocked', 'games', 'push', 'vapid']) if (h[k] !== undefined) srvData[k] = h[k];
+  if (h.me && h.me.name && h.me.name !== acct.name) { acct.name = h.me.name; store.set('etude:account', acct); }
+  newerBuild = h.build && buildNewer(h.build, VERSION) ? h.build : null;
+  netSave();
+}
+// builds are named YYYY-MM-DD.N-word: by date, then N as a number
+function buildNewer(a, b) {
+  const pa = /^(\d{4}-\d{2}-\d{2})\.(\d+)/.exec(a || ''), pb = /^(\d{4}-\d{2}-\d{2})\.(\d+)/.exec(b || '');
+  if (!pa || !pb) return false;
+  return pa[1] !== pb[1] ? pa[1] > pb[1] : Number(pa[2]) > Number(pb[2]);
+}
+// whatever is on screen that shows server data, drawn again
+function netChanged() {
+  drawProfDot();
+  if (!el('lobby').classList.contains('hidden')) {
+    if (!el('scrHome').classList.contains('hidden')) drawResumeChoice();
+    if (!el('scrResume').classList.contains('hidden')) drawCarryOn();
+    if (!el('scrProfile').classList.contains('hidden')) drawProfile();
+    if (!el('scrOnline').classList.contains('hidden')) drawOnline();
+  }
+  if (ownTable(code) && !el('game').classList.contains('hidden')) { setLink(); drawStatus(); drawDrop(); }
+}
+function netVis() {
+  if (net.open && net.ws) netSend(net.ws, 'vis', { visible: !document.hidden, game: onlineCode() });
+  else if (!document.hidden && acct) netOpen(true);
+}
+document.addEventListener('visibilitychange', netVis);
+// Page Lifecycle: a frozen tab brought back; bfcache restores; the network back
+document.addEventListener('resume', () => netOpen(true));
+window.addEventListener('pageshow', e => { if (e.persisted) netOpen(true); });
+window.addEventListener('online', () => { note('device back online'); netOpen(true); });
+window.addEventListener('offline', () => note('device went offline'));
+
+/* ---- the online game on screen ---- */
+let og = null;              // the game as the server last sent it
+let pendingMove = null;     // { ply, san }: played here, not confirmed by the server yet
+let gameGone = null;        // 'gone' | 'notYours' | 'taken' | 'noAccount': why it can't be shown
+const answered = new Set(); // takeback and rematch questions already put to you
+const them = () => myColor === 'w' ? 'b' : 'w';
+const rivalName = () => (og && og.names && og.names[them()]) || '';
+const limitWords = d => !d ? 'no time limit' : `${d} day${d === 1 ? '' : 's'}`;
+function fmtDeadline(t) {
+  const d = new Date(t), now = new Date();
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return 'today at ' + time;
+  const tmr = new Date(now); tmr.setDate(now.getDate() + 1);
+  if (d.toDateString() === tmr.toDateString()) return 'tomorrow at ' + time;
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + ' at ' + time;
 }
 
 function connect() {
-  srvOpen();
-  setLink();
-  joinedAt = Date.now();
   clearInterval(healthTimer);
-  healthTimer = setInterval(() => {
-    if (peers.size && Date.now() - lastPing >= PING_MS) ping();
-    autoRejoin();
-    drawConn();
-    drawDrop();
-    drawStatus();
-  }, 1000);
+  healthTimer = setInterval(() => { drawConn(); drawDrop(); drawStatus(); }, 1000);
+  setLink();
+  if (!acct) { gameGone = 'noAccount'; setLink(); draw(); return; }
+  if (net.open) { netVis(); loadGame(); }
+  else netOpen(true);
+}
+function teardown() {
+  clearInterval(healthTimer);
+  healthTimer = null;
+}
+async function loadGame() {
+  const g = code;
+  if (!acct || !g) return;
+  netVis();
+  const r = await netReq('state', { g });
+  if (code !== g || !r.ok) return;
+  const s = r.state;
+  if (s.gone || s.notYours) { gameGone = s.gone ? 'gone' : 'notYours'; setLink(); draw(); return; }
+  if (s.invite) { offerJoin(s); return; }
+  applyServer(s);
+}
+async function offerJoin(s) {
+  const v = await peerModal({
+    title: `${s.from || 'Someone'} invites you`,
+    body: `<p>A game of chess. You’d play ${s.seat === 'w' ? 'White' : 'Black'}${s.limit ? `, with ${limitWords(s.limit)} for each move` : ''}. Joining also makes the two of you friends in Étude.</p>`,
+    actions: [{ label: 'Not now', value: false }, { label: 'Join', value: true, kind: 'go', focus: true }]
+  });
+  if (!v) { location.href = location.pathname + location.search; return; }
+  const r = await netReq('join', { g: code });
+  if (!r.ok) { gameGone = r.err === 'taken' ? 'taken' : 'gone'; setLink(); draw(); return; }
+  applyServer(r.state);
 }
 
-/* Once the other person has been here, losing them starts a fresh attempt by
-   itself: after 20 seconds without them (or 12 without a word), then every 45
-   seconds, while the page is in view. Not while still waiting for them to
-   arrive the first time: the server connection keeps itself open meanwhile. */
-let hadPeer = false;
-function autoRejoin() {
-  if (!hadPeer || document.hidden || !code || solo) return;
-  const silent = peers.size && peerSeen && Date.now() - peerSeen > SILENT_MS;
-  if (peers.size && !silent) return;
-  if (Date.now() - joinedAt < 20000 || Date.now() - lastRejoin < 45000) return;
-  note(silent ? 'nothing heard for a while: reconnecting by itself' : 'not connected: reconnecting by itself');
-  lastRejoin = Date.now();
-  teardown();
-  connect();
+/* The game from the server, onto the board. The server's moves win, except a
+   move of ours it hasn't had yet: that stays on the board and goes again. */
+function applyServer(s) {
+  if (!s || s.id !== code || !acct) return;
+  if (og && og.id === s.id && s.v < og.v) return;          // older than what's here
+  const mine = s.w === acct.id ? 'w' : s.b === acct.id ? 'b' : null;
+  if (!mine) return;
+  const before = og;
+  og = s;
+  gameGone = null;
+  myColor = mine;
+  const local = game.history();
+  const moves = s.moves;
+  const waiting = pendingMove && !s.result && moves.length === pendingMove.ply &&
+    local.length === pendingMove.ply + 1 && local.slice(0, -1).join(' ') === moves.join(' ');
+  if (waiting) {
+    if (!pendingMove.inflight) sendPending();
+  } else {
+    pendingMove = null;
+    if (local.join(' ') !== moves.join(' ')) {
+      const added = moves.length === local.length + 1 && moves.slice(0, -1).join(' ') === local.join(' ');
+      const back = moves.length < local.length && local.slice(0, moves.length).join(' ') === moves.join(' ');
+      adopt(moves, s.result || null);
+      if (added && moves.length) moveSound(game.history({ verbose: true }).at(-1));
+      if (back && before && before.tb) flash(before.tb.by === mine ? 'They allowed the takeback.' : 'The move was taken back.');
+    }
+  }
+  if (!waiting && JSON.stringify(result) !== JSON.stringify(s.result || null)) result = s.result || null;
+  const f = (s.flags && s.flags[them()]) || {};
+  peerHints = !!f.hints; peerAuto = !!f.auto; peerCoach = !!f.coach; peerReview = !!f.review;
+  takebackAsked = !!(s.tb && s.tb.by === mine);
+  rematchAsked = !!(s.rm && s.rm.by === mine);
+  if (before && before.tb && before.tb.by === mine && !s.tb && moves.length === before.moves.length) flash('They’d rather keep the move.', 5000);
+  if (before && before.rm && before.rm.by === mine && !s.rm && !s.next) flash('They’d rather not play again just now.');
+  // their questions, each put once
+  if (s.tb && s.tb.by !== mine && !answered.has(`tb:${s.id}:${s.tb.ply}`)) askTakeback(s);
+  if (s.rm && s.rm.by !== mine && !answered.has(`rm:${s.id}`)) askRematch(s);
+  // a rematch has started: over to it, if it started while you were here
+  if (s.next && before && !before.next) goGame(s.next);
+  chatFromServer(s, before);
+  persist();
+  setLink();
   draw();
 }
-
-/* ---------- coming back from the background ----------
-   A backgrounded tab can be frozen (tasks suspended) or discarded outright, and
-   either way the connection may be gone with nothing on screen to say so. When
-   the page comes back and nobody is connected, drop the old connection and rejoin
-   rather than waiting for a stale connection to notice it's dead. */
-let joinedAt = 0;              // when this page last joined the table's room
-let peerSeen = 0, peerVersion = null, lastPing = 0;
-let peerPly = null;           // how many moves their phone has, from its last report
-let sentAt = 0;               // when our last move went out
-const seenIds = new Set();
-const PING_MS = 3000, SILENT_MS = 12000;
-// a short fingerprint of the moves, so two boards with the same number of moves
-// can tell whether they're the same moves
-function histHash() {
-  let x = 0;
-  for (const c of game.history().join(' ')) x = (x * 31 + c.charCodeAt(0)) | 0;
-  return (x >>> 0).toString(36);
+function goGame(g) {
+  swapScreen(() => { location.hash = 'r=' + g; });
 }
-function ping() { lastPing = Date.now(); broadcast({ t: 'ping', ply: game.history().length, h: histHash(), v: VERSION }); }
+
+function sendMove(ply, san) {
+  pendingMove = { ply, san, inflight: false };
+  sendPending();
+}
+async function sendPending() {
+  const p = pendingMove;
+  if (!p || p.inflight) return;
+  p.inflight = true;
+  const r = await netReq('move', { g: code, ply: p.ply, san: p.san }, { queue: true });
+  p.inflight = false;
+  if (pendingMove !== p) return;
+  if (r.ok) { pendingMove = null; applyServer(r.state); return; }
+  if (r.err === 'offline') { drawStatus(); return; }      // goes again once the connection is back
+  pendingMove = null;
+  if (r.state) { og = null; applyServer(r.state); }
+  flash(r.err === 'illegal' ? 'The server didn’t accept that move, so it’s been taken back.'
+    : r.err === 'pending' ? 'The game hasn’t started yet.'
+    : 'That move didn’t go through. The board now shows the game as the server has it.', 8000);
+}
+// the rest of what you do in an online game: sent, and the board takes the answer
+async function gameAct(op, a = {}) {
+  const r = await netReq(op, { g: code, ...a });
+  if (r.state) applyServer(r.state);
+  if (!r.ok) {
+    flash(r.err === 'offline' ? 'Not connected to the server. Try again when you’re back online.' : 'That didn’t go through. The board shows the game as the server has it.', 6000);
+    draw();
+  }
+  return r;
+}
+function askTakeback(s) {
+  const key = `tb:${s.id}:${s.tb.ply}`;
+  answered.add(key);
+  peerModal({
+    title: 'Takeback?',
+    body: `<p>${escText(rivalName() || 'They')} asks to take back their move.</p>`,
+    actions: [{ label: 'Keep the move', value: false, focus: true }, { label: 'Allow it', value: true, kind: 'go' }]
+  }, () => og && og.tb && `tb:${og.id}:${og.tb.ply}` === key).then(ok => {
+    if (ok === null || !og || !og.tb || `tb:${og.id}:${og.tb.ply}` !== key) return;
+    gameAct('takebackAnswer', { ok: !!ok });
+  });
+}
+function askRematch(s) {
+  answered.add(`rm:${s.id}`);
+  const mine = myColor === 'w' ? 'Black' : 'White';
+  peerModal({
+    title: 'Rematch?',
+    body: `<p>${escText(rivalName() || 'They')} would like another game. You’d play ${mine}.</p>`,
+    actions: [{ label: 'Not now', value: false, focus: true }, { label: 'Play again', value: true, kind: 'go' }]
+  }, () => og && og.rm && og.rm.by !== myColor && !og.next).then(async ok => {
+    if (ok === null || !og || !og.rm || og.next) return;
+    const r = await gameAct('rematchAnswer', { ok: !!ok });
+    if (r.ok && r.next) goGame(r.next);
+  });
+}
+// what the other player has helping them, told to them as it changes
+function sendFlags() {
+  if (!ownTable(code) || !og) return;
+  netReq('flags', { g: code, hints: hintsOn, auto: autoPlay, coach: coachMode !== 'off', review: reviewOn }, { queue: true });
+}
+
 const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;
+// the Table tab: the connection, and the time limit
 function drawConn() {
-  const show = !solo && !!code && code !== 'puzzle';
+  const show = !solo && !!code && code !== 'puzzle' && !!acct;
   el('connBox').classList.toggle('hidden', !show);
   if (!show) return;
   const line = el('connLine');
-  if (!peers.size) {
-    const secs = joinedAt ? Math.round((Date.now() - joinedAt) / 1000) : 0;
-    line.textContent = `Looking for ${fmtSecs(secs)} · table server ${srvState()} · build ${VERSION}` +
-      (secs >= 30 ? '. Not connecting? Both press Force reload, and check your builds match.' : '');
-    line.classList.toggle('warn', secs >= 30);
-    return;
+  const conn = net.open ? 'Connected to the server' : acct ? 'Not connected to the server. Reconnecting…' : 'No account on this device';
+  let lim = '';
+  if (og && !og.pending && !neverStarted()) {
+    lim = og.limit ? ` · ${limitWords(og.limit)} per move` : ' · no time limit';
+    if (og.deadline && !result) lim += ` · ${game.turn() === myColor ? 'you have' : 'they have'} until ${fmtDeadline(og.deadline)}`;
   }
-  const quiet = peerSeen ? Math.round((Date.now() - peerSeen) / 1000) : null;
-  const silent = quiet == null || quiet * 1000 > SILENT_MS;
-  const builds = !peerVersion ? 'their build: older than this one (it doesn’t say), so they should Force reload'
-    : peerVersion === VERSION ? `both on build ${VERSION}`
-    : `their build ${peerVersion}, yours ${VERSION}: both press Force reload`;
-  line.textContent = (quiet == null ? 'Connected, but nothing heard from them yet'
-      : silent ? `Nothing heard from them for ${fmtSecs(quiet)}. Reconnecting…`
-      : `Connected · heard from them ${quiet}s ago`) + ' · ' + builds + '.';
-  line.classList.toggle('warn', silent || peerVersion !== VERSION);
-  el('topState').textContent = silent && quiet != null ? 'no reply' : 'connected';
+  line.textContent = conn + lim + '.';
+  line.classList.toggle('warn', !net.open);
+  el('connCopy').classList.toggle('hidden', !(og && og.pending === 'invite'));
 }
-/* Before the first move, until something has actually arrived from them, the
-   screen is only the table: the code to send and the connection. The board
-   comes in when they do. A game already under way keeps its board; losing
-   them then shows a bar with Reconnect instead. */
+/* An online game that hasn't started, or can't be shown, is only the invite
+   card: the board comes once it has started. A challenge declined or cancelled
+   before it started stays that way. */
+const neverStarted = () => !!og && !!og.result && ['declined', 'cancelled'].includes(og.result.type);
+const cardOnly = () => !!gameGone || (og ? !!og.pending || neverStarted() : !game.history().length);
 function updateConnecting() {
   const online = !solo && !!code && code !== 'puzzle';
-  const connecting = online && game.history().length === 0 && (!peers.size || !peerSeen);
+  const connecting = online && cardOnly();
   const was = document.body.classList.contains('connecting');
   document.body.classList.toggle('online', online);
   document.body.classList.toggle('connecting', connecting);
@@ -4131,12 +4509,84 @@ function updateConnecting() {
 }
 function drawDrop() {
   const online = !solo && !!code && code !== 'puzzle';
-  const quiet = peerSeen ? Date.now() - peerSeen : Infinity;
-  const show = online && !document.body.classList.contains('connecting') && !result && (!peers.size || quiet > SILENT_MS);
+  const show = online && !!acct && !document.body.classList.contains('connecting') && !net.open && net.downAt && Date.now() - net.downAt > 4000;
   el('dropBar').classList.toggle('hidden', !show);
-  if (show) el('dropText').textContent = !peers.size ? 'They’re not connected. Reconnecting…'
-    : `Nothing heard from them for ${fmtSecs(Math.round(quiet / 1000))}. Reconnecting…`;
+  if (show) el('dropText').textContent = pendingMove ? 'Can’t reach the server. Your move goes as soon as it’s back. Reconnecting…' : 'Can’t reach the server. Reconnecting…';
 }
+// the invite card: a link to send, a challenge to answer, or why the game can't be opened
+function drawInvite() {
+  const online = !solo && !!code && code !== 'puzzle';
+  const show = online && cardOnly();
+  el('invite').classList.toggle('hidden', !show);
+  if (!show) return;
+  const msg = el('inviteMsg'), acts = el('pendActs');
+  let label = 'Your game', text = '', link = false, buttons = [], name = false;
+  const col = myColor === 'w' ? 'White' : 'Black';
+  const lim = og && og.limit ? `${limitWords(og.limit)} per move` : 'no time limit';
+  if (gameGone === 'noAccount') {
+    label = 'Online game';
+    text = 'Online games need an account. It’s only a name: choose the one your friends will see.';
+    name = true;
+  } else if (gameGone) {
+    label = 'This game';
+    text = gameGone === 'taken' ? 'Someone else has already joined this game.'
+      : gameGone === 'notYours' ? 'This game is between two other players.'
+      : 'This game isn’t on the server. Games from before the server kept them can’t be reopened.';
+    buttons = [{ label: 'Back to the start', run: () => { location.href = location.pathname + location.search; } }];
+  } else if (!og) {
+    text = net.open ? 'Loading the game…' : 'Connecting to the server…';
+  } else if (neverStarted()) {
+    label = 'This game';
+    text = og.result.type === 'cancelled' ? (og.by === acct.id ? 'You cancelled this game.' : 'This challenge was cancelled.')
+      : og.by === acct.id ? `${rivalName() || 'They'} declined your challenge.` : 'You declined this challenge.';
+    buttons = [{ label: 'Back to the start', run: () => { location.href = location.pathname + location.search; } }];
+  } else if (og.pending === 'invite') {
+    label = `Your game · you play ${col} · ${lim}`;
+    link = true;
+    buttons = [{ label: 'Cancel the invite', run: async () => { await gameAct('cancel'); location.href = location.pathname + location.search; } }];
+  } else if (og.pending === 'challenge' && og.by === acct.id) {
+    label = 'Challenge sent';
+    text = `Waiting for ${rivalName() || 'them'} to accept. You play ${col}, ${lim}. You can leave this screen: the game will be in Resume a game once it starts.`;
+    buttons = [{ label: 'Cancel the challenge', run: async () => { await gameAct('cancel'); location.href = location.pathname + location.search; } }];
+  } else if (og.pending === 'challenge') {
+    label = 'Challenge';
+    text = `${rivalName() || 'Someone'} challenges you. You’d play ${col}, ${lim}.`;
+    buttons = [{ label: 'Decline', run: async () => { await gameAct('decline'); location.href = location.pathname + location.search; } },
+      { label: 'Accept', primary: true, run: () => gameAct('accept') }];
+  }
+  el('inviteLabel').textContent = label;
+  el('inviteLink').classList.toggle('hidden', !link);
+  msg.textContent = text;
+  msg.classList.toggle('hidden', !text);
+  el('inviteName').classList.toggle('hidden', !name);
+  const key = buttons.map(b => b.label).join('|');
+  if (acts.dataset.key !== key) {
+    acts.dataset.key = key;
+    acts.innerHTML = '';
+    for (const b of buttons) {
+      const btn = document.createElement('button');
+      btn.textContent = b.label;
+      if (b.primary) btn.className = 'primary';
+      btn.onclick = async () => { btn.disabled = true; try { await b.run(); } finally { btn.disabled = false; } };
+      acts.appendChild(btn);
+    }
+  }
+  acts.classList.toggle('hidden', !buttons.length);
+}
+el('inviteNameBtn').onclick = async () => {
+  const name = el('inviteNameIn').value.trim();
+  if (!name) { el('inviteNameIn').focus(); return; }
+  if (!await edOK()) { el('inviteMsg').textContent = 'This browser is too old for Étude accounts. Update it, or try another browser.'; return; }
+  el('inviteNameBtn').disabled = true;
+  await makeAccount(name.slice(0, 30));
+  el('inviteNameBtn').disabled = false;
+  gameGone = null;
+  setLink();
+  draw();
+  if (net.open) loadGame();          // otherwise it loads when the connection opens
+};
+el('inviteNameIn').addEventListener('keydown', e => { if (e.key === 'Enter') el('inviteNameBtn').click(); });
+
 /* Fade the page's contents out, change screen, fade them back in. */
 const FADE_MS = 150;
 const calm = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -4157,72 +4607,77 @@ function fadeIn(node) {
   node.classList.add('fadein');
 }
 
-/* Chat. Each message has an id. A message is 'sent' once it has gone to the
-   table server, 'delivered' when the other phone confirms it, 'seen' when they
-   have the chat open on screen. Anything not delivered is sent again whenever
-   they reappear. Kept on each device per table (table:chat:<code>), the last 200.
-   Each device is one player: testing needs two browsers, not two windows of one.
+/* Chat. Kept with the game on the server, so it works whether or not the other
+   player is there, like the moves. A message is 'sent' once the server has it
+   and 'seen' once they've had the chat open since. One typed while the
+   connection is down waits here (etude:chatq:<code>) and goes when it's back.
    The chat has a screen of its own over the game: the chat button in the top
-   bar shows a count of unread messages, and the Game button on the chat screen
-   shows when they've moved while you were chatting. */
+   bar shows when there are unread messages, and the Game button on the chat
+   screen shows when they've moved while you were chatting. */
 let chatUnread = 0, chatOpen = false, chatPlyAtOpen = 0;
-const chatKey = () => 'table:chat:' + code;
-const chatList = () => store.get(chatKey()) || [];
-function chatSave(list) { store.set(chatKey(), list.slice(-200)); }
-const chatOnline = () => !!srv && srv.readyState === 1;
+const chatQKey = () => 'etude:chatq:' + code;
+const chatQueue = () => store.get(chatQKey()) || [];
+function chatList() {
+  const out = [];
+  if (og) {
+    const seenBy = (og.seen && og.seen[them()]) || 0;
+    og.chat.forEach((m, i) => out.push({ me: m.by === myColor, text: m.text, at: m.at, status: m.by === myColor ? (i < seenBy ? 'seen' : 'sent') : '' }));
+    const have = new Set(og.chat.map(m => m.cid));
+    for (const q of chatQueue()) if (!have.has(q.cid)) out.push({ me: true, text: q.text, at: q.at, status: 'waiting to send' });
+  }
+  return out;
+}
 function chatSend(text) {
   text = String(text).trim().slice(0, 500);
-  if (!text) return;
-  const m = { id: Math.random().toString(36).slice(2, 10), me: true, text, at: Date.now(), sent: chatOnline(), ok: false, seen: false };
-  chatSave([...chatList(), m]);
-  broadcast({ t: 'chat', id: m.id, text: m.text, at: m.at });
+  if (!text || !og) return;
+  const cid = Math.random().toString(36).slice(2, 10);
+  const g = code;
+  store.set(chatQKey(), [...chatQueue(), { cid, text, at: Date.now() }]);
   drawChat();
+  netReq('chat', { g, text, cid }, { queue: true }).then(r => {
+    if (code !== g) return;
+    if (r.ok || (r.err && r.err !== 'offline')) store.set(chatQKey(), chatQueue().filter(q => q.cid !== cid));
+    if (r.state) applyServer(r.state);
+    else drawChat();
+  });
 }
+// messages typed while offline, sent again when the game arrives from the server
 function chatResend() {
-  const list = chatList();
-  let changed = false;
-  for (const m of list) if (m.me && !m.ok) {
-    broadcast({ t: 'chat', id: m.id, text: m.text, at: m.at });
-    if (!m.sent && chatOnline()) { m.sent = true; changed = true; }
+  const have = new Set(og ? og.chat.map(m => m.cid) : []);
+  const left = chatQueue().filter(q => !have.has(q.cid));
+  store.set(chatQKey(), left);
+  for (const q of left) netReq('chat', { g: code, text: q.text, cid: q.cid }, { queue: true }).then(r => {
+    if (r.ok) store.set(chatQKey(), chatQueue().filter(x => x.cid !== q.cid));
+    if (r.state) applyServer(r.state);
+  });
+}
+function chatFromServer(s, before) {
+  const theirs = them();
+  const seen = (s.seen && s.seen[myColor]) || 0;
+  chatUnread = s.chat.filter((m, i) => m.by === theirs && i >= seen).length;
+  const newOnes = before && before.id === s.id ? s.chat.length - before.chat.length : 0;
+  if (newOnes > 0 && s.chat.at(-1).by === theirs && !chatVisible()) {
+    chatChime();
+    try { navigator.vibrate && !document.hidden && navigator.vibrate([40, 60, 40]); } catch {}
   }
-  if (changed) { chatSave(list); drawChat(); }
-}
-function chatReceive(msg) {
-  if (typeof msg.id !== 'string' || typeof msg.text !== 'string') return;
-  broadcast({ t: 'chatAck', id: msg.id });
-  const list = chatList();
-  if (list.some(m => m.id === msg.id)) { chatSeenNow(); return; }
-  list.push({ id: msg.id, me: false, text: msg.text.slice(0, 500), at: Date.now(), told: false });
-  chatSave(list);
-  if (!chatVisible()) { chatUnread++; chatChime(); try { navigator.vibrate && !document.hidden && navigator.vibrate([40, 60, 40]); } catch {} }
-  drawChat();
+  if (!before || before.id !== s.id) chatResend();
   chatSeenNow();
-}
-function chatAcked(id) {
-  const list = chatList();
-  const m = list.find(x => x.id === id);
-  if (m && !m.ok) { m.ok = m.sent = true; chatSave(list); drawChat(); }
-}
-function chatSeen(ids) {
-  if (!Array.isArray(ids)) return;
-  const list = chatList();
-  let changed = false;
-  for (const m of list) if (m.me && ids.includes(m.id) && !m.seen) { m.seen = m.ok = m.sent = true; changed = true; }
-  if (changed) { chatSave(list); drawChat(); }
+  drawChat();
 }
 const chatVisible = () => chatOpen && !document.hidden;
-// with the chat on screen, tell them which of their messages we've now seen
+// with the chat on screen, tell the server you've read it
 function chatSeenNow() {
-  if (!chatVisible()) return;
-  const list = chatList();
-  const ids = list.filter(m => !m.me && !m.told).map(m => m.id);
-  if (!ids.length) return;
-  broadcast({ t: 'chatSeen', ids });
-  for (const m of list) if (!m.me) m.told = true;
-  chatSave(list);
+  if (!chatVisible() || !og) return;
+  const n = og.chat.length;
+  if (n > ((og.seen && og.seen[myColor]) || 0)) {
+    og.seen = { ...og.seen, [myColor]: n };
+    chatUnread = 0;
+    netReq('seen', { g: code, n }, { queue: true });
+  }
 }
 const chatTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-const chatStatus = m => m.seen ? 'seen' : m.ok ? 'delivered' : m.sent ? 'sent' : 'waiting to send';
+const chatDay = t => new Date(t).toDateString() === new Date().toDateString() ? chatTime(t)
+  : new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ', ' + chatTime(t);
 function openChat() {
   chatOpen = true;
   chatPlyAtOpen = game.history().length;
@@ -4265,7 +4720,7 @@ if (window.visualViewport) {
   visualViewport.addEventListener('scroll', fitChat);
 }
 function drawChat() {
-  const on = !solo && !!code && code !== 'puzzle';
+  const on = !solo && !!code && code !== 'puzzle' && !!og && !og.pending && !neverStarted();
   el('chatBtn').classList.toggle('hidden', !on);
   if (!on) { if (chatOpen) closeChat(); return; }
   if (chatVisible()) chatUnread = 0;
@@ -4285,7 +4740,7 @@ function drawChat() {
   const list = chatList();
   const log = el('chatLog');
   const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-  log.innerHTML = list.length ? list.map(m => `<div class="chatmsg${m.me ? ' me' : ''}">${escText(m.text)}<span class="t">${chatTime(m.at)}${m.me ? ' · ' + chatStatus(m) : ''}</span></div>`).join('')
+  log.innerHTML = list.length ? list.map(m => `<div class="chatmsg${m.me ? ' me' : ''}">${escText(m.text)}<span class="t">${chatDay(m.at)}${m.me ? ' · ' + m.status : ''}</span></div>`).join('')
     : '';
   if (atEnd) log.scrollTop = log.scrollHeight;
 }
@@ -4310,261 +4765,62 @@ el('chatForm').onsubmit = e => {
 };
 document.addEventListener('visibilitychange', () => { if (code && !solo) { drawChat(); chatSeenNow(); } });
 
-function showDiag(slot) {
-  const panel = el('debugPanel');
-  const here = panel.parentElement === el(slot);
-  if (!here) el(slot).appendChild(panel);
-  if (panel.classList.contains('hidden') || !here) {
-    panel.classList.add('hidden');      // toggleDebug shows it and starts the refresh
-    toggleDebug();
-  } else toggleDebug();
+/* ---- news from the server, while the app is open ----
+   The server sends it here only when a phone has the app on screen (otherwise
+   it goes as a push notification). News about the game you're looking at needs
+   nothing: the board shows it. Anything else pops up at the top, with Open. */
+function eventWords(e) {
+  const who = e.from || 'Your opponent';
+  return {
+    move: [`${who} moved`, `${e.san}. Your move.`],
+    end: [`${who} moved`, `${e.san}. The game is over.`],
+    chat: [who, e.text],
+    challenge: [`${who} challenges you`, ''],
+    accepted: [`${who} accepted your challenge`, 'The game has started.'],
+    declined: [`${who} declined your challenge`, ''],
+    joined: [`${who} joined your game`, 'The game has started.'],
+    resign: [`${who} resigned`, 'You win.'],
+    takeback: [`${who} asks for a takeback`, ''],
+    takebackYes: [`${who} allowed the takeback`, ''],
+    takebackNo: [`${who} kept the move`, ''],
+    rematch: [`${who} offers a rematch`, ''],
+    rematchNo: [`${who} declined a rematch`, ''],
+    reminder: [`Your move against ${who}`, `About ${e.hours} hour${e.hours === 1 ? '' : 's'} left.`],
+    time: [`Out of time against ${who}`, 'The game is over.'],
+    timewin: [`${who} ran out of time`, 'You win.'],
+    friendRequest: [`${who} wants to be friends`, ''],
+    friendAccepted: [`${who} accepted your friend request`, ''],
+    friendLinked: [`${who} added you as a friend`, 'From your friend link.'],
+  }[e.type] || null;
 }
-
-function teardown() {
-  peerSeen = 0;
-  peerVersion = null;
-  peerPly = null;
-  srvClose();
-  clearInterval(healthTimer);
-  healthTimer = null;
-  peers.clear();
+let popTimer = null;
+function onEvent(e) {
+  if (!e) return;
+  if (e.g && e.g === onlineCode() && !document.hidden) return;     // on screen already
+  const w = eventWords(e);
+  if (!w) return;
+  el('popTitle').textContent = w[0];
+  el('popBody').textContent = w[1];
+  const go = e.g ? () => goGame(e.g) : e.type.startsWith('friend') ? goProfile : null;
+  el('popGo').classList.toggle('hidden', !go || e.type === 'friendAccepted' || e.type === 'friendLinked');
+  el('popGo').onclick = () => { hidePop(); go && go(); };
+  el('pop').classList.remove('off');
+  if (e.type === 'chat') chatChime();
+  clearTimeout(popTimer);
+  popTimer = setTimeout(hidePop, 9000);
 }
-function rejoinIfDropped() {
-  if (!code) return;
-  if (peers.size) return;                       // still connected, leave it alone
-  if (Date.now() - lastRejoin < 5000) return;   // don't thrash on rapid switching
-  lastRejoin = Date.now();
-  teardown();
-  connect();
-  draw();
+// the account screen, from anywhere: from a game it's a fresh page, as leaving a game always is
+function goProfile() {
+  if (el('lobby').classList.contains('hidden')) {
+    try { sessionStorage.setItem('etude:screen', 'profile'); } catch {}
+    location.href = location.pathname + location.search;
+  } else showScreen('profile');
 }
+function hidePop() { clearTimeout(popTimer); el('pop').classList.add('off'); }
+el('popX').onclick = hidePop;
 
-document.addEventListener('visibilitychange', () => {
-  if (code && !solo) note(document.hidden ? 'page went into the background' : 'page back in view');
-  if (!document.hidden) rejoinIfDropped();
-});
-window.addEventListener('offline', () => { if (code && !solo) note('device went offline'); });
-window.addEventListener('online', () => { if (code && !solo) note('device back online'); });
-try {
-  const nc = navigator.connection;
-  if (nc) nc.addEventListener('change', () => { if (code && !solo) note(`network changed (${nc.type || nc.effectiveType || '?'})`); });
-} catch {}
-// Page Lifecycle: fired when a frozen tab is brought back.
-document.addEventListener('resume', rejoinIfDropped);
-// bfcache restores don't fire visibilitychange.
-window.addEventListener('pageshow', e => { if (e.persisted) rejoinIfDropped(); });
-window.addEventListener('online', rejoinIfDropped);
-
-function broadcast(msg) {
-  msg._id = msg._id || Math.random().toString(36).slice(2, 10);
-  if (srv && srv.readyState === 1) { try { srv.send(JSON.stringify(msg)); } catch (e) { console.warn('send failed', e); } }
-}
-
-function sendState() {
-  broadcast({ t: 'state', history: game.history(), result, color: myColor, undecided: joinByCode, owner: tableOwner, dev: deviceId });
-}
-
-function handleMessage(msg) {
-  if (!msg || typeof msg !== 'object') return;
-  const first = !peerSeen;
-  peerSeen = Date.now();
-  hadPeer = true;
-  if (first) updateConnecting();
-  if (msg._id) {
-    if (seenIds.has(msg._id)) return;
-    seenIds.add(msg._id);
-    if (seenIds.size > 300) seenIds.delete(seenIds.values().next().value);
-  }
-
-  if (msg.t === 'ping') {
-    const changed = peerVersion !== msg.v;
-    peerVersion = typeof msg.v === 'string' ? msg.v.slice(0, 40) : null;
-    if (typeof msg.ply === 'number') peerPly = msg.ply;
-    // a move that went missing: whoever is behind asks, whoever is ahead sends the game
-    const ply = game.history().length;
-    if (typeof msg.ply === 'number') {
-      if (msg.ply > ply) broadcast({ t: 'sync' });
-      else if (msg.ply < ply) sendState();
-      else if (typeof msg.h === 'string' && msg.h !== histHash()) sendState();   // same count, different moves
-    }
-    if (changed) drawStatus();
-    drawConn();
-    return;
-  }
-
-  if (msg.t === 'state') {
-    // colours: settle a clash by the rule above; an undecided side becomes decided either way
-    if (msg.color === 'w' || msg.color === 'b') {
-      let changed = joinByCode;
-      if (msg.color === myColor) {
-        const iSwitch = joinByCode !== !!msg.undecided ? joinByCode
-          : tableOwner !== !!msg.owner ? !tableOwner
-          : deviceId > String(msg.dev || '');
-        if (iSwitch) { myColor = myColor === 'w' ? 'b' : 'w'; changed = true; note(`colour settled: playing ${myColor === 'w' ? 'White' : 'Black'}`); }
-      }
-      joinByCode = false;
-      if (changed) { persist(); setLink(); sendState(); draw(); }
-    }
-    seatClash = false;
-    if (Array.isArray(msg.history)) { peerPly = msg.history.length; adopt(msg.history, msg.result, !!msg.force); }
-    if (msg.force) takebackAsked = false;
-    return;
-  }
-
-  if (msg.t === 'move') {
-    const ply = game.history().length;
-    if (msg.ply === ply) {
-      // a move for my side: some other device thinks it's playing my colour. Not
-      // played; my state goes back with my colour, which settles the seats.
-      if (!isLocal() && !joinByCode && game.turn() === myColor) {
-        sendState();
-        sayTable('Another device is playing your side at this table.');
-        return;
-      }
-      try {
-        const m = game.move(msg.san);
-        if (m) {
-          lastMove = { from: m.from, to: m.to };
-          checkEnd();
-          persist();
-          draw();
-          moveSound(m);
-          ping();                  // straight back: tells them it arrived
-        }
-      } catch { sendState(); }
-    } else if (msg.ply > ply) {
-      broadcast({ t: 'sync' });
-    }
-    return;
-  }
-
-  if (msg.t === 'sync') { sendState(); return; }
-  if (msg.t === 'chat') { chatReceive(msg); return; }
-  if (msg.t === 'chatAck') { chatAcked(msg.id); return; }
-  if (msg.t === 'chatSeen') { chatSeen(msg.ids); return; }
-
-  if (msg.t === 'resign') {
-    if (result) return;                    // the game had already ended on this board
-    result = { type: 'resign', winner: myColor };   // it's the other player who resigned
-    persist(); draw();
-    peerModal({
-      title: 'They resigned',
-      body: '<p>You win. The game is saved to your game history.</p>',
-      actions: [{ label: 'OK', value: null, focus: true }, { label: 'Offer a rematch', value: 'again', kind: 'go' }]
-    }).then(v => { if (v === 'again' && result) rematch(); });
-    return;
-  }
-
-  /* ---- a rematch is offered, and only starts once the other player accepts ---- */
-  if (msg.t === 'rematchAsk') {
-    if (rematchAsked) {                    // both offered at once: that's a yes from each
-      rematchAsked = false;
-      broadcast({ t: 'rematchYes' });
-      startFresh(myColor === 'w' ? 'b' : 'w');
-      return;
-    }
-    const mine = msg.yourColor === 'b' ? 'Black' : 'White';
-    const at = game.history().length, over = !!result, serial = gameSerial;
-    peerModal({
-      title: 'Rematch?',
-      body: over ? `<p>They’d like another game. You’d play ${mine}.</p>`
-        : `<p>They’d like a new game, but this one isn’t over on your board. Starting again ends it here. You’d play ${mine}.</p>`,
-      actions: [{ label: 'Not now', value: false, focus: true }, { label: 'Play again', value: true, kind: 'go' }]
-    }, () => { const ok = gameSerial === serial && game.history().length === at && !!result === over; if (ok) rematchQ = serial || -1; return ok; }).then(ok => {
-      if (gameSerial !== serial) return;       // a new game started meanwhile: nothing to answer
-      if (ok && game.history().length === at) { broadcast({ t: 'rematchYes' }); startFresh(msg.yourColor); }
-      else broadcast({ t: 'rematchNo' });
-    });
-    return;
-  }
-  if (msg.t === 'rematchYes') {
-    if (!rematchAsked) return;
-    rematchAsked = false;
-    startFresh(myColor === 'w' ? 'b' : 'w');
-    return;
-  }
-  if (msg.t === 'rematchNo') {
-    if (!rematchAsked) return;
-    rematchAsked = false;
-    draw();
-    flash('They’d rather not play again just now.');
-    return;
-  }
-  // older builds start the new game at once; only take that once this one is over
-  if (msg.t === 'rematch') { if (result) startFresh(msg.yourColor); else sendState(); return; }
-
-  // Hints are announced rather than silent — see the note in the README.
-  if (msg.t === 'hint') {
-    peerHints = !!msg.on;
-    peerAuto = !!msg.auto;
-    peerCoach = !!msg.coach;
-    peerReview = !!msg.review;
-    setLink();
-    if (code) draw();
-    return;
-  }
-
-  if (msg.t === 'tb') {
-    if (result || !game.history().length) return;
-    const asker = msg.color === 'w' ? 'White' : 'Black';
-    const askedAt = game.history().length;
-    peerModal({
-      title: 'Takeback?',
-      body: `<p>${asker} asks to take back their move.</p>`,
-      actions: [
-        { label: 'Keep the move', value: false, focus: true },
-        { label: 'Allow it', value: true, kind: 'go' }
-      ]
-    }, () => !result && game.history().length === askedAt).then(ok => {
-      // The board may have moved on while the question was up.
-      if (!ok || result || game.history().length !== askedAt) {
-        broadcast({ t: 'tbno' });
-        return;
-      }
-      // Wind back to the asker's turn, removing at least one of their own moves.
-      const hist = game.history();
-      const drop = Math.min(game.turn() === msg.color ? 2 : 1, hist.length);
-      const rewound = hist.slice(0, hist.length - drop);
-      broadcast({ t: 'state', history: rewound, result: null, color: myColor, force: true });
-      adopt(rewound, null, true);
-    });
-    return;
-  }
-
-  if (msg.t === 'tbno') {
-    takebackAsked = false;
-    flash('They’d rather keep the move.', 4000);
-    return;
-  }
-}
-
-function adopt(history, remoteResult, force = false) {
-  // Normally a shorter history means we're ahead and they need catching up.
-  // A takeback is the one case where going backwards is the correct answer.
-  if (!force) {
-    const mine = game.history();
-    const n = Math.min(mine.length, history.length);
-    let k = 0;
-    while (k < n && mine[k] === history[k]) k++;
-    if (k < n) {
-      /* The boards disagree from move k on. Each player owns their own moves:
-         whoever's turn it was at move k keeps their version, and the other board
-         takes it. Both boards apply the same rule, so they agree without asking. */
-      const startW = newGameFrom().turn() === 'w';
-      const owner = (k % 2 === 0) === startW ? 'w' : 'b';
-      if (owner === myColor) {
-        sendState();
-        sayTable('Their board was out of step with yours. It now matches yours.');
-        return;
-      }
-      sayTable('Your board was out of step with theirs. It now matches theirs.');
-      // and on to take their version, below
-    } else {
-      if (history.length < mine.length) { sendState(); return; }
-      if (history.length === mine.length && !remoteResult) return;
-    }
-  }
-
+// a game from the server, onto the board: its moves from the start, and its result
+function adopt(history, remoteResult) {
   const fresh = newGameFrom();          // a set-up position replays from where it started
   for (const san of history) {
     try { fresh.move(san); } catch { return; }
@@ -4609,10 +4865,8 @@ function afterLocalMove(m) {
   viewPly = null;
   lineView = null;
   setGate(m);
-  sentAt = Date.now();
-  broadcast({ t: 'move', ply: game.history().length - 1, san: m.san });
+  if (ownTable(code)) sendMove(game.history().length - 1, m.san);
   checkEnd();
-  if (result) sendState();
   persist();
   draw();
   return true;
@@ -4640,7 +4894,6 @@ function startFresh(colorForMe, keepLine = false) {
   }
   game = newGameFrom();
   myColor = colorForMe;
-  seatClash = false;
   takebackAsked = false;
   rematchAsked = false;
   freeTold = false;
@@ -4670,7 +4923,7 @@ const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle', 'study'].i
 
 function persist() {
   if (!code || code === 'puzzle' || code === 'study') return;
-  if (ownTable(code) && joinByCode) return;      // colour not settled yet: nothing worth keeping either
+  if (ownTable(code) && !og) return;             // nothing from the server yet: your colour isn't known
   recordGame();
   /* An online table's own copy is only for picking the game up again. Once the
      game is over it's in your history in full, so the copy goes; opening the
@@ -4687,7 +4940,7 @@ function persist() {
   const prev = store.get('table:' + code);
   store.set('table:' + code, { history: game.history(), myColor, result, gameId, fen: startFen || undefined, flip: flipView || undefined,
     turn: (code === 'local' && turnTop) || undefined, name: (ownTable(code) && prev && prev.name) || undefined,
-    lineId: lineId || undefined, at: Date.now(), owner: ownTable(code) && tableOwner || undefined,
+    lineId: lineId || undefined, at: Date.now(),
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
@@ -6981,7 +7234,7 @@ function draw() {
   drawChat();
   setPresence();
   el('resignBtn').disabled = !!result || game.history().length === 0;
-  el('takebackBtn').disabled = (!!result && !solo) || game.history().length === 0 || (!solo && !peers.size);
+  el('takebackBtn').disabled = (!!result && !solo) || game.history().length === 0 || (!solo && (!net.open || !og || !!og.pending));
   el('takebackBtn').textContent = takebackAsked ? 'Asked…' : 'Takeback';
   el('autoBtn').classList.toggle('hidden', solo);
   el('autoLabel').classList.toggle('hidden', solo);
@@ -6989,8 +7242,8 @@ function draw() {
   // in a set-up position, or playing both sides, it is a study aid: Stockfish's choice for whoever is to move
   el('hintLabel').textContent = 'Best move';
   el('soundBtn').textContent = sfxStyle === 'off' ? 'Off' : SFX[sfxStyle].name;
-  el('rematchBtn').classList.toggle('hidden', !result);
-  el('rematchBtn').textContent = isLocal() ? 'New game' : rematchAsked ? 'Rematch offered' : 'Rematch';
+  el('rematchBtn').textContent = isLocal() ? 'New game' : og && og.next ? 'Go to the rematch' : rematchAsked ? 'Rematch offered' : 'Rematch';
+  el('rematchBtn').classList.toggle('hidden', !result || !!(result && ['declined', 'cancelled'].includes(result.type)));
   el('rematchBtn').disabled = rematchAsked;
   el('flipBtn').classList.toggle('hidden', !canFlip());
   el('turnBtn').classList.toggle('hidden', code !== 'local');
@@ -7194,6 +7447,10 @@ function drawStatus() {
       s.textContent = isLocal() ? `${L} resigned. ${W} wins.` : result.winner === myColor ? 'They resigned. You win.' : 'You resigned.';
     } else if (result.type === 'checkmate') {
       s.textContent = isLocal() ? `Checkmate. ${W} wins.` : result.winner === myColor ? 'Checkmate. You win.' : 'Checkmate. You lose.';
+    } else if (result.type === 'time') {
+      s.textContent = result.winner === myColor ? 'They ran out of time. You win.' : 'You ran out of time.';
+    } else if (result.type === 'declined' || result.type === 'cancelled') {
+      s.textContent = result.type === 'declined' ? 'Challenge declined.' : 'Challenge cancelled.';
     } else {
       s.textContent = result.type === 'stalemate' ? 'Stalemate. Drawn.' : 'Drawn.';
     }
@@ -7210,7 +7467,9 @@ function drawStatus() {
 
   const check = game.isCheck();
   if (document.body.classList.contains('connecting')) {
-    s.textContent = peers.size ? 'Found them…' : 'Waiting for them…';
+    s.textContent = gameGone === 'noAccount' ? 'Online game' : gameGone ? 'Not available' : !og ? 'Loading…'
+      : og.pending === 'invite' ? 'Waiting for them to open the link…'
+      : og.by === (acct && acct.id) ? 'Waiting for them to accept…' : 'You’ve been challenged.';
     setNote(currentFlash());
     return;
   }
@@ -7227,9 +7486,8 @@ function drawStatus() {
     s.textContent = check ? 'Check. Your move.' : 'Your move.';
     s.classList.add('urgent');
   } else {
-    // our move hasn't reached their phone yet (their count is behind ours)
-    const unsent = !solo && peerPly != null && peerPly < game.history().length && Date.now() - sentAt > 2500;
-    s.textContent = unsent ? 'Sent, not received yet.'
+    // our move hasn't reached the server yet
+    s.textContent = pendingMove ? (net.open ? 'Sending…' : 'Not sent yet. It goes when the connection is back.')
       : game.isCheck() ? 'They’re in check.' : 'Their move.';
   }
 
@@ -7246,14 +7504,8 @@ function drawStatus() {
     return;
   }
   if (news) { setNote(news); return; }
-  if (peers.size) {
-    if (peerVersion && peerVersion !== VERSION) setNote('You’re on different builds of the app. Reload to get the newest; they need to as well.', reloadAct);
-    else setNote('');
-  } else if (srvState() !== 'open' && joinedAt && Date.now() - joinedAt > 8000) {
-    setNote('Can’t reach the table server. It reconnects by itself once the internet is back.');
-  } else {
-    setNote('Waiting for them to open the link.');
-  }
+  if (newerBuild) setNote('A newer version of Étude is out. Reload to get it.', reloadAct);
+  else setNote('');
 }
 
 function drawLedger() {
@@ -9182,7 +9434,7 @@ let coachReverted = false; // the sections just closed themselves after a move
 let coachOpen = new Set(); // which sections are open, this position only
 
 function announce() {
-  broadcast({ t: 'hint', on: hintsOn, auto: autoPlay, coach: coachMode !== 'off', review: reviewOn });
+  sendFlags();
 }
 
 function setCoach(mode) {
@@ -9459,12 +9711,13 @@ function setLink() {
     drawConn();
     return;
   }
-  const state = !code ? 'idle' : peers.size ? 'live' : 'searching';
+  const state = !code ? 'idle' : net.open ? 'live' : 'searching';
   document.body.dataset.link = state;
-  el('topState').textContent = state === 'live' ? 'connected' : 'waiting';
-  el('invite').classList.toggle('hidden', !(code && !peers.size && game.history().length === 0));
+  // who you're playing, while connected
+  const nm = rivalName();
+  el('topState').textContent = !acct ? '' : !net.open ? 'offline' : nm ? 'vs ' + (nm.length > 14 ? nm.slice(0, 13) + '…' : nm) : 'online';
+  drawInvite();
   updateConnecting();
-  el('invite').querySelector('.label').textContent = joinByCode ? 'Your table · your colour is set when they arrive' : `Your table · you play ${myColor === 'w' ? 'White' : 'Black'}`;
   drawConn();
   // what the other player has helping them, kept to one short line (fits a 320px phone)
   const tell = peerAuto ? 'The engine is playing their moves.'
@@ -9472,7 +9725,7 @@ function setLink() {
     : peerCoach ? 'They have the tactics coach on.'
     : peerReview ? 'They have the review on.' : '';
   el('peerHint').textContent = tell;
-  el('peerHint').classList.toggle('hidden', !(tell && peers.size));
+  el('peerHint').classList.toggle('hidden', !(tell && og && !og.pending));
   if (!el('game').classList.contains('hidden')) drawStatus();
 }
 
@@ -9638,14 +9891,11 @@ function askPromotion(from, to) {
   overlay.querySelector('button').focus();
 }
 
-/* ---------- diagnostics ----------
-   The point is that whoever is stuck can send this to whoever isn't. It names
-   the build, which of the two failure modes is happening, and what the relays
-   and the engine are doing. */
-let debugTimer = null;
-
+/* ---------- the report ----------
+   Copy report, in Settings beside the version: what to send when something
+   isn't working. It names the build, the connection to the server, the game
+   as the server last sent it, and what the engine is doing. */
 function diagnostics() {
-  const link = document.body.dataset.link;
   const eng = !engine ? 'not started'
     : engineJob ? `busy (${engineJob.mode}, depth ${engineJob.depth || '-'})`
     : 'ready';
@@ -9658,12 +9908,13 @@ function diagnostics() {
     ``,
     `mode        ${!code ? 'start screen' : online ? 'online table' : MODE[code] || code}${startFen ? ', from a set-up position' : ''}`,
     ...(online ? [
-    `room        ${code}`,
+    `game        ${code}`,
     `you         ${myColor === 'w' ? 'white' : 'black'}`,
-    `link        ${link}`,
-    `peers       ${peers.size}${peers.size ? `, heard from ${peerSeen ? Math.round((Date.now() - peerSeen) / 1000) + 's ago' : 'never'}, their build ${peerVersion || 'unknown'}` : ''}`,
-    `server      ${srvState()}`,
-    `looking     ${joinedAt && !solo ? Math.round((Date.now() - joinedAt) / 1000) + 's since joining' : '-'}`] : []),
+    `on server   ${og ? `v${og.v}, ${og.moves.length} moves${og.pending ? ', ' + og.pending : ''}${og.result ? ', over' : ''}` : gameGone || 'not loaded yet'}`,
+    `unsent      ${pendingMove ? `${pendingMove.san} (ply ${pendingMove.ply})` : 'nothing'}`] : []),
+    `server      ${netState()}${net.downAt && !net.open ? `, down ${Math.round((Date.now() - net.downAt) / 1000)}s` : ''} (${SERVER})`,
+    `account     ${acct ? `${acct.name || '(no name yet)'} ${myCode()}` : 'none'}, ${Object.keys(srvData.friends).length} friends, ${Object.keys(srvData.games).length} games listed`,
+    `newer build ${newerBuild || 'no'}`,
     `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
     `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
     ``,
@@ -9685,24 +9936,6 @@ function diagnostics() {
   ].filter(l => l !== ``).join('\n');
 }
 
-function drawDebug() {
-  el('debugText').textContent = diagnostics();
-}
-
-function toggleDebug() {
-  const panel = el('debugPanel');
-  const showing = panel.classList.toggle('hidden');
-  clearInterval(debugTimer);
-  debugTimer = null;
-  if (!showing) {
-    drawDebug();
-    debugTimer = setInterval(drawDebug, 1000);
-  }
-}
-
-el('verBtn').textContent = VERSION;
-el('verBtn').onclick = toggleDebug;
-
 el('copyDiagBtn').onclick = async () => {
   const text = diagnostics();
   try {
@@ -9721,14 +9954,9 @@ function forceReload() {
   u.searchParams.set('v', Date.now().toString(36));
   location.replace(u.toString());
 }
-el('reloadBtn').onclick = el('connReload').onclick = el('setReload').onclick = forceReload;
-el('connDiag').onclick = () => showDiag('connDebugSlot');
+el('connReload').onclick = el('setReload').onclick = forceReload;
 el('verVal').textContent = VERSION;
-// the link again, for when they've lost it: the same link the invite card gives out
-
-// ?debug or #...&debug opens it straight away, for someone who can't be talked
-// through tapping a version number.
-if (/[?&#]debug\b/.test(location.href)) toggleDebug();
+el('verFoot').textContent = VERSION;
 
 /* ---------- buttons ---------- */
 /* Play from the start screen: always a new game. Games under way are picked up
@@ -9782,58 +10010,70 @@ el('backBtn').onclick = () => swapScreen(() => {
   location.href = location.pathname + location.search;
 });
 
-/* Colours at an online table. Each device keeps its colour with the table
-   (table:<code>.myColor). The one who opened the table chose theirs (owner).
-   A device arriving with no colour for this table (a link or code it hasn't
-   used before) is undecided: it takes whichever colour the other player
-   doesn't have, from their first message. If both end up claiming the same
-   colour anyway (old saved data, an old-style link), one rule, worked out
-   identically on both devices, says who switches: undecided before decided,
-   then the owner keeps theirs, then the device with the higher random id
-   switches. */
-let joinByCode = false;               // this device's colour for the table is still undecided
-let tableOwner = false;               // this device opened the table
-const deviceId = (() => {
-  let d = store.get('table:device');
-  if (!d) { d = Math.random().toString(36).slice(2, 12); store.set('table:device', d); }
-  return d;
-})();
+/* Starting an online game. A challenge goes to a friend, who accepts or declines;
+   an invite is a link with the other seat empty. Either way the game is made on
+   the server first, and its code is the game's address (#r=<code>). */
 const CODE_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{9}$/;
 el('joinBtn').onclick = () => {
   const raw = el('joinCode').value.trim();
   const link = /[#&]r=([a-z0-9]{9})/i.exec(raw);
   const c = (link ? link[1] : raw.replace(/[^a-z0-9]/gi, '')).toLowerCase();
-  if (!CODE_RE.test(c)) { el('joinMsg').textContent = 'That doesn’t look like a table code. It’s 9 letters and numbers, like abc def ghi.'; return; }
+  if (!CODE_RE.test(c)) { el('joinMsg').textContent = 'That doesn’t look like a game code. It’s 9 letters and numbers, like abc def ghi.'; return; }
   el('joinMsg').textContent = '';
-  code = c;
-  takeSeat();
-  setHash();
-  begin();
+  goGame(c);
 };
 el('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') el('joinBtn').click(); });
 
-// your colour at this table: the one saved on this device, or undecided until the other player says
-function takeSeat() {
-  const saved = store.get('table:' + code);
-  if (saved && (saved.myColor === 'w' || saved.myColor === 'b')) {
-    myColor = saved.myColor; tableOwner = !!saved.owner; joinByCode = false;
-  } else {
-    myColor = 'b'; tableOwner = false; joinByCode = true;
-  }
+// your colour and the time limit, for a challenge or an invite; null if cancelled
+async function pickTerms(title, intro, goLabel) {
+  const box = document.createElement('div');
+  box.innerHTML = `<p>${escText(intro)}</p><div class="terms">
+    <fieldset><legend>You play</legend><div class="choices">
+      <label><input type="radio" name="tside" value="w"><span>White</span></label>
+      <label><input type="radio" name="tside" value="b"><span>Black</span></label>
+      <label><input type="radio" name="tside" value="r"><span>Toss</span></label></div></fieldset>
+    <div><label class="label" for="tlimit">Time for each move</label>
+      <select class="opp" id="tlimit"><option value="0">No limit</option><option value="1">1 day</option><option value="3">3 days</option><option value="7">7 days</option></select></div>
+    <p class="note">With a limit, whoever runs out of time on a move loses. You get a reminder when a quarter of it is left.</p></div>`;
+  const last = store.get('etude:terms') || { side: 'w', limit: 3 };
+  box.querySelector(`input[value="${last.side}"]`).checked = true;
+  box.querySelector('#tlimit').value = String(last.limit);
+  const ok = await openModal({ title, body: box, actions: [{ label: 'Cancel', value: false }, { label: goLabel, value: true, kind: 'go', focus: true }] });
+  if (!ok) return null;
+  const side = box.querySelector('input[name=tside]:checked').value;
+  const limit = Number(box.querySelector('#tlimit').value) || 0;
+  store.set('etude:terms', { side, limit });
+  return { color: pickSide(side), limit };
 }
-el('startBtn').onclick = () => {
-  const choice = document.querySelector('input[name=side]:checked').value;
-  const mine = choice === 'r'
-    ? (crypto.getRandomValues(new Uint8Array(1))[0] % 2 ? 'w' : 'b')
-    : choice;
-  code = makeCode();
-  myColor = mine;
-  tableOwner = true;
-  joinByCode = false;
-  store.set('table:' + code, { history: [], myColor: mine, owner: true, result: null, at: Date.now() });
-  setHash();
-  begin();
+const errWords = err => err === 'offline' ? 'Not connected to the server. Try again in a moment.'
+  : err === 'noAccount' ? 'You need an account first: tap the person icon on the home screen.'
+  : err === 'notFriend' ? 'You can only challenge friends. Send them an invite link instead.'
+  : 'That didn’t work. Try again in a moment.';
+async function challengeFriend(id) {
+  const f = srvData.friends[id];
+  if (!f) return;
+  const t = await pickTerms(`Challenge ${f.name}`, `${f.name} gets the challenge and can accept or decline it. The game starts when they accept.`, 'Send challenge');
+  if (!t) return;
+  const r = await netReq('challenge', { to: id, color: t.color, limit: t.limit });
+  if (!r.ok) { flashLobby(errWords(r.err)); return; }
+  goGame(r.g);
+}
+el('startBtn').onclick = async () => {
+  const t = await pickTerms('Invite with a link', 'You get a link and a code to send. Whoever opens it first plays the other side.', 'Create link');
+  if (!t) return;
+  const r = await netReq('invite', { color: t.color, limit: t.limit });
+  if (!r.ok) { flashLobby(errWords(r.err)); return; }
+  goGame(r.g);
 };
+// a short message on the start screens, using the news pop-up
+function flashLobby(text) {
+  el('popTitle').textContent = '';
+  el('popBody').textContent = text;
+  el('popGo').classList.add('hidden');
+  el('pop').classList.remove('off');
+  clearTimeout(popTimer);
+  popTimer = setTimeout(hidePop, 6000);
+}
 
 function inviteUrl() {
   return `${location.origin}${location.pathname}#r=${code}`;
@@ -9860,14 +10100,14 @@ const shareLink = e => shareOrCopy(e.currentTarget,
   inviteUrl(), 'Invite link');
 el('waBtn').onclick = el('connCopy').onclick = shareLink;
 el('copyBtn').onclick = e => shareOrCopy(e.currentTarget,
-  `Game of chess? You're ${theirSide()}. In Étude (${appUrl()}) go to Play a game, Against a person, Online, and enter the table code ${spacedCode()}`,
-  spacedCode(), 'Table code');
+  `Game of chess? You're ${theirSide()}. In Étude (${appUrl()}) go to Play a game, Against a person, Online, and enter the code ${spacedCode()}`,
+  spacedCode(), 'Game code');
 
 function resign() {
+  if (ownTable(code)) { gameAct('resign'); return; }       // the server says when it's over
   // on one device it's the side to move that resigns
   const loser = isLocal() ? game.turn() : myColor;
   result = { type: 'resign', winner: loser === 'w' ? 'b' : 'w' };
-  broadcast({ t: 'resign', by: myColor });
   persist();
   draw();
 }
@@ -9875,10 +10115,11 @@ function resign() {
 function rematch() {
   // on one device, or against the computer, there's nobody to ask
   if (solo || isLocal()) { startFresh(isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w'); return; }   // one device: the board keeps facing White
+  if (og && og.next) { goGame(og.next); return; }        // it has already started
   if (rematchAsked) return;
-  rematchAsked = true;                     // the new game starts when they accept (rematchYes)
-  broadcast({ t: 'rematchAsk', yourColor: myColor });
+  rematchAsked = true;                     // the new game starts when they accept
   draw();
+  gameAct('rematch').then(r => { if (r.ok && r.next) goGame(r.next); });
 }
 
 el('resignBtn').onclick = async () => {
@@ -9964,8 +10205,8 @@ el('takebackBtn').onclick = () => {
   }
 
   takebackAsked = true;
-  broadcast({ t: 'tb', color: myColor });
   draw();
+  gameAct('takeback');
 };
 
 
@@ -11017,10 +11258,8 @@ function begin(now) {
   el('game').classList.remove('hidden');
   document.body.classList.remove('lobbysub', 'insetup');
   document.body.classList.add('ingame');
-  // the invite card, the version stamp and diagnostics move into the game layout
+  // the invite card moves into the game layout
   el('inviteSlot').appendChild(el('invite'));
-  el('diagSlot').appendChild(el('verBtn'));
-  el('diagSlot').appendChild(el('debugPanel'));
   if (code === 'puzzle') { activeTab = 'puzzle'; flipView = false; }
   document.body.classList.toggle('localmode', code === 'local' || code === 'study');
   document.body.classList.toggle('studymode', code === 'study');
@@ -11664,7 +11903,7 @@ for (const id of ['setupBoard', 'shelf']) {
    Home has three choices; each opens a short screen of its own. They are
    entries in the browser history, so the phone's back gesture steps back
    through them. Games themselves still live in the address (#solo=1, #r=...). */
-const SCREENS = { home: 'scrHome', study: 'scrStudy', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline' };
+const SCREENS = { home: 'scrHome', study: 'scrStudy', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline', profile: 'scrProfile' };
 function renderScreen(name) {
   if (!SCREENS[name] && name !== 'setup') name = 'home';
   document.body.classList.toggle('lobbysub', name !== 'home');
@@ -11679,6 +11918,8 @@ function renderScreen(name) {
   if (name === 'home') drawResumeChoice();
   if (name === 'resume') drawCarryOn();
   if (name === 'famous') drawFamous();
+  if (name === 'profile') drawProfile();
+  if (name === 'online') drawOnline();
   window.scrollTo(0, 0);
 }
 function showScreen(name) {
@@ -11699,6 +11940,284 @@ el('goComputer').onclick = () => showScreen('computer');
 el('goPerson').onclick = () => showScreen('person');
 el('goOnline').onclick = () => showScreen('online');
 el('goAnalyse').onclick = () => showScreen('setup');
+el('profBtn').onclick = () => showScreen('profile');
+el('onSetup').onclick = () => showScreen('profile');
+
+/* ---------- your account: the screen ----------
+   Before there's an account: make one (a name), or use one from another device
+   (its key). After: your name and code, friends and requests, finding people,
+   notifications, and your key. */
+const friendRow = (id, f, buttons, extra = '') => `<div class="prow" data-id="${id}"><span class="who"><span class="nm">${escText(f.name || '(no name)')}</span>` +
+  `<span class="cd">${fmtCode(f.code || shortOf(id))}${extra}</span></span>${buttons}</div>`;
+function drawProfile() {
+  const pend = store.get('etude:addLink');
+  el('profLinkNote').classList.toggle('hidden', !pend || !!acct);
+  if (pend) el('profLinkNote').textContent = `${pend.n || 'Someone'} wants to be friends. Choose your name below to make an account, and you’ll be friends as soon as it’s made.`;
+  el('profNone').classList.toggle('hidden', !!acct);
+  el('profHave').classList.toggle('hidden', !acct);
+  if (!acct) return;
+  el('profName').textContent = acct.name || '…';
+  el('profCode').textContent = myCode();
+  el('profConn').textContent = net.open ? 'Connected to the server.' : net.ws ? 'Connecting to the server…' : 'Not connected to the server. Reconnecting…';
+  // requests to you
+  const reqIn = Object.entries(srvData.reqIn || {});
+  el('profReqSec').classList.toggle('hidden', !reqIn.length);
+  el('profReqs').innerHTML = reqIn.map(([id, f]) => friendRow(id, f, `<button data-act="no">Decline</button><button class="primary" data-act="yes">Accept</button>`)).join('');
+  // friends
+  const friends = Object.entries(srvData.friends || {}).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+  el('profFriends').innerHTML = friends.length ? friends.map(([id, f]) => friendRow(id, f, `<button class="primary" data-act="challenge">Challenge</button><button data-act="more" aria-label="More for ${escText(f.name)}">⋯</button>`)).join('')
+    : '<p class="pnone">No friends yet. Add someone below, or send an invite link from Play a game, Against a person, Online.</p>';
+  // requests you've sent
+  const out = Object.entries(srvData.reqOut || {});
+  el('profOut').innerHTML = out.length ? '<p class="carryhead">Waiting for them to accept</p>' + out.map(([id, f]) => friendRow(id, f, `<button data-act="cancel">Cancel</button>`)).join('') : '';
+  const blocked = Object.entries(srvData.blocked || {});
+  el('profBlockSec').classList.toggle('hidden', !blocked.length);
+  el('profBlocked').innerHTML = blocked.map(([id, f]) => friendRow(id, f, `<button data-act="unblock">Unblock</button>`)).join('');
+  drawPush();
+}
+async function profAct(op, a, after) {
+  const r = await netReq(op, a);
+  if (!r.ok) { flashLobby(errWords(r.err)); return r; }
+  if (after) after(r);
+  drawProfile();
+  return r;
+}
+el('scrProfile').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const id = b.closest('.prow').dataset.id;
+  const act = b.dataset.act;
+  const f = srvData.friends[id] || srvData.reqIn[id] || srvData.reqOut[id] || srvData.blocked[id] || searchRows.find(x => x.id === id) || {};
+  if (act === 'yes' || act === 'no') { b.disabled = true; await profAct('friendAnswer', { from: id, ok: act === 'yes' }); }
+  else if (act === 'challenge') challengeFriend(id);
+  else if (act === 'cancel') await profAct('friendCancel', { to: id });
+  else if (act === 'unblock') await profAct('unblock', { to: id });
+  else if (act === 'add') { b.disabled = true; await profAct('friendAdd', { to: id }, () => { const x = searchRows.find(y => y.id === id); if (x) x.asked = true; drawResults(); }); }
+  else if (act === 'more') {
+    const v = await openModal({ title: f.name || 'Friend', body: `<p>${fmtCode(f.code || shortOf(id))}</p>`,
+      actions: [{ label: 'Cancel', value: null }, { label: 'Remove friend', value: 'remove', kind: 'danger' }, { label: 'Block', value: 'block', kind: 'danger' }] });
+    if (v === 'remove' && await confirmModal(`Remove ${f.name}?`, 'You’re no longer friends. Games under way carry on.', 'Remove', { danger: true })) await profAct('friendRemove', { to: id });
+    if (v === 'block' && await confirmModal(`Block ${f.name}?`, 'You’re no longer friends, and they can’t send you friend requests. Games under way carry on.', 'Block', { danger: true })) await profAct('block', { to: id });
+  }
+});
+// finding people
+let searchRows = [];
+function drawResults() {
+  el('profResults').innerHTML = searchRows.map(x => friendRow(x.id, x,
+    x.friend ? '<span class="tag">friends</span>' : x.asked ? '<span class="tag">asked</span>' : `<button class="primary" data-act="add">${x.asksYou ? 'Accept' : 'Add'}</button>`)).join('');
+}
+el('profSearchBtn').onclick = async () => {
+  const q = el('profSearch').value.trim();
+  if (!q) { el('profSearch').focus(); return; }
+  el('profSearchBtn').disabled = true;
+  const r = await netReq('search', { q });
+  el('profSearchBtn').disabled = false;
+  if (!r.ok) { flashLobby(errWords(r.err)); return; }
+  searchRows = r.rows;
+  drawResults();
+  if (!searchRows.length) el('profResults').innerHTML = '<p class="pnone">Nobody by that name or code.</p>';
+};
+el('profSearch').addEventListener('keydown', e => { if (e.key === 'Enter') el('profSearchBtn').click(); });
+// making an account, or using one from another device
+el('profCreate').onclick = async () => {
+  const name = el('profNewName').value.trim();
+  if (!name) { el('profNewMsg').textContent = 'Type the name your friends will see.'; el('profNewName').focus(); return; }
+  if (!await edOK()) { el('profNewMsg').textContent = 'This browser is too old for Étude accounts. Update it, or try another browser.'; return; }
+  el('profNewMsg').textContent = '';
+  el('profCreate').disabled = true;
+  await makeAccount(name.slice(0, 30));
+  el('profCreate').disabled = false;
+  drawProfile();
+  showKey(true);
+};
+el('profNewName').addEventListener('keydown', e => { if (e.key === 'Enter') el('profCreate').click(); });
+el('profImport').onclick = async () => {
+  const seed = seedFrom(el('profKeyIn').value.trim());
+  if (!seed) { el('profKeyMsg').textContent = 'That isn’t a key Étude can read. It’s 52 letters and numbers, or a link with #key= in it.'; return; }
+  if (!await edOK()) { el('profKeyMsg').textContent = 'This browser is too old for Étude accounts. Update it, or try another browser.'; return; }
+  el('profKeyMsg').textContent = '';
+  el('profKeyIn').value = '';
+  await useKey(seed);
+  drawProfile();
+};
+el('profKeyIn').addEventListener('keydown', e => { if (e.key === 'Enter') el('profImport').click(); });
+el('profShare').onclick = e => shareOrCopy(e.currentTarget,
+  `Add me on Étude, the chess app (${appUrl()}): I'm ${acct.name}, code ${myCode()}`, myCode(), 'Your code');
+el('profRename').onclick = async () => {
+  const v = await openModal({
+    title: 'Change your name',
+    body: '<p>What your friends see. Games under way show the new name too.</p><input id="rnMe" class="fen" style="width:100%" autocomplete="nickname" maxlength="30">',
+    actions: [{ label: 'Cancel', value: null }, { label: 'Save', kind: 'go', run: () => { closeModal(el('rnMe').value.trim()); return true; } }],
+    onOpen: b => { const i = b.querySelector('#rnMe'); i.value = acct.name || ''; i.focus(); i.select(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); closeModal(i.value.trim()); } }); },
+  });
+  if (!v || v === acct.name) return;
+  await profAct('setName', { name: v }, r => { acct.name = r.me.name; store.set('etude:account', acct); });
+};
+el('profKey').onclick = () => showKey(false);
+el('profRemove').onclick = async () => {
+  if (!await confirmModal('Remove your account from this device?',
+    'Without a copy of your key, the account can’t be used again: your friends and online games stay with it. Games against the computer and your history on this device aren’t affected.', 'Remove', { danger: true })) return;
+  dropAccount();
+  drawProfile();
+};
+// the key: a QR code of the link for another device's camera, the link, and the key itself
+function showKey(first) {
+  const link = keyLink();
+  let qr = '';
+  try { const q = qrcode(0, 'M'); q.addData(link); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch {}
+  return openModal({
+    title: first ? 'Save your key' : 'Your key',
+    body: `<p>${first ? 'Your account is made. This key is the only way to use it on another device, or to get it back if this one is reset, so keep a copy now, somewhere private like a password manager.'
+      : 'To use your account on another device, scan this with its camera, or copy the link or the key to it.'}</p>` +
+      (qr ? `<div class="qr">${qr}</div>` : '') + `<code class="keytext">${keyGroups(acct.seed)}</code>` +
+      `<p class="note">Anyone with this key can use your account, so keep it to yourself.</p>`,
+    actions: [
+      { label: 'Copy key', run: async b => { if (!await copyText(acct.seed, b)) showTextModal('Your key', acct.seed); return true; } },
+      { label: 'Copy link', run: async b => { if (!await copyText(link, b)) showTextModal('Link to your account', link); return true; } },
+      { label: 'Done', value: true, kind: 'go', focus: true }]
+  });
+}
+/* ---------- friend links ----------
+   "etude-friend:<your id>" signed with your key: only you can make it, so the
+   server takes opening it as both of you agreeing. Ed25519 signatures come out
+   the same every time, so your link never changes. #add=<id>.<signature>&n=<name>;
+   the name is only for showing before the other person has an account. */
+async function friendLinkUrl() {
+  if (!acctKey) acctKey = (await keyFrom(fromB32(acct.seed).slice(0, 32))).key;
+  const sig = b64u(await crypto.subtle.sign({ name: 'Ed25519' }, acctKey, new TextEncoder().encode(`etude-friend:${acct.id}`)));
+  return `${appUrl()}#add=${acct.id}.${sig}&n=${encodeURIComponent(acct.name || '')}`;
+}
+el('profLink').onclick = async e => {
+  const btn = e.currentTarget, link = await friendLinkUrl();
+  shareOrCopy(btn, `Add me as a friend on Étude, the chess app: ${link}`, link, 'Your friend link');
+};
+// opened from a friend link: kept until there's an account to use it with
+async function friendLinkOpened(hash) {
+  const p = new URLSearchParams(hash.slice(1));
+  const m = /^([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{80,90})$/.exec(p.get('add') || '');
+  history.replaceState(null, '', location.pathname + location.search);
+  if (!m) { flashLobby('That friend link is incomplete. Ask them to send it again.'); return; }
+  const link = { id: m[1], sig: m[2], n: (p.get('n') || '').slice(0, 30) };
+  if (acct && link.id === acct.id) { flashLobby('That’s your own friend link. Send it to someone else.'); return; }
+  if (acct && srvData.friends[link.id]) { flashLobby(`You and ${srvData.friends[link.id].name} are already friends.`); return; }
+  store.set('etude:addLink', link);
+  if (!acct) {
+    history.pushState({ scr: 'profile' }, '', location.pathname + location.search);
+    renderScreen('profile');
+    return;
+  }
+  const ok = await confirmModal(`Add ${link.n || 'them'} as a friend?`, `${link.n || 'They'} sent you their friend link (${fmtCode(shortOf(link.id))}). You’ll be friends straight away.`, 'Add');
+  if (!ok) { store.set('etude:addLink', null); return; }
+  useFriendLink();
+}
+async function useFriendLink() {
+  const link = store.get('etude:addLink');
+  if (!link || !acct) return;
+  if (link.id === acct.id) { store.set('etude:addLink', null); return; }
+  const r = await netReq('friendLink', { from: link.id, sig: link.sig }, { queue: true });
+  if (r.err === 'offline') return;            // kept: tried again next time the app opens
+  store.set('etude:addLink', null);
+  flashLobby(r.ok ? (r.already ? `You and ${r.name} are already friends.` : `You and ${r.name} are now friends.`)
+    : r.err === 'badLink' ? 'That friend link isn’t valid. Ask them to send it again.'
+    : r.err === 'noSuchUser' ? 'That account isn’t on the server any more.'
+    : r.err === 'refused' ? 'That friend link can’t be used.'
+    : 'Adding the friend didn’t work. Open the link again to retry.');
+  if (!el('scrProfile').classList.contains('hidden')) drawProfile();
+}
+
+// a link with #key= in it: use that account here
+async function keyFromLink(text) {
+  const seed = seedFrom(text);
+  history.replaceState(null, '', location.pathname + location.search);
+  if (!seed) return;
+  if (!await edOK()) { renderScreen('profile'); el('profKeyMsg').textContent = 'This browser is too old for Étude accounts. Update it, or try another browser.'; return; }
+  const same = acct && acct.seed === toB32(seed);
+  if (acct && !same && !await confirmModal('Use a different account?',
+    `This device has the account ${acct.name || ''} (${myCode()}). The link is for another one. Without a copy of this one’s key, it can’t be used again.`, 'Use the new one', { danger: true })) { renderScreen('profile'); return; }
+  if (!same) await useKey(seed);
+  history.pushState({ scr: 'profile' }, '', location.pathname + location.search);
+  renderScreen('profile');
+  flashLobby('This device now uses your account.');
+}
+
+/* ---------- notifications ----------
+   Web Push: the browser gives a subscription (where to send) and the server
+   keeps it with your account. It only sends one when no device has the app on
+   screen. iPhones allow it only for Étude added to the Home Screen. */
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushCan = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+async function pushSub() {
+  if (!pushCan()) return null;
+  try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch { return null; }
+}
+async function drawPush() {
+  const btn = el('profPush'), noteEl = el('profPushNote');
+  const sub = await pushSub();
+  const on = !!sub && (srvData.push || []).includes(sub.endpoint);
+  btn.textContent = on ? 'On' : 'Off';
+  btn.classList.toggle('on', on);
+  el('profPushTest').classList.toggle('hidden', !on);
+  noteEl.textContent = !pushCan() ? (isIOS() && !standalone()
+      ? 'On iPhone, notifications need Étude on your Home Screen: in Safari tap Share, then Add to Home Screen, and open Étude from there.'
+      : 'This browser can’t show notifications from Étude.')
+    : Notification.permission === 'denied' ? 'Notifications are blocked for Étude in this browser’s settings. Allow them there, then turn this on.'
+    : on ? 'Sent when no device has Étude open. With it open, news pops up at the top instead.'
+    : 'Turn on to hear when it’s your move, when a friend challenges you, and other news, while Étude is closed.';
+}
+el('profPush').onclick = async () => {
+  const btn = el('profPush');
+  btn.disabled = true;
+  try {
+    const sub = await pushSub();
+    const on = !!sub && (srvData.push || []).includes(sub.endpoint);
+    if (on) {
+      try { await sub.unsubscribe(); } catch {}
+      const r = await netReq('push', { drop: sub.endpoint });
+      if (r.ok) srvData.push = r.push;
+    } else {
+      if (!pushCan()) { drawPush(); return; }
+      if (!srvData.vapid) { flashLobby(errWords('offline')); return; }
+      if (await Notification.requestPermission() !== 'granted') { drawPush(); return; }
+      const reg = await navigator.serviceWorker.ready;
+      let s = await reg.pushManager.getSubscription();
+      const key = unb64u(srvData.vapid);
+      if (s && s.options && s.options.applicationServerKey && b64u(s.options.applicationServerKey) !== srvData.vapid) { try { await s.unsubscribe(); } catch {} s = null; }
+      if (!s) s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      const r = await netReq('push', { sub: s.toJSON() });
+      if (!r.ok) { flashLobby(errWords(r.err)); return; }
+      srvData.push = r.push;
+    }
+    netSave();
+  } catch (e) {
+    console.warn('push', e);
+    flashLobby('Notifications couldn’t be turned on in this browser.');
+  } finally {
+    btn.disabled = false;
+    drawPush();
+  }
+};
+el('profPushTest').onclick = async () => {
+  const r = await netReq('testPush');
+  if (!r.ok) flashLobby(errWords(r.err));
+  else flashLobby(r.sent ? 'Sent. It shows when Étude isn’t on screen.' : 'It didn’t go through. Turn notifications off and on again.');
+};
+// leaving the account on this device: stop notifications for it here
+async function pushUnsubscribeLocal() {
+  const sub = await pushSub();
+  if (sub) try { await sub.unsubscribe(); } catch {}
+}
+
+/* ---------- Play online ---------- */
+function drawOnline() {
+  el('onNoAcct').classList.toggle('hidden', !!acct);
+  el('onAcct').classList.toggle('hidden', !acct);
+  if (!acct) return;
+  const friends = Object.entries(srvData.friends || {}).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+  el('onFriends').innerHTML = friends.length ? friends.map(([id, f]) => friendRow(id, f, `<button class="primary" data-ch="${id}">Challenge</button>`)).join('')
+    : '<p class="pnone">No friends yet. Send someone an invite link below, or add them from your account (the person icon on the home screen).</p>';
+  el('onFriends').querySelectorAll('[data-ch]').forEach(b => b.onclick = () => challengeFriend(b.dataset.ch));
+}
 
 /* Carry on: whatever is unfinished, at the top of home, so coming back is one tap. */
 function oppTitle(id) {
@@ -11749,61 +12268,64 @@ function carryOnItems() {
         for (const k of OFFLINE) { const t = store.get('table:' + k); if (t && t.lineId === x.id) store.set('table:' + k, null); }
       } });
   }
-  // online tables with a game under way
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      const m = /^table:([a-z0-9]{9})$/.exec(k || '');
-      if (!m) continue;
-      const t = store.get(k);
-      const tbl = `table ${m[1].slice(0, 3)} ${m[1].slice(3, 6)} ${m[1].slice(6)}`;
-      if (live(t)) out.push({ at: t.at || 0, title: t.name || `Online game, ${tbl}`, name: t.name || '',
-        how: `${t.name ? `online, ${tbl} · ` : ''}you play ${t.myColor === 'b' ? 'Black' : 'White'}`,
-        rename: v => { const cur = store.get(k); if (cur) store.set(k, { ...cur, name: v || undefined }); },
-        sub: movesIn(t.history.length) + (t.history.length ? ` · last ${lastMoveText(t.fen, t.history)}` : ''),
-        go: () => swapScreen(() => { location.hash = `r=${m[1]}`; }),
-        drop: () => { try { localStorage.removeItem(k); localStorage.removeItem('table:chat:' + m[1]); } catch {} } });
-    }
-  } catch {}
-  return out.sort((a, b) => b.at - a.at);
+  // online games, from the server's list: under way, a challenge you sent, or a link out
+  const names = store.get('etude:gnames') || {};
+  for (const x of Object.values(srvData.games)) {
+    if (x.result || (x.pending === 'challenge' && !x.mine)) continue;     // a challenge to you is on the home screen
+    const opp = x.oppName || 'someone';
+    const col = x.color === 'b' ? 'Black' : 'White';
+    const yours = !x.pending && x.turn === x.color;
+    const title = names[x.g] || (x.pending === 'invite' ? 'Invite link' : `Against ${opp}`);
+    const how = `${names[x.g] && x.pending !== 'invite' ? opp + ' · ' : ''}online · you play ${col}${x.limit ? ` · ${x.limit} day${x.limit === 1 ? '' : 's'} a move` : ''}`;
+    const sub = x.pending === 'invite' ? 'waiting for someone to open the link'
+      : x.pending ? `waiting for ${opp} to accept`
+      : (yours ? 'your move' : 'their move') + ` · ${movesIn(x.n)}` + (x.last ? ` · last ${lastMoveText(null, Array(x.n - 1).fill('').concat(x.last))}` : '')
+        + (x.unread ? ` · ${x.unread} new message${x.unread === 1 ? '' : 's'}` : '');
+    out.push({ at: x.at || 0, title, how, sub, name: names[x.g] || '', online: true, yours,
+      rename: v => { const m = store.get('etude:gnames') || {}; if (v) m[x.g] = v; else delete m[x.g]; store.set('etude:gnames', m); },
+      go: () => goGame(x.g),
+      ask: x.pending ? ['Cancel this game?', x.pending === 'invite' ? 'The link stops working.' : `${opp} won’t be able to accept it any more.`, 'Cancel it']
+        : ['Resign this game?', `You resign against ${opp}, and the game comes off this list. It stays in Game history.`, 'Resign'],
+      drop: async () => {
+        const r = await netReq(x.pending ? 'cancel' : 'resign', { g: x.g });
+        if (!r.ok) { flashLobby(errWords(r.err)); return; }
+        await netReq('forget', { g: x.g });
+      } });
+  }
+  return out.sort((a, b) => (b.yours ? 1 : 0) - (a.yours ? 1 : 0) || b.at - a.at);
 }
-/* A table's chat lasts as long as the table does: while its game is offered
-   under Resume, or while you're at the table (after a game ends, for the
-   rematch). Once the game is finished or removed from Resume and you've left,
-   the chat goes with it. */
-function sweepChats() {
-  try {
-    const keep = new Set();
-    for (let i = 0; i < localStorage.length; i++) {
-      const m = /^table:([a-z0-9]{9})$/.exec(localStorage.key(i) || '');
-      if (!m) continue;
-      const t = store.get(m[0]);
-      if (t && Array.isArray(t.history) && (t.history.length > 0 || !!t.fen) && !t.result) keep.add(m[1]);
-    }
-    if (code && !el('game').classList.contains('hidden')) keep.add(code);
-    const inLink = /^#r=([a-z0-9]{9})/.exec(location.hash);
-    if (inLink) keep.add(inLink[1]);
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      const m = /^table:chat:([a-z0-9]{9})$/.exec(k || '');
-      if (m && !keep.has(m[1])) localStorage.removeItem(k);
-    }
-  } catch {}
+
+// home: challenges waiting for your answer
+function drawChallenges() {
+  const box = el('challenges');
+  const list = Object.values(srvData.games).filter(x => x.pending === 'challenge' && !x.mine && !x.result).sort((a, b) => b.at - a.at);
+  box.innerHTML = list.map(x => `<div class="chal"><span class="ct">${escText(x.oppName || 'Someone')} challenges you</span>` +
+    `<span class="cd">You’d play ${x.color === 'b' ? 'Black' : 'White'} · ${x.limit ? `${x.limit} day${x.limit === 1 ? '' : 's'} for each move` : 'no time limit'}</span>` +
+    `<div class="invite-actions"><button data-no="${x.g}">Decline</button><button class="primary" data-yes="${x.g}">Accept</button></div></div>`).join('');
+  box.querySelectorAll('[data-no]').forEach(b => b.onclick = async () => { b.disabled = true; const r = await netReq('decline', { g: b.dataset.no }); if (!r.ok) { b.disabled = false; flashLobby(errWords(r.err)); } });
+  box.querySelectorAll('[data-yes]').forEach(b => b.onclick = async () => { b.disabled = true; const r = await netReq('accept', { g: b.dataset.yes }); if (r.ok) goGame(b.dataset.yes); else { b.disabled = false; flashLobby(errWords(r.err)); } });
+}
+function drawProfDot() {
+  const n = Object.keys(srvData.reqIn || {}).length;
+  el('profDot').classList.toggle('hidden', !n || !acct);
+  el('profBtn').setAttribute('aria-label', n && acct ? `Your account, ${n} friend request${n === 1 ? '' : 's'}` : 'Your account');
 }
 
 // the home screen's fourth choice, shown only when there's something to resume
 function drawResumeChoice() {
-  sweepChats();
-  const n = carryOnItems().length;
+  drawChallenges();
+  drawProfDot();
+  const items = carryOnItems();
+  const n = items.length, yours = items.filter(x => x.yours).length;
   el('goResume').classList.toggle('hidden', !n);
-  if (n) el('goResumeSub').textContent = `${n} game${n === 1 ? '' : 's'} under way. Pick up where you left off.`;
+  if (n) el('goResumeSub').textContent = `${n} game${n === 1 ? '' : 's'} under way` + (yours ? `, your move in ${yours}.` : '. Pick up where you left off.');
 }
 el('goResume').onclick = () => showScreen('resume');
 el('resumeClear').onclick = async () => {
-  const items = carryOnItems();
-  if (!items.length) return;
-  if (!await confirmModal(`Remove all ${items.length} game${items.length === 1 ? '' : 's'}?`,
-    'None of them will be offered to resume any more. Their moves so far stay in Game history.', 'Remove all', { danger: true })) return;
+  const items = carryOnItems().filter(x => !x.online);      // online games are resigned one at a time, never in bulk
+  if (!items.length) { flashLobby('Online games are removed one at a time, with the × beside each.'); return; }
+  if (!await confirmModal(`Remove all ${items.length} game${items.length === 1 ? '' : 's'} on this device?`,
+    'None of them will be offered to resume any more. Their moves so far stay in Game history. Online games stay.', 'Remove all', { danger: true })) return;
   for (const x of items) x.drop();
   goBack();
 };
@@ -11835,8 +12357,9 @@ function drawCarryOn() {
   });
   box.querySelectorAll('button.carryx').forEach(b => b.onclick = async () => {
     const x = items[+b.dataset.x];
-    if (!await confirmModal('Remove this game?', `“${x.title}” won’t be offered to resume any more. Its moves so far stay in Game history.`, 'Remove')) return;
-    x.drop();
+    const [t, q, ok] = x.ask || ['Remove this game?', `“${x.title}” won’t be offered to resume any more. Its moves so far stay in Game history.`, 'Remove'];
+    if (!await confirmModal(t, q, ok, { danger: !!x.online })) return;
+    await x.drop();
     drawCarryOn();
   });
 }
@@ -12351,17 +12874,18 @@ el('setupBoth').onclick = () => startFromSetup('both');
 // the next save of your puzzle progress drops the old copy.
 if (Array.isArray(pzSaved.queue) && pzSaved.queue.length) pzBufReady.then(() => pzBufAdd(pzSaved.queue));
 
-// Finished online tables kept their own copy forever. The games are in your history.
-try {
-  for (let k = localStorage.length - 1; k >= 0; k--) {
-    const key = localStorage.key(k);
-    if (!key || !key.startsWith('table:') || !ownTable(key.slice(6))) continue;
-    const v = store.get(key);
-    if (v && Array.isArray(v.history) && v.result) localStorage.removeItem(key);
-  }
-} catch {}
-// and chats whose table has gone (see sweepChats)
-sweepChats();
+// Online tables from before the server kept games: their copies, chats and the
+// device id that settled colours. Those games can't be reopened; their moves are
+// in your game history. Once, so the server's games cached after it stay.
+if (!store.get('etude:mig:server')) {
+  try {
+    for (let k = localStorage.length - 1; k >= 0; k--) {
+      const key = localStorage.key(k) || '';
+      if (/^table:[a-z0-9]{9}$/.test(key) || /^table:chat:/.test(key) || key === 'table:device') localStorage.removeItem(key);
+    }
+  } catch {}
+  store.set('etude:mig:server', true);
+}
 
 // Sound used to be on/off under table:sound. Off becomes the 'Off' style.
 if (store.get('table:sound') !== null) {
@@ -12440,10 +12964,14 @@ if (studyHash) {
   begin();
 } else if (r) {
   code = r;
-  takeSeat();          // your colour is on this device, or settled with the other player
+  const saved = store.get('table:' + code);     // the copy from last time, until the server's arrives
+  myColor = saved && saved.myColor === 'b' ? 'b' : 'w';
   begin();
 } else {
   setLink();
+  if (/[#&]key=/.test(location.hash)) keyFromLink(location.hash);    // a link to your account, from another device
+  else if (/^#add=/.test(location.hash)) friendLinkOpened(location.hash);   // someone's friend link
+  else if (acct && store.get('etude:addLink')) useFriendLink();       // one saved earlier that didn't go through
   let back = null;
   try { back = sessionStorage.getItem('etude:screen'); sessionStorage.removeItem('etude:screen'); } catch {}
   // e.g. 'study,famous': each screen on the way gets its own history entry, so back steps through them
@@ -12462,6 +12990,9 @@ window.addEventListener('hashchange', () => {
   if (navigating) { navigating = false; return; }
   location.reload();
 });
+
+// with an account, the app stays connected to the server on every screen
+if (acct) netOpen(true);
 
 /* The service worker (sw.js, beside this page): installable app, and computer
    games offline. Not over file://, where browsers refuse it anyway. */

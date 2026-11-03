@@ -6,8 +6,11 @@
    so an update never hides behind a stale copy. Every successful response is
    also kept, and used when the network fails, so a game against the computer
    works offline once the page, Stockfish and the opening book have loaded
-   once. Games against a person still need the network for the relays. */
-const CACHE = 'table-chess-v3';
+   once. Games against a person still need the network for the server.
+
+   It also shows push notifications from the server (a move, a challenge, a
+   friend request) while Étude isn't open, and opens the game when one is tapped. */
+const CACHE = 'table-chess-v4';
 
 // The files a computer game needs, fetched on install so the first offline
 // visit works even if Stockfish was never opened.
@@ -16,6 +19,7 @@ const CORE = [
   'manifest.json',
   'icon-knight-192.png',
   'vendor/chess.js',
+  'vendor/qrcode.js',
   'fonts/ibm-plex-mono-latin-400.woff2',
   'fonts/ibm-plex-mono-latin-500.woff2',
   'fonts/ibm-plex-mono-latin-600.woff2',
@@ -69,5 +73,37 @@ self.addEventListener('fetch', event => {
     if (!cached) return network;
     const timer = new Promise(resolve => setTimeout(() => resolve(cached), NETWORK_WAIT_MS));
     return Promise.race([network.catch(() => cached), timer]);
+  })());
+});
+
+/* ---------- push notifications ----------
+   The server sends { title, body, url, tag }. One per game (the tag), so a
+   game's newer news replaces its older. */
+self.addEventListener('push', event => {
+  let n = {};
+  try { n = event.data ? event.data.json() : {}; } catch { n = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(n.title || 'Étude', {
+    body: n.body || '',
+    tag: n.tag || 'etude',
+    renotify: true,
+    icon: 'icon-knight-192.png',
+    badge: 'icon-knight-192.png',
+    data: { url: n.url || self.registration.scope }
+  }));
+});
+
+// tapped: to the game, in a window that's already open if there is one
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || self.registration.scope;
+  event.waitUntil((async () => {
+    const wins = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) {
+      if (new URL(w.url).pathname.startsWith(new URL(self.registration.scope).pathname)) {
+        try { await w.focus(); } catch {}
+        try { return await w.navigate(url); } catch { return; }
+      }
+    }
+    return clients.openWindow(url);
   })());
 });
