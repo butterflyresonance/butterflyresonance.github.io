@@ -3790,7 +3790,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-11-04.7-server-table-fix';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-11-04.8-diagram-reader-screens';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -12878,7 +12878,7 @@ async function startFromSetup(mode) {
 }
 
 /* ================= a position from a photo =================
-   For book diagrams. Steps: load the photo; find the board's four corners (a
+   For book diagrams and screenshots of chess apps. Steps: load the photo; find the board's four corners (a
    guess you can correct by dragging the handles); straighten the board into an
    8x8 grid; a small trained network (diagram-model.bin, about 250 KB, fetched
    the first time) reads each square as empty or one of the 12 pieces. The
@@ -12888,7 +12888,9 @@ async function startFromSetup(mode) {
    The network: 40x40 grey square, normalised -> conv3x3 16, pool -> conv3x3 32,
    pool -> conv3x3 64, pool -> conv3x3 64, global average -> linear 13. Batch
    norm is already folded into the convolutions. Classes: empty, then white
-   K Q R B N P, then black k q r b n p. Trained on synthetic book diagrams.
+   K Q R B N P, then black k q r b n p. Trained on synthetic book diagrams
+   and synthetic app screenshots (Duolingo light and dark, chess.com, flat
+   colours, a textured board); the tools are in Claude outputs/diagram-ocr-tools.
    Its square-by-square reading is then checked against what positions can
    look like (ocrDecode). */
 const OCR_SQ = 40;
