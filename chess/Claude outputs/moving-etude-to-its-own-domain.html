@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moving Étude</title>
+<style>
+  :root { --bg: #15181b; --text: #e8e6e1; --muted: #9aa0a6; --brass: #c8a35b; --edge: #2c3237; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, sans-serif; margin: 0; padding: 24px 16px 60px; }
+  main { max-width: 740px; margin: 0 auto; }
+  h1 { font-weight: 500; font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin: 36px 0 10px; font-weight: 600; }
+  h3 { font-size: 16px; font-weight: 600; margin: 22px 0 6px; }
+  p.lead { color: var(--muted); margin-top: 0; }
+  ol, ul { padding-left: 22px; }
+  li { margin: 8px 0; }
+  code { background: #22272b; border: 1px solid var(--edge); padding: 1px 6px; border-radius: 3px; font-size: 14px; overflow-wrap: anywhere; }
+  .box { border: 1px solid var(--edge); padding: 12px 16px; margin: 14px 0; }
+  .who { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  td, th { border-bottom: 1px solid var(--edge); padding: 6px 8px 6px 0; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+<main>
+<h1>Moving Étude to its own domain</h1>
+<p class="lead">From <code>butterflyresonance.github.io/chess</code> to a domain of its own, for example <code>etudechess.com</code>, served by Cloudflare. About an hour of your time, spread over a few sittings, and roughly US$11 a year for the domain.</p>
+
+<h2>What it will look like</h2>
+<ul>
+  <li><b>One Cloudflare Worker serves everything.</b> The same Worker that runs the server now (<code>etude-tables</code>) also serves the app's files, on <code>etudechess.com</code>. Cloudflare now recommends Workers with static files for new sites; Pages still works, but it would be a second project to look after.</li>
+  <li><b>It stays the same Worker.</b> Accounts, friends, online games and chat are stored in that Worker's Durable Objects, so they come across untouched. Only where the code comes from changes.</li>
+  <li><b>Its own GitHub repo</b>, <code>etude</code>, separate from your website. The app goes in <code>site/</code>, the server in <code>server/</code>, and Cloudflare rebuilds on every push, as now.</li>
+  <li><b>The app talks to the server at its own address</b> (<code>etudechess.com/u/…</code>), so there is no second address to configure.</li>
+</ul>
+
+<h2>What comes across and what doesn't</h2>
+<table>
+  <tr><th>Comes across</th><th>Doesn't</th></tr>
+  <tr><td>Your account (name, code, key), through the redirect link<br>Friends, online games, chat (they're on the server)<br>Look and sound settings, and your puzzle rating, through the redirect link</td>
+      <td>Game history on the device<br>Games against the computer or on one device that are under way<br>Saved set-up positions<br>Notifications (turn them on again on the new site)<br>The home-screen icon (add the new site, remove the old one)</td></tr>
+</table>
+<p>Browsers keep each website's data separately, which is why anything kept only on the device stays behind. The redirect page reads what it can on the old address and hands it to the new one in the link it opens.</p>
+
+<h2>The steps</h2>
+
+<h3>1 · Buy the domain <span class="who">you</span></h3>
+<ol>
+  <li>In the Cloudflare dashboard, open <b>Domain Registration → Register Domains</b>. Your email address on the Cloudflare account must be verified first.</li>
+  <li>Search for the name, for example <code>etudechess.com</code>, and press <b>Purchase</b> on the one you want.</li>
+  <li>Choose 1 year (auto-renew is on; leave it on). Enter your contact details and a card, accept the agreements, and press <b>Complete purchase</b>.</li>
+  <li>Tell me the domain you bought.</li>
+</ol>
+<p class="muted">Cloudflare charges registry cost for domains; a .com is about US$10.50 a year. Its whois privacy is included.</p>
+
+<h3>2 · Make the new repo <span class="who">you</span></h3>
+<ol>
+  <li>On github.com: <b>New repository</b>, name <code>etude</code>. Private or public both work; Cloudflare can build from either. Don't add a README. Press <b>Create repository</b>.</li>
+  <li>Make it a folder on your PC: in a terminal in <code>Documents</code>, run <code>git clone https://github.com/butterflyresonance/etude.git</code>.</li>
+  <li>In the Claude desktop app, connect that folder (<code>Documents\etude</code>) to this chat.</li>
+</ol>
+
+<h3>3 · Fill the repo <span class="who">me</span></h3>
+<ul>
+  <li><code>site/</code>: the app as it is now, with the server address set to its own domain.</li>
+  <li><code>server/worker.js</code>: the server, with the new domain added to the sites allowed to use it.</li>
+  <li><code>wrangler.toml</code> and <code>package.json</code> at the top of the repo, telling Cloudflare to serve <code>site/</code> and run <code>server/worker.js</code> for everything else. The Worker's name, its Durable Objects and its migrations stay exactly as they are.</li>
+  <li>A <code>commit.bat</code> for the new folder, the same as yours.</li>
+</ul>
+<p>Then you push it with <code>commit.bat</code>. Nothing changes for anyone yet: Cloudflare is still building from the old repo.</p>
+
+<h3>4 · Point the Worker at the new repo <span class="who">you</span></h3>
+<ol>
+  <li>Cloudflare dashboard: <b>Workers &amp; Pages → etude-tables → Settings → Build</b>.</li>
+  <li>Under <b>Git repository</b>, disconnect <code>butterflyresonance.github.io</code>, then connect <code>etude</code> (branch <code>main</code>).</li>
+  <li>Set <b>Root directory</b> to empty (the top of the repo), <b>Build command</b> to empty, and <b>Deploy command</b> to <code>npx wrangler deploy</code>. Save.</li>
+  <li>Start a build (<b>Deployments → Retry</b>, or push any change). When it succeeds, open <code>https://etude-tables.subjectification.workers.dev</code>: it should now show Étude itself, not “Nothing to see here”.</li>
+</ol>
+<p class="muted">If the build fails, open it, copy the last 20 or so lines of its log, and paste them to me.</p>
+
+<h3>5 · Put the Worker on the domain <span class="who">you</span></h3>
+<ol>
+  <li><b>Workers &amp; Pages → etude-tables → Settings → Domains &amp; Routes → Add → Custom domain</b>.</li>
+  <li>Enter <code>etudechess.com</code> and confirm. Cloudflare adds the DNS record and certificate by itself; it can take a few minutes to start working.</li>
+  <li>Do the same again for <code>www.etudechess.com</code>.</li>
+  <li>Open <code>https://etudechess.com</code>. Try it with a test account (for example David-Test): make a game, play a few moves, then delete the test account. Don't make your real account here: it comes across in step 7.</li>
+</ol>
+
+<h3>6 · Turn the old address into a redirect <span class="who">me, then you</span></h3>
+<p>I replace <code>chess/index.html</code> in your website repo with a small page that, when opened:</p>
+<ul>
+  <li>reads your account key, settings and puzzle rating from the old address;</li>
+  <li>turns off notifications for the old address, so you don't get each one twice;</li>
+  <li>opens <code>https://etudechess.com</code> with those in the link, after the <code>#</code> (that part of a link never leaves the browser, so it isn't sent to any server);</li>
+  <li>passes a game link (<code>#r=…</code>) through, so an old link to a game opens that game.</li>
+</ul>
+<p>The new site takes them in, saves them, and removes them from the address bar. Then you push the website repo with <code>commit.bat</code>.</p>
+
+<h3>7 · Move each device <span class="who">you, and each friend</span></h3>
+<ol>
+  <li>Open the old address (or the old home-screen icon) once. It lands on <code>etudechess.com</code>, already signed in to your account.</li>
+  <li>Your account → Notifications: turn them on again.</li>
+  <li>Add <code>etudechess.com</code> to the home screen and delete the old icon. On iPhone this is needed for notifications.</li>
+</ol>
+<p>Friends do the same: they only need to open the old link once. Anyone who never opens it keeps their account on the server and can bring it across later with their key (Your account → Show key → Copy link, opened on the new site).</p>
+
+<h3>8 · Make yourself admin <span class="who">you, then me</span></h3>
+<ol>
+  <li>On the new site: Settings in any game → <b>Copy report</b>, and paste it to me. The <code>account</code> line has your account id (your public key; it can't be used to sign in).</li>
+  <li>I add it to <code>ADMIN_IDS</code> in <code>wrangler.toml</code>, and you push. Your account screen then has <b>Admin → Accounts</b>.</li>
+</ol>
+
+<h2>Later</h2>
+<ul>
+  <li><b>Donations:</b> a Ko-fi, Buy Me a Coffee or GitHub Sponsors link on the site. Before taking money, drop the piece sets licensed CC BY-NC-SA (non-commercial), or get permission from their artists.</li>
+  <li><b>A privacy page:</b> what the server keeps (a name, friends, games, chat, notification addresses), where (Cloudflare), and how to delete it (Delete account).</li>
+  <li><b>Credits:</b> Stockfish is GPL: keep a credits page that links to its source, and to the app's own repo if it's public.</li>
+  <li><b>Google Play</b>, if wanted: the web app can be packaged as an Android app (a Trusted Web Activity). Google charges US$25 once, and a new personal developer account has to run a closed test with 12 testers for 14 days before it can publish.</li>
+</ul>
+
+<h2>Going back</h2>
+<p>Every step can be undone: point the Worker back at <code>butterflyresonance.github.io</code> in step 4's screen, and restore <code>chess/index.html</code> from its backup in <code>Claude outputs</code>. The server's data isn't touched by any of it.</p>
+</main>
+</body>
+</html>

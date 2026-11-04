@@ -7,6 +7,13 @@ compatibility_date = "2025-09-01"
 workers_dev = true
 preview_urls = false
 
+# Admin accounts: they get Accounts on the Your account screen (every account on
+# the server, and Delete). An account's id is its public key, so it is safe to keep
+# here: it can't be used to sign in. The id is in the app's Copy report (Settings),
+# on the 'account' line. Several are separated by commas.
+[vars]
+ADMIN_IDS = ""
+
 [[durable_objects.bindings]]
 name = "USERS"
 class_name = "User"
@@ -20,7 +27,9 @@ name = "DIR"
 class_name = "Directory"
 
 # Durable Objects on the free plan must use the SQLite storage backend.
-# v1 was the old table relay (a Table per link, keeping nothing); v2 replaces it.
+# Migrations are Cloudflare's record of every class this Worker has had, and are
+# never edited: v1 made Table, v2 makes User, Game and Directory and deletes
+# Table. A new class, or removing one, needs a new [[migrations]] entry (v3...).
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Table"]

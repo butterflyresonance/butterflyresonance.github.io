@@ -5,8 +5,10 @@
    A player who isn't there gets it when they next open the app, and a push
    notification if they turned those on.
 
-     Directory   one for the whole app: names and short codes for finding friends,
-                 the key the server signs push notifications with, the newest build seen
+     Directory   one for the whole app: every account's name, code, when it was made
+                 and last connected (for search and the Accounts screen), deleted ids
+                 (refused from then on), the key the server signs push notifications
+                 with, and the newest build seen
      User        one per account: name, friends, friend requests, the games list,
                  where to send notifications, and the phones that are connected now
      Game        one per game: the players, the moves, the result, the chat,
@@ -16,6 +18,11 @@
    is the public key; the private key never leaves the phone. To connect, the phone
    signs "etude:<id>:<time>" and the Worker checks the signature against the id, so
    the server stores no passwords and nothing that would let anyone log in.
+
+   Admin. For accounts listed in ADMIN_IDS (wrangler.toml), 'hello' says admin: true
+   and the app shows an Accounts screen: every account, with Delete (adminList,
+   adminDelete). The server checks the list on every admin request. Any account
+   can delete itself (deleteAccount).
 
    Each phone keeps one WebSocket open to its own User object while the app is
    open. Everything goes over it as { id, op, ... }, and every request gets one
@@ -44,8 +51,10 @@ const DAY = 86400000;
 
 /* ---------- small helpers ---------- */
 const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+// base64url text to bytes
 const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
 const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';   // Crockford: no I, L, O, U
+// bytes to Crockford base32 text
 function base32(bytes) {
   let out = '', bits = 0, val = 0;
   for (const b of bytes) {
@@ -57,12 +66,21 @@ function base32(bytes) {
 }
 // the short code shown beside a name: the first 8 characters of the public key in base32
 const shortCode = id => base32(unb64u(id)).slice(0, 8);
+// a name with control characters removed and spaces tidied, at most NAME_MAX
 const cleanName = n => String(n || '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+// a random 9-character game code
 const makeGameCode = () => [...crypto.getRandomValues(new Uint8Array(9))].map(b => CODE_ALPHA[b % CODE_ALPHA.length]).join('');
+// the other colour
 const other = c => c === 'w' ? 'b' : 'w';
+// the User object for an account id
 const userStub = (env, id) => env.USERS.get(env.USERS.idFromName(id));
+// the Game object for a game code
 const gameStub = (env, g) => env.GAMES.get(env.GAMES.idFromName(g));
+// the one Directory object
 const dirStub = env => env.DIR.get(env.DIR.idFromName('directory'));
+// true if the account id is listed in ADMIN_IDS (wrangler.toml [vars])
+const isAdmin = (env, id) => String(env.ADMIN_IDS || '').split(/[\s,]+/).filter(Boolean).includes(id);
+// send JSON on a socket, ignoring a socket that has closed
 function send(ws, obj) { try { ws.send(JSON.stringify(obj)); } catch {} }
 
 // builds are named YYYY-MM-DD.N-word; compare by date, then N as a number
@@ -81,6 +99,7 @@ async function signedBy(id, text, sig) {
     return await crypto.subtle.verify({ name: 'Ed25519' }, key, unb64u(sig), new TextEncoder().encode(text));
   } catch { return false; }
 }
+// a connection's login: the signature of 'etude:<id>:<time>', made within SIGN_WINDOW of now
 async function verifyLogin(id, t, sig) {
   if (!/^\d{10,16}$/.test(t || '')) return false;
   if (Math.abs(Date.now() - Number(t)) > SIGN_WINDOW) return false;
@@ -89,6 +108,7 @@ async function verifyLogin(id, t, sig) {
 
 /* ---------- the Worker: checks who is connecting, then hands them to their User ---------- */
 export default {
+  // every request: a signed WebSocket connection goes to its User; anything else gets a plain reply
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin');
@@ -97,6 +117,14 @@ export default {
       if (!ORIGINS.includes(origin)) return new Response('Not allowed from ' + origin, { status: 403 });
       if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
       if (!await verifyLogin(m[1], url.searchParams.get('t'), url.searchParams.get('s'))) return new Response('Signature not accepted', { status: 401 });
+      // a deleted account: the phone is told so over the socket (a refused upgrade looks like a network fault)
+      if (await dirStub(env).isDeleted(m[1])) {
+        const [client, server] = Object.values(new WebSocketPair());
+        server.accept();
+        server.send(JSON.stringify({ k: 'deleted' }));
+        server.close(4001, 'deleted');
+        return new Response(null, { status: 101, webSocket: client });
+      }
       return userStub(env, m[1]).fetch(request);
     }
     return new Response('Étude server. Nothing to see here.', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
@@ -108,14 +136,32 @@ export class Directory extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
-    this.sql.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, lname TEXT, code TEXT, at INTEGER)`);
+    // users: every account (made: when it first connected; seen: when it last did); deleted: ids refused from now on
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, lname TEXT, code TEXT, at INTEGER, made INTEGER, seen INTEGER)`);
     this.sql.exec(`CREATE INDEX IF NOT EXISTS users_code ON users(code)`);
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS deleted (id TEXT PRIMARY KEY, at INTEGER)`);
   }
+  // add or rename an account in the directory
   put(id, name) {
-    const code = shortCode(id);
-    this.sql.exec(`INSERT INTO users (id, name, lname, code, at) VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET name = excluded.name, lname = excluded.lname, at = excluded.at`, id, name, name.toLowerCase(), code, Date.now());
+    const now = Date.now();
+    this.sql.exec(`INSERT INTO users (id, name, lname, code, at, made, seen) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, lname = excluded.lname, at = excluded.at`, id, name, name.toLowerCase(), shortCode(id), now, now, now);
   }
+  // an account has connected: add it if new, and note when
+  touch(id) {
+    const now = Date.now();
+    this.sql.exec(`INSERT INTO users (id, name, lname, code, at, made, seen) VALUES (?, '', '', ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET seen = excluded.seen`, id, shortCode(id), now, now, now);
+  }
+  isDeleted(id) { return this.sql.exec(`SELECT 1 FROM deleted WHERE id = ?`, id).toArray().length > 0; }   // true if the account was deleted
+  // take an account out of the directory and refuse it from now on
+  markDeleted(id) {
+    this.sql.exec(`DELETE FROM users WHERE id = ?`, id);
+    this.sql.exec(`INSERT OR REPLACE INTO deleted (id, at) VALUES (?, ?)`, id, Date.now());
+  }
+  // every account, for the admin page, most recently seen first
+  all() { return this.sql.exec(`SELECT id, name, code, made, seen FROM users ORDER BY seen DESC`).toArray(); }
+  // an account's id, name and code, or null
   get(id) {
     const r = this.sql.exec(`SELECT id, name, code FROM users WHERE id = ?`, id).toArray();
     return r[0] || null;
@@ -129,7 +175,7 @@ export class Directory extends DurableObject {
     if (c.length >= 4 && /^[0-9A-HJKMNP-TV-Z]+$/.test(c)) rows = this.sql.exec(`SELECT id, name, code FROM users WHERE code LIKE ? LIMIT 20`, c.slice(0, 8) + '%').toArray();
     if (!rows.length) rows = this.sql.exec(`SELECT id, name, code FROM users WHERE lname LIKE ? ESCAPE '\\' ORDER BY at DESC LIMIT 20`,
       '%' + q.toLowerCase().replace(/[\\%_]/g, x => '\\' + x) + '%').toArray();
-    return rows.filter(r => r.id !== me);
+    return rows.filter(r => r.id !== me && r.name);
   }
   // the key push notifications are signed with: made once, kept here
   async vapid() {
@@ -154,10 +200,12 @@ export class Directory extends DurableObject {
    to accept) or 'invite' (a link is out, the other seat is empty). Moves are SAN
    from the standard start. Nothing can be played while it is pending. */
 export class Game extends DurableObject {
+  // the game from storage, once per wake-up
   async load() {
     if (this.g === undefined) this.g = (await this.ctx.storage.get('g')) || null;
     return this.g;
   }
+  // a chess.js board at the game's current position (kept between moves)
   board() {
     if (!this.chess || this.chessPly !== this.g.moves.length) {
       this.chess = new Chess();
@@ -169,6 +217,7 @@ export class Game extends DurableObject {
   // a day, unless a test run shortens it (wrangler dev --var TEST_DAY_MS:...)
   get day() { return Number(this.env.TEST_DAY_MS) || DAY; }
   colorOf(uid) { return !this.g ? null : this.g.w === uid ? 'w' : this.g.b === uid ? 'b' : null; }
+  // when the side to move runs out of time, or null
   deadline() {
     const g = this.g;
     return g.limit && !g.result && !g.pending ? (g.lastAt || g.startAt) + g.limit * this.day : null;
@@ -190,6 +239,7 @@ export class Game extends DurableObject {
       turn: g.moves.length % 2 ? 'b' : 'w', result: g.result, pending: g.pending, mine: g.by === g[c],
       limit: g.limit, deadline: this.deadline(), unread, at: g.at, next: g.next };
   }
+  // store the game, set the alarm, and send it to both players' Users; each event goes to the player it names
   async save(events) {
     const g = this.g;
     events = [].concat(events || []);
@@ -209,6 +259,7 @@ export class Game extends DurableObject {
     await Promise.all(jobs);
     return view;
   }
+  // wake at the reminder time, then at the deadline; no alarm without a limit
   async setAlarm() {
     const d = this.deadline();
     if (!d) { await this.ctx.storage.deleteAlarm(); return; }
@@ -216,6 +267,7 @@ export class Game extends DurableObject {
     const remind = d - this.g.limit * this.day / 4;
     await this.ctx.storage.setAlarm(!this.g.reminded && remind > Date.now() ? remind : d);
   }
+  // the alarm: a reminder to the side to move, or a loss on time
   async alarm() {
     await this.load();
     const g = this.g;
@@ -247,6 +299,7 @@ export class Game extends DurableObject {
     const opp = by === w ? 'b' : 'w';
     return this.save(pending === 'challenge' ? { type: 'challenge', to: opp } : null);
   }
+  // the game for one of its players; for an open invite, who it's from
   async state(uid) {
     await this.load();
     if (!this.g) return { gone: true };
@@ -255,6 +308,7 @@ export class Game extends DurableObject {
     if (this.g.pending === 'invite') return { id: this.g.id, invite: true, from: this.g.names[this.g.w ? 'w' : 'b'], seat: this.g.w ? 'b' : 'w', limit: this.g.limit };
     return { notYours: true };
   }
+  // take the empty seat of an invite; returns the inviter so the Users can become friends
   async join(uid, name) {
     await this.load();
     const g = this.g;
@@ -268,6 +322,7 @@ export class Game extends DurableObject {
     g.startAt = Date.now();
     return { view: await this.save({ type: 'joined', to: other(seat) }), host: g[other(seat)], hostName: g.names[other(seat)] };
   }
+  // a player changed their name
   async rename(uid, name) {
     await this.load();
     const c = this.colorOf(uid);
@@ -379,6 +434,7 @@ export class Game extends DurableObject {
     }
     return fail('unknown');
   }
+  // both agreed to a rematch: a new game with colours swapped and the same limit
   async startRematch() {
     const g = this.g;
     const id = makeGameCode();
@@ -402,6 +458,7 @@ export class User extends DurableObject {
   sockets() { return this.ctx.getWebSockets(); }
   toAll(obj) { for (const ws of this.sockets()) send(ws, obj); }
 
+  // a phone connects (already checked by the Worker): accept its WebSocket
   async fetch(request) {
     const url = new URL(request.url);
     const id = /^\/u\/([A-Za-z0-9_-]{43})$/.exec(url.pathname)[1];
@@ -416,6 +473,7 @@ export class User extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  // a request from a phone: handle it and send exactly one reply
   async webSocketMessage(ws, raw) {
     if (typeof raw !== 'string' || raw.length > MAX_MESSAGE) return;
     let msg; try { msg = JSON.parse(raw); } catch { return; }
@@ -428,19 +486,22 @@ export class User extends DurableObject {
   webSocketClose(ws, code) { try { ws.close(code === 1005 ? 1000 : code, 'bye'); } catch {} }
   webSocketError() {}
 
+  // everything a phone needs on connecting: you, friends, requests, games, notifications, the push key
   async snapshot() {
     const me = await this.me();
     const dir = dirStub(this.env);
     return { me, friends: await this.getMap('friends'), reqIn: await this.getMap('reqIn'), reqOut: await this.getMap('reqOut'),
       blocked: await this.getMap('blocked'), games: await this.getMap('games'), push: ((await this.ctx.storage.get('subs')) || []).map(s => s.endpoint),
-      vapid: (await dir.vapid()).pub };
+      vapid: (await dir.vapid()).pub, admin: isAdmin(this.env, me.id) };
   }
+  // send these lists to every connected phone
   async sendLists(what) {
     const out = { k: 'lists' };
     for (const k of what) out[k] = await this.getMap(k);
     this.toAll(out);
   }
 
+  // one request from a phone, by op; ops not listed here go to the game (Game.act)
   async handle(ws, msg) {
     const me = await this.me();
     const uid = me.id;
@@ -455,6 +516,7 @@ export class User extends DurableObject {
         ws.serializeAttachment(att);
         const name = cleanName(msg.name);
         if (name && !me.name) await this.setName(name);
+        await dirStub(this.env).touch(uid);
         const top = await dirStub(this.env).build(att.v);
         return { ...(await this.snapshot()), build: top };
       }
@@ -611,6 +673,25 @@ export class User extends DurableObject {
         const sent = await this.pushAll({ title: 'Étude', body: 'Notifications are working.', tag: 'test', url: APP_URL });
         return { sent };
       }
+      case 'deleteAccount': {
+        // the name typed to confirm must match
+        if (cleanName(msg.name).toLowerCase() !== (me.name || '').toLowerCase()) return { err: 'confirm' };
+        await this.deleteSelf();
+        return {};
+      }
+      case 'adminList': {
+        if (!isAdmin(this.env, uid)) return { err: 'notAdmin' };
+        const rows = await dirStub(this.env).all();
+        const stats = await Promise.all(rows.map(r => userStub(this.env, r.id).stats().catch(() => null)));
+        return { rows: rows.map((r, i) => ({ ...r, ...(stats[i] || {}), admin: isAdmin(this.env, r.id), you: r.id === uid })) };
+      }
+      case 'adminDelete': {
+        if (!isAdmin(this.env, uid)) return { err: 'notAdmin' };
+        if (!ID_RE.test(msg.to || '')) return { err: 'bad' };
+        if (msg.to === uid) await this.deleteSelf();
+        else await userStub(this.env, msg.to).deleteSelf();
+        return {};
+      }
       default: {
         // moves, chat and the rest go to the game
         if (!g) return { err: 'bad' };
@@ -620,6 +701,7 @@ export class User extends DurableObject {
     }
   }
 
+  // change your name, in the directory, for friends and in games under way
   async setName(name) {
     const me = await this.me();
     me.name = name;
@@ -632,6 +714,7 @@ export class User extends DurableObject {
     await Promise.all(Object.values(games).filter(x => !x.result).map(x => gameStub(this.env, x.g).rename(me.id, name).catch(() => {})));
     this.toAll({ k: 'me', me });
   }
+  // make this account and id friends on both sides
   async befriend(id, name, quiet = false) {
     const friends = await this.getMap('friends');
     friends[id] = { name, code: shortCode(id), at: Date.now() };
@@ -642,8 +725,34 @@ export class User extends DurableObject {
     await this.sendLists(['friends', 'reqIn', 'reqOut']);
     return {};
   }
+  // remove an id from friends and requests on this side
   async unfriend(id) {
     for (const k of ['friends', 'reqIn', 'reqOut']) { const m = await this.getMap(k); delete m[id]; await this.ctx.storage.put(k, m); }
+  }
+
+  /* Delete this account: games under way are resigned (or, not yet started,
+     cancelled or declined), friends and requests are removed on both sides,
+     the directory refuses the id from now on, its phones are told, and
+     everything stored here is erased. Finished games keep its name. */
+  async deleteSelf() {
+    const me = await this.me();
+    if (!me) return;
+    await dirStub(this.env).markDeleted(me.id);
+    const games = Object.values(await this.getMap('games')).filter(x => !x.result);
+    for (const x of games) {
+      const op = !x.pending ? 'resign' : x.mine ? 'cancel' : 'decline';
+      await gameStub(this.env, x.g).act(me.id, op).catch(e => console.warn('delete: game', e));
+    }
+    const others = new Set();
+    for (const k of ['friends', 'reqIn', 'reqOut']) for (const id of Object.keys(await this.getMap(k))) others.add(id);
+    await Promise.all([...others].map(id => userStub(this.env, id).friendRemoved(me.id).catch(() => {})));
+    for (const ws of this.sockets()) { send(ws, { k: 'deleted' }); try { ws.close(4001, 'deleted'); } catch {} }
+    await this.ctx.storage.deleteAll();
+  }
+  // counts for the Accounts screen
+  async stats() {
+    const games = Object.values(await this.getMap('games'));
+    return { friends: Object.keys(await this.getMap('friends')).length, live: games.filter(x => !x.result).length, finished: games.filter(x => x.result).length };
   }
 
   /* ---- called by other Users and by Games ---- */
@@ -660,6 +769,7 @@ export class User extends DurableObject {
     await this.sendLists(['reqIn']);
     await this.tell({ type: 'friendRequest', from: name });
   }
+  // another account accepted, or became friends another way
   async friendAccepted(from, name, quiet) {
     const friends = await this.getMap('friends');
     const was = !!friends[from];
@@ -682,15 +792,18 @@ export class User extends DurableObject {
     if (!was) await this.tell({ type: 'friendLinked', from: name });
     return true;
   }
+  // a request was declined (or cancelled by its sender)
   async friendDeclined(from, cancelled) {
     const k = cancelled ? 'reqIn' : 'reqOut';
     const m = await this.getMap(k); delete m[from]; await this.ctx.storage.put(k, m);
     await this.sendLists([k]);
   }
+  // another account removed or blocked this one
   async friendRemoved(from) {
     await this.unfriend(from);
     await this.sendLists(['friends', 'reqIn', 'reqOut']);
   }
+  // a friend changed their name
   async friendRenamed(from, name) {
     const friends = await this.getMap('friends');
     if (!friends[from]) return;
@@ -698,6 +811,7 @@ export class User extends DurableObject {
     await this.ctx.storage.put('friends', friends);
     await this.sendLists(['friends']);
   }
+  // a game changed: update the list, send it to phones that have it open, and tell the news
   async gameUpdate(summary, view, event) {
     const games = await this.getMap('games');
     games[summary.g] = summary;
@@ -721,6 +835,7 @@ export class User extends DurableObject {
     const n = describe(event);
     if (n) await this.pushAll(n);
   }
+  // send a notification to every subscribed device; forget ones that have gone
   async pushAll(note) {
     const subs = (await this.ctx.storage.get('subs')) || [];
     if (!subs.length) return 0;
@@ -775,7 +890,9 @@ async function hkdf(salt, ikm, info, bytes) {
   const key = await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info }, key, bytes * 8));
 }
+// join byte arrays
 const cat = (...parts) => { const n = parts.reduce((s, p) => s + p.length, 0), out = new Uint8Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out; };
+// text to UTF-8 bytes
 const utf8 = s => new TextEncoder().encode(s);
 
 export async function encryptPush(sub, payload) {
@@ -794,6 +911,7 @@ export async function encryptPush(sub, payload) {
   return cat(salt, rs, new Uint8Array([asPublic.length]), asPublic, body);
 }
 
+// the VAPID Authorization header: a JWT for the push service, signed with the server's push key
 async function vapidHeader(endpoint, vapid) {
   const aud = new URL(endpoint).origin;
   const head = b64u(utf8(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
@@ -803,6 +921,7 @@ async function vapidHeader(endpoint, vapid) {
   return `vapid t=${head}.${claims}.${sig}, k=${vapid.pub}`;
 }
 
+// send one encrypted push notification
 async function webPush(sub, payload, vapid) {
   return fetch(sub.endpoint, {
     method: 'POST',

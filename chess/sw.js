@@ -9,7 +9,10 @@
    once. Games against a person still need the network for the server.
 
    It also shows push notifications from the server (a move, a challenge, a
-   friend request) while Étude isn't open, and opens the game when one is tapped. */
+   friend request) while Étude isn't open, and opens the game when one is tapped.
+
+   index.html registers it, at the end of its script. Change CACHE whenever CORE
+   changes: activate then deletes the copies kept under the old name. */
 const CACHE = 'table-chess-v4';
 
 // The files a computer game needs, fetched on install so the first offline

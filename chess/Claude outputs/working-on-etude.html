@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Working on Étude</title>
+<style>
+  body { background: #15181b; color: #e8e6e1; font: 15px/1.6 system-ui, sans-serif; margin: 0; padding: 24px 16px 60px; }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-weight: 500; font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #c8a35b; margin: 28px 0 8px; }
+  li { margin: 6px 0; }
+  code { background: #22272b; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  .muted { color: #9aa0a6; }
+</style>
+</head>
+<body>
+<main>
+<h1>Working on Étude</h1>
+<p class="muted">For Claude, at the start of a chat about the chess app. How the code works is in the code: start with the comment at the top of <code>index.html</code>, then the one at the top of its main script, <code>sw.js</code> and <code>server/worker.js</code>. This page is only what the code can't say.</p>
+
+<h2>Where it is</h2>
+<ul>
+  <li>David's GitHub Pages repo <code>butterflyresonance.github.io</code>, folder <code>chess</code>; on his PC <code>Documents\butterflyresonance.github.io\chess</code> (OneDrive). He pushes himself, with <code>commit.bat</code>, which uses <code>VERSION</code> as the commit message.</li>
+  <li>The server is his Cloudflare Worker <code>etude-tables.subjectification.workers.dev</code>. Cloudflare builds it from the repo on every push (<code>npx wrangler deploy --config chess/server/wrangler.toml</code>). It needs no secrets.</li>
+  <li><code>Claude outputs</code> holds backups and tools; it isn't published.</li>
+</ul>
+
+<h2>How he wants changes made</h2>
+<ul>
+  <li>When he asks a question, answer it; don't start work. When he says to check first, propose and wait.</li>
+  <li>Before changing <code>index.html</code>, copy it to <code>Claude outputs/index-backup-DATE-before-WHAT.html</code>. Bump <code>VERSION</code> (<code>YYYY-MM-DD.N-word</code>, letters, digits, dots and hyphens) with every change.</li>
+  <li>Test in a real browser (Playwright) at phone size and laptop size, and look at the screenshots, not only the behaviour. His friends use iPhones (Safari); he uses Android Chrome and Firefox on Windows.</li>
+  <li>Online features: run the server locally with <code>wrangler dev</code> and point the app at it with <code>localStorage['table:server'] = '"ws://127.0.0.1:8787"'</code>. The cloud workspace can't reach Cloudflare.</li>
+  <li>After saving to his folder, check the md5 on his PC matches. Give each file a unique name when staging it, or an old copy can be written.</li>
+  <li>Keep each function's comment and each file's header up to date in the same edit. Comments describe the code as it is, never how it used to be (except in Migrations, which is for that).</li>
+  <li>One-off clean-ups of older saved data go in the Migrations section near the end of the script.</li>
+  <li>Guides and documents for him: HTML files, not Markdown.</li>
+</ul>
+
+<h2>Words on screen</h2>
+<ul>
+  <li>Plain, specific and direct; no flair, no dramatic phrasing.</li>
+  <li>Never name something by how it used to be ("Reconnecting", not "Reconnecting by itself").</li>
+  <li>The same feature has the same name everywhere ("Best move", never sometimes "Hints").</li>
+  <li>Avoid British phrases that read oddly to his friends ("Resume a game", not "Carry on").</li>
+  <li>Controls for one mode appear only in that mode; shared settings are the same everywhere.</li>
+</ul>
+
+<h2>Decided: don't reopen without a reason</h2>
+<ul>
+  <li>No analytics.</li>
+  <li>Openings are not marked sound or unsound: he wants to find out by playing them.</li>
+  <li>The tactics coach lists everything, with whether it works, rather than choosing for him.</li>
+  <li>"Engine plays" stays available in online games.</li>
+  <li>Several piece sets are CC BY-NC-SA: this matters if donations are ever added.</li>
+  <li>Famous games come from PGN Mentor files and are checked for legality; descriptions are in our own words; Tal stays represented; no collections by player.</li>
+</ul>
+
+<h2>Ideas he has raised, not built</h2>
+<ul>
+  <li>Opening guidance: suggested moves with reasons, reply trees and traps, starting with the London.</li>
+  <li>Lichess Masters search from a position; "guess the next move" in famous games.</li>
+  <li>Cosmetic unlocks as rewards (piece sets, boards); a donation option.</li>
+</ul>
+</main>
+</body>
+</html>

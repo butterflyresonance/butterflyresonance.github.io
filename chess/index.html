@@ -1,5 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+<!--
+  Étude: chess practice in the browser, at butterflyresonance.github.io/chess.
+  One page with everything in it: the styles, the screens, and the app's script.
+
+  Files beside this page:
+    sw.js              service worker: offline use, and push notifications
+    manifest.json      makes it installable as an app
+    vendor/            chess.js (rules and notation) and qrcode.js (the QR code for your key)
+    stockfish/         Stockfish 19 lite, in a worker: the strong opponent and all analysis
+    openings/book.json the opening families and their lines
+    famous/games.json  the famous games to step through
+    diagram-model.bin  the model that reads a board diagram from a photo
+    pieces/, boards/, fonts/   artwork (credits in CREDITS-art.txt)
+    server/            the Cloudflare Worker that keeps online games, accounts and friends
+
+  The page has three parts:
+    1. The style block: everything's look. Colours are variables on :root, redefined for the light theme.
+    2. The screens, in this order: the start screens (#lobby: home, its sub-screens and
+       Your account), Analyse a position (#setup), the chat (#chatScreen), the invite card
+       (#invite, moved into the game's Table tab when a game opens) and the game (#game).
+    3. Two scripts: #engineSrc, the Étude engine, which runs in a Worker; and the app
+       itself (type="module"), whose own header lists what is where.
+-->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1371,6 +1394,11 @@
   .profcode { font-size: 12px; letter-spacing: .12em; color: var(--muted); }
   #profHave .invite-actions { margin-top: 10px; flex-wrap: wrap; }
   #profLink { width: 100%; margin-top: 12px; }
+  #profDelete { margin-top: 18px; }
+  #scrAdmin .joinrow { align-items: center; margin-bottom: 12px; }
+  #admList .tag { color: var(--brass); margin-left: 6px; }
+  #admList button.dangerbtn { width: auto; }
+  #admList button.sure { background: var(--danger); color: #fff; }
   .prow { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--edge); }
   .prow:first-child { border-top: 1px solid var(--edge); }
   .prow .who { flex: 1; min-width: 0; }
@@ -1641,8 +1669,27 @@
           <button class="primary alt" id="profKey">Show key</button>
         </div>
         <div class="lsec hidden" id="profBlockSec"><h2 class="lhead">Blocked</h2><div id="profBlocked"></div></div>
-        <div class="lsec"><button class="dangerbtn" id="profRemove">Remove account from this device</button></div>
+        <div class="lsec hidden" id="profAdminSec">
+          <h2 class="lhead">Admin</h2>
+          <p class="note">This account is an admin of Étude’s server.</p>
+          <button class="primary alt" id="profAdmin">Accounts</button>
+        </div>
+        <div class="lsec">
+          <button class="dangerbtn" id="profRemove">Remove account from this device</button>
+          <p class="note">The account stays on the server, and your key brings it back.</p>
+          <button class="dangerbtn" id="profDelete">Delete account</button>
+          <p class="note">Deletes it for good, on every device: games under way are resigned, and you’re removed from your friends’ lists.</p>
+        </div>
       </div>
+    </div>
+
+    <div class="scr hidden" id="scrAdmin">
+      <div class="topbar">
+        <button class="backbtn" data-back aria-label="Back" title="Back"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5"/></svg></button>
+        <div class="status">Accounts</div>
+      </div>
+      <div class="joinrow"><p class="note" id="admCount" style="flex:1;margin:0"></p><button id="admRefresh">Refresh</button></div>
+      <div id="admList"></div>
     </div>
 
     <div class="scr hidden" id="scrStudy">
@@ -1986,8 +2033,8 @@
               </div>
               <p class="coach-note hidden" id="reviewIntro"></p>
             </section>
-            <!-- The old tactics coach. Its code is still below and still tested;
-                 it is just no longer shown. Remove `hidden` to bring it back. -->
+            <!-- The tactics coach's own section. Hidden: its code runs and is tested
+                 (coach-tests/), but the section isn't shown. Remove `hidden` to show it. -->
             <section class="coachblock hidden" id="coachBlock">
               <div class="setrow coachrow">
                 <span>Coach</span>
@@ -2122,8 +2169,8 @@ const EMPTY = 0;
 const PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6;
 const WHITE = 0, BLACK = 8;
 
-const typeOf   = p => p & 7;
-const colourOf = p => p & 8;
+const typeOf   = p => p & 7;   // piece type (PAWN…KING) from a piece code
+const colourOf = p => p & 8;   // colour bit of a piece code: 0 White, 8 Black
 
 const KNIGHT_OFF = [-33, -31, -18, -14, 14, 18, 31, 33];
 const BISHOP_OFF = [-17, -15, 15, 17];
@@ -2134,19 +2181,20 @@ const KING_OFF   = [-17, -16, -15, -1, 1, 15, 16, 17];
 const WK = 1, WQ = 2, BK = 4, BQ = 8;
 
 const FILES = 'abcdefgh';
-const toAlg = sq => FILES[sq & 7] + ((sq >> 4) + 1);
-const fromAlg = s => (Number(s[1]) - 1) * 16 + FILES.indexOf(s[0]);
+const toAlg = sq => FILES[sq & 7] + ((sq >> 4) + 1);   // 0x88 square index to 'e4'
+const fromAlg = s => (Number(s[1]) - 1) * 16 + FILES.indexOf(s[0]);   // 'e4' to 0x88 square index
 
 /* Move packing. Everything the search needs fits in one integer, so move lists
    are plain arrays of numbers and generating them allocates nothing else. */
 const SPEC_NONE = 0, SPEC_EP = 1, SPEC_CASTLE = 2, SPEC_DOUBLE = 3;
+// pack a move into one integer: from, to, promotion, captured piece, special kind
 const mk = (from, to, promo, cap, spec) =>
   from | (to << 7) | (promo << 14) | (cap << 17) | (spec << 21);
-const mFrom  = m => m & 127;
-const mTo    = m => (m >> 7) & 127;
-const mPromo = m => (m >> 14) & 7;
-const mCap   = m => (m >> 17) & 15;
-const mSpec  = m => (m >> 21) & 7;
+const mFrom  = m => m & 127;   // the from-square of a packed move
+const mTo    = m => (m >> 7) & 127;   // the to-square of a packed move
+const mPromo = m => (m >> 14) & 7;   // the promotion piece of a packed move (0 if none)
+const mCap   = m => (m >> 17) & 15;   // the captured piece of a packed move (0 if none)
+const mSpec  = m => (m >> 21) & 7;   // the special kind of a packed move: castling, en passant, double push
 
 const PIECE_CHAR = { p: PAWN, n: KNIGHT, b: BISHOP, r: ROOK, q: QUEEN, k: KING };
 
@@ -2474,7 +2522,7 @@ class Board {
 /* Tuned 2026-08-26 over 1,637,127 quiet positions from the Lichess Elite
    database (2500+/2300+). Two methods with different failure modes agreed to
    within a point on the minor pieces: Texel gradient descent on prediction
-   error (tune.py), and a win-rate break-even measurement that shares no code
+   error (the tuning script), and a win-rate break-even measurement that shares no code
    with this file (piecevalue.py). Previously 320/330/500/900 -- inherited
    convention, never measured for this engine.
 
@@ -2566,10 +2614,8 @@ const PASSED = [0, 10, 20, 30, 50, 80, 130, 0];
 const MOB_WEIGHT = [0, 0, 4, 5, 2, 1, 0];   // by piece type
 
 /* Every positional term is scaled here so each can be tuned or switched off
-   independently. Set any of them to 0 to remove that term entirely. These
-   defaults are NOT tuned — see the note in README-fast.md. */
-/* Fitted by tune.py over the same 1,637,127 positions, 2026-08-26.
-   Previously hand-set to 0.4 / 0.7 / 0.5 / 0.8.
+   independently. Set any of them to 0 to remove that term entirely. */
+/* Fitted by the tuning script over the same 1,637,127 positions, 2026-08-26.
 
    mobility was damped to 0.4 on a 70-75 game match whose interval crossed 50%,
    so that never established much either way; the regression prefers 0.6.
@@ -2655,10 +2701,11 @@ const OPT = {
 
 // 0x88 square -> table index, mirrored for Black
 const idxW = sq => (7 - (sq >> 4)) * 8 + (sq & 7);
-const idxB = sq => (sq >> 4) * 8 + (sq & 7);
+const idxB = sq => (sq >> 4) * 8 + (sq & 7);   // 0x88 square to 0-63, for the 64-entry tables
 
 /* ---------- Zobrist ---------- */
 let zseed = 0x2f6e2b1;
+// xorshift random numbers from a fixed seed, so the Zobrist keys are the same every run
 const rnd32 = () => {
   zseed ^= zseed << 13; zseed |= 0;
   zseed ^= zseed >>> 17;
@@ -2700,6 +2747,7 @@ function hashOf(b) {
    search and must not allocate. */
 let KA = 0;
 
+// how many squares a piece reaches (its mobility) and how many of them are in the enemy king's zone (adds to KA)
 function mobility(board, sq, type, us, zone) {
   let n = 0, atk = 0;
   const offs = type === KNIGHT ? [-33,-31,-18,-14,14,18,31,33]
@@ -2791,6 +2839,7 @@ for (let i = 0; i < 200; i++) KING_DANGER[i] = Math.min(500, Math.round(i * i / 
 const danger = (weight, attackers) =>
   attackers < 2 ? 0 : KING_DANGER[weight > 199 ? 199 : weight];
 
+// penalty for missing or advanced pawns in front of a king
 function kingShield(board, kingSq, us) {
   let pen = 0;
   const f = kingSq & 7;
@@ -2887,7 +2936,7 @@ function evaluate(b) {
 function features(b) {
   const board = b.board;
   /* features() ALWAYS computes this, even with W.kingsafety at zero. Its job
-     is to expose the raw feature for tune.py to fit; gating it on the weight
+     is to expose the raw feature for the tuning script to fit; gating it on the weight
      would make the column read as all-zero, and the term would look like it
      had no coverage rather than no weight. */
   const zW = KING_ZONE[b.kings[0]], zB = KING_ZONE[b.kings[1]];
@@ -2994,6 +3043,7 @@ function smallestAttacker(b, sq, side) {
   return -1;
 }
 
+// static exchange on a square: what the side gains by capturing there with its smallest attacker, and the recaptures after
 function seeAfter(b, sq, side) {
   const from = smallestAttacker(b, sq, side);
   if (from < 0) return 0;
@@ -3009,6 +3059,7 @@ function seeAfter(b, sq, side) {
   return value;
 }
 
+// static exchange value of a capture move: material won or lost once the trades on its square settle
 function seeMove(b, move) {
   const to = mTo(move), cap = mCap(move);
   if (!cap) return 0;
@@ -3055,6 +3106,7 @@ function scoreMove(b, move, ttMove, killers, history, counter) {
   return history[move] || 0;
 }
 
+// moves in the order the search should try them (scoreMove decides)
 function sortMoves(b, moves, ttMove, killers, history, counter) {
   const scored = moves.map(m => [scoreMove(b, m, ttMove, killers, history, counter), m]);
   scored.sort((a, x) => x[0] - a[0]);
@@ -3096,6 +3148,7 @@ const ONLY_ON = 0, ONLY_FREE = 1, ONLY_GONE = 2;
 const ONLY_LOST = 30000;
 const KING_ROOM = [-300, -150, -60, -15, 0];   // by safe squares around the one-piece king
 
+// the one-piece challenge: whether the engine's side still has its piece (ONLY_OK, ONLY_LOST) or is down to a bare king (ONLY_FREE)
 function onlyState(b, o) {
   const board = b.board, them = o.side ^ BLACK;
   let have = o.type === KING, theirs = false;
@@ -3112,13 +3165,15 @@ function onlyState(b, o) {
   return have ? ONLY_ON : ONLY_GONE;
 }
 
-const pieceMoves = (b, moves, type) => moves.filter(m => typeOf(b.board[mFrom(m)]) === type);
+const pieceMoves = (b, moves, type) => moves.filter(m => typeOf(b.board[mFrom(m)]) === type);   // the moves made by pieces of one type
 
+// true if any of these pseudo-legal moves is legal
 function anyLegal(b, moves) {
   for (const m of moves) if (b.make(m)) { b.unmake(); return true; }
   return false;
 }
 
+// the moves the one-piece rule allows: only the chosen piece, unless it has none or the army is freed
 function restrict(b, moves, ctx) {
   const o = ctx.only;
   if (!o || b.turn !== o.side) return moves;
@@ -3256,11 +3311,13 @@ const HOPE_MATED = -20000;           // it is mated (or has lost its last piece)
 const HOPE_WON = 20000;              // it mates
 const HOPE_WORST = 0.3;              // share of the worst case at the opponent's turn
 
+// a leaf of the one-piece search: the quiet score, from the one-piece side's view
 function hopeLeaf(b, ctx) {
   const v = quiesce(b, -Infinity, Infinity, ctx);
   return b.turn === ctx.only.side ? v : -v;
 }
 
+// the one-piece search: plays for chances, mixing the average outcome with the worst case (HOPE_WORST)
 function hope(b, depth, ply, ctx) {
   if ((++ctx.checks & 255) === 0) {
     const now = Date.now();
@@ -3309,6 +3366,7 @@ function hope(b, depth, ply, ctx) {
   return HOPE_WORST * worst + (1 - HOPE_WORST) * (sum / wsum);
 }
 
+// iterative deepening for the one-piece engine; returns the move with the best hope score
 function hopeRoot(b, legal, ctx, rng) {
   let root = shuffle(legal, rng), bestMv = root[0], bestScore = 0, reached = 0;
   for (let depth = 1; depth <= 12; depth++) {
@@ -3329,6 +3387,7 @@ function hopeRoot(b, legal, ctx, rng) {
   return { bestMv, bestScore, reached };
 }
 
+// quiescence search: captures only, until the position is quiet
 function quiesce(b, alpha, beta, ctx) {
   const stand = ctx.ev(b);
   if (stand >= beta) return beta;
@@ -3355,6 +3414,7 @@ function quiesce(b, alpha, beta, ctx) {
   return alpha;
 }
 
+// the main alpha-beta search (negamax) with the transposition table, killers, history and null moves
 function negamax(b, depth, alpha, beta, ply, ctx, prevMove = 0) {
   if ((++ctx.checks & 1023) === 0) {
     /* A node budget makes a match reproducible and removes timing noise
@@ -3521,12 +3581,14 @@ function negamax(b, depth, alpha, beta, ply, ctx, prevMove = 0) {
 const toTT = (score, ply) =>
   score > MATE - 1000 ? score + ply : score < -MATE + 1000 ? score - ply : score;
 
+// keep a position's result in the transposition table, preferring deeper searches
 function ttStore(tt, h1, h2, depth, score, flag, move) {
   if (tt.size >= TT_MAX) tt.clear();
   const prev = tt.get(h1);
   if (!prev || prev.depth <= depth) tt.set(h1, { check: h2, depth, score, flag, move });
 }
 
+// a shuffled copy of a list, with the given random function
 function shuffle(list, rng) {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
@@ -3538,13 +3600,11 @@ function shuffle(list, rng) {
 
 const PROMO_CHAR = { [QUEEN]: 'q', [ROOK]: 'r', [BISHOP]: 'b', [KNIGHT]: 'n' };
 
-/* useNull defaults to TRUE. It was false for a long time, which meant the
-   browser build -- whose worker calls bestMove(fen, ms, beat) with three
-   arguments -- silently ran without null-move pruning, while uci.mjs passed
-   its own flag and so every fastchess measurement had it on. The two builds
-   were not the same engine. README-fast.md measured null-move at +1.55 pawns
-   (77.5% over 100 games at depth 5 vs plain depth 4); the page was getting
-   none of it. Harnesses can still switch it off explicitly. */
+/* The Étude engine's entry point: the best move for the side to move in fen,
+   searching for up to ms milliseconds. onBeat reports progress; capDepth and
+   maxNodes cap the search; onlyType applies the one-piece rule. useNull
+   (null-move pruning) is on by default: it was measured at about +1.5 pawns of
+   strength (77.5% over 100 games). Test harnesses can switch it off. */
 function bestMove(fen, ms = 1500, onBeat = null, rng = Math.random, capDepth = Infinity, useNull = true, maxNodes = Infinity, onlyType = null) {
   const b = new Board(fen);
   const ctx = {
@@ -3657,19 +3717,84 @@ self.onmessage = e => {
 
 <script src="vendor/qrcode.js"></script>   <!-- qrcode-generator 1.4.4 (MIT, vendor/qrcode.js-LICENSE.txt): the QR code for your key -->
 <script type="module">
+/* ===========================================================================
+   The app.
+
+   How a game works. Everything on screen comes from a few variables: `code`
+   (the mode: 'solo' against the computer, 'onepiece', 'local' for one device,
+   'puzzle', 'study', or a 9-character code for an online game), `game` (a
+   chess.js game), `myColor`, `result` and `solo` (true for every mode with no
+   other person). The address says which game is open (#solo=1, #r=<code>…); on
+   load the boot code at the end reads it and calls begin(), which shows the
+   game screen. After any change, draw() redraws everything and persist() saves.
+   A move made here goes through localMove() and afterLocalMove(); online, the
+   server's copy of the game arrives in applyServer().
+
+   Sections, in order:
+     build stamp and log      VERSION, and the log behind Copy report
+     storage, dialogs, notes  store (guarded localStorage), openModal, the pop-up note
+     looks, pieces            piece sets and boards
+     routing                  the address
+     the server               accounts, the connection, online games, chat, news pop-ups
+     game flow                moves, endings, new games, saving (persist/restore)
+     game history             every game kept in IndexedDB, exported as PGN
+     sounds, presence         move sounds; the tab title and icon on your move
+     engine, opponents        the Étude engine worker, Stockfish as opponent, the adaptive and one-piece opponents
+     tactics coach            what the position offers each side, by section
+     analysis and review      Stockfish analysis, move grades (badges), the eval bar, explanations
+     openings                 the opening book and where each family stands
+     coach panel, inspect     the coach's panel and tapping a square
+     interaction, dragging    tapping and dragging pieces, promotion
+     the report               Copy report's text
+     buttons, settings        the game's buttons, the Settings tab, the looks pickers
+     the tabbed panel         the tabs under the board
+     puzzles                  Lichess puzzles, the buffer, ratings by theme
+     famous games, your own   stepping through a game, Play on with Stockfish, skipping
+     set up a position        the set-up board and saved positions
+     start screens            home, Resume a game, Your account, friend links,
+                              notifications, Play online
+     a position from a photo  the diagram reader
+     Migrations               one-off clean-ups of older saved data; delete after 2026-12-01
+     boot                     reads the address and opens the right screen
+
+   What is kept in this browser (localStorage, as JSON through `store`):
+     table:solo, table:onepiece, table:local   the game each offline mode has open
+     table:<code>       an online game's last copy from the server, for showing before it loads
+     table:lines        every game on this device under way (Resume a game), newest first
+     table:positions    positions saved in Analyse a position; table:setupFen, the one last open
+     table:studyAt, table:studyMine   where you were in a game being stepped through; your imported game
+     table:pz, table:pzSeen           puzzle rating, settings and stats; puzzles already served
+     table:opp, table:oppOnly, table:think   opponent, the one-piece piece, engine think time
+     table:theme, table:set, table:board, table:sfx, table:sfxVol   look and sound
+     table:tab, table:coach, table:review, table:revBadges, table:revBar, table:revBarPos,
+       table:revExplain, table:revTheirs, table:openPick, table:openForce, table:openShut
+                        panel and review choices
+     table:games        game history from before IndexedDB; moved across, then removed
+     table:server       a different server address, for testing (e.g. "ws://127.0.0.1:8787")
+     etude:account      your account: { seed (your key, base32), id (public key), name }
+     etude:net          the server's lists as last received: friends, requests, games, notifications
+     etude:chatq:<code> chat messages waiting for the connection
+     etude:gnames       names you gave online games in Resume a game
+     etude:terms        the colour and time limit last chosen for a challenge
+     etude:addLink      a friend link opened before there was an account
+     etude:mig:server   a Migrations flag
+   sessionStorage etude:screen: the start screen to return to after a page reload.
+   IndexedDB 'etude': games (game history records) and pzbuf (the puzzle buffer).
+   =========================================================================== */
 import { Chess } from './vendor/chess.js';   // chess.js 1.4.0, kept beside the page (BSD-2, vendor/chess.js-LICENSE.txt)
 
-const el = id => document.getElementById(id);
+const el = id => document.getElementById(id);   // an element by id
 const boardEl = el('board');
 
 /* ---------- build stamp + log capture ----------
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-11-04.3-account-button-width';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-11-04.6-admin-in-app';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
+// add a line to the log kept for Copy report; a repeated line becomes one line with a count
 function logLine(kind, parts) {
   const t = new Date().toISOString().slice(11, 19);
   let text;
@@ -3680,18 +3805,19 @@ function logLine(kind, parts) {
       JSON.stringify(p)).join(' ');
   } catch { text = '[unserialisable]'; }
   text = `${kind} ${text.slice(0, 300)}`;
-  // the same line over and over (a relay refusing every few seconds) becomes one line with a count,
+  // the same line over and over (a connection failing every few seconds) becomes one line with a count,
   // so it can't push the one line that matters out of the report
   const prev = logBuf.length && logBuf[logBuf.length - 1];
   if (prev && prev.text === text) { prev.n++; prev.last = t; return; }
   logBuf.push({ t, text, n: 1, last: t });
   if (logBuf.length > LOG_MAX) logBuf.shift();
 }
-const note = (...a) => logLine('info', a);
+const note = (...a) => logLine('info', a);   // log an ordinary event
+// the last n log lines, as text
 const logLines = n => logBuf.slice(-n).map(e => `${e.t} ${e.text}` + (e.n > 1 ? `  (×${e.n}, last ${e.last})` : ''));
 
-// Capture warnings from here *and* from Trystero — relay failures and
-// "could not connect to peer" are exactly what needs reporting.
+// Warnings and errors from anywhere on the page go into the log too: they are
+// what a report most needs.
 for (const level of ['warn', 'error']) {
   const original = console[level].bind(console);
   console[level] = (...args) => { logLine(level, args); original(...args); };
@@ -3717,6 +3843,7 @@ const store = {
 const modalEl = el('modal');
 let modalResolve = null;
 
+// close the open dialog, answering its promise with value
 function closeModal(value = null) {
   const resolve = modalResolve;
   modalResolve = null;
@@ -3735,6 +3862,7 @@ modalEl.addEventListener('click', e => {
   if (!inside) closeModal(null);
 });
 
+// show a dialog; resolves with the value of the button pressed, or null if dismissed
 function openModal({ title, body = '', actions = [{ label: 'OK', value: true, kind: 'go' }], onOpen }) {
   closeModal(null);                          // one question at a time
   el('modalTitle').textContent = title;
@@ -3773,6 +3901,7 @@ function openModal({ title, body = '', actions = [{ label: 'OK', value: true, ki
    before it. still() is asked just before it opens; if it says the question no
    longer applies, it is skipped and answered null. */
 let peerQueue = Promise.resolve();
+// a dialog that waits until no other dialog is open; still() is asked just before it opens
 function peerModal(opts, still = () => true) {
   const run = peerQueue.then(async () => {
     while (modalEl.open || modalResolve) await new Promise(r => setTimeout(r, 250));
@@ -3783,8 +3912,10 @@ function peerModal(opts, still = () => true) {
   return run;
 }
 
+// text made safe to put in HTML
 const escText = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// a Cancel / OK question; true if OK was pressed
 async function confirmModal(title, text, okLabel, { danger = false } = {}) {
   const v = await openModal({
     title,
@@ -3813,6 +3944,7 @@ function showTextModal(title, text, note = 'Your browser wouldn’t let the page
   });
 }
 
+// copy text to the clipboard; the button says 'Copied' for a moment; false if the browser refused
 async function copyText(text, button, doneLabel = 'Copied') {
   try {
     await navigator.clipboard.writeText(text);
@@ -3831,6 +3963,7 @@ let game = new Chess();
 /* A game can start from a position you set up (Set up a position). Its FEN is
    kept here and saved with the game; null means the usual starting position. */
 let startFen = null;
+// a new chess.js game from the starting position, or from the set-up position (startFen)
 const newGameFrom = () => startFen ? new Chess(startFen) : new Chess();
 // plies before this game's first move: a set-up position with Black to move, or
 // a later move number, shifts move numbers and who moved on which ply
@@ -3839,16 +3972,16 @@ function plyBase(fen = startFen) {
   const f = fen.split(' ');
   return (Math.max(1, parseInt(f[5], 10) || 1) - 1) * 2 + (f[1] === 'b' ? 1 : 0);
 }
-const plyColor = (i, fen = startFen) => (plyBase(fen) + i) % 2 === 0 ? 'w' : 'b';
+const plyColor = (i, fen = startFen) => (plyBase(fen) + i) % 2 === 0 ? 'w' : 'b';   // which colour moved on ply i of a game from fen
 let myColor = 'w';
 /* One device, two players: the board faces White, Black sits opposite.
    Whoever's turn it is moves; nothing is played by the engine. */
 const isLocal = () => code === 'local' || code === 'study';   // a game being stepped through shows both sides, like one device
-const moverColor = () => isLocal() ? game.turn() : myColor;
+const moverColor = () => isLocal() ? game.turn() : myColor;   // the colour moving on this device: whoever's turn it is on one device, otherwise yours
 let flipView = false;              // the board turned round from your side
 // Flipping is for one device, a game being stepped through, or a set-up position.
 const canFlip = () => code === 'local' || code === 'study' || !!startFen;
-const viewColor = () => flipView && canFlip() ? (myColor === 'w' ? 'b' : 'w') : myColor;
+const viewColor = () => flipView && canFlip() ? (myColor === 'w' ? 'b' : 'w') : myColor;   // the colour at the bottom of the board
 let turnTop = false;   // one device: the far side's pieces turned to face them. Kept with each game, like flipView
 let code = null;
 let result = null;
@@ -3869,17 +4002,19 @@ let rematchAsked = false;      // we've offered a rematch and are waiting for an
      when it stops being true (waiting for them) or after a few seconds (news,
      through flash()). */
 let flashText = '', flashUntil = 0;
+// show a short message in the game's pop-up note for ms milliseconds
 function flash(text, ms = 6000) {
   flashText = text;
   flashUntil = Date.now() + ms;
   if (code) drawStatus();
   setTimeout(() => { if (Date.now() >= flashUntil && code) drawStatus(); }, ms + 50);
 }
-const currentFlash = () => flashText && Date.now() < flashUntil ? flashText : '';
-const sayTable = (text, ms = 10000) => flash(text, ms);
+const currentFlash = () => flashText && Date.now() < flashUntil ? flashText : '';   // the flash message, while it lasts
+const sayTable = (text, ms = 10000) => flash(text, ms);   // flash with a longer default, for news about the game
 new MutationObserver(() => { if (el('game').classList.contains('hidden')) showToast(''); else if (code) drawStatus(); })
   .observe(el('game'), { attributes: true, attributeFilter: ['class'] });
 let toastNow = '';
+// the pop-up note under the game: text, and optionally a button { label, run }
 function showToast(text, action) {
   const t = el('toast'), b = el('toastBtn');
   const onGame = !el('game').classList.contains('hidden');
@@ -3911,8 +4046,7 @@ let engineAct = reloadAct;     // the button that goes with engineNote
 let freeTold = false;          // the one-piece "whole army" news, told once a game
 let gameSerial = 0;            // counts new games, so a question about an old one can tell it's stale
 let rematchQ = 0;              // the gameSerial a rematch question on screen was asked in
-/* Move sounds: a style (or 'off') and a volume, chosen in Settings → Sound.
-   (Older builds' on/off setting is carried over under Migrations, near the end.) */
+/* Move sounds: a style (or 'off') and a volume, chosen in Settings → Sound. */
 let sfxStyle = store.get('table:sfx') || 'wood';
 let sfxVol = Number.isFinite(store.get('table:sfxVol')) ? store.get('table:sfxVol') : .7;
 let soundOn = sfxStyle !== 'off';
@@ -4049,6 +4183,7 @@ const STAUNTON = {
   bp: '<path stroke="#000" stroke-linecap="round" stroke-width="1.5" d="M22.5 9a4 4 0 0 0-3.22 6.38 6.48 6.48 0 0 0-.87 10.65c-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47a6.46 6.46 0 0 0-.87-10.65A4.01 4.01 0 0 0 22.5 9z"/>',
 };
 
+// the HTML for a piece in the chosen piece set
 function pieceSVG(type, color, cls = '', set = pieceSet) {
   if (set !== 'staunton') {
     const s = PIECE_SETS.find(x => x.id === set);
@@ -4076,6 +4211,7 @@ function setHash() {
   location.hash = h;
 }
 
+// a random 9-character code from letters and digits that can't be misread
 function makeCode() {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
   const bytes = crypto.getRandomValues(new Uint8Array(9));
@@ -4102,6 +4238,7 @@ const SERVER = (() => { try { return JSON.parse(localStorage.getItem('table:serv
    here and shown to you as 52 letters and digits; the public half is the
    account's id. Signing in is signing "etude:<id>:<time>" with the key. */
 const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';     // Crockford base32: no I, L, O or U
+// bytes to Crockford base32 text
 function toB32(bytes) {
   let out = '', bits = 0, val = 0;
   for (const b of bytes) {
@@ -4111,6 +4248,7 @@ function toB32(bytes) {
   if (bits) out += B32[(val << (5 - bits)) & 31];
   return out;
 }
+// Crockford base32 text to bytes (case and look-alike letters forgiven); null if it isn't base32
 function fromB32(text) {
   const t = String(text).toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
   const out = [];
@@ -4124,9 +4262,11 @@ function fromB32(text) {
   return new Uint8Array(out);
 }
 const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+// base64url text to bytes
 const unb64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((t.length + 3) % 4)), c => c.charCodeAt(0));
 // a raw Ed25519 private key wrapped as PKCS#8, the form browsers import
 const PK8_HEAD = [0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20];
+// the signing key and account id (public key) for a 32-byte private key
 async function keyFrom(seed) {
   const key = await crypto.subtle.importKey('pkcs8', new Uint8Array([...PK8_HEAD, ...seed]), { name: 'Ed25519' }, true, ['sign']);
   const jwk = await crypto.subtle.exportKey('jwk', key);
@@ -4135,17 +4275,18 @@ async function keyFrom(seed) {
 let acct = store.get('etude:account');          // { seed, id, name }
 if (acct && !(acct.seed && acct.id)) acct = null;
 let acctKey = null;
-const shortOf = id => toB32(unb64u(id)).slice(0, 8);
-const fmtCode = c => c.slice(0, 4) + '-' + c.slice(4);
-const myCode = () => acct ? fmtCode(shortOf(acct.id)) : '';
-const keyGroups = seed => seed.match(/.{1,4}/g).join(' ');
-const keyLink = () => `${location.origin}${location.pathname}#key=${acct.seed}`;
+const shortOf = id => toB32(unb64u(id)).slice(0, 8);   // the 8-character code for an account id
+const fmtCode = c => c.slice(0, 4) + '-' + c.slice(4);   // a code as XXXX-XXXX
+const myCode = () => acct ? fmtCode(shortOf(acct.id)) : '';   // your own code, as XXXX-XXXX
+const keyGroups = seed => seed.match(/.{1,4}/g).join(' ');   // your key in groups of four, for reading
+const keyLink = () => `${location.origin}${location.pathname}#key=${acct.seed}`;   // the link that puts your account on another device
 // the 32 bytes in a pasted key, or in a link with #key=
 function seedFrom(text) {
   const m = /[#&]key=([0-9A-Za-z]+)/.exec(text || '');
   const bytes = fromB32(m ? m[1] : text);
   return bytes && bytes.length >= 32 ? bytes.slice(0, 32) : null;
 }
+// make a new account with this name, save it here and connect
 async function makeAccount(name) {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const k = await keyFrom(seed);
@@ -4157,6 +4298,7 @@ async function makeAccount(name) {
   netOpen(true);
   useFriendLink();
 }
+// use an existing account on this device from its 32-byte key
 async function useKey(seed) {
   const k = await keyFrom(seed);
   acct = { seed: toB32(seed), id: k.id, name: '' };
@@ -4168,6 +4310,7 @@ async function useKey(seed) {
   netOpen(true);
   useFriendLink();
 }
+// remove the account from this device (the server keeps it)
 function dropAccount() {
   netClose();
   acct = null; acctKey = null;
@@ -4178,18 +4321,21 @@ function dropAccount() {
 }
 // can this browser sign in? (Ed25519 arrived in Chrome 137, Safari 17, Firefox 129)
 let edCheck = null;
+// whether this browser can make Ed25519 keys (asked once)
 const edOK = () => edCheck || (edCheck = keyFrom(new Uint8Array(32)).then(() => true, () => false));
 
 /* ---- the connection ---- */
 const blankData = () => ({ friends: {}, reqIn: {}, reqOut: {}, blocked: {}, games: {}, push: [], vapid: null });
 let srvData = Object.assign(blankData(), store.get('etude:net') || {});
-function netSave() { store.set('etude:net', srvData); }
+function netSave() { store.set('etude:net', srvData); }   // save the server's lists (srvData) on this device, for showing while offline
 let net = { ws: null, open: false, tries: 0, timer: null, n: 0, wait: new Map(), queue: [], downAt: 0 };
 let newerBuild = null;          // a newer build of the app, as the server has seen
+// the connection state, in words, for Copy report
 const netState = () => !acct ? 'no account' : net.open ? 'connected' : net.ws ? 'connecting' : 'not connected';
 // the online game on screen, if there is one
 const onlineCode = () => ownTable(code) && !el('game').classList.contains('hidden') ? code : null;
 
+// open the WebSocket to your User on the server, signed with your key; now = retry at once
 async function netOpen(now) {
   if (now) { net.tries = 0; clearTimeout(net.timer); }
   if (!acct || !SERVER) return;
@@ -4233,6 +4379,7 @@ async function netOpen(now) {
     if (m.k === 'gsum') { srvData.games[m.sum.g] = m.sum; netSave(); netChanged(); return; }
     if (m.k === 'game') { if (m.state && m.state.id === onlineCode()) applyServer(m.state); return; }
     if (m.k === 'event') { onEvent(m.event); return; }
+    if (m.k === 'deleted') { accountDeleted(); return; }
   };
   ws.onclose = e => {
     clearInterval(ws.keepAlive);
@@ -4254,6 +4401,7 @@ function netRetry() {
   if (!acct) return;
   net.timer = setTimeout(netOpen, Math.min(30000, 1000 * 2 ** Math.min(net.tries++, 5)));
 }
+// close the connection on purpose; waiting requests answer 'offline'
 function netClose() {
   clearTimeout(net.timer);
   const ws = net.ws;
@@ -4263,6 +4411,7 @@ function netClose() {
   net.wait.clear();
   if (ws) { clearInterval(ws.keepAlive); try { ws.close(1000, 'leaving'); } catch {} }
 }
+// send a request on this socket; resolves with the server's reply
 function netSend(ws, op, a = {}) {
   return new Promise(res => {
     const id = ++net.n;
@@ -4278,8 +4427,9 @@ function netReq(op, a = {}, { queue = false } = {}) {
   if (!queue) return Promise.resolve({ ok: false, err: acct ? 'offline' : 'noAccount' });
   return new Promise(res => net.queue.push({ op, a, res }));
 }
+// the server's 'hello' reply into srvData: friends, requests, games, notifications, newest build
 function takeSnapshot(h) {
-  for (const k of ['friends', 'reqIn', 'reqOut', 'blocked', 'games', 'push', 'vapid']) if (h[k] !== undefined) srvData[k] = h[k];
+  for (const k of ['friends', 'reqIn', 'reqOut', 'blocked', 'games', 'push', 'vapid', 'admin']) if (h[k] !== undefined) srvData[k] = h[k];
   if (h.me && h.me.name && h.me.name !== acct.name) { acct.name = h.me.name; store.set('etude:account', acct); }
   newerBuild = h.build && buildNewer(h.build, VERSION) ? h.build : null;
   netSave();
@@ -4301,6 +4451,7 @@ function netChanged() {
   }
   if (ownTable(code) && !el('game').classList.contains('hidden')) { setLink(); drawStatus(); drawDrop(); }
 }
+// tell the server whether the app is on screen and which game is open; reconnect if needed
 function netVis() {
   if (net.open && net.ws) netSend(net.ws, 'vis', { visible: !document.hidden, game: onlineCode() });
   else if (!document.hidden && acct) netOpen(true);
@@ -4317,9 +4468,10 @@ let og = null;              // the game as the server last sent it
 let pendingMove = null;     // { ply, san }: played here, not confirmed by the server yet
 let gameGone = null;        // 'gone' | 'notYours' | 'taken' | 'noAccount': why it can't be shown
 const answered = new Set(); // takeback and rematch questions already put to you
-const them = () => myColor === 'w' ? 'b' : 'w';
-const rivalName = () => (og && og.names && og.names[them()]) || '';
-const limitWords = d => !d ? 'no time limit' : `${d} day${d === 1 ? '' : 's'}`;
+const them = () => myColor === 'w' ? 'b' : 'w';   // the other player's colour
+const rivalName = () => (og && og.names && og.names[them()]) || '';   // the other player's name in the open online game
+const limitWords = d => !d ? 'no time limit' : `${d} day${d === 1 ? '' : 's'}`;   // a time limit in days, in words
+// a deadline as 'today at…', 'tomorrow at…' or a date
 function fmtDeadline(t) {
   const d = new Date(t), now = new Date();
   const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -4329,6 +4481,7 @@ function fmtDeadline(t) {
   return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + ' at ' + time;
 }
 
+// an online game opens: the once-a-second redraw, and the game from the server
 function connect() {
   clearInterval(healthTimer);
   healthTimer = setInterval(() => { drawConn(); drawDrop(); drawStatus(); }, 1000);
@@ -4337,10 +4490,12 @@ function connect() {
   if (net.open) { netVis(); loadGame(); }
   else netOpen(true);
 }
+// an online game closes: stop the once-a-second redraw
 function teardown() {
   clearInterval(healthTimer);
   healthTimer = null;
 }
+// ask the server for the open game; an invite not yet joined is offered with offerJoin
 async function loadGame() {
   const g = code;
   if (!acct || !g) return;
@@ -4352,6 +4507,7 @@ async function loadGame() {
   if (s.invite) { offerJoin(s); return; }
   applyServer(s);
 }
+// someone opened an invite link: ask whether to join, then join
 async function offerJoin(s) {
   const v = await peerModal({
     title: `${s.from || 'Someone'} invites you`,
@@ -4408,14 +4564,17 @@ function applyServer(s) {
   setLink();
   draw();
 }
+// open an online game by its code (the page reloads on the new address)
 function goGame(g) {
   swapScreen(() => { location.hash = 'r=' + g; });
 }
 
+// send a move just played here; it stays on the board until the server answers
 function sendMove(ply, san) {
   pendingMove = { ply, san, inflight: false };
   sendPending();
 }
+// send the waiting move; on refusal, take the server's game and say why
 async function sendPending() {
   const p = pendingMove;
   if (!p || p.inflight) return;
@@ -4441,6 +4600,7 @@ async function gameAct(op, a = {}) {
   }
   return r;
 }
+// they asked for a takeback: ask you, once, and send the answer
 function askTakeback(s) {
   const key = `tb:${s.id}:${s.tb.ply}`;
   answered.add(key);
@@ -4453,6 +4613,7 @@ function askTakeback(s) {
     gameAct('takebackAnswer', { ok: !!ok });
   });
 }
+// they offered a rematch: ask you, once, and go to the new game if you accept
 function askRematch(s) {
   answered.add(`rm:${s.id}`);
   const mine = myColor === 'w' ? 'Black' : 'White';
@@ -4472,7 +4633,7 @@ function sendFlags() {
   netReq('flags', { g: code, hints: hintsOn, auto: autoPlay, coach: coachMode !== 'off', review: reviewOn }, { queue: true });
 }
 
-const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;
+const fmtSecs = secs => secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s`;   // seconds as '45s' or '3m 05s'
 // the Table tab: the connection, and the time limit
 function drawConn() {
   const show = !solo && !!code && code !== 'puzzle' && !!acct;
@@ -4493,7 +4654,9 @@ function drawConn() {
    card: the board comes once it has started. A challenge declined or cancelled
    before it started stays that way. */
 const neverStarted = () => !!og && !!og.result && ['declined', 'cancelled'].includes(og.result.type);
+// whether an online game shows only the invite card: not started, never started, or can't be opened
 const cardOnly = () => !!gameGone || (og ? !!og.pending || neverStarted() : !game.history().length);
+// switch an online game between the invite card and the board
 function updateConnecting() {
   const online = !solo && !!code && code !== 'puzzle';
   const connecting = online && cardOnly();
@@ -4507,6 +4670,7 @@ function updateConnecting() {
     draw();
   }
 }
+// the bar under the board while the server can't be reached
 function drawDrop() {
   const online = !solo && !!code && code !== 'puzzle';
   const show = online && !!acct && !document.body.classList.contains('connecting') && !net.open && net.downAt && Date.now() - net.downAt > 4000;
@@ -4589,7 +4753,8 @@ el('inviteNameIn').addEventListener('keydown', e => { if (e.key === 'Enter') el(
 
 /* Fade the page's contents out, change screen, fade them back in. */
 const FADE_MS = 150;
-const calm = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const calm = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;   // true if the device asks for reduced motion
+// fade the page out, make the change, fade back in
 function swapScreen(change) {
   const w = document.querySelector('.wrap');
   if (calm() || w.classList.contains('away')) { change(); w.classList.remove('away'); return; }
@@ -4600,6 +4765,7 @@ function swapScreen(change) {
     requestAnimationFrame(() => w.classList.remove('away'));
   }, FADE_MS);
 }
+// replay the fade-in animation on an element
 function fadeIn(node) {
   if (!node) return;
   node.classList.remove('fadein');
@@ -4615,8 +4781,9 @@ function fadeIn(node) {
    bar shows when there are unread messages, and the Game button on the chat
    screen shows when they've moved while you were chatting. */
 let chatUnread = 0, chatOpen = false, chatPlyAtOpen = 0;
-const chatQKey = () => 'etude:chatq:' + code;
-const chatQueue = () => store.get(chatQKey()) || [];
+const chatQKey = () => 'etude:chatq:' + code;   // where chat messages waiting to be sent are kept for this game
+const chatQueue = () => store.get(chatQKey()) || [];   // chat messages waiting to be sent, for this game
+// the chat as shown: the server's messages with sent/seen, then any waiting to send
 function chatList() {
   const out = [];
   if (og) {
@@ -4627,6 +4794,7 @@ function chatList() {
   }
   return out;
 }
+// send a chat message; it waits here if the connection is down
 function chatSend(text) {
   text = String(text).trim().slice(0, 500);
   if (!text || !og) return;
@@ -4651,6 +4819,7 @@ function chatResend() {
     if (r.state) applyServer(r.state);
   });
 }
+// the chat from a server update: unread count, a chime for a new message, read receipts
 function chatFromServer(s, before) {
   const theirs = them();
   const seen = (s.seen && s.seen[myColor]) || 0;
@@ -4664,7 +4833,7 @@ function chatFromServer(s, before) {
   chatSeenNow();
   drawChat();
 }
-const chatVisible = () => chatOpen && !document.hidden;
+const chatVisible = () => chatOpen && !document.hidden;   // true if the chat screen is open and on screen
 // with the chat on screen, tell the server you've read it
 function chatSeenNow() {
   if (!chatVisible() || !og) return;
@@ -4675,9 +4844,11 @@ function chatSeenNow() {
     netReq('seen', { g: code, n }, { queue: true });
   }
 }
-const chatTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+const chatTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });   // a time as '8:36 am'
+// a time, with the date if it isn't today
 const chatDay = t => new Date(t).toDateString() === new Date().toDateString() ? chatTime(t)
   : new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ', ' + chatTime(t);
+// open the chat screen over the game
 function openChat() {
   chatOpen = true;
   chatPlyAtOpen = game.history().length;
@@ -4689,6 +4860,7 @@ function openChat() {
   fitChat();
   if (!matchMedia('(pointer: coarse)').matches) el('chatIn').focus();
 }
+// close the chat screen, back to the game
 function closeChat() {
   chatOpen = false;
   el('chatScreen').classList.add('hidden');
@@ -4719,6 +4891,7 @@ if (window.visualViewport) {
   visualViewport.addEventListener('resize', fitChat);
   visualViewport.addEventListener('scroll', fitChat);
 }
+// draw the chat button, its unread dot, and the chat screen if open
 function drawChat() {
   const on = !solo && !!code && code !== 'puzzle' && !!og && !og.pending && !neverStarted();
   el('chatBtn').classList.toggle('hidden', !on);
@@ -4794,6 +4967,7 @@ function eventWords(e) {
   }[e.type] || null;
 }
 let popTimer = null;
+// news from the server: a pop-up with Open, unless it's about the game on screen
 function onEvent(e) {
   if (!e) return;
   if (e.g && e.g === onlineCode() && !document.hidden) return;     // on screen already
@@ -4816,7 +4990,7 @@ function goProfile() {
     location.href = location.pathname + location.search;
   } else showScreen('profile');
 }
-function hidePop() { clearTimeout(popTimer); el('pop').classList.add('off'); }
+function hidePop() { clearTimeout(popTimer); el('pop').classList.add('off'); }   // hide the news pop-up
 el('popX').onclick = hidePop;
 
 // a game from the server, onto the board: its moves from the start, and its result
@@ -4846,12 +5020,14 @@ function localMove(from, to, promotion) {
   return afterLocalMove(m);
 }
 
+// play a move given in SAN, as if made on the board
 function localMoveSan(san) {
   let m;
   try { m = game.move(san); } catch { return false; }
   return afterLocalMove(m);
 }
 
+// after any move made on this device: sound, marks, review gate, send it if online, save, draw
 function afterLocalMove(m) {
   if (!m) return false;
   moveSound(m);
@@ -4872,6 +5048,7 @@ function afterLocalMove(m) {
   return true;
 }
 
+// set result if the game has just ended on the board (mate, stalemate, draws)
 function checkEnd() {
   if (result) return;
   if (game.isCheckmate()) result = { type: 'checkmate', winner: game.turn() === 'w' ? 'b' : 'w' };
@@ -4884,6 +5061,7 @@ function checkEnd() {
   }
 }
 
+// a new game in the same mode: colour, and for offline modes a new saved line unless keepLine
 function startFresh(colorForMe, keepLine = false) {
   if (!keepLine) { flipView = false; turnTop = false; }   // a new game starts unflipped: flips belong to the game they were made in
   if (!keepLine && OFFLINE.includes(code) && lineId) {
@@ -4919,8 +5097,10 @@ function startFresh(colorForMe, keepLine = false) {
   draw();
 }
 
+// true for an online game's code (anything that isn't an offline mode)
 const ownTable = c => !!c && !['solo', 'onepiece', 'local', 'puzzle', 'study'].includes(c);
 
+// save the game on this device after any change (table:<code>, the line, and game history)
 function persist() {
   if (!code || code === 'puzzle' || code === 'study') return;
   if (ownTable(code) && !og) return;             // nothing from the server yet: your colour isn't known
@@ -4944,6 +5124,7 @@ function persist() {
     setting: (startFen ? 'setup:' : '') + (code === 'local' ? 'local' : solo ? (onePiece ? oppOnly : opponent) : '') || undefined });
 }
 
+// load the saved game for code into the board
 function restore() {
   const saved = store.get('table:' + code);
   lineId = null;
@@ -5034,7 +5215,7 @@ const idb = (() => {
 let gamesMem = [];
 let gamesIdb = true;          // false: IndexedDB unavailable, fall back to localStorage
 let gamesLoaded = false;
-const byStarted = (a, b) => a.started < b.started ? -1 : 1;
+const byStarted = (a, b) => a.started < b.started ? -1 : 1;   // game records in the order they were started
 const gamesReady = idb.all('games').then(async list => {
   const old = store.get(HISTORY_KEY);
   if (Array.isArray(old) && old.length) {
@@ -5054,6 +5235,7 @@ const gamesReady = idb.all('games').then(async list => {
   gamesLoaded = true;
 });
 
+// every game record (gamesMem, loaded from IndexedDB)
 function loadGames() {
   return gamesMem;
 }
@@ -5080,6 +5262,7 @@ function saveGame(rec) {
   }
 }
 
+// delete all game history
 function clearGames() {
   gamesMem = [];
   historyFull = false;
@@ -5087,11 +5270,13 @@ function clearGames() {
   try { localStorage.removeItem(HISTORY_KEY); } catch {}
 }
 
+// a new id for a game history record
 function newGameId() {
   return Date.now().toString(36) + '-' + [...crypto.getRandomValues(new Uint8Array(4))]
     .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// update this game's history record: moves, think times, what helped, result
 function recordGame() {
   // a game resumed after a reload must find its own record, not start another
   if (!gamesLoaded) { gamesReady.then(recordGame); return; }
@@ -5164,12 +5349,14 @@ function recordGame() {
    plain words. */
 const pad2 = n => String(n).padStart(2, '0');
 
+// a result as a PGN token: 1-0, 0-1, 1/2-1/2 or *
 function resultToken(r) {
   if (!r) return '*';
   if (!r.winner) return '1/2-1/2';
   return r.winner === 'w' ? '1-0' : '0-1';
 }
 
+// a result in words, for the end of a PGN
 function endingText(r, color) {
   if (!r) return '';
   const loser = r.winner === 'w' ? 'Black' : 'White';
@@ -5179,6 +5366,7 @@ function endingText(r, color) {
   return r.why ? `Drawn by ${r.why}.` : 'Drawn.';
 }
 
+// a think time as a PGN %emt comment
 function emt(ms) {
   const s = ms / 1000;
   const h = Math.floor(s / 3600);
@@ -5189,15 +5377,18 @@ function emt(ms) {
 
 const NOTE_WORDS = { hint: 'hint on', coach: 'coach on', auto: 'engine played this' };
 
+// who a history record was played against, in words
 function oppName(rec) {
   if (!rec.opps.length) return rec.mode === 'engine' ? 'Engine' : rec.mode === 'local' ? 'Same device' : 'Opponent';
   return rec.opps.length === 1 ? rec.opps[0] : 'Mixed: ' + rec.opps.join(' / ');
 }
 
+// one PGN header line
 function pgnHeader(name, value) {
   return `[${name} "${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`;
 }
 
+// a history record as PGN, with headers, think times and notes
 function pgnFor(rec) {
   const d = new Date(rec.started);
   const me = 'You', them = oppName(rec);
@@ -5273,12 +5464,14 @@ function describeResult(rec) {
   return r.winner === rec.color ? 'Won' : 'Lost';
 }
 
+// a date and time, for the game history list
 function fmtWhen(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) +
     ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
+// save text as a file download
 function downloadText(name, text) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/x-chess-pgn' }));
   const a = document.createElement('a');
@@ -5290,6 +5483,7 @@ function downloadText(name, text) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+// the Game history dialog: every saved game, with copy and download
 async function showGames() {
   await gamesReady;
   const games = loadGames().slice().reverse();          // newest first
@@ -5398,18 +5592,14 @@ async function showGames() {
   });
 }
 
-/* ---------- presence ----------
-   Moves only cross while both pages are open, so the app asks you to leave the
-   tab sitting there. These close the loop: something has to say a move landed
-   while you were looking elsewhere. */
 /* ---------- move sounds ----------
    Synthesised with the Web Audio API, nothing downloaded: a short burst of
    filtered noise and a low tone make a piece landing on wood; bells and square
    waves make the other styles. Each move plays move, capture, check or mate.
-   They also do the job the old blip did: say a move landed while you were
-   looking elsewhere. */
+   They also say a move landed while you were looking elsewhere. */
 let sfxBus = null;
 const sfxNoise = {};
+// the audio context and output for move sounds, made on first use
 function sfxCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -5424,6 +5614,7 @@ function sfxCtx() {
   }
   return audioCtx;
 }
+// a second of white or pink noise, made once per kind
 function sfxNoiseBuf(kind) {
   if (sfxNoise[kind]) return sfxNoise[kind];
   const sr = audioCtx.sampleRate, len = sr;
@@ -5440,12 +5631,15 @@ function sfxNoiseBuf(kind) {
   }
   return (sfxNoise[kind] = buf);
 }
+// a filter node
 const sfxFilt = (type, f, q = .7) => { const x = audioCtx.createBiquadFilter(); x.type = type; x.frequency.value = f; x.Q.value = q; return x; };
+// a gain envelope: attack, peak, decay
 function sfxEnv(g, t, a, peak, d) {
   g.gain.setValueAtTime(.0001, t);
   g.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), t + a);
   g.gain.exponentialRampToValueAtTime(.0001, t + a + d);
 }
+// an oscillator tone, optionally gliding to another frequency
 function sfxTone(type, freq, t, a, peak, d, to) {
   const o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.type = type;
@@ -5455,6 +5649,7 @@ function sfxTone(type, freq, t, a, peak, d, to) {
   o.connect(g).connect(sfxBus);
   o.start(t); o.stop(t + a + d + .05);
 }
+// a burst of filtered noise
 function sfxBurst(kind, t, a, peak, d, filters) {
   const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
   src.buffer = sfxNoiseBuf(kind);
@@ -5463,9 +5658,11 @@ function sfxBurst(kind, t, a, peak, d, filters) {
   n.connect(g).connect(sfxBus);
   src.start(t, Math.random() * .8); src.stop(t + a + d + .05);
 }
+// a bell-like tone from three sine partials
 function sfxBell(f, t, peak, d) {
   [[1, 1], [2.756, .4], [5.404, .15]].forEach(([m, a]) => sfxTone('sine', f * m, t, .002, peak * a, d / Math.sqrt(m)));
 }
+// a wooden knock: a filtered click and a low body tone
 function sfxKnock(t, { f = 1800, body = 260, peak = .9, len = .06 } = {}) {
   sfxBurst('white', t, .001, peak * .7, .03, [sfxFilt('bandpass', f, 4)]);
   sfxTone('sine', body, t, .002, peak * .6, len, body * .7);
@@ -5503,6 +5700,7 @@ const SFX = {
 };
 if (sfxStyle !== 'off' && !SFX[sfxStyle]) sfxStyle = 'wood';
 
+// play a sound (move, capture, check, mate) in a style
 function playSfx(kind, style = sfxStyle) {
   if (style === 'off' || !SFX[style]) return;
   try {
@@ -5523,11 +5721,13 @@ function chatChime() {
     }
   } catch {}
 }
+// the sound for a chess.js move
 function moveSound(m) {
   if (!m) return;
   playSfx(m.san.includes('#') ? 'mate' : m.san.includes('+') ? 'check' : m.captured ? 'capture' : 'move');
 }
 
+// the tab icon: a brass dot when it's your move
 function setFavicon(active) {
   if (faviconState === active) return;          // don't churn the DOM every draw
   faviconState = active;
@@ -5545,8 +5745,10 @@ function setFavicon(active) {
   link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
+/* ---------- presence ----------
+   While you look at another tab, the title and icon say when it's your move. */
 // '● Your move' in the tab title, and the gold favicon: only where someone else
-// moves and you might be waiting in another tab (an online table, the computer).
+// moves and you might be waiting in another tab (an online game, the computer).
 function setPresence() {
   const against = ownTable(code) || code === 'solo' || code === 'onepiece';
   const yours = against && !result && game.turn() === myColor;
@@ -5688,11 +5890,13 @@ function askEngine(mode) {
    while a worker that has actually died is caught within one window. */
 const ENGINE_SILENCE_MS = 12000;
 
+// restart the timer that notices a silent engine
 function armWatchdog() {
   clearTimeout(engineWatchdog);
   engineWatchdog = setTimeout(onEngineSilent, ENGINE_SILENCE_MS);
 }
 
+// the Étude engine has gone quiet: restart it, or say so
 function onEngineSilent() {
   if (!engineJob || engineJob.sf) return;    // Stockfish has its own timer
 
@@ -5719,6 +5923,7 @@ function onEngineSilent() {
    the fallback, for when Stockfish can't run (opened from disk, or it failed). */
 const hintWanted = () => hintsOn && !!code && !result && game.turn() === moverColor();
 
+// the best move from the analysis cache, for Best move
 function sfHint() {
   if (!hintWanted()) return null;
   const e = anCache.get(posKey(game.fen()));
@@ -5729,8 +5934,10 @@ function sfHint() {
   return { from: l.uci.slice(0, 2), to: l.uci.slice(2, 4), promotion: l.uci[4], san: sanOf(game.fen(), l.uci),
            score: l.score * sign, depth: e.depth, mate, mateN: mate ? MATE_S - Math.abs(l.score) : null, sf: true };
 }
+// the Best move to show: Stockfish analysis, or the Étude engine's when analysis is unavailable
 const currentHint = () => anBroken ? hint : sfHint();
 
+// ask the Étude engine for Best move (only when Stockfish analysis is unavailable)
 function requestHint() {
   if (!hintsOn || result || game.turn() !== moverColor()) { hint = null; hintFen = null; return; }
   if (!anBroken) { hint = null; hintFen = null; return; }   // read off the analysis engine instead
@@ -5743,12 +5950,13 @@ function requestHint() {
 }
 
 /* In solo the engine is the opponent, so it moves when it is *not* our turn.
-   With a peer, "Engine plays" hands over our own side instead. */
+   Against a person, "Engine plays" hands over your own side instead. */
 function engineToMove() {
   if (result || !code || code === 'puzzle' || code === 'local' || code === 'study') return false;
   return solo ? game.turn() !== myColor : (autoPlay && game.turn() === myColor);
 }
 
+// if it's the engine's turn (the computer, or Engine plays), ask it for a move
 function maybeAutoPlay() {
   if (!engineToMove()) return;
   if (solo) {
@@ -5787,7 +5995,8 @@ const SF_PATH = 'stockfish/stockfish-19-lite-single.js';
 const SF_TIERS = [1320, 1450, 1600, 1750, 1900, 2050, 2200, 2400, 2600, 2800, 3000];
 const SF_TIER_MS = 1500;
 
-const sfElo = id => /^sf\d+$/.test(id) ? Number(id.slice(2)) : null;
+const sfElo = id => /^sf\d+$/.test(id) ? Number(id.slice(2)) : null;   // the Elo in an opponent id like 'sf1500', or null
+// an opponent id that exists, or the Étude engine
 const validOpp = v => v === 'table' || v === 'sfmax' || v === 'sfadapt' || SF_TIERS.includes(sfElo(v)) ? v : 'table';
 const sfFull = id => id === 'sfmax' || id === 'sfadapt';     // no strength limit, uses the Think slider
 
@@ -5811,8 +6020,9 @@ const ADAPT_MAX_WIN = 5;
 const ADAPT_MPV = 40;
 let adapt = null;            // {ply, score}: its last move, and what it expected after it
 
-const adaptWin = cp => 100 / (1 + Math.exp(-0.00368208 * cp));
+const adaptWin = cp => 100 / (1 + Math.exp(-0.00368208 * cp));   // winning chance (0-100) from a centipawn score, for the adaptive opponent
 
+// the adaptive opponent's choice: a move that keeps the game even, given its last expectation
 function adaptivePick(cands, prev) {
   // cands: [{uci, s}] from the engine's side; prev: its expectation after its last move, or null
   if (!cands.length) return null;
@@ -5851,9 +6061,10 @@ const ONLY_WORD = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', 
    game, and never touches the normal game against the engine. */
 let onePiece = false;
 let oppOnly = 'any';
+// the piece saved for the one-piece challenge (king by default)
 const ONLY_PICK = () => { const v = store.get('table:oppOnly'); return ONLY_KINDS.includes(v) && v !== 'any' ? v : 'k'; };
-const onlyActive = () => solo && oppOnly !== 'any';
-const tableOnly = () => solo ? oppOnly : 'any';
+const onlyActive = () => solo && oppOnly !== 'any';   // true while the one-piece rule is on
+const tableOnly = () => solo ? oppOnly : 'any';   // the one-piece rule for the engine: the piece, or 'any'
 
 /* the one-piece position as the page sees it, for the engine's side */
 function onlyBoard() {
@@ -5870,6 +6081,7 @@ function onlyBoard() {
 
 const usingSF = () => solo && opponent !== 'table' && oppOnly === 'any';   // one-piece games are the table engine's
 
+// the opponent in words, for Copy report and the history
 function oppLabel(id = opponent) {
   if (oppOnly !== 'any' && id === opponent) return `Étude engine (${fmtThink(thinkMs)}/move, ${ONLY_WORD[oppOnly]} moves only)`;
   if (id === 'table') return `Étude engine (${fmtThink(thinkMs)}/move)`;
@@ -5878,6 +6090,7 @@ function oppLabel(id = opponent) {
   return `Stockfish 19 at ${sfElo(id)}`;
 }
 
+// the note under the opponent choice
 function oppNoteText() {
   if (opponent === 'table') return 'No link and nobody to wait for. The Étude engine gets stronger the longer you let it think.';
   if (opponent === 'sfmax') return 'Stockfish with nothing held back. It downloads about 2 MB the first time.';
@@ -5885,6 +6098,7 @@ function oppNoteText() {
   return `Stockfish held to about ${sfElo(opponent)}. Its ratings come from engine rating lists, not human ones, so use them as rungs on a ladder.`;
 }
 
+// fill every opponent dropdown
 function fillOppSelects() {
   const html =
     '<optgroup label="Étude"><option value="table">Étude engine</option></optgroup>' +
@@ -5899,6 +6113,7 @@ function fillOppSelects() {
   el('oppNote').textContent = oppNoteText();
 }
 
+// change the one-piece challenge's piece
 function setOppOnly(v) {
   if (!onePiece) return;
   oppOnly = ONLY_KINDS.includes(v) && v !== 'any' ? v : 'k';
@@ -5909,6 +6124,7 @@ function setOppOnly(v) {
   if (code) { persist(); draw(); }
 }
 
+// change the opponent everywhere it's chosen, and restart Stockfish at the new strength
 function setOpponent(v) {
   opponent = validOpp(v);
   store.set('table:opp', opponent);
@@ -5921,12 +6137,14 @@ function setOpponent(v) {
   if (code) { persist(); draw(); }
 }
 
+// send a command to the playing Stockfish (queued until it's ready)
 function sfSend(cmd) {
   if (!sf) return;
   if (sfReady) sf.postMessage(cmd);
   else sfQueue.push(cmd);
 }
 
+// stop the playing Stockfish
 function sfKill() {
   clearTimeout(sfTimer);
   try { sf && sf.terminate(); } catch {}
@@ -5939,6 +6157,7 @@ function sfKill() {
   sfNewGame = true;
 }
 
+// Stockfish failed: stop it and say why, with a button to recover
 function sfFail(message, act) {
   engineAct = act || { label: 'Restart Stockfish', run: () => setOpponent(opponent) };
   console.warn('stockfish:', message);
@@ -5951,6 +6170,7 @@ function sfFail(message, act) {
   if (code) draw();
 }
 
+// start the playing Stockfish worker
 function sfStart() {
   if (sf) return sf;
   try {
@@ -5970,6 +6190,7 @@ function sfStart() {
   return sf;
 }
 
+// a watchdog for a Stockfish search that never answers
 function sfArm(ms) {
   clearTimeout(sfTimer);
   sfTimer = setTimeout(function check() {
@@ -5979,6 +6200,7 @@ function sfArm(ms) {
   }, ms);
 }
 
+// set Stockfish's strength for the opponent, then search this position
 function sfGo(fen) {
   const want = opponent;
   if (sfStrength !== want) {
@@ -6004,6 +6226,7 @@ function sfGo(fen) {
   drawStatus();
 }
 
+// ask Stockfish for its move in this position
 function askStockfish(fen) {
   if (!sfStart()) { sfFail('Stockfish couldn’t start in this browser. The Étude engine can play instead.', { label: 'Play the Étude engine', run: () => setOpponent('table') }); return; }
   if (sfBusy) {
@@ -6017,6 +6240,7 @@ function askStockfish(fen) {
   sfGo(fen);
 }
 
+// one line of output from the playing Stockfish
 function sfLine(line) {
   if (line === 'uciok') {
     sfReady = true;
@@ -6123,23 +6347,25 @@ const HOPS = {
   k: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
 };
 
-const at = (r, c) => r * 8 + c;
-const on = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
-const sqName = i => FILES[i % 8] + (8 - (i / 8 | 0));
-const sqIndex = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);
-const other = s => (s === 'w' ? 'b' : 'w');
+const at = (r, c) => r * 8 + c;   // row and column to 0-63
+const on = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;   // true if row and column are on the board
+const sqName = i => FILES[i % 8] + (8 - (i / 8 | 0));   // 0-63 to 'e4'
+const sqIndex = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);   // 'e4' to 0-63
+const other = s => (s === 'w' ? 'b' : 'w');   // the other colour
 
 /* a piece named the way a person would say it out loud */
 function say(cells, i) {
   const p = cells[i];
   return p ? `${NAME[p.type]} on ${sqName(i)}` : sqName(i);
 }
+// pieces in words: 'the knight on f3, the bishop on c4 and the pawn on e5'
 function listOf(cells, idxs) {
   const parts = idxs.map(i => 'the ' + say(cells, i));
   if (parts.length < 3) return parts.join(' and ');
   return parts.slice(0, -1).join(', ') + ' and ' + parts.at(-1);
 }
 
+// the board as 64 cells of { type, color } or null
 function toCells(chess) {
   const out = new Array(64).fill(null);
   const rows = chess.board();
@@ -6567,6 +6793,7 @@ function flipped(fen) {
   try { return new Chess(f.join(' '), { skipValidation: true }); } catch { return null; }
 }
 
+// the legal moves for the coach, allowing for positions where a king can be taken
 function legalFor(chess) {
   if (!chess) return [];
   try {
@@ -6580,8 +6807,8 @@ function legalFor(chess) {
    unguarded are reported here: anything they can actually capture in reply is
    the verdict's job, and the verdict is generated from their legal moves, so it
    knows about things this scan does not — that they are in check and have to
-   answer that first, for one. This used to report capturable pieces too and
-   would happily announce a loss the opponent had no legal way to collect. */
+   answer that first, for one. Reporting capturable pieces here as well would
+   announce losses the opponent has no legal way to collect. */
 function collateral(before, after, side, movedTo) {
   const was = new Set(findLoose(before, side).filter(x => x.kind === 'loose').map(x => x.sq));
   const out = [];
@@ -6592,7 +6819,7 @@ function collateral(before, after, side, movedTo) {
   return out;
 }
 
-const costText = (cells, c) => `leaves the ${say(cells, c.sq)} undefended`;
+const costText = (cells, c) => `leaves the ${say(cells, c.sq)} undefended`;   // the cost of a move that undefends a piece, in words
 
 /* ---------- answering a move ----------
    The answer to a move is their best capture ANYWHERE, not just on the square
@@ -6652,6 +6879,7 @@ function verdictOnPiece(rep, mine = true) {
   return { kind: 'works', label: 'taking it loses material', net: rep.onPiece.net, san: rep.onPiece.san };
 }
 
+// how a move is answered, in words
 const answerLine = (v, mine = true) =>
   v.kind === 'loses'
     ? `Answered by ${v.san}${v.elsewhere ? ' (elsewhere on the board)' : ''}: ${mine ? 'you lose' : 'they lose'} about ${v.net}.`
@@ -6743,6 +6971,7 @@ function lastMoveDiff(prevFen, fen, me, lastSan) {
    — and the ones that do not work are exactly the ones worth understanding. The
    panel stays readable by grouping and collapsing, not by hiding. */
 
+// the tactics coach's reading of a position for side me: every finding, by section
 function analyze(fen, me, opts = {}) {
   const base = new Chess(fen, { skipValidation: true });
   const cells = toCells(base);
@@ -7210,6 +7439,7 @@ function analyze(fen, me, opts = {}) {
   return { fen, me, toMove: base.turn(), groups, findings, counts: groups.map(g => ({ key: g.key, title: g.title, count: g.count })) };
 }
 
+// draw everything for the current game state
 function draw() {
   syncWake();
   if (!lineView && oppHold) pokeHold();   // a reply held back while a line was open
@@ -7269,6 +7499,7 @@ function draw() {
   el('pzResetRow').classList.toggle('hidden', code !== 'puzzle');
 }
 
+// the board: pieces, last move, selection, legal moves, marks and badges
 function drawBoard() {
   // Showing an earlier position from the review: no moves, no badges, no marks.
   const ls = lineState();
@@ -7352,10 +7583,12 @@ function takenPieces(color) {
   return out;
 }
 
+// material value of a list of piece types
 function material(list) {
   return list.reduce((sum, t) => sum + (VALUE[t] || 0), 0);
 }
 
+// the captured pieces above and below the board
 function drawTaken() {
   const me = viewColor();               // the side at the bottom of the board
   const them = me === 'w' ? 'b' : 'w';
@@ -7387,6 +7620,7 @@ new MutationObserver(fitStatus).observe(el('status'), { childList: true, charact
 let fitW = -1;
 new ResizeObserver(() => { const w = el('status').clientWidth; if (w !== fitW) { fitW = w; fitStatus(); } }).observe(el('status'));
 
+// the status line at the top of the game, and the pop-up note under it
 function drawStatus() {
   const s = el('status');
   s.classList.remove('urgent');
@@ -7508,6 +7742,7 @@ function drawStatus() {
   else setNote('');
 }
 
+// the Moves tab: the move list, with badges
 function drawLedger() {
   const hist = game.history();
   const body = el('ledgerBody');
@@ -7546,6 +7781,7 @@ function squareXY(sq) {
   return { x: col * 12.5 + 6.25, y: row * 12.5 + 6.25 };
 }
 
+// the Best move arrow on the board
 function drawArrow() {
   const svg = el('arrow');
   const hint = currentHint();
@@ -7570,6 +7806,7 @@ function drawArrow() {
     `<polygon points="${head}" fill="var(--brass)" opacity=".9"/>`;
 }
 
+// the Best move panel: the move, its score, and the eval bar
 function drawHint() {
   const panel = el('hintPanel');
   panel.classList.toggle('hidden', !hintsOn);
@@ -7655,7 +7892,7 @@ let revBar = store.get('table:revBar') !== false;         // show the eval bar
 let revTheirs = store.get('table:revTheirs') !== false;   // judge their moves too (badges and explanations)
 let revBadges = store.get('table:revBadges') !== false;   // badges on the board's squares
 let revExplain = store.get('table:revExplain') !== false; // the list of moves, and what was better
-const theirsWanted = () => revTheirs && (revBadges || revExplain);
+const theirsWanted = () => revTheirs && (revBadges || revExplain);   // true if the other player's badges or explanations are to be shown
 /* Spotting their mistake yourself is part of the exercise, so their badges can
    be held back. Only while the game is on: once it ends, everything shows. */
 const theirsHidden = m => !isLocal() && !revTheirs && !result && !!m && m.color !== myColor;
@@ -7681,10 +7918,10 @@ let viewPly = null;          // ply whose starting position is being shown on th
    a person's move just arrives underneath it. */
 let lineView = null;         // { ply, which: 'best' | 'reply', idx, at, id }
 
-const reviewActive = () => !!code && code !== 'puzzle' && !anBroken && reviewOn;
-const posKey = fen => fen.split(' ').slice(0, 4).join(' ');
-const uciOf = m => m.from + m.to + (m.promotion || '');
-const moveId = m => posKey(m.before) + '|' + uciOf(m);
+const reviewActive = () => !!code && code !== 'puzzle' && !anBroken && reviewOn;   // true if the review runs for this game
+const posKey = fen => fen.split(' ').slice(0, 4).join(' ');   // a FEN without the move counters, as a cache key
+const uciOf = m => m.from + m.to + (m.promotion || '');   // a chess.js move as UCI, e.g. e7e8q
+const moveId = m => posKey(m.before) + '|' + uciOf(m);   // a key for a move: the position before it and the move
 
 /* winning chance, 0-100, for White, from a White-relative score */
 const winPct = s => s >= MATE_S / 2 ? 100 : s <= -MATE_S / 2 ? 0
@@ -7705,6 +7942,7 @@ const GRADES = {
 };
 const GRADE_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'forced', 'inaccuracy', 'miss', 'mistake', 'blunder'];
 const BOOK_SVG = '<svg viewBox="0 0 10 10" width="62%" height="62%" aria-hidden="true"><path d="M2 3h6M2 5h6M2 7h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+// the HTML for a review badge
 const badgeHTML = (cls, tag = 'span', extra = '') =>
   `<${tag} class="badge g-${cls}${GRADES[cls].sym.length > 1 ? ' two' : ''}${extra}" aria-label="${GRADES[cls].label}">${cls === 'book' ? BOOK_SVG : GRADES[cls].sym}</${tag}>`;
 
@@ -7730,13 +7968,16 @@ function anEntry(fen) {
   return e;
 }
 
+// true once an analysis entry is deep enough to grade with
 const anSatisfied = e => e.done || e.depth >= AN_GRADE || (e.depth >= AN_MIN && e.ms >= AN_GRADE_MS);
 
+// send a command to the analysis Stockfish (queued until it's ready)
 function anSend(cmd) {
   if (!an) return;
   if (anReady) an.postMessage(cmd); else anQ.push(cmd);
 }
 
+// start the analysis Stockfish worker; false if it can't
 function anStart() {
   if (an) return true;
   if (anBroken) return false;
@@ -7754,6 +7995,7 @@ function anStart() {
   return true;
 }
 
+// stop the analysis Stockfish
 function anDrop() {
   try { an && an.terminate(); } catch {}
   an = null;
@@ -7763,6 +8005,7 @@ function anDrop() {
   anQuiet = 0;
 }
 
+// the analysis engine failed: stop it, and the review says it's unavailable
 function anFail(message) {
   console.warn('analysis:', message);
   anDrop();
@@ -7777,12 +8020,12 @@ function anFail(message) {
 /* The heartbeat. In a lopsided position one more ply of depth can take the
    engine longer than all the plies before it, and it says nothing while it
    works on it: twenty seconds of silence at depth 22 is ordinary. Two things
-   follow, and both used to go wrong there.
+   follow.
 
-   The time limits are applied here, on the beat. They used to be checked only
-   when a new depth arrived, so "deep enough after 3.5 seconds" could not fire
-   during a slow ply — the badge and the reply waiting on it sat there until
-   they gave up — and "stop after 20 seconds" let a search run for 35.
+   The time limits are applied here, on the beat, not when a new depth
+   arrives. Otherwise "deep enough after 3.5 seconds" could not fire during a
+   slow ply, leaving the badge and the reply waiting on it stuck, and "stop
+   after 20 seconds" could let a search run for 35.
 
    Silence is counted here, in beats while the page is showing, and not read
    off the clock, so the time a phone keeps the page frozen in the background
@@ -7795,8 +8038,9 @@ const AN_QUIET_MS = 30000;
 let anQuiet = 0;             // ms since the worker last said anything, page showing
 let anRestarts = 0;
 
-function anArm() { anQuiet = 0; }
+function anArm() { anQuiet = 0; }   // the analysis engine said something: reset its silence timer
 
+// every AN_BEAT_MS: count search time, and restart an analysis engine that has gone silent
 function anBeat() {
   if (!anJob || document.hidden) return;
   anJob.ran += AN_BEAT_MS;
@@ -7820,6 +8064,7 @@ function anBeat() {
 }
 setInterval(anBeat, AN_BEAT_MS);
 
+// start analysing one position
 function anGo(e) {
   anJob = { key: e.key, ran: 0, stopping: false };    // ran: ms searched, counted in beats
   e.msBase = e.ms;
@@ -7828,6 +8073,7 @@ function anGo(e) {
   anArm();
 }
 
+// stop the current analysis search
 function anStopJob() {
   if (anJob && !anJob.stopping) { anJob.stopping = true; anSend('stop'); }
 }
@@ -7852,6 +8098,7 @@ function anPump() {
   if (want) anGo(want);
 }
 
+// one line of output from the analysis Stockfish
 function anLine(line) {
   if (line === 'uciok') {
     anReady = true;
@@ -7905,6 +8152,7 @@ function anLine(line) {
   }
 }
 
+// an analysis update for one position: keep it, and stop when it's read well enough
 function anTick(e) {
   e.ms = e.msBase + anJob.ran;
   const last = anTodo.at(-1);
@@ -8000,10 +8248,12 @@ function settle(fen, pv, color, plies = 8) {
   return { start, end, played, endAt };
 }
 
+// true if the position is in the opening book
 function inBook(fen) {
   return !!(book && book.nodes.has(bookKey(fen)));
 }
 
+// grade one move from the analyses before (b) and after (a) it
 function grade(m, b, a, i, hist) {
   const sign = m.color === 'w' ? 1 : -1;
   const uci = uciOf(m);
@@ -8055,6 +8305,7 @@ function grade(m, b, a, i, hist) {
   };
 }
 
+// grade any moves whose analyses are ready, and release a held reply
 function reviewPending() {
   if (!reviewActive()) { checkGate(); pokeHold(); return; }
   const hist = game.history({ verbose: true });
@@ -8083,6 +8334,7 @@ function setGate(m) {
   setTimeout(checkGate, AN_GIVEUP_MS + 20);
 }
 
+// open the gate (let the computer's reply show) once your move is graded, or after a wait
 function checkGate() {
   if (!gate || gate.opened) return;
   if (reviews.has(gate.id) || !reviewActive() || Date.now() - gate.at >= AN_GIVEUP_MS) {
@@ -8092,6 +8344,7 @@ function checkGate() {
   }
 }
 
+// true while the computer's reply is held back for the review
 const gateHolding = () => solo && !!gate && gate.fen === game.fen() &&
   !(gate.opened && Date.now() >= gate.readyAt);
 
@@ -8129,6 +8382,7 @@ function holdReady(h) {
   return !!(b && a && b.lines.length && anSatisfied(b) && anSatisfied(a));
 }
 
+// play the computer's held reply, once its badge is ready
 function releaseHold() {
   const h = oppHold;
   if (!h) return;
@@ -8159,6 +8413,7 @@ function markRecord(i, r) {
 /* ---------- words ---------- */
 const PIECE_WORD = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
 
+// a score as +1.3 or M4, from White's view
 function fmtScore(sW, signed = true) {
   if (sW == null) return '';
   if (Math.abs(sW) >= MATE_S / 2) {
@@ -8193,6 +8448,7 @@ function tradeWords(played, color) {
   return l.length ? `wins ${join(w)} for ${join(l)}` : `wins ${join(w)}`;
 }
 
+// an amount of material in words
 function materialWords(n) {
   if (n >= 9) return 'the queen’s worth of material';
   if (n >= 5) return n === 5 ? 'a rook' : 'a rook’s worth and more';
@@ -8205,6 +8461,7 @@ function materialWords(n) {
    where material changed and settled (or mate), so the payoff is in it, and
    never stopping half-way through an exchange. At most 10. */
 const LINE_MIN = 5, LINE_MAX = 10;
+// how many moves of a line to show: far enough for the payoff, never mid-exchange
 function payoffLen(fen, pv, color) {
   pv = pv || [];
   let c;
@@ -8293,6 +8550,7 @@ function srcLineState() {
   return { r: null, L, n, idx: lineView.idx, chess, fen: chess.fen(), last };
 }
 
+// step through a Stockfish line on the board
 function lineStep(d) {
   const ls = lineState();
   if (!ls) return;
@@ -8322,6 +8580,7 @@ function lineStripHTML(sans) {
     `<span class="lmoves">${moves}</span></span>`;
 }
 
+// a line of moves as text, numbered
 function lineText(fen, pv, n = 5) {
   let c;
   try { c = new Chess(fen); } catch { return ''; }
@@ -8337,11 +8596,13 @@ function lineText(fen, pv, n = 5) {
   return out.join(' ');
 }
 
+// a UCI move as SAN in a position (the UCI if it can't be played)
 const sanOf = (fen, uci) => {
   try { return new Chess(fen).move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] }).san; }
   catch { return uci; }
 };
 
+// a move with its number: '12.Nf3' or '12...Nf6'
 function moveLabel(ply, san) {
   ply += plyBase();
   const n = Math.floor(ply / 2) + 1;
@@ -8358,6 +8619,7 @@ function lineGain(fen, pv, color) {
   return s.end - s.start;
 }
 
+// what a line does, in words: forces mate, wins material, and so on
 function lineEffect(fen, pv, color, scoreW) {
   const sign = color === 'w' ? 1 : -1;
   if (scoreW != null && scoreW * sign >= MATE_S / 2) {
@@ -8388,6 +8650,7 @@ function newlyLoose(beforeFen, afterFen, color) {
   } catch { return []; }
 }
 
+// the explanation of a graded move
 function explainHTML(r) {
   const mine = isLocal() || r.color === myColor;
   const side = r.color === 'w' ? 'White' : 'Black';
@@ -8521,6 +8784,7 @@ function boardBadges() {
   return out;
 }
 
+// the review's arrows on the board: the move played and the best one
 function drawReviewArrows() {
   const svg = el('coachSvg');
   const ls = lineState();
@@ -8551,6 +8815,7 @@ function drawReviewArrows() {
   svg.innerHTML = out;
 }
 
+// the review's state line: reading, ready, unavailable
 function drawReviewState() {
   const st = el('reviewState');
   if (!st) return;
@@ -8560,6 +8825,7 @@ function drawReviewState() {
   st.textContent = e && e.depth && !e.terminal ? `depth ${e.depth}` : '';
 }
 
+// the Review tab
 function drawReview() {
   const blk = el('reviewBlock');
   el('reviewBtn').textContent = reviewOn ? 'On' : 'Off';
@@ -8649,6 +8915,7 @@ function tallyHTML(hist) {
   return chips ? `<div class="revtally">${chips}</div>` : '';
 }
 
+// open or close the review of one move
 function openReview(ply) {
   if (theirsHidden(game.history({ verbose: true })[ply])) return;
   revPick = revPick === ply ? null : ply;
@@ -8994,7 +9261,8 @@ function bookStart() {
   }
   return { b, turn: 'w', castle: 'KQkq' };
 }
-const bIdx = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);
+const bIdx = s => (8 - Number(s[1])) * 8 + FILES.indexOf(s[0]);   // a square name to 0-63, for the opening book
+// play a UCI move on the opening book's simple position
 function bookApply(pos, u) {
   const f = bIdx(u.slice(0, 2)), t = bIdx(u.slice(2, 4));
   const p = pos.b[f];
@@ -9012,6 +9280,7 @@ function bookApply(pos, u) {
   for (const sq of [f, t]) if (lose[sq]) pos.castle = [...pos.castle].filter(ch => !lose[sq].includes(ch)).join('');
   pos.turn = pos.turn === 'w' ? 'b' : 'w';
 }
+// the book key of a position: the board, side to move, castling and en passant
 function bookKeyOf(pos) {
   let s = '';
   for (let r = 0; r < 8; r++) {
@@ -9028,6 +9297,7 @@ function bookKeyOf(pos) {
   return `${s} ${pos.turn} ${pos.castle || '-'}`;
 }
 
+// build the opening book's position graph from its lines
 function buildBook(lines) {
   const nodes = new Map();
   const node = k => {
@@ -9057,6 +9327,7 @@ function buildBook(lines) {
   return { nodes };
 }
 
+// load the opening book (openings/book.json) once
 function ensureBook() {
   if (bookState !== 'idle') return;
   bookState = 'loading';
@@ -9073,7 +9344,7 @@ function ensureBook() {
     });
 }
 
-const niceName = n => String(n).replace(/Defense/g, 'Defence');
+const niceName = n => String(n).replace(/Defense/g, 'Defence');   // an opening name in British spelling
 
 /* the name of the line a position belongs to: the last named position on the
    way to it, within the game being played */
@@ -9095,6 +9366,7 @@ function gameKeys(hist) {
   return [hist.length ? hist[0].before : game.fen(), ...hist.map(m => m.after)].map(bookKey);
 }
 
+// where one opening family stands in this game: in it, still possible, or out (and at which move)
 function familyStatus(f, hist, keys) {
   if (f.kind === 'setup') {
     const allowed = new Set([...f.core, ...f.extras]);
@@ -9180,6 +9452,7 @@ function nextMoves(f, st, hist) {
   return `${who} to stay in it, ${esc(num)} ${list}`;
 }
 
+// why a family is out, in words
 function reasonText(f, st, hist) {
   const m = hist[st.ply];
   if (!m) return '';
@@ -9238,6 +9511,7 @@ function forcedReply() {
   return opts[0].u;
 }
 
+// play the chosen opening move after a short pause, when the opponent is made to follow the opening
 function scheduleForced(u) {
   const fen = game.fen();
   if (forcedFen === fen && forcedTimer) return;
@@ -9267,6 +9541,7 @@ function seqHTML(f, st, hist) {
   }).join(' ');
 }
 
+// the moves that keep the game in this family
 function nextHTML(f, st, hist) {
   if (f.kind === 'setup') {
     if (st.state !== 'open') return '';
@@ -9279,6 +9554,7 @@ function nextHTML(f, st, hist) {
   return html ? `<p class="onext">${html}</p>` : '';
 }
 
+// one opening family's row in the Openings tab
 function famRow(f, st, hist) {
   const yours = f.side === myColor;
   const open = openOpen.has(f.id) || (f.id === openPick && st.state !== 'in' && !openOpen.has('!' + f.id));
@@ -9304,6 +9580,7 @@ function famRow(f, st, hist) {
 
 let openLead = null;          // the most specific family the game is in
 let openSelectColour = null;
+// fill the opening picker with the families for your colour
 function fillOpenSelect() {
   if (openSelectColour === myColor) return;
   openSelectColour = myColor;
@@ -9315,6 +9592,7 @@ function fillOpenSelect() {
   el('openPick').value = FAM[openPick] ? openPick : '';
 }
 
+// the Openings tab
 function drawOpenings() {
   const blk = el('openBlock');
   // Against a person too: it names what is on the board and what each of you
@@ -9410,11 +9688,9 @@ el('openBody').addEventListener('toggle', e => {
 }, true);
 
 /* ---------- the coach panel ----------
-   On or off. There used to be a middle setting that showed counts without
-   detail; the collapsed panel already is that, so it was a mode for a state the
-   panel had anyway. What survives from it is the behaviour: the sections close
-   themselves when you move, so a new position opens with the section names and
-   their counts and nothing else, and you decide what to open.
+   On or off. The sections close themselves when you move, so a new position
+   opens with the section names and their counts and nothing else, and you
+   decide what to open.
 
    The analysis lists everything — every capture, every check, every motif and
    every undefended piece, sound or not, each with a verdict and the move that
@@ -9433,10 +9709,12 @@ let coachPick = null;      // id of the finding drawn on the board
 let coachReverted = false; // the sections just closed themselves after a move
 let coachOpen = new Set(); // which sections are open, this position only
 
+// tell the other player what you have helping you (Best move, the coach, the review)
 function announce() {
   sendFlags();
 }
 
+// turn the tactics coach on or off
 function setCoach(mode) {
   coachMode = mode;
   coachPick = null;
@@ -9517,6 +9795,7 @@ function coachMarks() {
   return marks;
 }
 
+// the coach's lines on the board for the finding picked
 function drawCoachRays() {
   const svg = el('coachSvg');
   if (!svg) return;
@@ -9560,6 +9839,7 @@ function drawCoachRays() {
 let inspectSq = null;
 let inspectFen = null;
 
+// tap a square with the coach on: show what attacks and defends it
 function inspect(sq) {
   if (coachMode === 'off') return false;
   inspectSq = (inspectSq === sq && inspectFen === game.fen()) ? null : sq;
@@ -9568,8 +9848,9 @@ function inspect(sq) {
   return true;
 }
 
-const inspectLive = () => inspectSq && inspectFen === game.fen();
+const inspectLive = () => inspectSq && inspectFen === game.fen();   // true if the square being inspected is for this position
 
+// the coach's note for the square being inspected
 function inspectHTML() {
   if (!inspectLive()) return '';
   const cells = toCells(game);
@@ -9609,7 +9890,7 @@ function inspectHTML() {
     `<p class="iverdict">${esc(verdict)}</p></div>`;
 }
 
-const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));   // text made safe to put in HTML
 
 /* bright means it happens, muted means it does not — regardless of whose it is */
 function chipClass(f) {
@@ -9622,6 +9903,7 @@ function chipClass(f) {
   return 'v-dim';
 }
 
+// one coach finding as a row
 function rowHTML(f) {
   const chip = f.verdict
     ? `<span class="verdict ${chipClass(f)}">${esc(f.verdict.label)}</span>` : '';
@@ -9631,6 +9913,7 @@ function rowHTML(f) {
     </button>`;
 }
 
+// the coach panel
 function drawCoach() {
   const panel = el('coachPanel');
   const body = el('coachBody');
@@ -9701,6 +9984,7 @@ el('coachBody').addEventListener('toggle', e => {
   if (d.open) coachOpen.add(d.dataset.g); else coachOpen.delete(d.dataset.g);
 }, true);
 
+// the top bar's state, the invite card and what the other player has on, for the current mode
 function setLink() {
   if (solo) {
     document.body.dataset.link = 'live';
@@ -9776,12 +10060,14 @@ let drag = null;                 // { id, from, x0, y0, on, ghost, size, touch, 
 let dragJustDropped = false;
 const DRAG_START_PX = 6;
 
+// true if the piece on sq can be dragged now
 function canDragFrom(sq) {
   if (viewPly != null || lineView || result || code === 'study') return false;
   if (code === 'puzzle' && !pzCanMove()) return false;
   const p = game.get(sq);
   return !!p && p.color === moverColor() && game.turn() === moverColor();
 }
+// the square under a screen point, or null
 const sqAt = (x, y) => {
   const cell = document.elementFromPoint(x, y);
   const sq = cell && cell.closest && cell.closest('.board .sq');
@@ -9803,6 +10089,7 @@ function dragMark() {                // after a redraw, mark the square it came 
   boardEl.querySelector(`[data-sq="${drag.from}"]`)?.classList.add('dragfrom');
   if (drag.over) boardEl.querySelector(`[data-sq="${drag.over}"]`)?.classList.add('dragover');
 }
+// a drag ends: make the move, or put the piece back
 function dragEnd(commit, x, y) {
   const d = drag;
   drag = null;
@@ -9873,6 +10160,7 @@ boardEl.addEventListener('keydown', e => {
   pick(cell.dataset.sq);
 });
 
+// ask which piece to promote to; resolves with q, r, b or n, or null
 function askPromotion(from, to) {
   const overlay = document.createElement('div');
   overlay.className = 'promo';
@@ -9913,7 +10201,7 @@ function diagnostics() {
     `on server   ${og ? `v${og.v}, ${og.moves.length} moves${og.pending ? ', ' + og.pending : ''}${og.result ? ', over' : ''}` : gameGone || 'not loaded yet'}`,
     `unsent      ${pendingMove ? `${pendingMove.san} (ply ${pendingMove.ply})` : 'nothing'}`] : []),
     `server      ${netState()}${net.downAt && !net.open ? `, down ${Math.round((Date.now() - net.downAt) / 1000)}s` : ''} (${SERVER})`,
-    `account     ${acct ? `${acct.name || '(no name yet)'} ${myCode()}` : 'none'}, ${Object.keys(srvData.friends).length} friends, ${Object.keys(srvData.games).length} games listed`,
+    `account     ${acct ? `${acct.name || '(no name yet)'} ${myCode()}, id ${acct.id}${srvData.admin ? ', admin' : ''}` : 'none'}, ${Object.keys(srvData.friends).length} friends, ${Object.keys(srvData.games).length} games listed`,
     `newer build ${newerBuild || 'no'}`,
     `moves       ${game.history().length}${result ? ' (game over)' : ''}`,
     `turn        ${game.turn() === myColor ? 'yours' : 'theirs'}`,
@@ -10045,10 +10333,12 @@ async function pickTerms(title, intro, goLabel) {
   store.set('etude:terms', { side, limit });
   return { color: pickSide(side), limit };
 }
+// a server error code in words
 const errWords = err => err === 'offline' ? 'Not connected to the server. Try again in a moment.'
   : err === 'noAccount' ? 'You need an account first: tap the person icon on the home screen.'
   : err === 'notFriend' ? 'You can only challenge friends. Send them an invite link instead.'
   : 'That didn’t work. Try again in a moment.';
+// challenge a friend: choose colour and time limit, then open the game
 async function challengeFriend(id) {
   const f = srvData.friends[id];
   if (!f) return;
@@ -10075,6 +10365,7 @@ function flashLobby(text) {
   popTimer = setTimeout(hidePop, 6000);
 }
 
+// the link to this online game
 function inviteUrl() {
   return `${location.origin}${location.pathname}#r=${code}`;
 }
@@ -10085,9 +10376,10 @@ function inviteUrl() {
    share sheets are clumsy: the link copies as the bare link, the code as the
    bare code. */
 const useShareSheet = () => !!navigator.share && matchMedia('(pointer: coarse)').matches;
-const spacedCode = () => `${code.slice(0, 3)} ${code.slice(3, 6)} ${code.slice(6)}`;
-const appUrl = () => `${location.origin}${location.pathname}`;
-const theirSide = () => myColor === 'w' ? 'black' : 'white';
+const spacedCode = () => `${code.slice(0, 3)} ${code.slice(3, 6)} ${code.slice(6)}`;   // the game code as 'abc def ghi'
+const appUrl = () => `${location.origin}${location.pathname}`;   // the app's address, without the #
+const theirSide = () => myColor === 'w' ? 'black' : 'white';   // the colour the other player has, in words
+// on a phone, the share sheet; elsewhere, copy (or show the text if copying is refused)
 async function shareOrCopy(button, sheetText, copyValue, modalTitle) {
   if (useShareSheet()) {
     try { await navigator.share({ text: sheetText }); return; }
@@ -10095,6 +10387,7 @@ async function shareOrCopy(button, sheetText, copyValue, modalTitle) {
   }
   if (!await copyText(copyValue, button)) showTextModal(modalTitle, copyValue);
 }
+// share this game's invite link
 const shareLink = e => shareOrCopy(e.currentTarget,
   `Game of chess? You're ${theirSide()}: ${inviteUrl()}`,
   inviteUrl(), 'Invite link');
@@ -10103,6 +10396,7 @@ el('copyBtn').onclick = e => shareOrCopy(e.currentTarget,
   `Game of chess? You're ${theirSide()}. In Étude (${appUrl()}) go to Play a game, Against a person, Online, and enter the code ${spacedCode()}`,
   spacedCode(), 'Game code');
 
+// resign the game on screen
 function resign() {
   if (ownTable(code)) { gameAct('resign'); return; }       // the server says when it's over
   // on one device it's the side to move that resigns
@@ -10112,6 +10406,7 @@ function resign() {
   draw();
 }
 
+// a new game: at once against the computer or on one device; online, ask them
 function rematch() {
   // on one device, or against the computer, there's nobody to ask
   if (solo || isLocal()) { startFresh(isLocal() ? 'w' : myColor === 'w' ? 'b' : 'w'); return; }   // one device: the board keeps facing White
@@ -10173,6 +10468,7 @@ el('movesDownload').onclick = () =>
    from iOS 16.4 (an app added to the home screen from iOS 18.4). The browser
    lets go when the page is hidden, so it is asked for again on return. */
 var wakeLock = null, wakeAsking = false;   // var: draw() may run before this line
+// keep the screen on while a game is open
 async function syncWake() {
   if (!('wakeLock' in navigator)) return;
   const want = !document.hidden && !el('game').classList.contains('hidden');
@@ -10210,6 +10506,7 @@ el('takebackBtn').onclick = () => {
 };
 
 
+// a think time as '2s'
 function fmtThink(ms) {
   return ms >= 10000 ? Math.round(ms / 1000) + 's' : (ms / 1000).toFixed(0) + 's';
 }
@@ -10241,6 +10538,7 @@ el('hintBtn').onclick = () => {
   draw();
 };
 
+// switch between the dark and light look
 function applyTheme(t) {
   const light = t === 'light';
   if (light) document.documentElement.dataset.theme = 'light';
@@ -10282,6 +10580,7 @@ function preloadSet(id) {
   for (const c of 'wb') for (const t of 'kqrbnp') new Image().src = `pieces/${id}/${c}${t.toUpperCase()}.${s.ext}`;
 }
 
+// the board and piece pickers in Settings
 function drawLook() {
   const cur = BOARDS.find(x => x.id === boardLook);
   const sqBg = light => cur.texture ? '' : `background:${light ? cur.light : cur.dark}`;
@@ -10308,6 +10607,7 @@ function drawLook() {
 // Pieces and Board each open their own list. Pressing the open one again
 // closes it; pressing the other switches straight to that list.
 let lookOpen = null;            // null, 'sets', 'boards' or 'sounds'
+// open or close one of the pickers
 function toggleLook(which) {
   lookOpen = which && which !== lookOpen ? which : null;
   el('lookPanel').classList.toggle('hidden', !lookOpen);
@@ -10375,7 +10675,6 @@ el('lookCredits').onclick = () => {
 applyBoardLook();
 preloadSet(pieceSet);
 
-/* ---------- boot ---------- */
 /* ---------- the tabbed panel ---------- */
 const TABS = ['table', 'game', 'puzzle', 'open', 'review', 'moves', 'set'];
 let prevTab = null;              // where to go back to once connected
@@ -10398,6 +10697,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape') { lineView = null; draw(); }
 });
 
+// show one tab of the game panel
 function showTab(t) {
   activeTab = TABS.includes(t) ? t : 'open';
   document.body.classList.toggle('fromsetup', !!startFen);
@@ -10444,8 +10744,9 @@ const PZ_BANDS = [['easiest', 850], ['easier', 1150], ['normal', 1450], ['harder
    and so do the 10 after a break of a week or more, to find it again. */
 const PZ_START = 1500;
 const PZ_BREAK_MS = 7 * 24 * 3600 * 1000;
+// true if you've been away from puzzles long enough for your rating to move faster
 const pzOnBreak = () => !!pz.stats.lastAt && Date.now() - pz.stats.lastAt > PZ_BREAK_MS;
-const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 : 32;
+const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 : 32;   // how fast the puzzle rating moves (K)
 
 /* Ratings by theme. Each tactical theme you've met has an adjustment to your
    overall rating: your fork rating is overall + the fork adjustment. The
@@ -10461,13 +10762,15 @@ const pzK = () => pz.stats.rated < 10 || pz.stats.boost > 0 || pzOnBreak() ? 60 
 const PZ_TACTIC = new Set(PZ_THEMES.filter(([g]) => g === 'Tactics' || g === 'Checkmates')
   .flatMap(([, list]) => list.map(t => t[0])).filter(t => t !== 'mate'));
 const PZ_STALE_DAYS = 60;
-const pzTactics = p => ((p && p.puzzle.themes) || []).filter(t => PZ_TACTIC.has(t));
-const pzTheme = t => (pz.stats.themes || {})[t];
+const pzTactics = p => ((p && p.puzzle.themes) || []).filter(t => PZ_TACTIC.has(t));   // a puzzle's tactical themes
+const pzTheme = t => (pz.stats.themes || {})[t];   // your record for one theme
+// how unsure your rating for a theme is: 1 for unknown, falling with puzzles, rising with time away
 const pzThemeUnc = t => {
   const th = pzTheme(t);
   if (!th || !th.n) return 1;
   return Math.min(1, 1 / (1 + th.n / 5) + (Date.now() - th.at) / 864e5 / PZ_STALE_DAYS);
 };
+// the rating adjustment for this puzzle's themes
 const pzAdjFor = p => {
   const ts = pzTactics(p).filter(t => pzTheme(t) && pzTheme(t).n);
   return ts.length ? ts.reduce((a, t) => a + pzTheme(t).adj, 0) / ts.length : 0;
@@ -10475,8 +10778,8 @@ const pzAdjFor = p => {
 /* the chance of solving it: from your overall rating (what you see and what moves),
    or from your rating on its themes (behind the scenes, for the theme ratings) */
 const pzExpectedAt = me => 1 / (1 + Math.pow(10, ((pz.cur.puzzle.rating || me) - me) / 400));
-const pzExpected = () => pzExpectedAt(pz.stats.rating);
-const pzExpectedThemes = () => pzExpectedAt(pz.stats.rating + pzAdjFor(pz.cur));
+const pzExpected = () => pzExpectedAt(pz.stats.rating);   // your expected score on this puzzle from your rating
+const pzExpectedThemes = () => pzExpectedAt(pz.stats.rating + pzAdjFor(pz.cur));   // your expected score on this puzzle with your theme ratings
 
 /* How a puzzle scores. The puzzle carries a share of a full loss, from 0
    (solved alone) to 1 (no idea, the same as giving up), made by adding up:
@@ -10516,7 +10819,7 @@ function pzShare(givingUp = false) {
 }
 /* the result, -1..1 of a full step: + is a gain of K x (1 - expected) times it, - a loss of K x expected times it */
 const pzResult = (p, e) => p <= PZ_TIP ? (1 - e) * (1 - p / PZ_TIP) : -e * (p - PZ_TIP) / (1 - PZ_TIP);
-const pzChange = p => Math.round(pzK() * pzResult(p, pzExpected()));
+const pzChange = p => Math.round(pzK() * pzResult(p, pzExpected()));   // the rating change for a puzzle finished with this share
 /* [rating change if you finish it from here, rating change if you give up now] */
 const pzStakes = () => [pzChange(pzShare()), pzChange(pzShare(true))];
 /* The overall rating is plain Elo against the puzzle, as shown before you move.
@@ -10546,7 +10849,7 @@ function pzRate(p) {
 /* the Lichess band to ask for: the chosen one, or the one nearest your rating */
 const pzBand = () => pz.diff !== 'auto' ? pz.diff
   : PZ_BANDS.reduce((a, b) => Math.abs(b[1] - pz.stats.rating) < Math.abs(a[1] - pz.stats.rating) ? b : a)[0];
-const pzRatingText = () => `${pz.stats.rating}${pz.stats.rated < 10 ? '?' : ''}`;
+const pzRatingText = () => `${pz.stats.rating}${pz.stats.rated < 10 ? '?' : ''}`;   // your puzzle rating, with ? while it's provisional
 const PZ_BATCH = 30;        // empty buffer: Lichess's own mix, or the theme you chose
 const PZ_NEED = 6;          // healthy mix picked a theme the buffer has none of: 6, serve 1
 const PZ_REFILL = 5;        // a theme is down to its last one: 5 more in the background
@@ -10557,11 +10860,12 @@ const PZ_FAR = 300;         // puzzles further than this from your rating are dr
 const PZ_REST_MS = 30 * 60000;  // a refill that brings nothing new rests that theme
 const PZ_COOL_MS = 60000;   // after a 429 Lichess asks for a full minute's pause
 const PZ_SEEN_MAX = 4000;
+// a theme's [key, name, description]
 const pzThemeInfo = k => { for (const [, list] of PZ_THEMES) for (const t of list) if (t[0] === k) return t; return [k, k, '']; };
 // tags Lichess puts on puzzles that aren't offered as themes to pick
 const PZ_EXTRA = { master: 'Master games', masterVsMaster: 'Master vs Master games', superGM: 'Super GM games',
   playerGames: 'Player games', collinearMove: 'Collinear move' };
-const pzName = k => PZ_EXTRA[k] || pzThemeInfo(k)[1];
+const pzName = k => PZ_EXTRA[k] || pzThemeInfo(k)[1];   // a theme's name
 
 const pzSaved = store.get('table:pz') || {};
 const pz = {
@@ -10605,15 +10909,16 @@ function pzSave() {
     : null;
   store.set('table:pz', { theme: pz.theme, diff: pz.diff, qBand: pz.qBand, coolUntil: pz.coolUntil, cur: pz.cur, doneId: pz.doneId, stats: pz.stats, prog });
 }
+// remember a puzzle as seen, so it isn't served again
 function pzMarkSeen(id) {
   pzSeen.add(id);
   const list = [...pzSeen].slice(-PZ_SEEN_MAX);
   store.set('table:pzSeen', list);
 }
 
-const pzCanMove = () => pz.phase === 'solve' && !!pz.cur;
-const pzSolution = () => (pz.cur && pz.cur.puzzle.solution) || [];
-const uciMove = u => ({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] || undefined });
+const pzCanMove = () => pz.phase === 'solve' && !!pz.cur;   // true while you can move in the puzzle
+const pzSolution = () => (pz.cur && pz.cur.puzzle.solution) || [];   // the puzzle's solution as UCI moves
+const uciMove = u => ({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] || undefined });   // a UCI move as { from, to, promotion }
 
 /* Healthy mix: half the time Lichess's own mix; otherwise one theme, drawn with
    weights that favour themes you haven't tried, are weaker at, or are unsure of. */
@@ -10630,6 +10935,7 @@ function pzMixAngle() {
   for (let i = 0; i < all.length; i++) { x -= ws[i]; if (x <= 0) return all[i]; }
   return 'mix';
 }
+// fetch puzzles from Lichess: an angle (theme or 'mix') and how many
 async function pzFetch(angle, nb) {
   if (navigator.onLine === false) throw new Error('offline');
   const url = `https://lichess.org/api/puzzle/batch/${encodeURIComponent(angle)}?nb=${nb}&difficulty=${pzBand()}`;
@@ -10656,6 +10962,7 @@ const pzDb = {
 // Load the saved buffer once.
 const pzBufReady = pzDb.all().catch(() => []).then(list => { pzBufAdd(list || [], false); });
 
+// add puzzles to the buffer, skipping ones already there or seen
 function pzBufAdd(list, save = true) {
   const have = new Set(pz.queue.map(q => q.puzzle.id)), added = [];
   for (const q of list) {
@@ -10669,6 +10976,7 @@ function pzBufAdd(list, save = true) {
   pzBufTrim();
   return added.length;
 }
+// take puzzles out of the buffer
 function pzBufDrop(qs) {
   if (!qs.length) return;
   const ids = new Set(qs.map(q => q.puzzle.id));
@@ -10690,10 +10998,11 @@ function pzBufTrim() {
 let pzReqChain = Promise.resolve();
 const pzRest = {};                 // theme -> resting until
 const pzRefilling = new Set();     // themes with a background refill on its way
-const pzResting = a => a !== 'mix' && (pzRest[a] || 0) > Date.now();
-const pzCooling = () => Date.now() < pz.coolUntil;
+const pzResting = a => a !== 'mix' && (pzRest[a] || 0) > Date.now();   // true if a theme is resting (Lichess had nothing new for it)
+const pzCooling = () => Date.now() < pz.coolUntil;   // true while puzzle fetching is cooling down after an error
 let pzCoolTimer = null;
 
+// fetch puzzles one request at a time, resting a theme that returns nothing new
 function pzRequest(angle, nb) {
   const run = pzReqChain.then(async () => {
     if (pzCooling()) throw new Error('cooling');
@@ -10730,6 +11039,7 @@ function pzTopUp(angle, nb) {
    15, and 30 when none are left. */
 const pzHas = (q, angle) => angle === 'mix' || (q.puzzle.themes || []).includes(angle);
 
+// choose and show the next puzzle
 async function pzNext() {
   const gen = ++pz.gen;
   await pzBufReady;
@@ -10899,6 +11209,7 @@ function pzMove(from, to, promotion) {
   return true;
 }
 
+// after a wrong move: back to the position to try again
 function pzRetry() {
   if (pz.phase !== 'wrong') return;
   lineView = null;
@@ -10925,9 +11236,11 @@ function pzAnTodo() {
   return out;
 }
 const PZ_WHY_DEPTH = 14;
+// true once the analysis of a wrong try is deep enough to explain
 const pzRead = e => !!e && (e.done || e.depth >= PZ_WHY_DEPTH || (e.depth >= 10 && e.ms >= 2500));
 
 let pzWhyKey = null;
+// the analysis engine reported: explain the wrong tries it has read
 function pzOnAnalysis() {
   if (!pz.cur || pz.phase === 'done') return;
   const tries = [...pz.moves.flatMap(mv => mv.tries), ...pz.tries];
@@ -10984,6 +11297,7 @@ function pzWhyHTML() {
 
 /* a line from the puzzle that can be stepped through on the board */
 const pzLines = [];
+// a Stockfish line for the puzzle note
 function pzLineHTML(src) {
   const len = src.len || payoffLen(src.fen, src.pv, src.color);
   const sans = lineSans(src.fen, src.pv, len);
@@ -10998,6 +11312,7 @@ function pzLineHTML(src) {
 const PZ_GENERAL = new Set(['opening', 'middlegame', 'endgame', 'short', 'long', 'veryLong', 'oneMove', 'master',
   'masterVsMaster', 'superGM', 'playerGames', 'advantage', 'crushing', 'equality', 'mate', 'rookEndgame', 'pawnEndgame',
   'bishopEndgame', 'knightEndgame', 'queenEndgame', 'queenRookEndgame']);
+// the 'Look for' hint: mate in n, or the tactic
 function pzLookFor() {
   const themes = (pz.cur.puzzle.themes || []);
   const mateN = themes.find(t => /^mateIn\d$/.test(t));
@@ -11033,6 +11348,7 @@ function pzReply() {
   draw();
 }
 
+// the puzzle is finished: score it and update your rating
 function pzFinish() {
   const share = pzShare(pz.shown);
   pz.phase = 'done';
@@ -11053,6 +11369,7 @@ function pzFinish() {
   draw();
 }
 
+// a puzzle hint: each one costs a third of the puzzle
 function pzHint() {
   if (pz.phase === 'wrong') pzRetry();
   if (!pzCanMove() || pz.hints >= 3) return;
@@ -11082,6 +11399,7 @@ function pzShowSolution() {
   pzFinish();
 }
 
+// the badges on the puzzle board
 function pzBadges() {
   const out = new Map();
   if (lineView) return out;
@@ -11089,6 +11407,7 @@ function pzBadges() {
   return out;
 }
 
+// the status line for the puzzle
 function pzStatus() {
   const side = myColor === 'w' ? 'White' : 'Black';
   switch (pz.phase) {
@@ -11105,12 +11424,14 @@ function pzStatus() {
   }
 }
 
+// fill the theme and difficulty pickers
 function fillPzPickers() {
   el('pzTheme').innerHTML = PZ_THEMES.map(([group, list]) =>
     `<optgroup label="${esc(group)}">` + list.map(([k, name]) => `<option value="${k}">${esc(name)}</option>`).join('') + '</optgroup>').join('');
   el('pzDiff').innerHTML = PZ_DIFFS.map(([k, name]) => `<option value="${k}">${name}</option>`).join('');
 }
 
+// the Puzzle tab
 function drawPuzzle() {
   if (code !== 'puzzle') return;
   el('pzTheme').value = pz.theme;
@@ -11171,6 +11492,7 @@ function pzStartFen() {
   return g.fen();
 }
 
+// a new theme or difficulty chosen
 function pzSetFilter() {
   pz.theme = el('pzTheme').value;
   pz.diff = el('pzDiff').value;   // the buffer stays: a new band clears it in pzNext
@@ -11249,6 +11571,7 @@ function pzStart() {
   else { pz.cur = null; pzNext(); }
 }
 
+// show the game screen for the mode in code (set before calling); now = no fade
 function begin(now) {
   // from a start screen: fade across; on first load it just appears (the page fades in as a whole)
   const from = !el('lobby').classList.contains('hidden') || !el('setup').classList.contains('hidden');
@@ -11286,14 +11609,17 @@ let study = null;                    // { g, idx }: the game, and how many of it
 let famGames = null, famTag = 'all';
 const FAM_TAGS = { attack: 'Attack', sacrifice: 'Sacrifices', tactics: 'Tactics', positional: 'Positional play',
   endgame: 'Endgames', defence: 'Defence', 'world championship': 'World championships', history: 'History' };
+// load the famous games (famous/games.json) once
 async function famLoad() {
   if (famGames) return famGames;
   try { famGames = await (await fetch('famous/games.json')).json(); } catch { famGames = []; }
   return famGames;
 }
-const famName = n => String(n || '?').replace(/^Comp /, '').replace(/,.*$/, '').trim();
-const famYear = g => (String(g.date || '').match(/\d{4}/) || [''])[0];
+const famName = n => String(n || '?').replace(/^Comp /, '').replace(/,.*$/, '').trim();   // a player's surname from a PGN name
+const famYear = g => (String(g.date || '').match(/\d{4}/) || [''])[0];   // the year of a famous game
+// a game's result in words
 const studyResult = g => g.result === '1-0' ? 'White won' : g.result === '0-1' ? 'Black won' : g.result === '1/2-1/2' ? 'a draw' : 'no result recorded';
+// the Famous games list, with its filter
 async function drawFamous() {
   const games = await famLoad();
   const tags = Object.keys(FAM_TAGS).filter(t => games.some(g => (g.tags || []).includes(t)));
@@ -11309,6 +11635,7 @@ async function drawFamous() {
 el('goFamous').onclick = () => showScreen('famous');
 el('goStudy').onclick = () => showScreen('study');
 
+// open a game to step through at move idx
 function openStudy(g, idx = 0) {
   if (!g || !Array.isArray(g.moves)) return;
   solo = true; onePiece = false; code = 'study';
@@ -11357,6 +11684,7 @@ function studyBuild() {
    The game itself is untouched: Return to game puts you back where you were.
    The line is kept only while you're in it. */
 const ENG_MAX = 40;                        // moves; by then it's clear, or it never will be
+// Play on with Stockfish from the position in the game being stepped through
 function engStart() {
   if (!study || study.eng) return;
   scan = null;
@@ -11365,6 +11693,7 @@ function engStart() {
   document.body.classList.add('engline');
   engStep(1);
 }
+// one move forward or back in Stockfish's line
 function engStep(d) {
   const e = study && study.eng;
   if (!e) return;
@@ -11379,7 +11708,7 @@ function engStep(d) {
   draw();                                  // anSync puts the position in front of the analysis engine
   engCheck();
 }
-const engOver = () => game.isGameOver() || (study && study.eng && study.eng.moves.length >= ENG_MAX);
+const engOver = () => game.isGameOver() || (study && study.eng && study.eng.moves.length >= ENG_MAX);   // true when Stockfish's line has ended
 // called whenever the analysis engine reports: is the position read well enough to choose a move?
 function engCheck() {
   const e = code === 'study' && study && study.eng;
@@ -11412,6 +11741,7 @@ const SKIP_GRADES = ['blunder', 'great', 'brilliant'];
 const SCAN_DEPTH = AN_MIN;               // the quick reading
 const SKIP_NONE = 'No more blunders, great or brilliant moves in this game.';   // (famous games: or the famous move)
 let scan = null;                         // { k: index of the move being checked, confirm }
+// the verbose move history of the game being stepped through
 function studyHist() {
   if (!study.hist) {
     const c = new Chess(study.g.fen || undefined);
@@ -11420,6 +11750,7 @@ function studyHist() {
   }
   return study.hist;
 }
+// skip to the next blunder, great or brilliant move
 function skipNext() {
   if (!study || study.eng) return;
   if (scan) { scan = null; draw(); return; }          // pressing again while it looks stops it
@@ -11439,6 +11770,7 @@ function skipNext() {
   draw();
   scanCheck();
 }
+// land on move k after a skip, with a note saying why
 function skipLand(k, cls, famous = false) {
   studyGo(k + 1);
   const mv = moveLabel(k, study.g.moves[k]);
@@ -11452,7 +11784,7 @@ function scanTodo() {
   if (scan.confirm) return [b, a];
   return [b.depth < SCAN_DEPTH && !b.done ? b : a];
 }
-const scanRead = e => scan.confirm ? anSatisfied(e) : e.done || e.depth >= SCAN_DEPTH;
+const scanRead = e => scan.confirm ? anSatisfied(e) : e.done || e.depth >= SCAN_DEPTH;   // true once a position is read well enough for the skip
 // called whenever the analysis engine reports
 function scanCheck() {
   if (!scan || code !== 'study' || !study) return;
@@ -11505,6 +11837,7 @@ el('stPrev').onclick = () => studyGo(study.idx - 1);
 el('stNext').onclick = () => studyGo(study.idx + 1);
 el('stLast').onclick = () => skipNext();
 
+// the study controls and notes
 function drawStudy() {
   if (code !== 'study' || !study) return;
   const g = study.g, i = study.idx, n = g.moves.length;
@@ -11572,6 +11905,7 @@ function pgnGames(text) {
   }
   return out;
 }
+// fetch a Lichess game's PGN from its link
 async function lichessPgn(link) {
   const m = /lichess\.org\/([A-Za-z0-9]{8})/.exec(link);
   if (!m) return null;
@@ -11629,6 +11963,7 @@ const su = {
 };
 const SHELF = ['k', 'q', 'r', 'b', 'n', 'p'];
 
+// load a FEN into the set-up board; false if it can't be read
 function suFromFen(fen) {
   const f = fen.trim().split(/\s+/);
   const rows = (f[0] || '').split('/');
@@ -11660,6 +11995,7 @@ function suCastleAllowed() {
     k: at('e8', 'k', 'b') && at('h8', 'r', 'b'), q: at('e8', 'k', 'b') && at('a8', 'r', 'b'),
   };
 }
+// the set-up board as a FEN
 function suFen() {
   const rows = [];
   for (let r = 8; r >= 1; r--) {
@@ -11694,6 +12030,7 @@ function suProblem() {
   return '';
 }
 
+// the set-up board, the shelf and the checks under it
 function drawSetup() {
   const bd = el('setupBoard');
   const ranks = su.flip ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
@@ -11740,11 +12077,11 @@ function drawSetup() {
    Kept under table:lines, newest first; the game on the board is lineId. */
 let lineId = null;
 const OFFLINE = ['solo', 'onepiece', 'local'];
-const getLines = () => (store.get('table:lines') || []).filter(x => x && x.id);
-const putLine = l => store.set('table:lines', [l, ...getLines().filter(x => x.id !== l.id)].slice(0, 40));
-const dropLine = id => store.set('table:lines', getLines().filter(x => x.id !== id));
-const newLineId = () => Math.random().toString(36).slice(2, 10);
-const lineHow = x => x.mode === 'solo' ? 'against the computer' : 'playing both sides';
+const getLines = () => (store.get('table:lines') || []).filter(x => x && x.id);   // every saved line (games on this device), newest first
+const putLine = l => store.set('table:lines', [l, ...getLines().filter(x => x.id !== l.id)].slice(0, 40));   // save a line, newest first, at most 40
+const dropLine = id => store.set('table:lines', getLines().filter(x => x.id !== id));   // remove a line
+const newLineId = () => Math.random().toString(36).slice(2, 10);   // a new line id
+const lineHow = x => x.mode === 'solo' ? 'against the computer' : 'playing both sides';   // how a line is played, in words
 // a game started from the Play a game screens: a new line, and the mode's slot holds it
 function freshGame(kind, mine) {
   lineId = newLineId();
@@ -11754,6 +12091,7 @@ function freshGame(kind, mine) {
     setting: kind === 'local' ? 'local' : kind === 'onepiece' ? oppOnly : opponent });
 }
 
+// the saved positions dropdown in Analyse a position
 function drawSavedPositions() {
   const list = store.get('table:positions') || [], lines = getLines().filter(x => x.fen);
   el('setupSaved').innerHTML = '<option value="">' + (list.length || lines.length ? 'Choose a position' : 'None saved yet') + '</option>' +
@@ -11767,14 +12105,17 @@ function drawSavedPositions() {
 /* A saved position is where it started (fen) and the moves played from there,
    so it can be carried on from where it got to, with takebacks back to the start. */
 const STD_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-function lineMoves(x) { const n = (x.moves || []).length; return n + (n === 1 ? ' move' : ' moves'); }
+function lineMoves(x) { const n = (x.moves || []).length; return n + (n === 1 ? ' move' : ' moves'); }   // a line's move count in words
+// a line's position at its last move, as a chess.js game
 function lineEnd(x) {
   try { const g = new Chess(x.fen); for (const m of x.moves || []) g.move(m); return g; } catch { return null; }
 }
+// a saved position or line from the dropdown's value
 function savedLine(v) {
   if (String(v).startsWith('line:')) return getLines().find(x => x.id === v.slice(5)) || null;
   return (store.get('table:positions') || [])[+v] || null;
 }
+// ask for a name; resolves with it, or null
 function namePrompt(title, note = 'A name you’ll recognise, like the book and page.', ok = 'Save') {
   return openModal({
     title,
@@ -11819,6 +12160,7 @@ function playLine(x, mode) {
   return true;
 }
 
+// open Analyse a position
 function openSetup() {
   document.body.classList.add('insetup');
   el('lobby').classList.add('hidden');
@@ -11842,7 +12184,9 @@ const suSqAt = (x, y) => {
   const sq = t && t.closest && t.closest('#setupBoard .sq');
   return sq ? sq.dataset.sq : null;
 };
+// true if a screen point is over the shelf (a piece dropped there is removed)
 const suBinAt = (x, y) => { const t = document.elementFromPoint(x, y); return !!(t && t.closest && t.closest('#shelf')); };
+// set-up board: a press on a piece starts a drag
 function suDown(e) {
   if (e.button !== 0 || su.drag) return;
   const cell = e.target.closest('#setupBoard .sq, #shelf .cell[data-p]');
@@ -11862,6 +12206,7 @@ function suDown(e) {
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
   suMove(e);
 }
+// set-up board: drag in progress
 function suMove(e) {
   const d = su.drag;
   if (!d || e.pointerId !== d.id) return;
@@ -11873,6 +12218,7 @@ function suMove(e) {
   if (d.from) document.querySelector(`#setupBoard [data-sq="${d.from}"]`)?.classList.add('dragfrom');
   d.over = over;
 }
+// set-up board: drop the piece, or treat it as a tap
 function suUp(e, cancel = false) {
   const d = su.drag;
   if (!d || e.pointerId !== d.id) return;
@@ -11903,7 +12249,8 @@ for (const id of ['setupBoard', 'shelf']) {
    Home has three choices; each opens a short screen of its own. They are
    entries in the browser history, so the phone's back gesture steps back
    through them. Games themselves still live in the address (#solo=1, #r=...). */
-const SCREENS = { home: 'scrHome', study: 'scrStudy', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline', profile: 'scrProfile' };
+const SCREENS = { home: 'scrHome', study: 'scrStudy', famous: 'scrFamous', resume: 'scrResume', play: 'scrPlay', computer: 'scrComputer', person: 'scrPerson', online: 'scrOnline', profile: 'scrProfile', admin: 'scrAdmin' };
+// show one of the start screens (SCREENS) without adding to the history
 function renderScreen(name) {
   if (!SCREENS[name] && name !== 'setup') name = 'home';
   document.body.classList.toggle('lobbysub', name !== 'home');
@@ -11920,12 +12267,15 @@ function renderScreen(name) {
   if (name === 'famous') drawFamous();
   if (name === 'profile') drawProfile();
   if (name === 'online') drawOnline();
+  if (name === 'admin') drawAdmin();
   window.scrollTo(0, 0);
 }
+// go to a start screen, as a new history entry
 function showScreen(name) {
   history.pushState({ scr: name }, '', location.pathname + location.search);
   swapScreen(() => renderScreen(name));
 }
+// back one start screen
 function goBack() {
   if (history.state && history.state.scr) history.back();
   else { history.replaceState(null, '', location.pathname + location.search); swapScreen(() => renderScreen('home')); }
@@ -11949,6 +12299,7 @@ el('onSetup').onclick = () => showScreen('profile');
    notifications, and your key. */
 const friendRow = (id, f, buttons, extra = '') => `<div class="prow" data-id="${id}"><span class="who"><span class="nm">${escText(f.name || '(no name)')}</span>` +
   `<span class="cd">${fmtCode(f.code || shortOf(id))}${extra}</span></span>${buttons}</div>`;
+// the Your account screen
 function drawProfile() {
   const pend = store.get('etude:addLink');
   el('profLinkNote').classList.toggle('hidden', !pend || !!acct);
@@ -11973,8 +12324,10 @@ function drawProfile() {
   const blocked = Object.entries(srvData.blocked || {});
   el('profBlockSec').classList.toggle('hidden', !blocked.length);
   el('profBlocked').innerHTML = blocked.map(([id, f]) => friendRow(id, f, `<button data-act="unblock">Unblock</button>`)).join('');
+  el('profAdminSec').classList.toggle('hidden', !srvData.admin);
   drawPush();
 }
+// a request from the account screen; says what went wrong if it failed
 async function profAct(op, a, after) {
   const r = await netReq(op, a);
   if (!r.ok) { flashLobby(errWords(r.err)); return r; }
@@ -12002,6 +12355,7 @@ el('scrProfile').addEventListener('click', async e => {
 });
 // finding people
 let searchRows = [];
+// the search results in Add a friend
 function drawResults() {
   el('profResults').innerHTML = searchRows.map(x => friendRow(x.id, x,
     x.friend ? '<span class="tag">friends</span>' : x.asked ? '<span class="tag">asked</span>' : `<button class="primary" data-act="add">${x.asksYou ? 'Accept' : 'Add'}</button>`)).join('');
@@ -12060,6 +12414,31 @@ el('profRemove').onclick = async () => {
   dropAccount();
   drawProfile();
 };
+// delete the account on the server, after typing its name to confirm
+el('profDelete').onclick = async () => {
+  const name = acct.name || '';
+  const v = await openModal({
+    title: 'Delete your account?',
+    body: `<p>This can’t be undone. Games under way are resigned, challenges are cancelled, you’re removed from your friends’ lists, and your key stops working on every device.</p><p>Type your name, ${escText(name)}, to confirm.</p><input id="delName" class="fen" style="width:100%" autocomplete="off" maxlength="30">`,
+    actions: [{ label: 'Cancel', value: null, focus: true }, { label: 'Delete', kind: 'danger', run: () => { closeModal(el('delName').value.trim()); return true; } }],
+    onOpen: b => b.querySelector('#delName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); closeModal(e.target.value.trim()); } }),
+  });
+  if (v === null) return;
+  if (v.toLowerCase() !== name.toLowerCase()) { flashLobby('The name didn’t match, so nothing was deleted.'); return; }
+  const r = await netReq('deleteAccount', { name: v });
+  if (!acct) return;           // the server's 'deleted' arrived first: accountDeleted has done the rest
+  if (!r.ok && r.err !== 'offline') { flashLobby(r.err === 'confirm' ? 'The name didn’t match, so nothing was deleted.' : errWords(r.err)); return; }
+  if (!r.ok) { flashLobby(errWords('offline')); return; }
+  accountDeleted();
+};
+// the server says this account is deleted: take it off this device
+function accountDeleted() {
+  dropAccount();
+  try { localStorage.removeItem('etude:addLink'); } catch {}
+  if (ownTable(code) && !el('game').classList.contains('hidden')) { location.href = location.pathname + location.search; return; }
+  flashLobby('The account is deleted, and it has been removed from this device.');
+  if (!el('scrProfile').classList.contains('hidden')) drawProfile();
+}
 // the key: a QR code of the link for another device's camera, the link, and the key itself
 function showKey(first) {
   const link = keyLink();
@@ -12110,6 +12489,7 @@ async function friendLinkOpened(hash) {
   if (!ok) { store.set('etude:addLink', null); return; }
   useFriendLink();
 }
+// use the saved friend link (etude:addLink) once there's an account
 async function useFriendLink() {
   const link = store.get('etude:addLink');
   if (!link || !acct) return;
@@ -12145,12 +12525,15 @@ async function keyFromLink(text) {
    keeps it with your account. It only sends one when no device has the app on
    screen. iPhones allow it only for Étude added to the Home Screen. */
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;   // true if running as an installed app
+// true if this browser can do push notifications
 const pushCan = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+// this device's push subscription, or null
 async function pushSub() {
   if (!pushCan()) return null;
   try { const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; } catch { return null; }
 }
+// the notifications switch and its note
 async function drawPush() {
   const btn = el('profPush'), noteEl = el('profPushNote');
   const sub = await pushSub();
@@ -12208,6 +12591,45 @@ async function pushUnsubscribeLocal() {
   if (sub) try { await sub.unsubscribe(); } catch {}
 }
 
+/* ---------- Accounts (admins only) ----------
+   Shown only when the server's hello says this account is in ADMIN_IDS; the
+   server checks again on every request. Every account, most recently active
+   first, each with Delete, which asks once more before it deletes. */
+el('profAdmin').onclick = () => showScreen('admin');
+el('admRefresh').onclick = () => drawAdmin();
+// a time as how long ago
+function agoShort(t) {
+  if (!t) return 'never';
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 2 ? 'just now' : m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+}
+const countOf = (n, w) => n == null ? `? ${w}s` : `${n} ${w}${n === 1 ? '' : 's'}`;   // '1 friend', '3 games'
+// the Accounts screen: ask the server for the list and draw it
+async function drawAdmin() {
+  el('admCount').textContent = 'Loading…';
+  const r = await netReq('adminList');
+  if (!r.ok) { el('admCount').textContent = r.err === 'notAdmin' ? 'This account isn’t an admin.' : errWords(r.err); el('admList').innerHTML = ''; return; }
+  el('admCount').textContent = `${countOf(r.rows.length, 'account')}, most recently active first.`;
+  el('admList').innerHTML = r.rows.map(x => `<div class="prow" data-id="${escText(x.id)}"><span class="who">` +
+    `<span class="nm">${escText(x.name || '(no name yet)')}${x.you ? '<span class="tag">you</span>' : ''}${x.admin ? '<span class="tag">admin</span>' : ''}</span>` +
+    `<span class="cd">${fmtCode(x.code)} · made ${new Date(x.made).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · active ${agoShort(x.seen)}</span>` +
+    `<span class="cd">${countOf(x.friends, 'friend')} · ${countOf(x.live, 'game')} under way · ${x.finished ?? '?'} finished</span></span>` +
+    `<button class="dangerbtn" data-del>Delete</button></div>`).join('');
+  el('admList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (!b.classList.contains('sure')) {
+      b.classList.add('sure'); b.textContent = 'Confirm';
+      setTimeout(() => { b.classList.remove('sure'); b.textContent = 'Delete'; }, 4000);
+      return;
+    }
+    b.disabled = true;
+    const id = b.closest('.prow').dataset.id;
+    const d = await netReq('adminDelete', { to: id });
+    if (!acct) return;                       // that was this account: accountDeleted has taken it off
+    if (!d.ok) { b.disabled = false; flashLobby(errWords(d.err)); return; }
+    drawAdmin();
+  });
+}
+
 /* ---------- Play online ---------- */
 function drawOnline() {
   el('onNoAcct').classList.toggle('hidden', !!acct);
@@ -12241,7 +12663,8 @@ function lastMoveText(fen, moves) {
   const blackFirst = f[1] === 'b', full = Number(f[5]) || 1, i = moves.length - 1 + (blackFirst ? 1 : 0);
   return `${full + Math.floor(i / 2)}${i % 2 ? '…' : '.'}${moves[moves.length - 1]}`;
 }
-const movesIn = n => n ? `${n} move${n === 1 ? '' : 's'} in` : 'no moves yet';
+const movesIn = n => n ? `${n} move${n === 1 ? '' : 's'} in` : 'no moves yet';   // a move count in words
+// every game under way: lines on this device, and online games from the server
 function carryOnItems() {
   const out = [];
   // under way, or a set-up position that hasn't had its first move yet
@@ -12305,6 +12728,7 @@ function drawChallenges() {
   box.querySelectorAll('[data-no]').forEach(b => b.onclick = async () => { b.disabled = true; const r = await netReq('decline', { g: b.dataset.no }); if (!r.ok) { b.disabled = false; flashLobby(errWords(r.err)); } });
   box.querySelectorAll('[data-yes]').forEach(b => b.onclick = async () => { b.disabled = true; const r = await netReq('accept', { g: b.dataset.yes }); if (r.ok) goGame(b.dataset.yes); else { b.disabled = false; flashLobby(errWords(r.err)); } });
 }
+// the dot on the account button when friend requests are waiting
 function drawProfDot() {
   const n = Object.keys(srvData.reqIn || {}).length;
   el('profDot').classList.toggle('hidden', !n || !acct);
@@ -12339,6 +12763,7 @@ function renamePrompt(current) {
     onOpen: b => { const i = b.querySelector('#rnName'); i.value = current || ''; i.focus(); i.select(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); done(i); } }); },
   });
 }
+// the Resume a game list
 function drawCarryOn() {
   const items = carryOnItems();
   if (!items.length && !el('scrResume').classList.contains('hidden')) { goBack(); return; }   // nothing left: back home
@@ -12469,6 +12894,7 @@ const OCR_LAYERS = [[1, 16], [16, 32], [32, 64], [64, 64]];
 const OCR_PIECES = [null, ...'KQRBNP'.split('').map(t => ['w', t.toLowerCase()]), ...'KQRBNP'.split('').map(t => ['b', t.toLowerCase()])];
 let ocrNet = null;
 
+// load the diagram reader's model (diagram-model.bin) once
 async function ocrLoad() {
   if (ocrNet) return ocrNet;
   const r = await fetch('diagram-model.bin');
@@ -12503,6 +12929,7 @@ function ocrConv(x, H, W, L) {
   for (let i = 0; i < out.length; i++) if (out[i] < 0) out[i] = 0;
   return out;
 }
+// 2x2 max pooling, for the diagram reader
 function ocrPool(x, C, H, W) {
   const h = H >> 1, w = W >> 1, out = new Float32Array(C * h * w);
   for (let c = 0; c < C; c++) for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
@@ -12933,6 +13360,11 @@ try {
 } catch {}
 /* ======================= end of Migrations ======================= */
 
+/* ================= boot =================
+   The address says what to open: a game being stepped through (#study=), a
+   mode (#local=1, #puzzle=1, #solo=1, #onepiece=1), an online game (#r=<code>),
+   or none of those: a start screen, which may first act on a link to your
+   account (#key=) or a friend link (#add=). */
 const { r, solo: soloHash, one: oneHash, puzzle: puzzleHash, local: localHash, study: studyHash } = parseHash();
 if (studyHash) {
   (async () => {
