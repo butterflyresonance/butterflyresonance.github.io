@@ -138,6 +138,10 @@ export class Directory extends DurableObject {
     this.sql = ctx.storage.sql;
     // users: every account (made: when it first connected; seen: when it last did); deleted: ids refused from now on
     this.sql.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT, lname TEXT, code TEXT, at INTEGER, made INTEGER, seen INTEGER)`);
+    // a users table made before made/seen existed gets them now (CREATE TABLE IF NOT EXISTS leaves an existing table as it is)
+    const cols = new Set(this.sql.exec(`PRAGMA table_info(users)`).toArray().map(c => c.name));
+    for (const c of ['made', 'seen']) if (!cols.has(c)) this.sql.exec(`ALTER TABLE users ADD COLUMN ${c} INTEGER`);
+    this.sql.exec(`UPDATE users SET made = at WHERE made IS NULL`);
     this.sql.exec(`CREATE INDEX IF NOT EXISTS users_code ON users(code)`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS deleted (id TEXT PRIMARY KEY, at INTEGER)`);
   }

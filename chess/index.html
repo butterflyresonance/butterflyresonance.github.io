@@ -3790,7 +3790,7 @@ const boardEl = el('board');
    The version is shown in the corner so two people can check they're on the
    same build: GitHub Pages serves index.html through a CDN and browsers cache
    it, so one side can easily be running yesterday's file. */
-const VERSION = '2026-11-04.6-admin-in-app';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
+const VERSION = '2026-11-04.7-server-table-fix';   // letters, digits, dots and hyphens only: commit.bat uses it as the commit message
 const LOG_MAX = 120;
 const logBuf = [];
 
@@ -4356,7 +4356,9 @@ async function netOpen(now) {
     if (net.ws !== ws) return;
     ws.keepAlive = setInterval(() => { try { ws.send('ping'); } catch {} }, 25000);
     const h = await netSend(ws, 'hello', { name: acct.name || '', v: VERSION, visible: !document.hidden, game: onlineCode() });
-    if (net.ws !== ws || !h.ok) return;
+    if (net.ws !== ws) return;
+    // the server couldn't sign this device in: say so in the log, and try again later
+    if (!h.ok) { note(`server: hello refused (${h.err || 'no reply'})`); try { ws.close(4000, 'hello'); } catch {} return; }
     net.open = true;
     net.tries = 0;
     note('server: connected');
