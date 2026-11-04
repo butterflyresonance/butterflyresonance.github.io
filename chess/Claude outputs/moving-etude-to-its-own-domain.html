@@ -25,13 +25,16 @@
 <body>
 <main>
 <h1>Moving Étude to its own home</h1>
-<p class="lead">Its own email address, GitHub space, Cloudflare account, domain and server, all separate from your website and your personal accounts. The example names below are <code>etudechess@gmail.com</code> and <code>etudechess.com</code>; use whatever you end up with. About an hour and a half of your time over a few sittings, and roughly US$11 a year for the domain.</p>
+<p class="lead">Its own domain, email address, Google account, GitHub space, Cloudflare account, server and social media names, all separate from your website. The names below are <code>etudechess.com</code>, <code>hello@etudechess.com</code> and the handle <code>etudechess</code>. About two hours of your time over a few sittings, and roughly US$11 a year for the domain; everything else is free.</p>
 
 <h2>What it will look like</h2>
 <ul>
-  <li><b>A Gmail address</b> for Étude, which owns everything below and receives its mail.</li>
-  <li><b>A GitHub organisation</b>, for example <code>etudechess</code>, holding the repo <code>etude</code>. An organisation is a shared space your own GitHub login owns, so there's no second login to juggle on your PC. Its billing and contact email is the new Gmail.</li>
-  <li><b>A Cloudflare account</b> on the new Gmail, holding the domain and one Worker, <code>etude</code>, that serves both the app and the server on <code>etudechess.com</code>.</li>
+  <li><b>The domain</b> <code>etudechess.com</code>, bought through Cloudflare.</li>
+  <li><b>An email address on the domain</b>, <code>hello@etudechess.com</code>. Cloudflare Email Routing forwards everything sent to it into your personal Gmail, so there is no new inbox to check. (Replies go out from your personal address unless you set up sending later; see “Later”.)</li>
+  <li><b>A Google account on that address</b> (no Gmail inbox, just the login). Sites that offer “Sign in with Google” use it, so Étude's accounts hang off one login with one password, separate from yours.</li>
+  <li><b>A GitHub organisation</b>, <code>etudechess</code>, holding the repo <code>etude</code>. Your own GitHub login owns it, so there's no second login on your PC. Its contact email is <code>hello@etudechess.com</code>.</li>
+  <li><b>A Cloudflare account</b> holding the domain, the email routing and one Worker, <code>etude</code>, that serves both the app and the server on <code>etudechess.com</code>.</li>
+  <li><b>The handle <code>etudechess</code></b> on the social platforms, claimed now, used when you're ready.</li>
   <li><b>A new, empty server.</b> A Cloudflare account's stored data can't be moved to another account, so the new Worker starts with no accounts, friends or games. Your old Worker keeps running in your current account until everyone has moved.</li>
 </ul>
 
@@ -45,32 +48,55 @@
 
 <h2>The steps</h2>
 
-<h3>1 · The email address <span class="who">you</span></h3>
+<h3>1 · The Cloudflare account and the domain <span class="who">you</span></h3>
 <ol>
-  <li>Make the Gmail account, for example <code>etudechess@gmail.com</code>. Name: first name <b>Étude</b>, last name <b>Chess</b>; it's the name people see on mail from the address, and it can be changed later.</li>
-  <li>For recovery, give it your own phone number and personal email. Turn on 2-step verification, since this account will control the domain.</li>
-  <li>Keep its password in your password manager.</li>
+  <li>Sign out of Cloudflare (or use a private window), then sign up at <code>dash.cloudflare.com/sign-up</code> with your personal Gmail plus <code>+etude</code> before the @, for example <code>yourname+etude@gmail.com</code>. Gmail delivers it to your normal inbox, and Cloudflare treats it as a separate address, so it's a separate account from the one your current server is in. Confirm the email Cloudflare sends.</li>
+  <li>Turn on two-factor authentication with an authenticator app: profile → <b>Authentication</b>. Save the backup codes in your password manager.</li>
+  <li><b>Domain Registration → Register Domains</b>: search <code>etudechess.com</code> and press <b>Purchase</b>. Choose 1 year (auto-renew stays on), enter contact details and a card, accept the agreements, <b>Complete purchase</b>. A .com is about US$10.50 a year, with whois privacy included. The contact details must be your real name and address (domain rules require it); whois privacy keeps them out of public view.</li>
+</ol>
+<p class="muted">Why not sign in to Cloudflare as hello@etudechess.com: that address only works while the domain and its email routing work, and both live in this Cloudflare account. If the domain ever lapsed or routing broke, the password-reset email for the account that fixes it would have nowhere to go. Keeping the Cloudflare login on your Gmail avoids that loop. Everything else can use hello@.</p>
+
+<h3>2 · The email address <span class="who">you</span></h3>
+<ol>
+  <li>Cloudflare dashboard: <b>Compute → Email Service → Email Routing → Onboard Domain</b>, choose <code>etudechess.com</code>, <b>Done</b>. Cloudflare adds the mail records itself; allow 5 to 15 minutes.</li>
+  <li><b>Email Routing → Destination Addresses</b>: add your personal Gmail address, then open the email Cloudflare sends there and press <b>Verify email address</b>.</li>
+  <li>Back in <b>Email Routing</b>: select <code>etudechess.com</code> → <b>Routing Rules → Create routing rule</b>. Email pattern <code>hello</code>, action <b>Send to an email</b>, destination your Gmail. <b>Save</b>.</li>
+  <li>Test it: from a different email account than your Gmail (Gmail can hide mail it thinks it sent to itself), send something to <code>hello@etudechess.com</code>. It should arrive in your Gmail; check spam if not.</li>
+  <li>In Gmail, make a filter for mail to <code>hello@etudechess.com</code> that adds a label <b>Étude</b>, so it's easy to find.</li>
 </ol>
 
-<h3>2 · The GitHub organisation and repo <span class="who">you</span></h3>
+<h3>3 · The Google account <span class="who">you</span></h3>
+<ol>
+  <li>In a private window, go to <code>accounts.google.com/signup</code>. Name: <b>Étude</b> and <b>Chess</b> (it's what people see, and can be changed later).</li>
+  <li>When it offers a Gmail address, choose <b>Use your existing email</b> instead and enter <code>hello@etudechess.com</code>. Google sends a code there; it arrives in your Gmail; enter it.</li>
+  <li>Recovery phone: yours. Recovery email: your personal Gmail. Turn on 2-step verification. Password in your password manager.</li>
+</ol>
+<p class="muted">This is a Google login with no Gmail inbox: mail to hello@ still comes through Cloudflare to your Gmail. Use it for “Sign in with Google” on the social platforms and any tools Étude needs, never for anything personal.</p>
+
+<h3>4 · The GitHub organisation and repo <span class="who">you</span></h3>
 <ol>
   <li>On github.com, signed in as yourself: your picture → <b>Your organizations</b> → <b>New organization</b> → the <b>Free</b> plan.</li>
-  <li>Name it, for example <code>etudechess</code>. Contact email: the new Gmail. “This organization belongs to: My personal account.”</li>
+  <li>Name <code>etudechess</code>. Contact email: <code>hello@etudechess.com</code>. “This organization belongs to: My personal account.”</li>
   <li>In the organisation: <b>New repository</b>, name <code>etude</code>, Private or Public (both work), no README. <b>Create repository</b>.</li>
   <li>On your PC, in a terminal in <code>Documents</code>: <code>git clone https://github.com/etudechess/etude.git</code></li>
-  <li>In the Claude desktop app, connect the new <code>Documents\etude</code> folder to this chat.</li>
+  <li>In the Claude desktop app, connect the new <code>Documents\etude</code> folder to this chat, and tell me.</li>
 </ol>
-<p class="muted">A separate GitHub account on the new Gmail also works, but then your PC needs to push as that account, which means a second set of GitHub credentials. The organisation avoids that and can be handed over to another owner later.</p>
+<p class="muted">GitHub allows one free personal account per person, which is why this is an organisation under your own login rather than a second account.</p>
 
-<h3>3 · The Cloudflare account and the domain <span class="who">you</span></h3>
-<ol>
-  <li>Sign out of Cloudflare (or use a private window), then sign up at <code>dash.cloudflare.com/sign-up</code> with the new Gmail. Confirm the email Cloudflare sends; buying a domain needs a verified address.</li>
-  <li>Turn on two-factor authentication: profile → <b>Authentication</b>.</li>
-  <li><b>Domain Registration → Register Domains</b>: search for the name and press <b>Purchase</b>. Choose 1 year (auto-renew stays on), enter contact details and a card, accept the agreements, <b>Complete purchase</b>. A .com is about US$10.50 a year, with whois privacy included. The contact details must be your real name and address (domain rules require it); whois privacy keeps them out of public view.</li>
-  <li>Tell me the domain.</li>
-</ol>
+<h3>5 · Claim the name on the social platforms <span class="who">you</span></h3>
+<p>Register <code>etudechess</code> everywhere you might use it, even ones you won't use yet, so the name is the same everywhere and nobody else takes it. Use <b>Sign in with Google</b> with the Étude Google account where it's offered; otherwise sign up with <code>hello@etudechess.com</code>. Keep every password in your password manager, in one Étude folder.</p>
+<ul>
+  <li><b>Instagram</b> (and <b>Threads</b>, which comes with it): a professional account, category “App page” or “Education”.</li>
+  <li><b>TikTok</b>, <b>YouTube</b> (a channel on the Étude Google account, handle <code>@etudechess</code>), <b>X</b>, <b>Bluesky</b>.</li>
+  <li><b>Facebook</b>: a Page (Pages hang off a personal profile; that's normal and isn't shown publicly).</li>
+  <li><b>Reddit</b>: the user <code>u/etudechess</code>; post as yourself in chess communities rather than as the brand, as their rules usually require.</li>
+  <li><b>Discord</b>: a server, if you want a place for players.</li>
+  <li><b>Lichess and chess.com</b>: an <code>etudechess</code> account on each, for posting puzzles and articles where chess players already are.</li>
+</ul>
+<p>Bio for each, the same everywhere: “Étude Chess: chess practice that explains itself. Free, in your browser. etudechess.com”. If Hana appears on the account, add that she's Étude's AI-generated character (see “Promoting it” below).</p>
+<p class="muted">Some platforms ask for a phone number: yours is fine. Turn on two-factor authentication on each.</p>
 
-<h3>4 · Fill the repo <span class="who">me, then you</span></h3>
+<h3>6 · Fill the repo <span class="who">me, then you</span></h3>
 <p>I put in:</p>
 <ul>
   <li><code>site/</code>: the app, talking to the server at its own address (<code>etudechess.com/u/…</code>).</li>
@@ -80,7 +106,7 @@
 </ul>
 <p>Then you run that <code>commit.bat</code>.</p>
 
-<h3>5 · Create the Worker from the repo <span class="who">you</span></h3>
+<h3>7 · Create the Worker from the repo <span class="who">you</span></h3>
 <ol>
   <li>In the new Cloudflare account: <b>Workers &amp; Pages → Create → Import a repository</b> (it may say <b>Connect to Git</b>).</li>
   <li>Connect GitHub when asked. On GitHub's screen, install Cloudflare's app on the <b>etudechess</b> organisation, for the <code>etude</code> repository only.</li>
@@ -90,14 +116,14 @@
 </ol>
 <p class="muted">If the build fails, open it, copy the last 20 or so lines of its log, and paste them to me.</p>
 
-<h3>6 · Put it on the domain <span class="who">you</span></h3>
+<h3>8 · Put it on the domain <span class="who">you</span></h3>
 <ol>
   <li><b>Workers &amp; Pages → etude → Settings → Domains &amp; Routes → Add → Custom domain</b>: <code>etudechess.com</code>. Cloudflare adds the DNS record and certificate itself; give it a few minutes.</li>
   <li>The same again for <code>www.etudechess.com</code>.</li>
-  <li>Open <code>https://etudechess.com</code> and try it with a test account: start a game against it from a second device, play a few moves and a chat message, then delete the test account. Don't make your real account here: it comes across in step 8.</li>
+  <li>Open <code>https://etudechess.com</code> and try it with a test account: start a game against it from a second device, play a few moves and a chat message, then delete the test account. Don't make your real account here: it comes across in step 10.</li>
 </ol>
 
-<h3>7 · Turn the old address into a redirect <span class="who">me, then you</span></h3>
+<h3>9 · Turn the old address into a redirect <span class="who">me, then you</span></h3>
 <p>Before this step, finish or resign any online games you care about: they stay on the old server.</p>
 <p>I replace <code>chess/index.html</code> in your website repo with a small page that, when opened:</p>
 <ul>
@@ -107,7 +133,7 @@
 </ul>
 <p>Then you push the website repo with your usual <code>commit.bat</code>.</p>
 
-<h3>8 · Move each device <span class="who">you, and each friend</span></h3>
+<h3>10 · Move each device <span class="who">you, and each friend</span></h3>
 <ol>
   <li>Open the old address (or the old home-screen icon) once. It lands on <code>etudechess.com</code>, signed in as you, with your name and code as before.</li>
   <li>Your account → <b>Share friend link</b>, and send it to friends who have moved; or open theirs.</li>
@@ -116,10 +142,10 @@
 </ol>
 <p>Anyone who never opens the old link can still come across later with their key (Your account → Show key → Copy link, opened on the new site), as long as the redirect page stays up.</p>
 
-<h3>9 · Admin <span class="who">nothing to do</span></h3>
-<p>Your account keeps its id, which goes into the new <code>wrangler.toml</code> in step 4, so Your account → Admin → Accounts works on the new site from the start.</p>
+<h3>11 · Admin <span class="who">nothing to do</span></h3>
+<p>Your account keeps its id, which goes into the new <code>wrangler.toml</code> in step 6, so Your account → Admin → Accounts works on the new site from the start.</p>
 
-<h3>10 · Retire the old server <span class="who">you, later</span></h3>
+<h3>12 · Retire the old server <span class="who">you, later</span></h3>
 <p>Once everyone has moved, which you can see in the old app's Accounts screen (last active dates), delete the old Worker: in your current Cloudflare account, <b>Workers &amp; Pages → etude-tables → Settings → Delete</b>. Leave the redirect page in your website repo for good, so old links keep working.</p>
 
 <h2>Promoting it, with Hana as Étude's character</h2>
@@ -127,7 +153,7 @@
 <h3>Where she fits</h3>
 <ul>
   <li><b>The site:</b> a short “Meet Hana, Étude's AI-generated mascot” section on the home or About page. Not on the app's working screens, which stay plain.</li>
-  <li><b>Social accounts for Étude</b> (made with the Étude Gmail): “Hana's puzzle of the week”, a tactic in 30 seconds, launch and feature announcements. You write the chess; she presents it.</li>
+  <li><b>Étude's social accounts</b> (step 5): “Hana's puzzle of the week”, a tactic in 30 seconds, launch and feature announcements. You write the chess; she presents it.</li>
   <li><b>A learning story told as fiction:</b> “Follow Hana learning the London with Étude's opening guide.”</li>
   <li><b>Optionally in the app later:</b> an illustrated version of her as the coach's avatar, or on a cosmetic unlock.</li>
 </ul>
@@ -147,6 +173,7 @@
 
 <h2>Later</h2>
 <ul>
+  <li><b>Sending as hello@etudechess.com:</b> Cloudflare only forwards incoming mail. To reply from hello@, add it in Gmail under Settings → Accounts → “Send mail as”, which needs an outgoing mail service (several have free tiers for small volumes). Worth doing once people write in.</li>
   <li><b>Donations:</b> a Ko-fi, Buy Me a Coffee or GitHub Sponsors link (the organisation can receive Sponsors). Before taking money, drop the piece sets licensed CC BY-NC-SA (non-commercial), or get permission from their artists.</li>
   <li><b>A privacy page:</b> what the server keeps (a name, friends, games, chat, notification addresses), where (Cloudflare), and how to delete it (Delete account).</li>
   <li><b>Credits:</b> Stockfish is GPL. Keep a credits page that links to its source, and to the app's repo if it's public.</li>
@@ -154,7 +181,7 @@
 </ul>
 
 <h2>Going back</h2>
-<p>Until step 10, nothing old is removed: restore <code>chess/index.html</code> from its backup in <code>Claude outputs</code> and push, and the old address and old server work as they do now. Accounts made or moved on the new server in the meantime stay there.</p>
+<p>Until step 12, nothing old is removed: restore <code>chess/index.html</code> from its backup in <code>Claude outputs</code> and push, and the old address and old server work as they do now. Accounts made or moved on the new server in the meantime stay there.</p>
 </main>
 </body>
 </html>
