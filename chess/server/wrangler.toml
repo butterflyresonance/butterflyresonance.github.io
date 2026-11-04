@@ -12,7 +12,7 @@ preview_urls = false
 # here: it can't be used to sign in. The id is in the app's Copy report (Settings),
 # on the 'account' line. Several are separated by commas.
 [vars]
-ADMIN_IDS = ""
+ADMIN_IDS = "XJ-fGO_85RxoYUdjLlYpHQkIBcvSZk2kgRZYKRFL5Zw"
 
 [[durable_objects.bindings]]
 name = "USERS"
