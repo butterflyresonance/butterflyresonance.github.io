@@ -1,4 +1,4 @@
-const VERSION = '2026-11-04.4';
+const VERSION = '2026-11-04.5';
 const el = id => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));

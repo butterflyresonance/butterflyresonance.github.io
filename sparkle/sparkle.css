@@ -420,6 +420,9 @@ dialog p { margin: 0 0 16px; font-size: 19px; text-align: center; }
 #tiltWrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 10px 14px; touch-action: none; }
 #tiltCanvas { touch-action: none; border-radius: 22px; box-shadow: 0 5px 0 #e3d0f5; }
 #tiltBox { position: relative; }
+.tiltbar { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 12px; padding: 0 12px; margin: 2px 0 4px; }
+.tiltbar .lvl { margin: 0; gap: 2px; }
+.tiltbar .lvl span { width: 16px; height: 16px; box-sizing: content-box; border: 5px solid transparent; background-clip: padding-box; cursor: pointer; }   /* a bigger target than it looks */
 #tiltCanvas { display: block; }
 #tiltOver { background: rgba(255,255,255,.8); border-radius: 22px; }
 

@@ -1,7 +1,8 @@
 /* ---------- tilt maze: tip the phone and her pet rolls, like a wooden labyrinth with a marble ----------
    The phone's own tilt sensor (deviceorientation) gives the slope. Whatever angle she's holding the phone
    when she taps Go counts as flat, so she needn't lie it on a table. Holes, from level 3, send the pet back
-   to the start. Without a tilt sensor (a computer), holding a finger or the mouse on the board pulls the pet
+   to the start; the "Holes" button above the maze switches them off (the mazes still grow with the levels),
+   and tapping a level dot jumps straight to that level. Without a tilt sensor (a computer), holding a finger or the mouse on the board pulls the pet
    towards it, and the arrow keys work too.
    Everything here is measured in maze cells: a cell is 1 wide, whatever the screen. */
 const TILT_LEVELS = [            // [cells across, holes off the way, holes beside the way]
@@ -9,6 +10,7 @@ const TILT_LEVELS = [            // [cells across, holes off the way, holes besi
 ];
 const TB = { r: .24, hw: .06, acc: 24, maxV: 8, drag: 1.2, dead: .035, bounce: .25 };   // ball radius, half a wall, pull at full tilt…
 let tz = null, tzLv = store.get('tiltLv') ?? 0, tzRun = 0;
+let tzHolesOn = store.get('tiltHoles') !== false;       // a grown-up (or she) can switch the holes off
 const tzImgs = {};
 const tilt = { on: false, g: null, g0: null, last: 0, pointer: null, keys: { x: 0, y: 0 }, wake: null, turned: false };
 
@@ -102,7 +104,7 @@ function tzSegments(walls, n) {
   return seg;
 }
 async function tiltNew(before = '', quiet = false) {
-  const [n, off, beside] = TILT_LEVELS[tzLv];
+  const [n, lvOff, lvBeside] = TILT_LEVELS[tzLv], off = tzHolesOn ? lvOff : 0, beside = tzHolesOn ? lvBeside : 0;
   const walls = mazeGen(n);
   const treat = pick(['1F34E', '1F353', '1F36A', '1F9C1', '1F955', '1F368', '1F382']);
   tz = { n, walls, seg: tzSegments(walls, n), holes: tzHoles(walls, n, off, beside), x: .5, y: .5, vx: 0, vy: 0, falls: 0, start: 0,
@@ -114,10 +116,22 @@ async function tiltNew(before = '', quiet = false) {
   const m = (before ? before + ' ' : '') + `Tilt to roll ${pet.name} to the ${tz.treatName}!` + (beside || off ? ' Don’t fall in the holes!' : '');
   tiltOver(m, 'Go!');
 }
+// the level dots (each one a button to jump to that level) and the holes switch
 function tiltLvl() {
-  el('tiltLvl').innerHTML = TILT_LEVELS.map((_, i) => `<span class="${i <= tzLv ? 'on' : ''}"></span>`).join('');
+  el('tiltLvl').innerHTML = TILT_LEVELS.map((_, i) => `<span class="${i <= tzLv ? 'on' : ''}" data-lv="${i}" role="button" aria-label="Level ${i + 1}"></span>`).join('');
   el('tiltLvl').dataset.say = `Level ${tzLv + 1}`;
+  const h = el('tiltHoles');
+  h.textContent = tzHolesOn ? 'Holes on' : 'Holes off';
+  h.classList.toggle('on', tzHolesOn); h.setAttribute('aria-pressed', tzHolesOn);
+  h.dataset.say = tzHolesOn ? 'Holes on' : 'No holes';
 }
+// a different maze straight away, at the level or with the holes just chosen
+function tiltRestart() { tiltStop(); tzRun = 0; tiltNew(); }
+el('tiltLvl').addEventListener('click', e => {
+  const d = e.target.closest('[data-lv]'); if (!d || !tz) return;
+  tzLv = +d.dataset.lv; store.set('tiltLv', tzLv); tiltRestart();
+});
+el('tiltHoles').onclick = () => { if (!tz) return; tzHolesOn = !tzHolesOn; store.set('tiltHoles', tzHolesOn); tiltRestart(); };
 function tiltOver(msg, btn) {
   el('tiltMsg').textContent = msg; el('tiltMsg').dataset.say = msg;
   el('tiltGo').textContent = btn; el('tiltGo').dataset.say = '';
@@ -220,8 +234,7 @@ function tiltWin() {
   sfx.munch(); setTimeout(sfx.munch, 220); setTimeout(() => { sfx.yay(); buddy('party'); }, 450);
   petFun(10);
   // coins: about one for every four seconds it takes, as in the other games. Bigger mazes and more holes take longer
-  const [n, off, beside] = TILT_LEVELS[tzLv];
-  addCoins(Math.round(n * n / 4 + (off + beside) / 2), el('tiltCanvas'));
+  addCoins(Math.round(tz.n * tz.n / 4 + tz.holes.length / 2), el('tiltCanvas'));
   let up = '';
   if (tz.falls <= 1) { if (++tzRun >= 2 && tzLv < TILT_LEVELS.length - 1) { tzLv++; tzRun = 0; up = 'Now a harder one!'; } }
   else { tzRun = 0; if (tz.falls >= 4 && tzLv > 0) tzLv--; }

@@ -151,8 +151,7 @@ function areaAt(x, y) {
   return 0;
 }
 /* Coins for the time she spends colouring: each stroke counts for as long as it lasted, and filling a shape
-   for the first time counts as two seconds (a quick tap, but it took choosing). Up to COIN_CAP for a picture.
-   Before Nov 2026 it was a coin per shape, which a few taps of the fill could collect in seconds. */
+   for the first time counts as two seconds (a quick tap, but it took choosing). Up to COIN_CAP for a picture. */
 let earn = { t: 0, n: 0 };
 function earnDrawing(sec, from) {
   if (!pic || earn.n >= COIN_CAP) return;
