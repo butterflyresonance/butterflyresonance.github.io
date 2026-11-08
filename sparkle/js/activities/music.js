@@ -154,7 +154,8 @@ el('musGo').onclick = () => {
   else earNew();
 };
 
-// copy the tune: the animals sing, she taps them back; one longer each time
+// copy the tune: the animals sing, she taps them back; one note longer each time, with no limit.
+// Two misses on the same tune start her again from two notes with a fresh tune.
 function lightPad(i, ms = 380) {
   const b = el('pads').children[i]; if (!b) return;
   b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), ms);
@@ -179,10 +180,10 @@ el('pads').addEventListener('pointerdown', async e => {
   if (i !== mus.seq[mus.at]) {
     mus.busy = true; mus.misses++;
     await wait(300); sfx.oops(); buddy('think');
-    if (mus.misses >= 2) {
-      mus.misses = 0; mus.len = Math.max(2, mus.len - 1);
+    if (mus.misses >= 2) {                            // two misses on the same tune: back to the start with a new one
+      mus.misses = 0; mus.len = 2;
       mus.seq = Array.from({ length: mus.len }, () => Math.floor(Math.random() * 4));
-      el('musMsg').textContent = 'Let’s try a shorter one!'; await say('Let’s try a shorter one!');
+      el('musMsg').textContent = 'Let’s start again!'; await say('Let’s start again!');
     } else { el('musMsg').textContent = 'Oops! Listen again.'; await say('Oops! Listen again.'); }
     playTune(); return;
   }
@@ -192,8 +193,8 @@ el('pads').addEventListener('pointerdown', async e => {
     await wait(350); sfx.yay(); buddy('cheer'); petFun(3);
     addCoins(Math.ceil(mus.len / 2), el('musMsg'));
     const m = mus.len >= 3 ? `Yes! ${mus.len} notes!` : 'Yes!';
-    el('musMsg').textContent = m; await say(m + (mus.len < 12 ? ' Now one more.' : ''));
-    if (mus.len < 12) { mus.len++; mus.seq.push(Math.floor(Math.random() * 4)); }
+    el('musMsg').textContent = m; await say(m + ' Now one more.');
+    mus.len++; mus.seq.push(Math.floor(Math.random() * 4));     // no ceiling: the tune grows for as long as she keeps getting it
     playTune();
   }
 });

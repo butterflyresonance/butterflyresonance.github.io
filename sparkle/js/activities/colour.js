@@ -243,20 +243,64 @@ function remember(box) {
   if (undo.length > 40) undo.shift();
   drawButtons();
 }
+/* Fill works like a paint program's bucket: from where she taps, it spreads to every touching pixel of the
+   same colour (what she's drawn, or the white page), stopping at the picture's lines and at any other colour,
+   so a closed shape she drew by hand fills on its own. Colours within FILL_TOL of the tapped one count as the
+   same, so the soft edge of a brush stroke doesn't stop it short. The fill then reaches one pixel into the
+   colour around it (covering that soft edge) and up to GROW pixels under the picture's lines (hidden by them). */
+const FILL_TOL = 32;                   // per channel, 0-255; below the gap between white and the palest palette colours
+function seedAt(x, y) {                // the nearest point to the tap that isn't on a line, and its area
+  x = Math.round(x); y = Math.round(y);
+  const at = (a, b) => (a >= 0 && b >= 0 && a < SIZE && b < SIZE) ? labels[b * SIZE + a] : 0;
+  if (at(x, y)) return { x, y, label: at(x, y) };
+  for (let r = 1; r <= 24; r++)
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const l = at(x + dx, y + dy);
+      if (l) return { x: x + dx, y: y + dy, label: l };
+    }
+  return null;
+}
 function fillArea(p, e) {
-  const label = areaAt(p.x, p.y);
-  if (!label) return;
-  const m = maskFor(label);
+  const seed = seedAt(p.x, p.y);
+  if (!seed) return;
+  const label = seed.label, r = regions[label];
+  // the fill can't leave this area of the picture, so only this box (plus room under its lines) is looked at
+  const x0 = Math.max(0, r.x - GROW), y0 = Math.max(0, r.y - GROW);
+  const w = Math.min(SIZE, r.x + r.w + GROW) - x0, h = Math.min(SIZE, r.y + r.h + GROW) - y0, n = w * h;
+  const src = ax.getImageData(x0, y0, w, h), d = src.data;
+  const rgb = new Uint8Array(n * 3), here = new Uint8Array(n);       // colour seen over white; 1 = in this area, 2 = a line
+  for (let i = 0; i < n; i++) {
+    const a = d[i * 4 + 3], k = 255 - a;
+    rgb[i * 3] = (d[i * 4] * a + 255 * k) / 255; rgb[i * 3 + 1] = (d[i * 4 + 1] * a + 255 * k) / 255; rgb[i * 3 + 2] = (d[i * 4 + 2] * a + 255 * k) / 255;
+    const l = labels[((i / w) | 0) * SIZE + y0 * SIZE + (i % w) + x0];
+    here[i] = l === label ? 1 : l === 0 ? 2 : 0;
+  }
+  const s0 = (seed.y - y0) * w + seed.x - x0;
+  const sr = rgb[s0 * 3], sg = rgb[s0 * 3 + 1], sb = rgb[s0 * 3 + 2];
+  const same = i => here[i] === 1 && Math.abs(rgb[i * 3] - sr) <= FILL_TOL && Math.abs(rgb[i * 3 + 1] - sg) <= FILL_TOL && Math.abs(rgb[i * 3 + 2] - sb) <= FILL_TOL;
+  const fill = new Uint8Array(n), stack = new Int32Array(n);
+  let sp = 0; fill[s0] = 1; stack[sp++] = s0;
+  while (sp) {                                                       // the flood itself: four-way, like Paint
+    const i = stack[--sp], x = i % w;
+    if (x > 0 && !fill[i - 1] && same(i - 1)) { fill[i - 1] = 1; stack[sp++] = i - 1; }
+    if (x < w - 1 && !fill[i + 1] && same(i + 1)) { fill[i + 1] = 1; stack[sp++] = i + 1; }
+    if (i >= w && !fill[i - w] && same(i - w)) { fill[i - w] = 1; stack[sp++] = i - w; }
+    if (i < n - w && !fill[i + w] && same(i + w)) { fill[i + w] = 1; stack[sp++] = i + w; }
+  }
+  for (let pass = 1; pass <= GROW; pass++) {                         // the edge: one pixel into other colours, further under lines
+    const was = fill.slice();
+    for (let i = 0; i < n; i++) {
+      if (was[i] || !here[i] || (pass > 1 && here[i] !== 2)) continue;
+      const x = i % w;
+      if ((x > 0 && was[i - 1]) || (x < w - 1 && was[i + 1]) || (i >= w && was[i - w]) || (i < n - w && was[i + w])) fill[i] = 2;
+    }
+  }
   bx.clearRect(0, 0, SIZE, SIZE); bx.drawImage(art, 0, 0);
-  sx.clearRect(m.x, m.y, m.w, m.h);
-  sx.drawImage(m.canvas, m.x, m.y);
-  sx.globalCompositeOperation = 'source-in';
-  sx.fillStyle = colour; sx.fillRect(m.x, m.y, m.w, m.h);
-  sx.globalCompositeOperation = 'source-over';
-  if (pic.blank) ax.globalCompositeOperation = 'destination-over';      // on a blank page, fill is the background, behind her drawing
-  ax.drawImage(scratch, m.x, m.y, m.w, m.h, m.x, m.y, m.w, m.h);
-  ax.globalCompositeOperation = 'source-over';
-  remember({ x0: m.x, y0: m.y, x1: m.x + m.w, y1: m.y + m.h });
+  const cr = parseInt(colour.slice(1, 3), 16), cg = parseInt(colour.slice(3, 5), 16), cb = parseInt(colour.slice(5, 7), 16);
+  for (let i = 0; i < n; i++) if (fill[i]) { d[i * 4] = cr; d[i * 4 + 1] = cg; d[i * 4 + 2] = cb; d[i * 4 + 3] = 255; }
+  ax.putImageData(src, x0, y0);
+  remember({ x0, y0, x1: x0 + w, y1: y0 + h });
   sfx.pop();
   colouredArea(label, e && e.target);
   saveSoon();
